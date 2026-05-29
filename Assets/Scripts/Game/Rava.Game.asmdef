@@ -1,0 +1,19 @@
+{
+    "name": "Rava.Game",
+    "rootNamespace": "Rava.Game",
+    "references": [
+        "Rava.Core",
+        "Rava.Networking",
+        "Rava.Mining",
+        "Rava.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

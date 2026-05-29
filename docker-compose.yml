@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rava-postgres
+    environment:
+      POSTGRES_USER: rava
+      POSTGRES_PASSWORD: rava_dev
+      POSTGRES_DB: rava
+    ports:
+      - "5432:5432"
+    volumes:
+      - rava_pgdata:/var/lib/postgresql/data
+
+volumes:
+  rava_pgdata:

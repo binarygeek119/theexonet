@@ -4,7 +4,8 @@ namespace Rava.Core.Constants;
 
 public static class GameBalance
 {
-    public const decimal StarterCredits = 5000m;
+    public const decimal StarterCredits = GameCredits.SignUp;
+    public const decimal BirthdayBonusCredits = GameCredits.BirthdayBonus;
     public const decimal EmergencyBuybackRate = 0.5m;
     public const int GridSize = 8;
     public const int StarterWorkerCount = 5;

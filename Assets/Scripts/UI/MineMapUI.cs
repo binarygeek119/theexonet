@@ -27,8 +27,8 @@ namespace Rava.UI
 
             var panel = UIFactory.CreatePanel(parent, "MineMapPanel", new Color(0.1f, 0.12f, 0.16f, 0.9f));
             var panelRect = panel.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0.02f, 0.12f);
-            panelRect.anchorMax = new Vector2(0.58f, 0.88f);
+            panelRect.anchorMin = new Vector2(0.15f, 0.12f);
+            panelRect.anchorMax = new Vector2(0.68f, 0.88f);
             panelRect.offsetMin = Vector2.zero;
             panelRect.offsetMax = Vector2.zero;
 
@@ -206,7 +206,7 @@ namespace Rava.UI
                 y -= rowHeight + 0.02f;
 
                 var capturedWorker = worker;
-                btn.onClick.AddListener(() => _ = AssignWorkerAsync(capturedWorker));
+                btn.onClick.AddListener(() => AssignWorkerAsync(capturedWorker));
             }
         }
 

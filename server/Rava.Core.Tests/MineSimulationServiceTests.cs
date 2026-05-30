@@ -17,7 +17,7 @@ public class MineSimulationServiceTests
         var player = CreatePlayer();
         var mine = CreateMineWithAssignedWorker();
         var inventory = CreateStarterInventory(player.Id);
-        var market = await _market.GetDailyPricesAsync(1, 42);
+        var market = await _market.GetDailyPricesAsync(1, new DateOnly(2026, 5, 29));
 
         var result = _simulation.AdvanceDay(player, mine, inventory, market);
 
@@ -31,7 +31,7 @@ public class MineSimulationServiceTests
         var player = CreatePlayer();
         var mine = CreateMineWithAssignedWorker();
         var inventory = CreateStarterInventory(player.Id);
-        var market = await _market.GetDailyPricesAsync(1, 42);
+        var market = await _market.GetDailyPricesAsync(1, new DateOnly(2026, 5, 29));
         var startingCredits = player.Credits;
 
         var result = _simulation.AdvanceDay(player, mine, inventory, market);
@@ -71,7 +71,7 @@ public class MineSimulationServiceTests
     [Fact]
     public async Task MockMarket_GeneratesPricesForAllSupplies()
     {
-        var snapshot = await _market.GetDailyPricesAsync(3, 42);
+        var snapshot = await _market.GetDailyPricesAsync(3, new DateOnly(2026, 5, 29));
 
         Assert.Equal(4, snapshot.Prices.Count);
         Assert.All(snapshot.Prices, p => Assert.True(p.Price > 0));

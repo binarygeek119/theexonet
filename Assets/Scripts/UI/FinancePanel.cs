@@ -81,6 +81,10 @@ namespace Rava.UI
         {
             _visible = visible;
             _panelRoot.SetActive(visible);
+            if (visible)
+            {
+                UIPopupFront.BringToFront(_panelRoot.transform);
+            }
         }
 
         private void OnDestroy()

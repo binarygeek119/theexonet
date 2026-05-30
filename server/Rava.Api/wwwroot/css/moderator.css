@@ -1,0 +1,41 @@
+.mod-login-card h1 {
+  color: #d4a574;
+}
+
+.mod-header {
+  border-bottom-color: rgba(115, 77, 38, 0.55);
+}
+
+.mod-header h1 {
+  color: #d4a574;
+}
+
+.mod-panel {
+  border-color: rgba(115, 77, 38, 0.35);
+}
+
+.mod-primary-btn {
+  background: var(--accent);
+}
+
+.mod-readonly-note {
+  max-width: 1200px;
+  margin: 24px auto 0;
+  padding: 0 28px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.mod-profile-card,
+.mod-profile-top,
+.mod-profile-box {
+  border-color: rgba(115, 77, 38, 0.35);
+}
+
+.mod-profile-avatar {
+  background: linear-gradient(135deg, #8a6030, #5c3d1a);
+}
+
+.mod-view-profile-btn {
+  background: var(--accent);
+}

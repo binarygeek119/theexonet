@@ -1,0 +1,8 @@
+﻿<Solution>
+  <Project Path="Rava.UI.csproj" />
+  <Project Path="Rava.Networking.csproj" />
+  <Project Path="Rava.Game.csproj" />
+  <Project Path="Rava.Core.csproj" />
+  <Project Path="Rava.Mining.csproj" />
+  <Project Path="Rava.Editor.csproj" />
+</Solution>

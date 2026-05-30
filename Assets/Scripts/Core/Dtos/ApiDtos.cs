@@ -1,14 +1,15 @@
 using System;
 using Rava.Core.Enums;
 
-namespace Rava.Core.Dtos;
-
+namespace Rava.Core.Dtos
+{
 [Serializable]
 public class RegisterRequest
 {
     public string username;
     public string email;
     public string password;
+    public string birthday;
 }
 
 [Serializable]
@@ -16,6 +17,25 @@ public class LoginRequest
 {
     public string username;
     public string password;
+}
+
+[Serializable]
+public class ForgotPasswordRequest
+{
+    public string email;
+}
+
+[Serializable]
+public class ResetPasswordRequest
+{
+    public string token;
+    public string newPassword;
+}
+
+[Serializable]
+public class MessageResponse
+{
+    public string message;
 }
 
 [Serializable]
@@ -104,6 +124,10 @@ public class MineDetailResponse
     public WorkerDto[] workers;
     public InventoryItemDto[] inventory;
     public FeatureFlagsDto features;
+    public string utcDate;
+    public string nextDayAtUtc;
+    public DayAdvanceResponse latestDayReport;
+    public string birthdayMessage;
 }
 
 [Serializable]
@@ -173,7 +197,72 @@ public class ActionResponse
 }
 
 [Serializable]
+public class UpdatePlayerProfileRequest
+{
+    public string mood;
+    public string aboutMe;
+    public string music;
+    public string interests;
+}
+
+[Serializable]
+public class PlayerProfileResponse
+{
+    public string playerId;
+    public string username;
+    public string profileNumber;
+    public string profileImageUrl;
+    public string mood;
+    public string aboutMe;
+    public string music;
+    public string interests;
+    public string memberSince;
+    public int currentGameDay;
+    public float credits;
+    public string mineName;
+    public int workerCount;
+    public int zoneCount;
+    public bool isOwner;
+    public string friendshipStatus;
+    public string friendshipId;
+}
+
+[Serializable]
 public class ErrorResponse
 {
     public string message;
+}
+
+[Serializable]
+public class FriendSummaryDto
+{
+    public string friendshipId;
+    public string playerId;
+    public string username;
+    public string profileNumber;
+    public string mood;
+    public string status;
+    public string since;
+}
+
+[Serializable]
+public class FriendsListResponse
+{
+    public FriendSummaryDto[] friends;
+    public FriendSummaryDto[] incomingRequests;
+    public FriendSummaryDto[] outgoingRequests;
+}
+
+[Serializable]
+public class AddFriendRequest
+{
+    public string profileNumber;
+}
+
+[Serializable]
+public class FriendActionResponse
+{
+    public bool success;
+    public string message;
+}
 }

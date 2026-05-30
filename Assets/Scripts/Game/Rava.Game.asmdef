@@ -5,7 +5,8 @@
         "Rava.Core",
         "Rava.Networking",
         "Rava.Mining",
-        "Rava.UI"
+        "Rava.UI",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

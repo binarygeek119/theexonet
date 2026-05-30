@@ -8,5 +8,7 @@ public enum TransactionType
     DayAdvance,
     StarterGrant,
     EmergencyBuyback,
-    MineSale
+    MineSale,
+    BirthdayBonus,
+    SpecialEventBonus
 }

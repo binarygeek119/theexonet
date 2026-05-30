@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAVA — Reactive Asteroid Venturing Agency</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/profile.css">
+</head>
+<body>
+  <div id="login-screen" class="screen">
+    <div id="auth-toast" class="auth-toast" hidden role="status" aria-live="polite"></div>
+    <div class="login-card">
+      <h1>RAVA</h1>
+      <p class="subtitle">Reactive Asteroid Venturing Agency</p>
+      <p class="tagline">Point-and-click asteroid mining</p>
+
+      <div id="username-group">
+        <label for="username">Username</label>
+        <input id="username" type="text" autocomplete="username" placeholder="Username">
+      </div>
+
+      <div id="email-group" hidden>
+        <label for="email">Email <span class="required">*</span></label>
+        <input id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+      </div>
+
+      <div id="birthday-group" hidden>
+        <label>Birthday <span class="required">*</span></label>
+        <div class="birthday-selects">
+          <input id="birthday-month" list="birthday-month-options" placeholder="Month" autocomplete="bday-month" aria-label="Birth month">
+          <datalist id="birthday-month-options"></datalist>
+          <input id="birthday-day" list="birthday-day-options" placeholder="Day" autocomplete="bday-day" inputmode="numeric" aria-label="Birth day">
+          <datalist id="birthday-day-options"></datalist>
+          <input id="birthday-year" list="birthday-year-options" placeholder="Year" autocomplete="bday-year" inputmode="numeric" aria-label="Birth year">
+          <datalist id="birthday-year-options"></datalist>
+        </div>
+      </div>
+
+      <div id="forgot-group" hidden>
+        <label for="forgot-email">Account email <span class="required">*</span></label>
+        <input id="forgot-email" type="email" autocomplete="email" placeholder="you@example.com">
+      </div>
+
+      <div id="reset-group" hidden>
+        <label for="reset-token">Reset token</label>
+        <input id="reset-token" type="text" autocomplete="off" placeholder="Paste token from email">
+        <label for="new-password">New password</label>
+        <input id="new-password" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+        <label for="confirm-password">Confirm password</label>
+        <input id="confirm-password" type="password" autocomplete="new-password" placeholder="Repeat new password">
+      </div>
+
+      <div id="password-group">
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="Password">
+      </div>
+
+      <div id="ban-appeal-group" hidden>
+        <p id="ban-appeal-notice" class="ban-appeal-notice"></p>
+        <label for="ban-appeal-message">Message to admin</label>
+        <textarea
+          id="ban-appeal-message"
+          maxlength="2000"
+          rows="4"
+          placeholder="Explain why your ban should be removed..."></textarea>
+      </div>
+
+      <p id="login-status" class="status-text"></p>
+
+      <div class="button-row">
+        <button id="login-btn" type="button" class="btn primary">Login</button>
+        <button id="register-btn" type="button" class="btn success">Create Account</button>
+      </div>
+      <button id="toggle-mode" type="button" class="btn ghost">Switch to Register</button>
+      <button id="forgot-btn" type="button" class="btn ghost linkish">Forgot password?</button>
+      <button id="send-reset-btn" type="button" class="btn primary" hidden>Send reset link</button>
+      <button id="reset-password-btn" type="button" class="btn primary" hidden>Update password</button>
+      <button id="ban-appeal-btn" type="button" class="btn primary" hidden>Send appeal to admin</button>
+      <button id="back-login-btn" type="button" class="btn ghost" hidden>Back to login</button>
+      <a class="admin-portal-link" href="/admin">Admin portal</a>
+      <a class="moderator-portal-link" href="/moderator">Moderator portal</a>
+    </div>
+  </div>
+
+  <div id="game-screen" class="screen" hidden>
+    <aside class="game-nav">
+      <button id="profile-btn" type="button" class="btn tab">Profile</button>
+      <button id="finance-btn" type="button" class="btn tab">Finances</button>
+      <button id="friends-btn" type="button" class="btn tab">Friends</button>
+      <button id="messages-btn" type="button" class="btn tab">
+        Messages
+        <span id="messages-nav-badge" class="nav-badge" hidden>0</span>
+      </button>
+      <button id="trade-market-btn" type="button" class="btn tab">Trade Market</button>
+      <button id="store-btn" type="button" class="btn tab">Store</button>
+      <button id="shipping-btn" type="button" class="btn tab">Shipping</button>
+      <button id="logout-btn" type="button" class="btn ghost">Logout</button>
+    </aside>
+
+    <div class="game-main">
+    <header class="hud">
+      <div class="hud-left">
+        <span id="player-name" class="player-name clickable" title="View your profile">Commander</span>
+        <span id="credits">Credits: ---</span>
+        <span id="day">Day ---</span>
+        <span id="utc-clock" class="utc-clock">UTC ---</span>
+      </div>
+    </header>
+
+    <main class="game-layout">
+      <section class="mine-panel">
+        <h2>Asteroid Mine Grid</h2>
+        <div id="mine-grid" class="mine-grid"></div>
+      </section>
+
+      <aside class="side-panel">
+        <h2>Zone Details</h2>
+        <div id="zone-info" class="zone-info">Select a zone on the grid.</div>
+        <h3>Assign Worker</h3>
+        <div id="worker-list" class="worker-list"></div>
+      </aside>
+    </main>
+
+    <footer id="status-bar" class="status-bar"></footer>
+    </div>
+  </div>
+
+  <div id="finance-modal" class="modal" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Finances</h2>
+        <button type="button" class="btn ghost" data-close-modal>Close</button>
+      </div>
+      <div id="finance-summary" class="summary"></div>
+      <h3>Recent Transactions</h3>
+      <div id="finance-transactions" class="transaction-list"></div>
+      <button id="emergency-btn" type="button" class="btn danger" hidden>
+        Emergency Ore Buyback (50%)
+      </button>
+    </div>
+  </div>
+
+  <div id="supply-modal" class="modal" hidden>
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h2>Trade Market</h2>
+        <button type="button" class="btn ghost" data-close-modal>Close</button>
+      </div>
+      <p id="market-info" class="market-info">Market prices loading...</p>
+      <div class="shop-columns">
+        <section>
+          <h3>Buy Supplies (US Market Linked)</h3>
+          <div id="supply-list" class="shop-list"></div>
+        </section>
+        <section>
+          <h3>Sell Ore (NPC Refinery)</h3>
+          <div id="ore-list" class="shop-list"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="store-modal" class="modal" hidden>
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h2>Store</h2>
+        <button type="button" class="btn ghost" data-close-modal>Close</button>
+      </div>
+      <p id="store-market-info" class="market-info">Market prices loading...</p>
+      <section>
+        <h3>Buy Supplies (US Market Linked)</h3>
+        <div id="store-supply-list" class="shop-list"></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="shipping-modal" class="modal" hidden>
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h2>Shipping</h2>
+        <button type="button" class="btn ghost" data-close-modal>Close</button>
+      </div>
+      <p id="shipping-summary" class="market-info">Load ore cargo and ship it to the NPC refinery.</p>
+      <section>
+        <h3>Cargo Hold</h3>
+        <div id="shipping-cargo-list" class="shop-list"></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="day-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h2 id="day-report-title">Day Report</h2>
+      <pre id="day-report-body" class="day-report"></pre>
+      <button id="close-day-report" type="button" class="btn primary">Continue</button>
+    </div>
+  </div>
+
+  <div id="event-modal" class="modal" hidden>
+    <div class="modal-card event-modal-card">
+      <h2 id="event-modal-title">Special Event</h2>
+      <p id="event-modal-message" class="event-modal-message"></p>
+      <p id="event-modal-challenge" class="event-modal-challenge" hidden></p>
+      <h3 id="event-modal-rewards-heading" class="event-modal-rewards-heading">Rewards</h3>
+      <ul id="event-modal-rewards" class="event-rewards-list"></ul>
+      <button id="event-modal-close" type="button" class="btn primary">Got it</button>
+    </div>
+  </div>
+
+  <div id="profile-modal" class="modal profile-modal" hidden>
+    <div id="profile-card" class="profile-card theme-classic">
+      <header class="profile-top">
+        <h2>RAVA Profile</h2>
+        <button id="profile-close-btn" type="button" class="btn ghost profile-close">Close</button>
+      </header>
+
+      <div id="profile-flag-notice" class="profile-flag-notice" hidden>
+        <strong>Profile flagged for review</strong>
+        <p id="profile-flag-comment" class="profile-flag-comment"></p>
+        <p class="profile-flag-hint">Please update your profile content. The flag clears automatically when you save changes.</p>
+      </div>
+
+      <div class="profile-banner">
+        <div id="profile-avatar-column" class="profile-avatar-column">
+          <div id="profile-avatar" class="profile-avatar">
+            <img id="profile-avatar-img" class="profile-avatar-img" alt="" hidden>
+            <span id="profile-avatar-initials" class="profile-avatar-initials">??</span>
+          </div>
+          <div id="profile-photo-upload" class="profile-photo-upload" hidden>
+            <input id="profile-photo-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+            <button id="profile-photo-choose-btn" type="button" class="btn primary profile-photo-btn">Choose Photo</button>
+            <button id="profile-photo-btn" type="button" class="btn ghost profile-photo-btn" disabled>Upload</button>
+            <p id="profile-photo-status" class="profile-save-status"></p>
+          </div>
+        </div>
+        <div class="profile-headline">
+          <h3 id="profile-username">Commander</h3>
+          <p id="profile-mood-display" class="profile-mood-display">Ready to mine.</p>
+          <p id="profile-number" class="profile-number">---</p>
+          <p id="profile-member-since" class="profile-member-since">Member since ---</p>
+        </div>
+      </div>
+
+      <div class="profile-body">
+        <main class="profile-main">
+          <section class="profile-box">
+            <h4>About Me</h4>
+            <div id="profile-about-view" class="profile-box-content empty">No bio yet.</div>
+          </section>
+          <section class="profile-box">
+            <h4>Interests</h4>
+            <div id="profile-interests-view" class="profile-box-content empty">Nothing listed yet.</div>
+          </section>
+          <section class="profile-box">
+            <h4>Now Playing</h4>
+            <div id="profile-music-view" class="profile-box-content empty">Silence in the void.</div>
+          </section>
+          <section class="profile-box">
+            <h4>Social Links</h4>
+            <div id="profile-social-view" class="profile-box-content profile-social-view"></div>
+          </section>
+        </main>
+
+        <aside class="profile-sidebar">
+          <section class="profile-box">
+            <h4>Mining Stats</h4>
+            <div class="profile-box-content">
+              <dl class="profile-stats">
+                <dt>Profile #</dt>
+                <dd id="profile-sidebar-number" class="profile-sidebar-number">---</dd>
+                <dt>Signed up</dt>
+                <dd id="profile-sidebar-member-since">---</dd>
+                <dt>Mine</dt>
+                <dd id="profile-mine-name">---</dd>
+                <dt>Game Day</dt>
+                <dd id="profile-game-day">---</dd>
+                <dt>Credits</dt>
+                <dd id="profile-credits">---</dd>
+                <dt>Workers</dt>
+                <dd id="profile-workers">---</dd>
+                <dt>Zones</dt>
+                <dd id="profile-zones">---</dd>
+              </dl>
+            </div>
+          </section>
+
+          <section id="profile-friend-panel" class="profile-box" hidden>
+            <h4>Friendship</h4>
+            <div class="profile-box-content">
+              <p id="profile-friend-status" class="profile-friend-status"></p>
+              <div class="profile-friend-actions">
+                <button id="profile-add-friend-btn" type="button" class="btn primary" hidden>Add Friend</button>
+                <button id="profile-accept-friend-btn" type="button" class="btn success" hidden>Accept Request</button>
+                <button id="profile-message-friend-btn" type="button" class="btn primary" hidden>Message</button>
+                <button id="profile-remove-friend-btn" type="button" class="btn ghost" hidden>Remove</button>
+              </div>
+              <p id="profile-friend-action-status" class="profile-save-status"></p>
+            </div>
+          </section>
+
+          <section id="profile-edit-panel" class="profile-box profile-edit-panel" hidden>
+            <h4>Customize Profile</h4>
+            <div class="profile-box-content">
+              <p class="profile-number-label">Your profile number</p>
+              <p id="profile-edit-number" class="profile-edit-number">---</p>
+              <p class="profile-number-hint">Share this so others can add you as a friend.</p>
+
+              <p class="profile-number-label">Add a friend</p>
+              <div class="profile-add-friend-row">
+                <input id="profile-add-friend-number" type="text" placeholder="!K7R-8842-9F3A" autocomplete="off">
+                <button id="profile-add-friend-submit-btn" type="button" class="btn primary">Add Friend</button>
+              </div>
+              <p id="profile-add-friend-status" class="profile-save-status"></p>
+
+              <label for="profile-mood-input">Mood</label>
+              <input id="profile-mood-input" type="text" maxlength="120" placeholder="What's your mood today?">
+
+              <label for="profile-about-input">About Me</label>
+              <textarea id="profile-about-input" maxlength="2000" placeholder="Tell the galaxy about yourself..."></textarea>
+
+              <label for="profile-interests-input">Interests</label>
+              <textarea id="profile-interests-input" maxlength="500" placeholder="Asteroids, ore, deep space jazz..."></textarea>
+
+              <label for="profile-music-input">Now Playing</label>
+              <input id="profile-music-input" type="text" maxlength="120" placeholder="Artist — Track">
+
+              <p class="profile-number-label">Social links</p>
+              <label for="profile-discord-input">Discord</label>
+              <input id="profile-discord-input" type="text" maxlength="120" placeholder="username or discord.gg/invite" autocomplete="off">
+              <label for="profile-bluesky-input">Bluesky</label>
+              <input id="profile-bluesky-input" type="text" maxlength="120" placeholder="@handle.bsky.social" autocomplete="off">
+              <label for="profile-twitter-input">Twitter / X</label>
+              <input id="profile-twitter-input" type="text" maxlength="120" placeholder="@handle" autocomplete="off">
+              <label for="profile-youtube-input">YouTube</label>
+              <input id="profile-youtube-input" type="text" maxlength="120" placeholder="@channel or channel URL" autocomplete="off">
+              <label for="profile-facebook-input">Facebook</label>
+              <input id="profile-facebook-input" type="text" maxlength="120" placeholder="username or profile URL" autocomplete="off">
+
+              <div class="profile-save-row">
+                <button id="profile-save-btn" type="button" class="btn primary">Save Profile</button>
+                <span id="profile-save-status" class="profile-save-status"></span>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <div id="friends-modal" class="modal" hidden>
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h2>Friends</h2>
+        <button type="button" class="btn ghost" data-close-modal>Close</button>
+      </div>
+
+      <section class="friends-add">
+        <label for="add-friend-number">Add friend by profile number</label>
+        <div class="friends-add-row">
+          <input id="add-friend-number" type="text" placeholder="!K7R-8842-9F3A" autocomplete="off">
+          <button id="add-friend-btn" type="button" class="btn primary">Add Friend</button>
+        </div>
+        <p id="add-friend-status" class="friends-status"></p>
+      </section>
+
+      <div class="friends-columns">
+        <section>
+          <h3>My Friends</h3>
+          <div id="friends-list" class="friends-list"></div>
+        </section>
+        <section>
+          <h3>Incoming Requests</h3>
+          <div id="incoming-friends-list" class="friends-list"></div>
+        </section>
+        <section>
+          <h3>Pending Sent</h3>
+          <div id="outgoing-friends-list" class="friends-list"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="messages-modal" class="modal" hidden>
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h2>Messages</h2>
+        <button type="button" class="btn ghost" data-close-modal>Close</button>
+      </div>
+      <p id="messages-status" class="friends-status"></p>
+      <section class="player-message-compose">
+        <h3>Message staff</h3>
+        <label for="player-staff-recipient">To</label>
+        <select id="player-staff-recipient">
+          <option value="">Select staff member…</option>
+        </select>
+        <label for="player-staff-body">Message</label>
+        <textarea
+          id="player-staff-body"
+          maxlength="4000"
+          rows="3"
+          placeholder="Write a message to an admin or moderator…"></textarea>
+        <button id="player-staff-send-btn" type="button" class="btn accent">Send to staff</button>
+      </section>
+      <section class="player-message-compose">
+        <h3>Send to friend</h3>
+        <label for="player-message-recipient">To</label>
+        <select id="player-message-recipient">
+          <option value="">Select friend…</option>
+        </select>
+        <label for="player-message-body">Message</label>
+        <textarea
+          id="player-message-body"
+          maxlength="4000"
+          rows="3"
+          placeholder="Write a message to a friend..."></textarea>
+        <button id="player-message-send-btn" type="button" class="btn primary">Send</button>
+      </section>
+      <div class="staff-message-layout">
+        <div id="player-messages-inbox" class="staff-message-inbox"></div>
+        <div id="player-messages-detail" class="staff-message-detail"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

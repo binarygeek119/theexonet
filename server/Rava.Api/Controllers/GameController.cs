@@ -13,8 +13,13 @@ public class GameController(PlayerGameService gameService) : ControllerBase
     [HttpPost("game/advance-day")]
     public async Task<ActionResult<DayAdvanceResponse>> AdvanceDay(CancellationToken ct)
     {
-        var result = await gameService.AdvanceDayAsync(User.GetPlayerId(), ct);
-        return result is null ? NotFound() : Ok(result);
+        var (result, completions) = await gameService.AdvanceDayAsync(User.GetPlayerId(), ct);
+        if (result is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(result with { EventCompletions = completions.Count > 0 ? completions : null });
     }
 
     [HttpGet("market/today")]

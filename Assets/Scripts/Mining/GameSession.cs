@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Rava.Core.Dtos;
+using Rava.Core.Enums;
 using Rava.Core.Events;
 using Rava.Networking;
 using UnityEngine;
@@ -8,6 +9,11 @@ namespace Rava.Mining
 {
     public class GameSession : MonoBehaviour
     {
+        private const string TokenKey = "rava_token";
+        private const string MineIdKey = "rava_mineId";
+        private const string PlayerIdKey = "rava_playerId";
+        private const string UsernameKey = "rava_username";
+
         [SerializeField] private ApiClient apiClient;
 
         public ApiClient Api => apiClient;
@@ -31,12 +37,9 @@ namespace Rava.Mining
             apiClient = client;
         }
 
-        public async Task<AuthResponse> RegisterAsync(string username, string email, string password)
+        public async Task RegisterAccountAsync(string username, string email, string password, string birthday)
         {
-            var response = await apiClient.RegisterAsync(username, email, password);
-            ApplyAuth(response);
-            await RefreshAllAsync();
-            return response;
+            await apiClient.RegisterAsync(username, email, password, birthday);
         }
 
         public async Task<AuthResponse> LoginAsync(string username, string password)
@@ -47,6 +50,12 @@ namespace Rava.Mining
             return response;
         }
 
+        public Task<MessageResponse> ForgotPasswordAsync(string email) =>
+            apiClient.ForgotPasswordAsync(email);
+
+        public Task<MessageResponse> ResetPasswordAsync(string token, string newPassword) =>
+            apiClient.ResetPasswordAsync(token, newPassword);
+
         public void Logout()
         {
             apiClient.ClearToken();
@@ -56,13 +65,49 @@ namespace Rava.Mining
             CurrentMine = null;
             CurrentFinances = null;
             CurrentMarket = null;
+            ClearStoredAuth();
             GameEvents.RaiseLoggedOut();
+        }
+
+        public async Task<bool> TryRestoreSessionAsync()
+        {
+            var token = PlayerPrefs.GetString(TokenKey, string.Empty);
+            var mineId = PlayerPrefs.GetString(MineIdKey, string.Empty);
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(mineId))
+            {
+                return false;
+            }
+
+            apiClient.SetToken(token);
+            PlayerId = PlayerPrefs.GetString(PlayerIdKey, string.Empty);
+            MineId = mineId;
+            Username = PlayerPrefs.GetString(UsernameKey, string.Empty);
+
+            try
+            {
+                await RefreshAllAsync();
+                return true;
+            }
+            catch
+            {
+                Logout();
+                return false;
+            }
         }
 
         public async Task RefreshMineAsync()
         {
             CurrentMine = await apiClient.GetMineAsync(MineId);
             GameEvents.RaiseMineUpdated(CurrentMine);
+            if (CurrentMine.latestDayReport != null)
+            {
+                GameEvents.RaiseDayAdvanced(CurrentMine.latestDayReport);
+            }
+
+            if (!string.IsNullOrEmpty(CurrentMine.birthdayMessage))
+            {
+                GameEvents.RaiseBirthdayBonus(CurrentMine.birthdayMessage);
+            }
         }
 
         public async Task RefreshFinancesAsync()
@@ -116,12 +161,52 @@ namespace Rava.Mining
             return result;
         }
 
+        public Task<PlayerProfileResponse> LoadProfileAsync() =>
+            apiClient.GetProfileAsync();
+
+        public Task<PlayerProfileResponse> UpdateProfileAsync(UpdatePlayerProfileRequest request) =>
+            apiClient.UpdateProfileAsync(request);
+
+        public Task<PlayerProfileResponse> UploadProfileAvatarAsync(byte[] fileBytes, string fileName, string contentType) =>
+            apiClient.UploadProfileAvatarAsync(fileBytes, fileName, contentType);
+
+        public Task<FriendsListResponse> LoadFriendsAsync() =>
+            apiClient.GetFriendsAsync();
+
+        public Task<FriendActionResponse> AddFriendAsync(string profileNumber) =>
+            apiClient.AddFriendAsync(profileNumber);
+
+        public Task<FriendActionResponse> AcceptFriendAsync(string friendshipId) =>
+            apiClient.AcceptFriendAsync(friendshipId);
+
+        public Task<FriendActionResponse> RemoveFriendAsync(string friendshipId) =>
+            apiClient.RemoveFriendAsync(friendshipId);
+
         private void ApplyAuth(AuthResponse response)
         {
             apiClient.SetToken(response.token);
             PlayerId = response.playerId;
             MineId = response.mineId;
             Username = response.username;
+            SaveAuth(response);
+        }
+
+        private static void SaveAuth(AuthResponse response)
+        {
+            PlayerPrefs.SetString(TokenKey, response.token);
+            PlayerPrefs.SetString(MineIdKey, response.mineId);
+            PlayerPrefs.SetString(PlayerIdKey, response.playerId);
+            PlayerPrefs.SetString(UsernameKey, response.username);
+            PlayerPrefs.Save();
+        }
+
+        private static void ClearStoredAuth()
+        {
+            PlayerPrefs.DeleteKey(TokenKey);
+            PlayerPrefs.DeleteKey(MineIdKey);
+            PlayerPrefs.DeleteKey(PlayerIdKey);
+            PlayerPrefs.DeleteKey(UsernameKey);
+            PlayerPrefs.Save();
         }
     }
 }

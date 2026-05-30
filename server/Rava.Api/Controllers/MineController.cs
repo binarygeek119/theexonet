@@ -22,17 +22,19 @@ public class MineController(PlayerGameService gameService) : ControllerBase
     public async Task<ActionResult<ActionResponse>> AssignWorker(
         Guid mineId, AssignWorkerRequest request, CancellationToken ct)
     {
-        var (success, message) = await gameService.AssignWorkerAsync(User.GetPlayerId(), mineId, request, ct);
-        return success ? Ok(new ActionResponse(true, message)) : BadRequest(new ActionResponse(false, message));
+        var (success, message, completions) = await gameService.AssignWorkerAsync(User.GetPlayerId(), mineId, request, ct);
+        return success
+            ? Ok(new ActionResponse(true, message, null, completions))
+            : BadRequest(new ActionResponse(false, message));
     }
 
     [HttpPost("{mineId:guid}/buy-supply")]
     public async Task<ActionResult<ActionResponse>> BuySupply(
         Guid mineId, BuySupplyRequest request, CancellationToken ct)
     {
-        var (success, message, credits) = await gameService.BuySupplyAsync(User.GetPlayerId(), mineId, request, ct);
+        var (success, message, credits, completions) = await gameService.BuySupplyAsync(User.GetPlayerId(), mineId, request, ct);
         return success
-            ? Ok(new ActionResponse(true, message, credits))
+            ? Ok(new ActionResponse(true, message, credits, completions))
             : BadRequest(new ActionResponse(false, message, credits));
     }
 
@@ -40,9 +42,9 @@ public class MineController(PlayerGameService gameService) : ControllerBase
     public async Task<ActionResult<ActionResponse>> SellOre(
         Guid mineId, SellOreRequest request, CancellationToken ct)
     {
-        var (success, message, credits) = await gameService.SellOreAsync(User.GetPlayerId(), mineId, request, ct);
+        var (success, message, credits, completions) = await gameService.SellOreAsync(User.GetPlayerId(), mineId, request, ct);
         return success
-            ? Ok(new ActionResponse(true, message, credits))
+            ? Ok(new ActionResponse(true, message, credits, completions))
             : BadRequest(new ActionResponse(false, message, credits));
     }
 }

@@ -110,3 +110,6 @@ InitTestScene*.unity*
 /server/**/bin/
 /server/**/obj/
 /server/.vs/
+/server/Rava.Api/appsettings.Development.json
+/server/Rava.Api/wwwroot/uploads/profiles/*
+!/server/Rava.Api/wwwroot/uploads/profiles/.gitkeep

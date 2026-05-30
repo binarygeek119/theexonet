@@ -4,7 +4,10 @@ namespace Rava.Core.Interfaces;
 
 public interface IMarketDataProvider
 {
-    Task<DailyMarketSnapshot> GetDailyPricesAsync(int gameDay, int marketSeed, CancellationToken cancellationToken = default);
+    Task<DailyMarketSnapshot> GetDailyPricesAsync(
+        int gameDay,
+        DateOnly utcDate,
+        CancellationToken cancellationToken = default);
 }
 
 public interface IMineSimulationService

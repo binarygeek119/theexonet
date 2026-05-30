@@ -35,7 +35,7 @@ namespace Rava.UI
             rect.offsetMax = Vector2.zero;
             _panelRoot.SetActive(false);
 
-            UIFactory.CreateText(_panelRoot.transform, "Title", "Supplies & Ore Sales", 22, TextAnchor.UpperCenter);
+            UIFactory.CreateText(_panelRoot.transform, "Title", "Trade Market", 22, TextAnchor.UpperCenter);
             var titleRect = _panelRoot.transform.Find("Title").GetComponent<RectTransform>();
             titleRect.anchorMin = new Vector2(0f, 0.92f);
             titleRect.anchorMax = new Vector2(1f, 1f);
@@ -91,6 +91,7 @@ namespace Rava.UI
             _panelRoot.SetActive(visible);
             if (visible)
             {
+                UIPopupFront.BringToFront(_panelRoot.transform);
                 RefreshLists();
             }
         }
@@ -108,8 +109,20 @@ namespace Rava.UI
                 return;
             }
 
-            _marketText.text = $"Game Day {market.gameDay} — Mock US Market ({market.source})";
+            _marketText.text = market == null
+                ? "Market prices loading..."
+                : $"Game Day {market.gameDay} · {FormatMarketSource(market.source)} · refreshes UTC midnight";
             RefreshLists();
+        }
+
+        private static string FormatMarketSource(string source)
+        {
+            return source switch
+            {
+                "yahoo-us" => "US stocks (CAT, XOM, JNJ, QCOM)",
+                "mock-fallback" => "fallback mock prices",
+                _ => source ?? "market"
+            };
         }
 
         private void RefreshLists()

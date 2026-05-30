@@ -1,0 +1,252 @@
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using Microsoft.Extensions.Options;
+using MimeKit;
+using Rava.Core.Interfaces;
+
+namespace Rava.Api.Services;
+
+public class SmtpEmailService(IOptions<EmailOptions> options, ILogger<SmtpEmailService> logger) : IEmailService
+{
+    public async Task SendPasswordResetAsync(
+        string toEmail,
+        string username,
+        string resetUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var settings = options.Value;
+        var message = BuildPasswordResetMessage(settings, toEmail, username, resetUrl);
+
+        await SendAsync(settings, message, cancellationToken);
+        logger.LogInformation("Password reset email sent to {Email}", toEmail);
+    }
+
+    public async Task SendProfileFlagAsync(
+        string toEmail,
+        string username,
+        string comment,
+        string profileUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var settings = options.Value;
+        var message = BuildProfileFlagMessage(settings, toEmail, username, comment, profileUrl);
+
+        await SendAsync(settings, message, cancellationToken);
+        logger.LogInformation("Profile flag email sent to {Email}", toEmail);
+    }
+
+    public async Task SendBanAppealToAdminAsync(
+        string toEmail,
+        string adminUsername,
+        string playerUsername,
+        string playerEmail,
+        string banSummary,
+        string message,
+        string adminPortalUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var settings = options.Value;
+        var mimeMessage = BuildBanAppealMessage(
+            settings,
+            toEmail,
+            adminUsername,
+            playerUsername,
+            playerEmail,
+            banSummary,
+            message,
+            adminPortalUrl);
+
+        await SendAsync(settings, mimeMessage, cancellationToken);
+        logger.LogInformation("Ban appeal email sent to admin {Email}", toEmail);
+    }
+
+    private async Task SendAsync(EmailOptions settings, MimeMessage message, CancellationToken cancellationToken)
+    {
+        using var client = new SmtpClient();
+        var secureSocketOptions = ResolveSecureSocketOptions(settings);
+        try
+        {
+            await client.ConnectAsync(settings.Host, settings.Port, secureSocketOptions, cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(settings.Username))
+            {
+                await client.AuthenticateAsync(settings.Username, settings.Password, cancellationToken);
+            }
+
+            await client.SendAsync(message, cancellationToken);
+            await client.DisconnectAsync(true, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "SMTP send failed via {Host}:{Port} as {Username}. Check Email settings in appsettings.Development.json.",
+                settings.Host,
+                settings.Port,
+                settings.Username);
+            throw;
+        }
+    }
+
+    private static SecureSocketOptions ResolveSecureSocketOptions(EmailOptions settings)
+    {
+        if (settings.UseSsl || settings.Port == 465)
+        {
+            return SecureSocketOptions.SslOnConnect;
+        }
+
+        if (settings.UseStartTls || settings.Port == 587)
+        {
+            return SecureSocketOptions.StartTls;
+        }
+
+        return SecureSocketOptions.Auto;
+    }
+
+    private static MimeMessage BuildPasswordResetMessage(EmailOptions settings, string toEmail, string username, string resetUrl)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(settings.FromName, settings.FromAddress));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = "Reset your RAVA password";
+
+        var body = $"""
+            Hi {username},
+
+            We received a request to reset your Reactive Asteroid Venturing Agency (RAVA) password.
+
+            Open this link to choose a new password (expires in 1 hour):
+            {resetUrl}
+
+            If you did not request this, you can ignore this email.
+
+            — RAVA Command
+            """;
+
+        message.Body = new TextPart("plain") { Text = body };
+        return message;
+    }
+
+    private static MimeMessage BuildProfileFlagMessage(
+        EmailOptions settings,
+        string toEmail,
+        string username,
+        string comment,
+        string profileUrl)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(settings.FromName, settings.FromAddress));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = "Action required: update your RAVA profile";
+
+        var body = $"""
+            Hi {username},
+
+            Your RAVA profile was flagged for review. Please remove or change the content called out below.
+
+            Moderator comment:
+            {comment}
+
+            Open your profile to make changes:
+            {profileUrl}
+
+            After you save profile updates, the flag will be cleared automatically.
+
+            — RAVA Command
+            """;
+
+        message.Body = new TextPart("plain") { Text = body };
+        return message;
+    }
+
+    private static MimeMessage BuildBanAppealMessage(
+        EmailOptions settings,
+        string toEmail,
+        string adminUsername,
+        string playerUsername,
+        string playerEmail,
+        string banSummary,
+        string message,
+        string adminPortalUrl)
+    {
+        var mimeMessage = new MimeMessage();
+        mimeMessage.From.Add(new MailboxAddress(settings.FromName, settings.FromAddress));
+        mimeMessage.To.Add(MailboxAddress.Parse(toEmail));
+        mimeMessage.Subject = $"Ban removal request from {playerUsername}";
+
+        var body = $"""
+            Hi {adminUsername},
+
+            A banned player submitted a request to remove their ban.
+
+            Player: {playerUsername}
+            Email: {playerEmail}
+            Ban: {banSummary}
+
+            Message:
+            {message}
+
+            Review appeals in the admin portal:
+            {adminPortalUrl}
+
+            — RAVA Command
+            """;
+
+        mimeMessage.Body = new TextPart("plain") { Text = body };
+        return mimeMessage;
+    }
+}
+
+public class LoggingEmailService(ILogger<LoggingEmailService> logger) : IEmailService
+{
+    public Task SendPasswordResetAsync(
+        string toEmail,
+        string username,
+        string resetUrl,
+        CancellationToken cancellationToken = default)
+    {
+        logger.LogWarning(
+            "Email not configured. Password reset for {Username} ({Email}): {ResetUrl}",
+            username,
+            toEmail,
+            resetUrl);
+        return Task.CompletedTask;
+    }
+
+    public Task SendProfileFlagAsync(
+        string toEmail,
+        string username,
+        string comment,
+        string profileUrl,
+        CancellationToken cancellationToken = default)
+    {
+        logger.LogWarning(
+            "Email not configured. Profile flag for {Username} ({Email}): {Comment} — {ProfileUrl}",
+            username,
+            toEmail,
+            comment,
+            profileUrl);
+        return Task.CompletedTask;
+    }
+
+    public Task SendBanAppealToAdminAsync(
+        string toEmail,
+        string adminUsername,
+        string playerUsername,
+        string playerEmail,
+        string banSummary,
+        string message,
+        string adminPortalUrl,
+        CancellationToken cancellationToken = default)
+    {
+        logger.LogWarning(
+            "Email not configured. Ban appeal for {PlayerUsername} ({PlayerEmail}) to admin {AdminUsername} ({AdminEmail}): {Message} — {AdminPortalUrl}",
+            playerUsername,
+            playerEmail,
+            adminUsername,
+            toEmail,
+            message,
+            adminPortalUrl);
+        return Task.CompletedTask;
+    }
+}

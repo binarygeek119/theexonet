@@ -1,5 +1,5 @@
-namespace Rava.Core.Enums;
-
+namespace Rava.Core.Enums
+{
 public enum SupplyType
 {
     DrillBits,
@@ -30,4 +30,5 @@ public enum OreTypeDto
     Voidium,
     Stellarite,
     SalvageScrap
+}
 }

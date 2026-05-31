@@ -20,6 +20,9 @@ jobs:
   build:
     name: Build and test
     runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.meta.outputs.tag }}
+      release_date: ${{ steps.meta.outputs.date }}
     defaults:
       run:
         working-directory: server
@@ -27,6 +30,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set release tag
+        id: meta
+        if: github.event_name != 'pull_request'
+        run: |
+          DATE="$(date -u +%Y-%m-%d)"
+          TAG="website-${DATE}-${{ github.run_number }}"
+          echo "date=${DATE}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -60,3 +72,39 @@ jobs:
           name: rava-website
           path: server/publish/
           if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download publish artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rava-website
+          path: publish
+
+      - name: Create release archive
+        run: zip -r "rava-website-${{ needs.build.outputs.release_tag }}.zip" publish
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build.outputs.release_tag }}
+          name: Website ${{ needs.build.outputs.release_tag }}
+          body: |
+            Automated website release.
+
+            - **Tag:** `${{ needs.build.outputs.release_tag }}`
+            - **Date (UTC):** ${{ needs.build.outputs.release_date }}
+            - **Build number:** ${{ github.run_number }}
+            - **Commit:** ${{ github.sha }}
+            - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            Download `rava-website-*.zip`, extract it, and run `Rava.Api` with your production configuration (`appsettings.json`, database connection, etc.).
+          files: rava-website-*.zip
+          generate_release_notes: true

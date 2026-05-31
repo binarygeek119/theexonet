@@ -68,14 +68,13 @@ jobs:
           dotnet publish Rava.Api/Rava.Api.csproj --configuration Release --output ./publish
           rsync -a Rava.Api/html/ publish/html/
           dotnet publish Rava.Status/Rava.Status.csproj --configuration Release --output ./publish-status
+          rsync -a publish-status/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
 
       - name: Upload publish artifact
         uses: actions/upload-artifact@v4
         with:
           name: rava-website
-          path: |
-            server/publish/
-            server/publish-status/
+          path: server/publish/
           if-no-files-found: error
 
   release:
@@ -91,10 +90,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: rava-website
-          path: release-bundle
+          path: publish
 
       - name: Create release archive
-        run: zip -r "rava-website-${{ needs.build.outputs.release_tag }}.zip" release-bundle/publish release-bundle/publish-status
+        run: zip -r "rava-website-${{ needs.build.outputs.release_tag }}.zip" publish
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
@@ -110,10 +109,10 @@ jobs:
             - **Commit:** ${{ github.sha }}
             - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-            Download `rava-website-*.zip` and extract:
+            Download `rava-website-*.zip`, extract `publish/`, copy `appsettings.json.example` to `appsettings.json`, configure secrets, then run:
 
-            - **`publish/`** — `Rava.Api` (port 5000). Copy `appsettings.json.example` to `appsettings.json`, configure secrets, then run.
-            - **`publish-status/`** — `Rava.Status` dashboard (port 6000). Edit `appsettings.json` (`StatusMonitor:ApiBaseUrl` → `http://127.0.0.1:5000` on the API host).
+            - **`Rava.Api.dll`** — port 5000
+            - **`Rava.Status.dll`** — port 6000 (same folder; add `StatusMonitor` section to `appsettings.json`)
           files: rava-website-*.zip
           generate_release_notes: true
 
@@ -128,14 +127,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download API publish artifact
+      - name: Download publish artifact
         uses: actions/download-artifact@v4
         with:
           name: rava-website
-          path: release-bundle
+          path: publish
 
       - name: Ensure html is in publish bundle
-        run: rsync -a server/Rava.Api/html/ release-bundle/publish/html/
+        run: rsync -a server/Rava.Api/html/ publish/html/
 
       - name: Setup SSH agent
         uses: webfactory/ssh-agent@v0.9.0
@@ -189,7 +188,7 @@ jobs:
             --exclude 'appsettings.json' \
             --exclude 'appsettings.Development.json' \
             --exclude 'html/uploads/profiles/*' \
-            release-bundle/publish/ \
+            publish/ \
             "${DEPLOY_USER}@${host}:${DEPLOY_API_PATH}/"
 
       - name: Restart API service
@@ -210,4 +209,23 @@ jobs:
           ssh -p "$port" -o StrictHostKeyChecking=yes \
             "${DEPLOY_USER}@${host}" \
             "sudo systemctl restart ${DEPLOY_API_SERVICE}"
+
+      - name: Restart status service
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_API_HOST: ${{ secrets.DEPLOY_API_HOST }}
+          DEPLOY_STATUS_SERVICE: ${{ secrets.DEPLOY_STATUS_SERVICE }}
+          DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DEPLOY_STATUS_SERVICE}" ]; then
+            echo "DEPLOY_STATUS_SERVICE not set; skipping status restart."
+            exit 0
+          fi
+          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          port="${DEPLOY_SSH_PORT:-22}"
+          ssh -p "$port" -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${host}" \
+            "sudo systemctl restart ${DEPLOY_STATUS_SERVICE}"
 

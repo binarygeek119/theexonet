@@ -5,7 +5,7 @@ When a build on `main` succeeds, GitHub Actions can deploy automatically:
 | Target | Source | Typical path |
 |--------|--------|--------------|
 | Game site (port 80) | `server/Rava.Api/html/` | `/var/www/rava` |
-| API (port 5000) | `dotnet publish` output | `/var/www` |
+| API + status (ports 5000 / 6000) | `dotnet publish` output | `/var/www` |
 
 ## One-time server setup
 
@@ -31,13 +31,16 @@ dotnet --list-runtimes
 
 3. Copy `appsettings.json.example` to `appsettings.json` on the API host (e.g. `/var/www/appsettings.json`) and set production secrets — deploy does **not** ship or overwrite this file.
 
-   Required files in the API folder (`/var/www`):
+   Required files in `/var/www`:
 
    | File | Source |
    |------|--------|
    | `Rava.Api.dll` + dependencies | GitHub release / `dotnet publish` |
+   | `Rava.Status.dll` + `wwwroot/` | Same publish bundle |
    | `credits.json` | Included in publish output |
    | `appsettings.json` | Copy from `appsettings.json.example`, then edit |
+
+   Add a **`StatusMonitor`** section to the same `appsettings.json` for the status dashboard (port 6000).
 
    **Connection string:** use the same PostgreSQL host, database name, username, and password that work from your dev machine. If Postgres runs on another machine (e.g. `192.168.1.2`), do **not** use `Host=localhost` unless Postgres is installed on the API server itself. The API server must be able to reach the DB host on port 5432.
 
@@ -65,13 +68,9 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now rava-api
 ```
 
-Optional status dashboard on port **6000** (`server/Rava.Status`):
+Optional status dashboard on port **6000** — uses the same `/var/www` folder as the API:
 
-```bash
-dotnet publish server/Rava.Status/Rava.Status.csproj --configuration Release --output /opt/rava-status
-```
-
-Edit `/opt/rava-status/appsettings.json`:
+Add to `/var/www/appsettings.json`:
 
 ```json
 "StatusMonitor": {
@@ -88,8 +87,8 @@ Description=RAVA Status Dashboard
 After=network.target rava-api.service
 
 [Service]
-WorkingDirectory=/opt/rava-status
-ExecStart=/usr/bin/dotnet /opt/rava-status/Rava.Status.dll
+WorkingDirectory=/var/www
+ExecStart=/usr/bin/dotnet /var/www/Rava.Status.dll
 Restart=always
 Environment=ASPNETCORE_URLS=http://0.0.0.0:6000
 Environment=DOTNET_ENVIRONMENT=Production
@@ -107,7 +106,7 @@ sudo systemctl enable --now rava-status
 Allow the deploy user to restart the service without a password (adjust user and unit name):
 
 ```bash
-echo 'deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart rava-api' | sudo tee /etc/sudoers.d/rava-deploy
+echo 'deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart rava-api, /bin/systemctl restart rava-status' | sudo tee /etc/sudoers.d/rava-deploy
 sudo chmod 440 /etc/sudoers.d/rava-deploy
 ```
 
@@ -177,6 +176,7 @@ Leave unset (or not `true`) until secrets below are configured.
 | `DEPLOY_API_HOST` | Optional; API host if different from `DEPLOY_HOST` |
 | `DEPLOY_SSH_PORT` | Optional; default `22` |
 | `DEPLOY_API_SERVICE` | Optional; systemd unit to restart after API deploy, e.g. `rava-api` |
+| `DEPLOY_STATUS_SERVICE` | Optional; systemd unit to restart after deploy, e.g. `rava-status` |
 
 Add the matching **public** key to `~/.ssh/authorized_keys` on the server.
 
@@ -184,7 +184,7 @@ Add the matching **public** key to `~/.ssh/authorized_keys` on the server.
 
 1. **html** — `rsync` from the repo to `DEPLOY_WWW_PATH` (mirrors deletes; game host only).
 2. **API** — `rsync` publish artifact to `DEPLOY_API_PATH`, excluding `appsettings*.json` and `html/uploads/profiles/*`. The bundle includes an `html/` folder (game UI + avatar uploads path).
-3. **Restart** — runs `sudo systemctl restart <DEPLOY_API_SERVICE>` when `DEPLOY_API_SERVICE` is set.
+3. **Restart** — runs `sudo systemctl restart <DEPLOY_API_SERVICE>` and optionally `<DEPLOY_STATUS_SERVICE>` when those secrets are set.
 
 Deploy runs only on pushes to `main` (not pull requests), after build and test pass.
 
@@ -194,12 +194,9 @@ Deploy runs only on pushes to `main` (not pull requests), after build and test p
 # Static game site (from a git checkout)
 rsync -av --delete /path/to/rava/server/Rava.Api/html/ /var/www/rava/
 
-# API (from extracted GitHub release zip)
+# API + status dashboard (from extracted GitHub release zip)
 rsync -av --exclude 'appsettings*.json' --exclude 'html/uploads/profiles/*' \
   ./publish/ /var/www/
 sudo systemctl restart rava-api
-
-# Status dashboard (from the same release zip)
-rsync -av ./publish-status/ /opt/rava-status/
 sudo systemctl restart rava-status
 ```

@@ -16,15 +16,46 @@ Deploy runs automatically on pushes to `main` when **`ENABLE_PRODUCTION_DEPLOY`*
 | API systemd unit | `rava-api` |
 | Status systemd unit | `rava-status` |
 
-## 1. Repository variable
+## 1. Repository variable (Variables tab — not Secrets)
 
 **Settings → Secrets and variables → Actions → Variables → New repository variable**
 
-| Name | Value |
-|------|--------|
-| `ENABLE_PRODUCTION_DEPLOY` | `true` |
+Copy the **name** exactly (no backticks, no spaces):
 
-## 2. Repository variables (optional — avoids repeating in secrets)
+```text
+ENABLE_PRODUCTION_DEPLOY
+```
+
+| Value |
+|--------|
+| `true` |
+
+## 2. SSH password (Secrets tab)
+
+**Settings → Secrets and variables → Actions → Secrets → New repository secret**
+
+**Name** (copy exactly — underscores only, no spaces or hyphens):
+
+```text
+DEPLOY_SSH_PASSWORD
+```
+
+**Secret** (value field only): your root SSH password.
+
+### If GitHub says “Secret names can only contain alphanumeric…”
+
+You typed an invalid **name**. Common mistakes:
+
+| Wrong | Use instead |
+|-------|-------------|
+| `DEPLOY SSH PASSWORD` (spaces) | `DEPLOY_SSH_PASSWORD` |
+| `DEPLOY-SSH-PASSWORD` (hyphens) | `DEPLOY_SSH_PASSWORD` |
+| `` `DEPLOY_SSH_PASSWORD` `` (backticks) | `DEPLOY_SSH_PASSWORD` |
+| Password in the **name** field | Password goes in the **Secret** value field only |
+
+Valid characters: letters, numbers, underscore `_`. Must start with a letter or `_`.
+
+## 3. Optional repository variables (Variables tab)
 
 | Name | Value |
 |------|--------|
@@ -38,17 +69,9 @@ Deploy runs automatically on pushes to `main` when **`ENABLE_PRODUCTION_DEPLOY`*
 
 If these variables are set, you do not need the matching secrets.
 
-## 3. SSH authentication (pick one)
+## 4. SSH key alternative (optional)
 
-### Option A — Password (quick setup)
-
-**Settings → Secrets → New repository secret**
-
-| Name | Value |
-|------|--------|
-| `DEPLOY_SSH_PASSWORD` | your root SSH password |
-
-On the server, ensure root password login is enabled in `/etc/ssh/sshd_config`:
+On the server, for password login, ensure `/etc/ssh/sshd_config` has:
 
 ```text
 PermitRootLogin yes
@@ -57,7 +80,13 @@ PasswordAuthentication yes
 
 Then restart SSH: `sudo systemctl restart ssh`
 
-### Option B — SSH key (recommended)
+Secret name for a key (if not using password):
+
+```text
+DEPLOY_SSH_KEY
+```
+
+### SSH key setup (recommended long-term)
 
 On your machine:
 
@@ -68,7 +97,7 @@ ssh-copy-id -i ~/.ssh/rava-deploy.pub root@binarygeek119.duckdns.org
 
 Add the **private** key contents as secret `DEPLOY_SSH_KEY` (PEM/OpenSSH format).
 
-## 4. One-time server prep
+## 5. One-time server prep
 
 See [deploy.md](deploy.md) for .NET 10, systemd units, `appsettings.json`, and Apache/nginx.
 
@@ -79,7 +108,7 @@ curl -s http://127.0.0.1:5000/
 curl -s http://127.0.0.1:6000/api/dashboard
 ```
 
-## 5. Trigger a deploy
+## 6. Trigger a deploy
 
 Push to `main` (changes under `server/` or the workflow file), or run **Actions → Build website → Run workflow**.
 

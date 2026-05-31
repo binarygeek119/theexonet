@@ -1,0 +1,4 @@
+Term,Notes
+# Pornographic or sexual terms. One term per row in the Term column.
+# Opens in Excel or Google Sheets. Lines starting with # are ignored.
+# Restart the API after saving changes on production if hot reload does not pick up the file.

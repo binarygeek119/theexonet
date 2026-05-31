@@ -1,0 +1,11 @@
+Category,ItemType,BasePrice,DailyConsumption,StockSymbol,ReferenceClose
+# Ore refinery prices and supply market items. Opens in Excel or Google Sheets.
+# Ore rows: BasePrice only. Supply rows: all columns. Lines starting with # are ignored.
+Ore,Ferroxite,120,,,
+Ore,Voidium,280,,,
+Ore,Stellarite,450,,,
+Ore,SalvageScrap,40,,,
+Supply,DrillBits,85,0.5,CAT,350
+Supply,FuelCells,110,0.3,XOM,110
+Supply,LifeSupport,95,0.4,JNJ,155
+Supply,CommModules,130,0.2,QCOM,170

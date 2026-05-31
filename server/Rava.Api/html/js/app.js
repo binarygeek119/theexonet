@@ -6,6 +6,53 @@ import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
 
 const api = new RavaApi(API_BASE_URL);
 
+let tradeOreTypes = { ...ORE_TYPES };
+let tradeSupplyTypes = { ...SUPPLY_TYPES };
+
+function applyTradeItems(items) {
+  const nextOreTypes = {};
+  const nextSupplyTypes = {};
+
+  for (const item of items ?? []) {
+    const meta = {
+      displayName: item.displayName || item.itemType,
+      color: item.color || "#888",
+      basePrice: Number(item.basePrice ?? 0),
+    };
+
+    if (item.category === "Ore") {
+      if (item.isEmergencySource) {
+        meta.isEmergencySource = true;
+      }
+      nextOreTypes[item.itemType] = meta;
+      continue;
+    }
+
+    if (item.category === "Supply") {
+      if (item.uiSymbol) {
+        meta.symbol = item.uiSymbol;
+      }
+      nextSupplyTypes[item.itemType] = meta;
+    }
+  }
+
+  if (Object.keys(nextOreTypes).length > 0) {
+    tradeOreTypes = nextOreTypes;
+  }
+  if (Object.keys(nextSupplyTypes).length > 0) {
+    tradeSupplyTypes = nextSupplyTypes;
+  }
+}
+
+async function loadTradeItems() {
+  try {
+    const response = await api.getTradeItems();
+    applyTradeItems(response?.items);
+  } catch {
+    // Keep bundled defaults when the API is offline.
+  }
+}
+
 function setMessagesStatus(message, isError = false) {
   const el = document.getElementById("messages-status");
   if (!el) {
@@ -979,11 +1026,11 @@ async function saveProfile() {
 }
 
 function oreMeta(type) {
-  return ORE_TYPES[type] ?? { displayName: type, color: "#888", basePrice: 0 };
+  return tradeOreTypes[type] ?? { displayName: type, color: "#888", basePrice: 0 };
 }
 
 function supplyMeta(type) {
-  return SUPPLY_TYPES[type] ?? { displayName: type, color: "#888", basePrice: 0 };
+  return tradeSupplyTypes[type] ?? { displayName: type, color: "#888", basePrice: 0 };
 }
 
 function inventoryQty(mine, itemType) {
@@ -1314,7 +1361,7 @@ function renderStorePanel() {
     : "Market prices loading...";
 
   els.storeSupplyList.innerHTML = "";
-  for (const [type, meta] of Object.entries(SUPPLY_TYPES)) {
+  for (const [type, meta] of Object.entries(tradeSupplyTypes)) {
     const priceEntry = market?.prices?.find((p) => p.supplyType === type);
     const price = priceEntry ? Number(priceEntry.price) : meta.basePrice;
     const stock = inventoryQty(state.mine, type);
@@ -1340,7 +1387,7 @@ function renderShippingPanel() {
   els.shippingCargoList.innerHTML = "";
   let hasCargo = false;
 
-  for (const [type, meta] of Object.entries(ORE_TYPES)) {
+  for (const [type, meta] of Object.entries(tradeOreTypes)) {
     const stock = inventoryQty(mine, type);
     if (stock <= 0) {
       continue;
@@ -1370,7 +1417,7 @@ function renderSupplyPanel() {
     : "Market prices loading...";
 
   els.supplyList.innerHTML = "";
-  for (const [type, meta] of Object.entries(SUPPLY_TYPES)) {
+  for (const [type, meta] of Object.entries(tradeSupplyTypes)) {
     const priceEntry = market?.prices?.find((p) => p.supplyType === type);
     const price = priceEntry ? Number(priceEntry.price) : meta.basePrice;
     const stock = inventoryQty(mine, type);
@@ -1384,7 +1431,7 @@ function renderSupplyPanel() {
   }
 
   els.oreList.innerHTML = "";
-  for (const [type, meta] of Object.entries(ORE_TYPES)) {
+  for (const [type, meta] of Object.entries(tradeOreTypes)) {
     const stock = inventoryQty(mine, type);
     if (stock <= 0) {
       continue;
@@ -1433,7 +1480,7 @@ function formatAnnouncementReward(reward) {
   if (itemType.toLowerCase() === "credits") {
     return `${amount.toLocaleString()} credits`;
   }
-  const meta = ORE_TYPES[itemType] ?? SUPPLY_TYPES[itemType];
+  const meta = tradeOreTypes[itemType] ?? tradeSupplyTypes[itemType];
   const name = meta?.displayName ?? itemType;
   const formattedAmount = Number.isInteger(amount) ? amount.toLocaleString() : amount.toFixed(1);
   return `${formattedAmount} ${name}`;
@@ -1707,9 +1754,12 @@ async function sellOre(oreType, stock) {
 
 async function emergencySell() {
   const mine = state.mine;
-  const salvage = mine?.inventory?.find(
-    (i) => i.category === "Ore" && i.itemType === "SalvageScrap" && Number(i.quantity) > 0,
-  );
+  const emergencyType = Object.entries(tradeOreTypes).find(([, meta]) => meta.isEmergencySource)?.[0];
+  const salvage = emergencyType
+    ? mine?.inventory?.find(
+        (i) => i.category === "Ore" && i.itemType === emergencyType && Number(i.quantity) > 0,
+      )
+    : null;
   const ore =
     salvage ??
     mine?.inventory?.find((i) => i.category === "Ore" && Number(i.quantity) > 0);
@@ -1961,9 +2011,11 @@ showScreen("login");
 els.mineGrid.style.setProperty("--grid-size", GRID_SIZE);
 
 const resetTokenFromUrl = new URLSearchParams(window.location.search).get("reset");
-if (resetTokenFromUrl) {
-  els.resetToken.value = resetTokenFromUrl;
-  setAuthMode("reset");
-} else {
-  tryAutoLogin();
-}
+loadTradeItems().finally(() => {
+  if (resetTokenFromUrl) {
+    els.resetToken.value = resetTokenFromUrl;
+    setAuthMode("reset");
+  } else {
+    tryAutoLogin();
+  }
+});

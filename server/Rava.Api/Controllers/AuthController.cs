@@ -24,6 +24,7 @@ public class AuthController(
     ITokenService tokenService,
     IEmailService emailService,
     IOptions<EmailOptions> emailOptions,
+    IOptions<AdminPortalOptions> adminPortalOptions,
     IOptions<AdminOptions> adminOptions,
     ILogger<AuthController> logger) : ControllerBase
 {
@@ -83,7 +84,7 @@ public class AuthController(
             return BadRequest(new { message = error });
         }
 
-        var adminPortalUrl = $"{emailOptions.Value.AppBaseUrl.TrimEnd('/')}/admin";
+        var adminPortalUrl = adminPortalOptions.Value.PublicUrl.TrimEnd('/');
         var banSummary = ban!.IsPermanent
             ? "Life ban"
             : $"{ban.BanLevelLabel} until {ban.ExpiresAt:yyyy-MM-dd HH:mm} UTC";

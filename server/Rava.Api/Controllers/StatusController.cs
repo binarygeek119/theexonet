@@ -20,6 +20,7 @@ public class StatusController(
     AppDbContext db,
     ServerRuntimeInfo runtime,
     IMarketDataProvider marketProvider,
+    IMarketItemsCatalog marketItems,
     IOptionsMonitor<GameCreditsOptions> creditsOptions) : ControllerBase
 {
     [AllowAnonymous]
@@ -83,7 +84,7 @@ public class StatusController(
         var orePrices = Enum.GetValues<OreType>()
             .Select(oreType =>
             {
-                var basePrice = GameBalance.BaseOrePrices[oreType];
+                var basePrice = marketItems.GetOreBasePrice(oreType);
                 var buybackPrice = Math.Round(basePrice * GameBalance.EmergencyBuybackRate, 2);
                 return new EconomyItemPriceDto(
                     oreType.ToString(),
@@ -98,7 +99,7 @@ public class StatusController(
         var supplyPrices = snapshot.Prices
             .Select(price =>
             {
-                var basePrice = GameBalance.BaseSupplyPrices[price.SupplyType];
+                var basePrice = marketItems.GetSupplyBasePrice(price.SupplyType);
                 return new EconomyItemPriceDto(
                     price.SupplyType.ToString(),
                     "Supply",

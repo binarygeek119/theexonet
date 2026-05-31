@@ -5,8 +5,10 @@ using Rava.Core.Models;
 
 namespace Rava.Core.Services;
 
-public class MineSimulationService : IMineSimulationService
+public class MineSimulationService(IMarketItemsCatalog marketItems) : IMineSimulationService
 {
+    private readonly IMarketItemsCatalog _marketItems = marketItems;
+
     public DayAdvanceResult AdvanceDay(
         PlayerState player,
         MineState mine,
@@ -95,7 +97,7 @@ public class MineSimulationService : IMineSimulationService
         foreach (var supplyType in Enum.GetValues<SupplyType>())
         {
             var price = market.Prices.First(p => p.SupplyType == supplyType).Price;
-            cost += GameBalance.SupplyConsumptionPerDay[supplyType] * price;
+            cost += _marketItems.GetSupplyDailyConsumption(supplyType) * price;
         }
 
         return Math.Round(cost, 2);
@@ -116,7 +118,7 @@ public class MineSimulationService : IMineSimulationService
 
             var efficiency = hasSupplies ? CalculateWorkerEfficiency(worker, inventory) : 0.25m;
             var extraction = worker.Skill * zone.Richness * efficiency * (1m - zone.DepletedPct / 200m);
-            var orePrice = GameBalance.BaseOrePrices[zone.OreType];
+            var orePrice = _marketItems.GetOreBasePrice(zone.OreType);
             total += extraction * orePrice;
         }
 
@@ -166,13 +168,13 @@ public class MineSimulationService : IMineSimulationService
         return !hasSellableOre;
     }
 
-    private static bool HasMinimumSupplies(IReadOnlyList<InventoryItemState> inventory)
+    private bool HasMinimumSupplies(IReadOnlyList<InventoryItemState> inventory)
     {
         foreach (var supplyType in Enum.GetValues<SupplyType>())
         {
             var item = inventory.FirstOrDefault(i =>
                 i.Category == ItemCategory.Supply && i.ItemType == supplyType.ToString());
-            var required = GameBalance.SupplyConsumptionPerDay[supplyType];
+            var required = _marketItems.GetSupplyDailyConsumption(supplyType);
             if (item is null || item.Quantity < required)
             {
                 return false;
@@ -197,12 +199,12 @@ public class MineSimulationService : IMineSimulationService
             i.Category == ItemCategory.Supply && i.ItemType == supplyType.ToString())?.Quantity ?? 0m;
     }
 
-    private static decimal ConsumeDailySupplies(IReadOnlyList<InventoryItemState> inventory, DailyMarketSnapshot market)
+    private decimal ConsumeDailySupplies(IReadOnlyList<InventoryItemState> inventory, DailyMarketSnapshot market)
     {
         var totalCost = 0m;
         foreach (var supplyType in Enum.GetValues<SupplyType>())
         {
-            var consumption = GameBalance.SupplyConsumptionPerDay[supplyType];
+            var consumption = _marketItems.GetSupplyDailyConsumption(supplyType);
             var item = inventory.FirstOrDefault(i =>
                 i.Category == ItemCategory.Supply && i.ItemType == supplyType.ToString());
             if (item is null)

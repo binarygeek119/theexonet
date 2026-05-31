@@ -4,7 +4,9 @@ using Rava.Core.Configuration;
 
 namespace Rava.Infrastructure.Services;
 
-public class HateSpeechScanner(IOptionsMonitor<HateSpeechOptions> options)
+public class HateSpeechScanner(
+    IOptionsMonitor<HateSpeechOptions> options,
+    HateSpeechTermsProvider termsProvider)
 {
     public (bool IsMatch, string MatchedTerms) Scan(string body)
     {
@@ -14,7 +16,7 @@ public class HateSpeechScanner(IOptionsMonitor<HateSpeechOptions> options)
         }
 
         var matches = new List<string>();
-        foreach (var term in options.CurrentValue.Terms ?? [])
+        foreach (var term in termsProvider.GetTerms())
         {
             if (string.IsNullOrWhiteSpace(term))
             {

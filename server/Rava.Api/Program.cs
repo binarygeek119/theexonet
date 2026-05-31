@@ -32,10 +32,13 @@ builder.Configuration.AddJsonFile("credits.json", optional: false, reloadOnChang
 
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.Configure<MarketOptions>(builder.Configuration.GetSection(MarketOptions.SectionName));
+builder.Services.Configure<TradeOptions>(builder.Configuration.GetSection(TradeOptions.SectionName));
 builder.Services.Configure<GameCreditsOptions>(builder.Configuration.GetSection(GameCreditsOptions.SectionName));
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.SectionName));
 builder.Services.Configure<ModeratorOptions>(builder.Configuration.GetSection(ModeratorOptions.SectionName));
 builder.Services.Configure<HateSpeechOptions>(builder.Configuration.GetSection(HateSpeechOptions.SectionName));
+builder.Services.Configure<ModeratorPortalOptions>(builder.Configuration.GetSection(ModeratorPortalOptions.SectionName));
+builder.Services.Configure<AdminPortalOptions>(builder.Configuration.GetSection(AdminPortalOptions.SectionName));
 builder.Services.Configure<HostingOptions>(builder.Configuration.GetSection(HostingOptions.SectionName));
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
@@ -59,6 +62,9 @@ builder.Services.AddScoped<PlayerMessageService>();
 builder.Services.AddScoped<PeerMessageService>();
 builder.Services.AddScoped<PlayerToStaffMessageService>();
 builder.Services.AddScoped<MessageLogService>();
+builder.Services.AddSingleton<HateSpeechTermsProvider>();
+builder.Services.AddSingleton<IMarketItemsCatalog, MarketItemsProvider>();
+builder.Services.AddSingleton<ITradeItemsCatalog, TradeItemsProvider>();
 builder.Services.AddScoped<HateSpeechScanner>();
 builder.Services.AddScoped<PlayerWarningService>();
 builder.Services.AddScoped<MessageModerationService>();
@@ -173,12 +179,19 @@ var marketOptions = builder.Configuration.GetSection(MarketOptions.SectionName).
 if (marketOptions.UseLiveData)
 {
     app.Logger.LogInformation(
-        "Live US market prices enabled (Yahoo Finance, refresh at UTC midnight). Symbols: CAT, XOM, JNJ, QCOM");
+        "Live US market prices enabled (Yahoo Finance, refresh at UTC midnight). Items file: {ItemsFile}",
+        Path.Combine(contentRootPath, marketOptions.ItemsFile));
 }
 else
 {
     app.Logger.LogWarning("Live market disabled. Using mock supply prices.");
 }
+
+var tradeOptions = builder.Configuration.GetSection(TradeOptions.SectionName).Get<TradeOptions>() ?? new TradeOptions();
+var tradeItemsPath = Path.Combine(contentRootPath, tradeOptions.ItemsFile);
+app.Logger.LogInformation(
+    "Trade market items file: {ItemsFile}",
+    tradeItemsPath);
 
 var configuredAdminUsernames = app.Configuration
     .GetSection(AdminOptions.SectionName)
@@ -208,6 +221,33 @@ else
     app.Logger.LogInformation(
         "Moderator portal enabled for: {ModeratorUsernames}",
         string.Join(", ", configuredModeratorUsernames));
+}
+
+var hateSpeechOptions = app.Configuration.GetSection(HateSpeechOptions.SectionName).Get<HateSpeechOptions>() ?? new HateSpeechOptions();
+if (!hateSpeechOptions.Enabled)
+{
+    app.Logger.LogWarning("Hate speech scanner disabled. Set HateSpeech:Enabled=true in appsettings.json.");
+}
+else
+{
+    var termsProvider = app.Services.GetRequiredService<HateSpeechTermsProvider>();
+    var hateSpeechPath = Path.Combine(contentRootPath, hateSpeechOptions.TermsFile);
+    var badLanguagePath = Path.Combine(contentRootPath, hateSpeechOptions.BadLanguageFile);
+    var politicalPath = Path.Combine(contentRootPath, hateSpeechOptions.PoliticalTermsFile);
+    var sexualPath = Path.Combine(contentRootPath, hateSpeechOptions.SexualTermsFile);
+    var (hateSpeechCount, badLanguageCount, politicalCount, sexualCount) = termsProvider.GetTermCounts();
+    var termCount = termsProvider.GetTerms().Count;
+    app.Logger.LogInformation(
+        "Hate speech scanner enabled with {TermCount} terms ({HateSpeechCount} hate speech, {BadLanguageCount} bad language, {PoliticalCount} political, {SexualCount} sexual) from {HateSpeechPath}, {BadLanguagePath}, {PoliticalPath}, and {SexualPath}",
+        termCount,
+        hateSpeechCount,
+        badLanguageCount,
+        politicalCount,
+        sexualCount,
+        hateSpeechPath,
+        badLanguagePath,
+        politicalPath,
+        sexualPath);
 }
 
 app.UseMiddleware<Rava.Api.Middleware.DatabaseExceptionMiddleware>();

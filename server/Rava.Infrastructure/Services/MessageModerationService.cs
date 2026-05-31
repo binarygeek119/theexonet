@@ -126,7 +126,7 @@ public class MessageModerationService(
         var (warning, error) = await playerWarningService.IssueWarningAsync(
             flag.PlayerId.Value,
             staffUsername,
-            "Hate speech in message",
+            "Hate speech, bad language, political, or sexual terms in message",
             flag.Id,
             ct);
 
@@ -174,7 +174,7 @@ public class MessageModerationService(
         }
 
         var banReason = string.IsNullOrWhiteSpace(reason)
-            ? "Hate speech in message"
+            ? "Hate speech, bad language, political, or sexual terms in message"
             : reason.Trim();
 
         var (ban, banError) = await playerBanService.SetBanAsync(

@@ -1,3 +1,4 @@
+using Rava.Core.Configuration;
 using Rava.Core.Constants;
 using Rava.Core.Enums;
 using Rava.Core.Interfaces;
@@ -8,8 +9,15 @@ namespace Rava.Core.Tests;
 
 public class MineSimulationServiceTests
 {
-    private readonly IMineSimulationService _simulation = new MineSimulationService();
-    private readonly IMarketDataProvider _market = new MockMarketGenerator();
+    private readonly IMarketItemsCatalog _marketItems = MarketItemsCatalog.CreateDefault();
+    private readonly IMineSimulationService _simulation;
+    private readonly IMarketDataProvider _market;
+
+    public MineSimulationServiceTests()
+    {
+        _simulation = new MineSimulationService(_marketItems);
+        _market = new MockMarketGenerator(_marketItems);
+    }
 
     [Fact]
     public async Task AdvanceDay_ExtractsOre_WhenWorkerAssigned()

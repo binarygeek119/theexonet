@@ -1,0 +1,11 @@
+Category,ItemType,BasePrice,DisplayName,Color,UiSymbol,EmergencySource
+# Trade Market items (buy supplies, sell ore). Opens in Excel or Google Sheets.
+# Ore rows: EmergencySource true/false for emergency salvage sell. Lines starting with # are ignored.
+Ore,Ferroxite,120,Ferroxite,#996644,,
+Ore,Voidium,280,Voidium,#6633b3,,
+Ore,Stellarite,450,Stellarite,#e6cc4d,,
+Ore,SalvageScrap,40,Salvage Scrap,#80808c,,true
+Supply,DrillBits,85,Drill Bits,#b38033,XLI,
+Supply,FuelCells,110,Fuel Cells,#3399e6,XLE,
+Supply,LifeSupport,95,Life Support,#4dcc80,XLV,
+Supply,CommModules,130,Comm Modules,#80b3ff,XLK,

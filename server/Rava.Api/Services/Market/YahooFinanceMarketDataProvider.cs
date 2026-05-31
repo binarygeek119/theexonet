@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using Rava.Core.Constants;
+using Rava.Core.Configuration;
 using Rava.Core.Enums;
 using Rava.Core.Interfaces;
 using Rava.Core.Models;
@@ -12,7 +12,7 @@ namespace Rava.Api.Services.Market;
 public class YahooFinanceMarketDataProvider(
     HttpClient httpClient,
     IMemoryCache cache,
-    IOptions<MarketOptions> options,
+    IMarketItemsCatalog marketItems,
     ILogger<YahooFinanceMarketDataProvider> logger) : IMarketDataProvider
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -38,15 +38,14 @@ public class YahooFinanceMarketDataProvider(
         DateOnly utcDate,
         CancellationToken cancellationToken)
     {
-        var settings = options.Value;
         var prices = new List<MarketPriceEntry>();
 
         foreach (var supplyType in Enum.GetValues<SupplyType>())
         {
-            var symbol = ResolveSymbol(settings, supplyType);
+            var symbol = marketItems.GetSupplyStockSymbol(supplyType);
             var quote = await FetchQuoteAsync(symbol, utcDate, cancellationToken);
-            var basePrice = GameBalance.BaseSupplyPrices[supplyType];
-            var referenceClose = settings.ReferenceCloses.GetValueOrDefault(symbol, quote.LatestClose);
+            var basePrice = marketItems.GetSupplyBasePrice(supplyType);
+            var referenceClose = marketItems.GetReferenceClose(symbol);
             if (referenceClose <= 0)
             {
                 referenceClose = quote.LatestClose;
@@ -74,24 +73,6 @@ public class YahooFinanceMarketDataProvider(
             Date = utcDate,
             Source = "yahoo-us",
             Prices = prices
-        };
-    }
-
-    private static string ResolveSymbol(MarketOptions settings, SupplyType supplyType)
-    {
-        if (settings.SupplySymbols.TryGetValue(supplyType.ToString(), out var symbol)
-            && !string.IsNullOrWhiteSpace(symbol))
-        {
-            return symbol.Trim().ToUpperInvariant();
-        }
-
-        return supplyType switch
-        {
-            SupplyType.DrillBits => "CAT",
-            SupplyType.FuelCells => "XOM",
-            SupplyType.LifeSupport => "JNJ",
-            SupplyType.CommModules => "QCOM",
-            _ => "SPY"
         };
     }
 

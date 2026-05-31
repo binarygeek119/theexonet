@@ -36,6 +36,17 @@ public record PublicEconomyResponse(
     decimal BirthdayBonusCredits,
     IReadOnlyList<EconomyItemPriceDto> OrePrices,
     IReadOnlyList<EconomyItemPriceDto> SupplyPrices);
+
+public record TradeItemDto(
+    string ItemType,
+    string Category,
+    decimal BasePrice,
+    string DisplayName,
+    string Color,
+    string? UiSymbol,
+    bool IsEmergencySource);
+
+public record TradeItemsResponse(IReadOnlyList<TradeItemDto> Items);
 public record AuthResponse(
     string Token,
     Guid PlayerId,

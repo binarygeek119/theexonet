@@ -1,11 +1,10 @@
-using Rava.Core.Constants;
 using Rava.Core.Enums;
 using Rava.Core.Interfaces;
 using Rava.Core.Models;
 
 namespace Rava.Core.Services;
 
-public class MockMarketGenerator : IMarketDataProvider
+public class MockMarketGenerator(IMarketItemsCatalog marketItems) : IMarketDataProvider
 {
     public Task<DailyMarketSnapshot> GetDailyPricesAsync(
         int gameDay,
@@ -21,7 +20,7 @@ public class MockMarketGenerator : IMarketDataProvider
         for (var i = 0; i < supplyTypes.Length; i++)
         {
             var supplyType = supplyTypes[i];
-            var basePrice = GameBalance.BaseSupplyPrices[supplyType];
+            var basePrice = marketItems.GetSupplyBasePrice(supplyType);
             var typeRng = new Random(42 + gameDay * 1009 + i * 17);
             var dailyChange = sectorMomentum + (decimal)(typeRng.NextDouble() * 0.08 - 0.04);
 

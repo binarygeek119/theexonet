@@ -1,0 +1,7 @@
+Term,Notes
+# Hate speech terms only. One term per row in the Term column.
+# Bad language / profanity goes in bad-language-terms.csv (same format).
+# Political terms go in political-terms.csv (same format).
+# Pornographic or sexual terms go in sexual-terms.csv (same format).
+# Opens in Excel or Google Sheets. Lines starting with # are ignored.
+# Changes reload automatically when the file is saved.

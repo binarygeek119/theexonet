@@ -195,6 +195,10 @@ export class RavaApi {
     return this.request("/api/market/today");
   }
 
+  getTradeItems() {
+    return this.request("/api/trade/items", { auth: false });
+  }
+
   getFinances() {
     return this.request("/api/player/finances");
   }

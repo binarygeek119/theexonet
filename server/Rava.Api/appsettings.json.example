@@ -25,7 +25,10 @@
   },
   "HateSpeech": {
     "Enabled": true,
-    "Terms": []
+    "TermsFile": "hate-speech-terms.csv",
+    "BadLanguageFile": "bad-language-terms.csv",
+    "PoliticalTermsFile": "political-terms.csv",
+    "SexualTermsFile": "sexual-terms.csv"
   },
   "Email": {
     "Enabled": false,
@@ -41,23 +44,26 @@
   },
   "Market": {
     "UseLiveData": true,
-    "SupplySymbols": {
-      "DrillBits": "CAT",
-      "FuelCells": "XOM",
-      "LifeSupport": "JNJ",
-      "CommModules": "QCOM"
-    },
-    "ReferenceCloses": {
-      "CAT": 350,
-      "XOM": 110,
-      "JNJ": 155,
-      "QCOM": 170
-    }
+    "ItemsFile": "market-items.csv"
+  },
+  "Trade": {
+    "ItemsFile": "trade-items.csv"
   },
   "StatusMonitor": {
     "ApiBaseUrl": "http://127.0.0.1:5000",
     "GameUrl": "https://rava.binarygeek119.duckdns.org/",
     "ApiPublicUrl": "https://ravaapi.binarygeek119.duckdns.org/",
     "StatusPublicUrl": "https://ravastatus.binarygeek119.duckdns.org/"
+  },
+  "AdminPortal": {
+    "PublicUrl": "https://ravaadmin.binarygeek119.duckdns.org/",
+    "GameUrl": "https://rava.binarygeek119.duckdns.org/",
+    "ApiBaseUrl": "http://127.0.0.1:5000"
+  },
+  "ModeratorPortal": {
+    "PublicUrl": "https://ravamoderator.binarygeek119.duckdns.org/",
+    "GameUrl": "https://rava.binarygeek119.duckdns.org/",
+    "AdminPortalUrl": "https://ravaadmin.binarygeek119.duckdns.org/",
+    "ApiBaseUrl": "http://127.0.0.1:5000"
   }
 }

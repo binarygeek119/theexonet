@@ -22,6 +22,8 @@ public class PlayerGameService(
     AppDbContext db,
     IMineSimulationService simulation,
     IMarketDataProvider marketProvider,
+    IMarketItemsCatalog marketItems,
+    ITradeItemsCatalog tradeItems,
     IStarterMineGenerator starterMineGenerator,
     IPasswordHasher passwordHasher,
     PlayerProfileUpgrader profileUpgrader,
@@ -297,6 +299,11 @@ public class PlayerGameService(
         }
 
         var supplyType = (SupplyType)request.SupplyType;
+        if (!tradeItems.IsTradeableSupply(supplyType))
+        {
+            return (false, "That supply is not available in the trade market.", null, []);
+        }
+
         var market = await GetOrCreateMarketSnapshotAsync(player.CurrentGameDay, UtcGameClock.Today, ct);
         var unitPrice = market.Prices.First(p => p.SupplyType == supplyType).Price;
         var totalCost = Math.Round(unitPrice * request.Quantity, 2);
@@ -390,6 +397,11 @@ public class PlayerGameService(
         }
 
         var oreType = (OreType)request.OreType;
+        if (!tradeItems.IsTradeableOre(oreType))
+        {
+            return (false, "That ore cannot be sold in the trade market.", null, []);
+        }
+
         var item = await db.Inventory.FirstOrDefaultAsync(i =>
             i.PlayerId == playerId &&
             i.Category == ItemCategory.Ore &&
@@ -400,7 +412,7 @@ public class PlayerGameService(
             return (false, "Insufficient ore in inventory.", player.Credits, []);
         }
 
-        var basePrice = GameBalance.BaseOrePrices[oreType];
+        var basePrice = marketItems.GetOreBasePrice(oreType);
         var rate = request.EmergencyBuyback ? GameBalance.EmergencyBuybackRate : 1m;
         var totalValue = Math.Round(basePrice * request.Quantity * rate, 2);
         var eventBonuses = await specialEventService.GetActiveMarketBonusesAsync(ct);

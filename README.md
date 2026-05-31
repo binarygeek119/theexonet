@@ -56,6 +56,28 @@ dotnet run --project Rava.Status
 
 Open **http://localhost:6000** for API/database health, response time, and links.
 
+### 4. Admin portal (optional)
+
+Run the admin operations UI on port **7000** (calls the game API for `/api/admin/*`):
+
+```bash
+cd server
+dotnet run --project Rava.Admin
+```
+
+Open **http://localhost:7000** (production: **https://ravaadmin.binarygeek119.duckdns.org/**).
+
+### 5. Moderator portal (optional)
+
+Run the moderator oversight UI on port **7050** (calls the game API for `/api/moderator/*`):
+
+```bash
+cd server
+dotnet run --project Rava.Moderator
+```
+
+Open **http://localhost:7050** (production: **https://ravamoderator.binarygeek119.duckdns.org/**).
+
 ## Production
 
 | Service | Host | Backend port |
@@ -63,8 +85,10 @@ Open **http://localhost:6000** for API/database health, response time, and links
 | Game (browser UI) | Game site (HTTPS) | 80 |
 | API | API subdomain (HTTPS) | 5000 |
 | Status dashboard | Status subdomain (HTTPS) | 6000 |
+| Admin portal | Admin subdomain (HTTPS) | 7000 |
+| Moderator portal | Moderator subdomain (HTTPS) | 7050 |
 
-Deploy `server/Rava.Api/html/` to the game host (port 80). Run `Rava.Api` and `Rava.Status` from the same publish folder (port 5000 and 6000). The browser client on the game host calls the API host automatically (`html/js/config.js`).
+Deploy `server/Rava.Api/html/` to the game host (port 80). Run `Rava.Api`, `Rava.Status`, `Rava.Admin`, and `Rava.Moderator` from the same publish folder (ports 5000, 6000, 7000, and 7050). The browser client on the game host calls the API host automatically (`html/js/config.js`).
 
 On the API host, set `"Hosting": { "ServeGameUi": false }` in `appsettings.json` (included in `appsettings.json.example`) so the API subdomain shows a status page at `/` instead of the game UI. Local `dotnet run` in Development still serves the game at `/` unless you override that in config.
 
@@ -87,6 +111,8 @@ rava/
 │   ├── Rava.Api/
 │   │   └── html/       Browser client (HTML/CSS/JS)
 │   ├── Rava.Status/    Server status dashboard (port 6000)
+│   ├── Rava.Admin/     Admin operations portal (port 7000)
+│   ├── Rava.Moderator/ Moderator oversight portal (port 7050)
 │   ├── Rava.Core/
 │   └── Rava.Infrastructure/
 └── docker-compose.yml  PostgreSQL for local dev

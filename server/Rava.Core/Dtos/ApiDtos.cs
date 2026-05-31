@@ -1,3 +1,4 @@
+using Rava.Core.Constants;
 using Rava.Core.Models;
 
 namespace Rava.Core.Dtos;
@@ -16,7 +17,8 @@ public record ApiStatusResponse(
     int? PlayerCount = null,
     double ServerUptimeSeconds = 0,
     DateTime? ServerStartedUtc = null,
-    DateTime? ServerFirstRunUtc = null);
+    DateTime? ServerFirstRunUtc = null,
+    string GameVersion = "");
 
 public record EconomyItemPriceDto(
     string ItemType,

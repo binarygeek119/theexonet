@@ -55,7 +55,8 @@ public class StatusController(
             playerCount,
             runtime.UptimeSeconds,
             runtime.StartedUtc,
-            runtime.FirstRunUtc));
+            runtime.FirstRunUtc,
+            GameVersion.Display));
     }
 
     [AllowAnonymous]

@@ -9,7 +9,8 @@ public record ApiStatusPayload(
     int? PlayerCount,
     double ServerUptimeSeconds,
     DateTime? ServerStartedUtc,
-    DateTime? ServerFirstRunUtc);
+    DateTime? ServerFirstRunUtc,
+    string GameVersion);
 
 public record EconomyItemPayload(
     string ItemType,

@@ -4,6 +4,7 @@ const els = {
   lastUpdated: document.getElementById("last-updated"),
   apiOverall: document.getElementById("api-overall"),
   apiService: document.getElementById("api-service"),
+  apiGameVersion: document.getElementById("api-game-version"),
   apiPlayers: document.getElementById("api-players"),
   apiUptime: document.getElementById("api-uptime"),
   apiFirstRun: document.getElementById("api-first-run"),
@@ -77,6 +78,7 @@ function renderDashboard(data) {
   if (!data.apiReachable || !apiStatus) {
     setPill(els.apiOverall, "Offline", "offline");
     els.apiService.textContent = "Unreachable";
+    els.apiGameVersion.textContent = "—";
     els.apiPlayers.textContent = "—";
     els.apiUptime.textContent = "—";
     els.apiFirstRun.textContent = "—";
@@ -87,6 +89,7 @@ function renderDashboard(data) {
   }
 
   els.apiService.textContent = apiStatus.service || "Rava.Api";
+  els.apiGameVersion.textContent = apiStatus.gameVersion || "—";
   els.apiPlayers.textContent = formatCount(apiStatus.playerCount);
   els.apiUptime.textContent = formatDuration(apiStatus.serverUptimeSeconds);
   els.apiFirstRun.textContent = formatUtc(apiStatus.serverFirstRunUtc);

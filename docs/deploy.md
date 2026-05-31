@@ -5,7 +5,7 @@ When a build on `main` succeeds, GitHub Actions can deploy automatically:
 | Target | Source | Typical path |
 |--------|--------|--------------|
 | Game site (port 80) | `server/Rava.Api/html/` | `/var/www/rava` |
-| API (port 5000) | `dotnet publish` output | `/var/www/rava-api` |
+| API (port 5000) | `dotnet publish` output | `/var/www` |
 
 ## One-time server setup
 
@@ -13,13 +13,25 @@ When a build on `main` succeeds, GitHub Actions can deploy automatically:
 2. Create directories and permissions:
 
 ```bash
-sudo mkdir -p /var/www/rava /var/www/rava-api
-sudo chown -R deploy:deploy /var/www/rava /var/www/rava-api
+sudo mkdir -p /var/www/rava /var/www
+sudo chown -R deploy:deploy /var/www/rava /var/www
 ```
 
-3. Copy `appsettings.json.example` to `appsettings.json` on the API host (e.g. `/var/www/rava-api/appsettings.json`) and set production secrets — deploy does **not** ship or overwrite this file.
+   Install the **ASP.NET Core 10 runtime** (the published API targets `net10.0`; .NET 8 is not enough):
 
-   Required files in the API folder (`/var/www/rava-api`):
+```bash
+wget https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O /tmp/packages-microsoft-prod.deb
+sudo dpkg -i /tmp/packages-microsoft-prod.deb
+sudo apt-get update
+sudo apt-get install -y aspnetcore-runtime-10.0
+dotnet --list-runtimes
+```
+
+   You should see `Microsoft.AspNetCore.App 10.0.x` in the list. If the package is unavailable on your distro, use the [install script](https://learn.microsoft.com/dotnet/core/install/linux-scripted-manual#scripted-install) with `--runtime aspnetcore --channel 10.0`.
+
+3. Copy `appsettings.json.example` to `appsettings.json` on the API host (e.g. `/var/www/appsettings.json`) and set production secrets — deploy does **not** ship or overwrite this file.
+
+   Required files in the API folder (`/var/www`):
 
    | File | Source |
    |------|--------|
@@ -37,8 +49,8 @@ Description=RAVA API
 After=network.target
 
 [Service]
-WorkingDirectory=/var/www/rava-api
-ExecStart=/usr/bin/dotnet /var/www/rava-api/Rava.Api.dll
+WorkingDirectory=/var/www
+ExecStart=/usr/bin/dotnet /var/www/Rava.Api.dll
 Restart=always
 Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
 Environment=DOTNET_ENVIRONMENT=Production
@@ -76,6 +88,7 @@ If the API returns **502** or `/api/status` shows **database offline**:
    - `credits.json` missing from the API folder
 4. **Test locally on the server:**  
    `curl http://127.0.0.1:5000/api/status` — should return JSON with `"databaseStatus":"online"`
+5. **`.NET runtime missing`:** log shows `Framework: Microsoft.NETCore.App, version '10.0.0'` but only 8.x installed — install `aspnetcore-runtime-10.0` (see step 2 above).
 
 ## GitHub configuration
 
@@ -97,7 +110,7 @@ Leave unset (or not `true`) until secrets below are configured.
 | `DEPLOY_USER` | SSH username |
 | `DEPLOY_HOST` | Server hostname or IP (used when host-specific secrets are omitted) |
 | `DEPLOY_WWW_PATH` | Absolute path for static game files, e.g. `/var/www/rava` |
-| `DEPLOY_API_PATH` | Absolute path for API publish output, e.g. `/var/www/rava-api` |
+| `DEPLOY_API_PATH` | Absolute path for API publish output, e.g. `/var/www` |
 | `DEPLOY_WWW_HOST` | Optional; game host if different from `DEPLOY_HOST` |
 | `DEPLOY_API_HOST` | Optional; API host if different from `DEPLOY_HOST` |
 | `DEPLOY_SSH_PORT` | Optional; default `22` |
@@ -121,6 +134,6 @@ rsync -av --delete /path/to/rava/server/Rava.Api/html/ /var/www/rava/
 
 # API (from extracted GitHub release zip)
 rsync -av --exclude 'appsettings*.json' --exclude 'html/uploads/profiles/*' \
-  ./publish/ /var/www/rava-api/
+  ./publish/ /var/www/
 sudo systemctl restart rava-api
 ```

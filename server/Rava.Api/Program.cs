@@ -18,6 +18,14 @@ using Rava.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var webRootPath = builder.Environment.WebRootPath
+    ?? Path.Combine(builder.Environment.ContentRootPath, "html");
+Directory.CreateDirectory(webRootPath);
+if (builder.Environment.WebRootPath is null)
+{
+    builder.WebHost.UseWebRoot(webRootPath);
+}
+
 builder.Configuration.AddJsonFile("credits.json", optional: false, reloadOnChange: true);
 
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
@@ -57,7 +65,7 @@ builder.Services.AddScoped<PlayerProfileUpgrader>();
 builder.Services.AddSingleton<IProfileAvatarStorage>(sp =>
     new LocalProfileAvatarStorage(new ProfileAvatarStorageOptions
     {
-        WebRootPath = builder.Environment.WebRootPath
+        WebRootPath = webRootPath
     }));
 builder.Services.Configure<FormOptions>(options =>
 {
@@ -201,7 +209,7 @@ using (var scope = app.Services.CreateScope())
     {
         db.Database.EnsureCreated();
         await DatabaseSchemaUpdater.ApplyAsync(db);
-        Directory.CreateDirectory(Path.Combine(app.Environment.WebRootPath, "uploads", "profiles"));
+        Directory.CreateDirectory(Path.Combine(webRootPath, "uploads", "profiles"));
         await scope.ServiceProvider.GetRequiredService<PlayerDataMigrationRunner>()
             .RunPendingAsync();
     }

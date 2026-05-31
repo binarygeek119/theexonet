@@ -66,7 +66,7 @@ jobs:
       - name: Publish web app
         run: |
           dotnet publish Rava.Api/Rava.Api.csproj --configuration Release --output ./publish
-          rsync -a Rava.Api/www/ publish/www/
+          rsync -a Rava.Api/html/ publish/html/
 
       - name: Upload publish artifact
         uses: actions/upload-artifact@v4
@@ -128,8 +128,8 @@ jobs:
           name: rava-website
           path: publish
 
-      - name: Ensure www is in publish bundle
-        run: rsync -a server/Rava.Api/www/ publish/www/
+      - name: Ensure html is in publish bundle
+        run: rsync -a server/Rava.Api/html/ publish/html/
 
       - name: Setup SSH agent
         uses: webfactory/ssh-agent@v0.9.0
@@ -151,7 +151,7 @@ jobs:
             fi
           done
 
-      - name: Deploy static web client (www)
+      - name: Deploy static web client (html)
         env:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
@@ -164,7 +164,7 @@ jobs:
           port="${DEPLOY_SSH_PORT:-22}"
           rsync -avz --delete \
             -e "ssh -p ${port} -o StrictHostKeyChecking=yes" \
-            server/Rava.Api/www/ \
+            server/Rava.Api/html/ \
             "${DEPLOY_USER}@${host}:${DEPLOY_WWW_PATH}/"
 
       - name: Deploy API publish output
@@ -182,7 +182,7 @@ jobs:
             -e "ssh -p ${port} -o StrictHostKeyChecking=yes" \
             --exclude 'appsettings.json' \
             --exclude 'appsettings.Development.json' \
-            --exclude 'www/uploads/profiles/*' \
+            --exclude 'html/uploads/profiles/*' \
             publish/ \
             "${DEPLOY_USER}@${host}:${DEPLOY_API_PATH}/"
 

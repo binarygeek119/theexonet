@@ -17,7 +17,7 @@ export const GRID_SIZE = 8;
 const LOCAL_API_URL = "http://localhost:5000";
 /** HTTPS API host (reverse proxy → port 5000). */
 const PRODUCTION_API_HOST = "ravaapi.binarygeek119.duckdns.org";
-/** HTTPS game host (static www → port 80). */
+/** HTTPS game host (static html → port 80). */
 const PRODUCTION_GAME_HOST = "rava.binarygeek119.duckdns.org";
 
 function normalizeHost(hostname) {

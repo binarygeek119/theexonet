@@ -52,13 +52,13 @@ Register an account, assign workers to mine zones, buy supplies, sell ore, and c
 | Game (browser UI) | [https://rava.binarygeek119.duckdns.org/](https://rava.binarygeek119.duckdns.org/) | 80 |
 | API | [https://ravaapi.binarygeek119.duckdns.org/](https://ravaapi.binarygeek119.duckdns.org/) | 5000 |
 
-Deploy `server/Rava.Api/www/` to the game host (port 80). Run `Rava.Api` on the API host (port 5000). The browser client on the game URL calls the API subdomain automatically (`www/js/config.js`).
+Deploy `server/Rava.Api/html/` to the game host (port 80). Run `Rava.Api` on the API host (port 5000). The browser client on the game URL calls the API subdomain automatically (`html/js/config.js`).
 
 Set `Email:AppBaseUrl` to `https://rava.binarygeek119.duckdns.org` so password reset links and other emails point at the game site—not the API host or `localhost`.
 
 ### Auto-deploy from GitHub Actions
 
-After each successful `main` build, CI can rsync `www/` to the game host and the API publish output to the API host. See **[docs/deploy.md](docs/deploy.md)** for SSH secrets, paths, and systemd setup.
+After each successful `main` build, CI can rsync `html/` to the game host and the API publish output to the API host. See **[docs/deploy.md](docs/deploy.md)** for SSH secrets, paths, and systemd setup.
 
 ## Unity Client (Optional)
 
@@ -71,7 +71,7 @@ rava/
 ├── Assets/Scripts/     Unity client (optional)
 ├── server/             ASP.NET Core API + simulation
 │   ├── Rava.Api/
-│   │   └── www/        Browser client (HTML/CSS/JS)
+│   │   └── html/       Browser client (HTML/CSS/JS)
 │   ├── Rava.Core/
 │   └── Rava.Infrastructure/
 └── docker-compose.yml  PostgreSQL for local dev

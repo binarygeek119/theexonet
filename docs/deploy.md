@@ -4,7 +4,7 @@ When a build on `main` succeeds, GitHub Actions can deploy automatically:
 
 | Target | Source | Typical path |
 |--------|--------|--------------|
-| Game site (port 80) | `server/Rava.Api/www/` | `/var/www/rava` |
+| Game site (port 80) | `server/Rava.Api/html/` | `/var/www/rava` |
 | API (port 5000) | `dotnet publish` output | `/opt/rava-api` |
 
 ## One-time server setup
@@ -81,8 +81,8 @@ Add the matching **public** key to `~/.ssh/authorized_keys` on the server.
 
 ## What deploy does
 
-1. **www** — `rsync` from the repo to `DEPLOY_WWW_PATH` (mirrors deletes; game host only).
-2. **API** — `rsync` publish artifact to `DEPLOY_API_PATH`, excluding `appsettings*.json` and `www/uploads/profiles/*`. The bundle includes a `www/` folder (game UI + avatar uploads path).
+1. **html** — `rsync` from the repo to `DEPLOY_WWW_PATH` (mirrors deletes; game host only).
+2. **API** — `rsync` publish artifact to `DEPLOY_API_PATH`, excluding `appsettings*.json` and `html/uploads/profiles/*`. The bundle includes an `html/` folder (game UI + avatar uploads path).
 3. **Restart** — runs `sudo systemctl restart <DEPLOY_API_SERVICE>` when `DEPLOY_API_SERVICE` is set.
 
 Deploy runs only on pushes to `main` (not pull requests), after build and test pass.
@@ -91,10 +91,10 @@ Deploy runs only on pushes to `main` (not pull requests), after build and test p
 
 ```bash
 # Static game site (from a git checkout)
-rsync -av --delete /path/to/rava/server/Rava.Api/www/ /var/www/rava/
+rsync -av --delete /path/to/rava/server/Rava.Api/html/ /var/www/rava/
 
 # API (from extracted GitHub release zip)
-rsync -av --exclude 'appsettings*.json' --exclude 'www/uploads/profiles/*' \
+rsync -av --exclude 'appsettings*.json' --exclude 'html/uploads/profiles/*' \
   ./publish/ /opt/rava-api/
 sudo systemctl restart rava-api
 ```

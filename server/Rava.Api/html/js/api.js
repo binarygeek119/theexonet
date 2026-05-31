@@ -546,7 +546,7 @@ function formatHttpError(response) {
   }
 
   if (response.status === 405) {
-    return "API route not available. Requests must go to the API host (ravaapi), not the game site. Hard-refresh the page or redeploy www/.";
+    return "API route not available. Requests must go to the API host (ravaapi), not the game site. Hard-refresh the page or redeploy html/.";
   }
 
   if (response.status === 503) {

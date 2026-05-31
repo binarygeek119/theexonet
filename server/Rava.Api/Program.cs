@@ -16,15 +16,15 @@ using Rava.Infrastructure.Data;
 using Rava.Infrastructure.Migrations;
 using Rava.Infrastructure.Services;
 
-var builder = WebApplication.CreateBuilder(args);
-
-var webRootPath = builder.Environment.WebRootPath
-    ?? Path.Combine(builder.Environment.ContentRootPath, "html");
+var contentRootPath = Directory.GetCurrentDirectory();
+var webRootPath = Path.Combine(contentRootPath, "html");
 Directory.CreateDirectory(webRootPath);
-if (builder.Environment.WebRootPath is null)
+
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
-    builder.WebHost.UseWebRoot(webRootPath);
-}
+    Args = args,
+    WebRootPath = webRootPath,
+});
 
 builder.Configuration.AddJsonFile("credits.json", optional: false, reloadOnChange: true);
 

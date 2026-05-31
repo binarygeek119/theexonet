@@ -62,10 +62,12 @@ Valid characters: letters, numbers, underscore `_`. Must start with a letter or 
 | `DEPLOY_HOST` | `binarygeek119.duckdns.org` |
 | `DEPLOY_USER` | `root` |
 | `DEPLOY_SSH_PORT` | `22` |
-| `DEPLOY_WWW_PATH` | `/var/www/rava` |
+| `DEPLOY_WWW_PATH` | `/var/www/rava` (or `/var/www/publish` if game + API share one folder) |
 | `DEPLOY_API_PATH` | `/var/www/publish` |
 | `DEPLOY_API_SERVICE` | `rava-api` |
 | `DEPLOY_STATUS_SERVICE` | `rava-status` |
+
+**Single-folder setup:** set both `DEPLOY_WWW_PATH` and `DEPLOY_API_PATH` to `/var/www/publish`. The workflow skips the separate html rsync and deploys game files under `publish/html/`. Point nginx/Apache for the game site at `/var/www/publish/html` (or keep `/var/www/rava` and only set `DEPLOY_WWW_PATH` to that path).
 
 `DEPLOY_WWW_PATH` and `DEPLOY_API_PATH` must be **paths only** (`/var/www/publish`), not full rsync targets like `root@host:/var/www/publish`. Host and user go in `DEPLOY_HOST` and `DEPLOY_USER`.
 

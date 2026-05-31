@@ -265,9 +265,22 @@ jobs:
           echo "DEPLOY_WWW_PATH=$www_path" >> "$GITHUB_ENV"
           echo "DEPLOY_API_PATH=$api_path" >> "$GITHUB_ENV"
 
+          effective_www_host="${www_host:-$host}"
+          effective_api_host="${api_host:-$host}"
+          if [ "$effective_www_host" = "$effective_api_host" ] && [ "$www_path" = "$api_path" ]; then
+            echo "DEPLOY_SKIP_WWW_RSYNC=true" >> "$GITHUB_ENV"
+            echo "DEPLOY_WWW_PATH matches DEPLOY_API_PATH — game html ships in publish/html/ (skipping separate www rsync)."
+          else
+            echo "DEPLOY_SKIP_WWW_RSYNC=false" >> "$GITHUB_ENV"
+          fi
+
           echo "Deploy targets:"
-          echo "  www: ${user}@${www_host:-$host}:${www_path}/"
-          echo "  api: ${user}@${api_host:-$host}:${api_path}/"
+          if [ "$effective_www_host" = "$effective_api_host" ] && [ "$www_path" = "$api_path" ]; then
+            echo "  publish (api + html): ${user}@${effective_api_host}:${api_path}/"
+          else
+            echo "  www: ${user}@${effective_www_host}:${www_path}/"
+            echo "  api: ${user}@${effective_api_host}:${api_path}/"
+          fi
 
       - name: Add SSH host keys
         run: |
@@ -362,10 +375,19 @@ jobs:
             run_remote "$remote" "${mkdir_cmd} '${path}'"
           }
 
-          ensure_dir "${DEPLOY_WWW_HOST:-$DEPLOY_HOST}" "$DEPLOY_WWW_PATH" "www"
-          ensure_dir "${DEPLOY_API_HOST:-$DEPLOY_HOST}" "$DEPLOY_API_PATH" "api"
+          www_host="${DEPLOY_WWW_HOST:-$DEPLOY_HOST}"
+          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          if [ "$www_host" = "$api_host" ] && [ "$DEPLOY_WWW_PATH" = "$DEPLOY_API_PATH" ]; then
+            ensure_dir "$api_host" "$DEPLOY_API_PATH" "publish"
+            ensure_dir "$api_host" "${DEPLOY_API_PATH}/html" "publish html"
+            ensure_dir "$api_host" "${DEPLOY_API_PATH}/html/images/profile" "profile uploads"
+          else
+            ensure_dir "$www_host" "$DEPLOY_WWW_PATH" "www"
+            ensure_dir "$api_host" "$DEPLOY_API_PATH" "api"
+          fi
 
       - name: Deploy static web client (html)
+        if: env.DEPLOY_SKIP_WWW_RSYNC != 'true'
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
         run: |

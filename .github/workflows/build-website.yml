@@ -185,6 +185,63 @@ jobs:
         if: steps.auth.outputs.method == 'password'
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
+      - name: Normalize deploy settings
+        run: |
+          set -euo pipefail
+          normalize_host() {
+            local h="${1:-}"
+            h="${h#https://}"
+            h="${h#http://}"
+            h="${h%%/*}"
+            h="${h%%:*}"
+            h="$(printf '%s' "$h" | tr -d '[:space:]')"
+            printf '%s' "$h"
+          }
+          normalize_path() {
+            local p="${1:-}"
+            p="$(printf '%s' "$p" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+            printf '%s' "$p"
+          }
+
+          host="$(normalize_host "$DEPLOY_HOST")"
+          if [ -z "$host" ]; then
+            echo "DEPLOY_HOST is empty. Set it to your server hostname (e.g. binarygeek119.duckdns.org)." >&2
+            exit 1
+          fi
+          if ! [[ "$host" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]]; then
+            echo "ERROR: DEPLOY_HOST '${host}' is not a valid hostname. Use hostname only — no https://, paths, or spaces." >&2
+            exit 1
+          fi
+          echo "DEPLOY_HOST=$host" >> "$GITHUB_ENV"
+
+          www_host="$(normalize_host "${DEPLOY_WWW_HOST:-}")"
+          api_host="$(normalize_host "${DEPLOY_API_HOST:-}")"
+          echo "DEPLOY_WWW_HOST=$www_host" >> "$GITHUB_ENV"
+          echo "DEPLOY_API_HOST=$api_host" >> "$GITHUB_ENV"
+
+          user="$(printf '%s' "$DEPLOY_USER" | tr -d '[:space:]')"
+          if [ -z "$user" ]; then
+            echo "DEPLOY_USER is empty." >&2
+            exit 1
+          fi
+          echo "DEPLOY_USER=$user" >> "$GITHUB_ENV"
+
+          port="$(printf '%s' "$DEPLOY_SSH_PORT" | tr -d '[:space:]')"
+          if ! [[ "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+            echo "ERROR: DEPLOY_SSH_PORT must be 1-65535, got '${port}'." >&2
+            exit 1
+          fi
+          echo "DEPLOY_SSH_PORT=$port" >> "$GITHUB_ENV"
+
+          www_path="$(normalize_path "$DEPLOY_WWW_PATH")"
+          api_path="$(normalize_path "$DEPLOY_API_PATH")"
+          echo "DEPLOY_WWW_PATH=$www_path" >> "$GITHUB_ENV"
+          echo "DEPLOY_API_PATH=$api_path" >> "$GITHUB_ENV"
+
+          echo "Deploy targets:"
+          echo "  www: ${user}@${www_host:-$host}:${www_path}/"
+          echo "  api: ${user}@${api_host:-$host}:${api_path}/"
+
       - name: Add SSH host keys
         run: |
           set -euo pipefail

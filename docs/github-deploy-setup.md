@@ -116,6 +116,18 @@ Watch the **Deploy to production** job in the Actions tab.
 
 ## 7. Troubleshooting
 
+### `hostname contains invalid characters` during rsync
+
+`DEPLOY_HOST` (or `DEPLOY_WWW_HOST` / `DEPLOY_API_HOST`) includes characters SSH/rsync reject — usually from copy-paste:
+
+| Wrong | Correct |
+|-------|---------|
+| `https://binarygeek119.duckdns.org` | `binarygeek119.duckdns.org` |
+| `binarygeek119.duckdns.org/` | `binarygeek119.duckdns.org` |
+| trailing space or newline | remove in GitHub Variables UI |
+
+The workflow now normalizes hostnames before deploy. Fix the variable in **Settings → Actions → Variables**, then re-run the workflow.
+
 ### `Add SSH host keys` fails (exit code 1)
 
 GitHub Actions could not reach your server on `DEPLOY_SSH_PORT` (default **22**). The workflow now prints DNS and TCP checks; fix the underlying reachability issue on the server or in your GitHub variables.

@@ -56,6 +56,10 @@ Deploy `server/Rava.Api/www/` to the game host (port 80). Run `Rava.Api` on the 
 
 Set `Email:AppBaseUrl` to `https://rava.binarygeek119.duckdns.org` so password reset links and other emails point at the game site—not the API host or `localhost`.
 
+### Auto-deploy from GitHub Actions
+
+After each successful `main` build, CI can rsync `www/` to the game host and the API publish output to the API host. See **[docs/deploy.md](docs/deploy.md)** for SSH secrets, paths, and systemd setup.
+
 ## Unity Client (Optional)
 
 Open the project in Unity 6 and press Play — the game bootstraps automatically against the same API at `http://localhost:5000`.

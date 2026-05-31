@@ -108,3 +108,95 @@ jobs:
             Download `rava-website-*.zip`, extract it, and run `Rava.Api` with your production configuration (`appsettings.json`, database connection, etc.).
           files: rava-website-*.zip
           generate_release_notes: true
+
+  deploy:
+    name: Deploy to production
+    needs: build
+    if: github.event_name != 'pull_request' && vars.ENABLE_PRODUCTION_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download API publish artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rava-website
+          path: publish
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add SSH host keys
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_WWW_HOST: ${{ secrets.DEPLOY_WWW_HOST }}
+          DEPLOY_API_HOST: ${{ secrets.DEPLOY_API_HOST }}
+          DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          port="${DEPLOY_SSH_PORT:-22}"
+          for host in "$DEPLOY_HOST" "$DEPLOY_WWW_HOST" "$DEPLOY_API_HOST"; do
+            if [ -n "$host" ]; then
+              ssh-keyscan -H -p "$port" "$host" >> ~/.ssh/known_hosts
+            fi
+          done
+
+      - name: Deploy static web client (www)
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_WWW_HOST: ${{ secrets.DEPLOY_WWW_HOST }}
+          DEPLOY_WWW_PATH: ${{ secrets.DEPLOY_WWW_PATH }}
+          DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          host="${DEPLOY_WWW_HOST:-$DEPLOY_HOST}"
+          port="${DEPLOY_SSH_PORT:-22}"
+          rsync -avz --delete \
+            -e "ssh -p ${port} -o StrictHostKeyChecking=yes" \
+            server/Rava.Api/www/ \
+            "${DEPLOY_USER}@${host}:${DEPLOY_WWW_PATH}/"
+
+      - name: Deploy API publish output
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_API_HOST: ${{ secrets.DEPLOY_API_HOST }}
+          DEPLOY_API_PATH: ${{ secrets.DEPLOY_API_PATH }}
+          DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          port="${DEPLOY_SSH_PORT:-22}"
+          rsync -avz --delete \
+            -e "ssh -p ${port} -o StrictHostKeyChecking=yes" \
+            --exclude 'appsettings.json' \
+            --exclude 'appsettings.Development.json' \
+            --exclude 'www/uploads/profiles/*' \
+            publish/ \
+            "${DEPLOY_USER}@${host}:${DEPLOY_API_PATH}/"
+
+      - name: Restart API service
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_API_HOST: ${{ secrets.DEPLOY_API_HOST }}
+          DEPLOY_API_SERVICE: ${{ secrets.DEPLOY_API_SERVICE }}
+          DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DEPLOY_API_SERVICE}" ]; then
+            echo "DEPLOY_API_SERVICE not set; skipping restart."
+            exit 0
+          fi
+          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          port="${DEPLOY_SSH_PORT:-22}"
+          ssh -p "$port" -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${host}" \
+            "sudo systemctl restart ${DEPLOY_API_SERVICE}"
+

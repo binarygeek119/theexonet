@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using Rava.Api.Controllers;
@@ -255,73 +256,43 @@ var serveGameUi = hostingOptions.ServeGameUi ?? !app.Environment.IsProduction();
 if (serveGameUi)
 {
     app.UseDefaultFiles();
-}
-
-app.UseStaticFiles();
-app.UseAuthentication();
-app.UseMiddleware<Rava.Api.Middleware.PlayerBanMiddleware>();
-app.UseAuthorization();
-app.MapControllers();
-app.MapGet("/admin", () => Results.Redirect("/admin.html"));
-app.MapGet("/moderator", () => Results.Redirect("/moderator.html"));
-
-if (serveGameUi)
-{
-    app.MapFallbackToFile("index.html");
+    app.UseStaticFiles();
 }
 else
 {
     app.Logger.LogInformation("API-only hosting: game UI disabled on this host.");
-    app.MapGet("/index.html", () => Results.Redirect("/"));
-    app.MapGet("/", async (AppDbContext db, CancellationToken cancellationToken) =>
+    app.UseStaticFiles(new StaticFileOptions
     {
-        var databaseConnected = false;
-        try
-        {
-            databaseConnected = await db.Database.CanConnectAsync(cancellationToken);
-        }
-        catch
-        {
-            // Status page still loads when the database is unreachable.
-        }
-
-        var apiStatus = databaseConnected ? "online" : "degraded";
-        var databaseStatus = databaseConnected ? "online" : "offline";
-        var checkedAt = DateTime.UtcNow.ToString("u");
-
-        var html = $$"""
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <title>RAVA API</title>
-              <style>
-                body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; color: #1a1a1a; }
-                h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-                .ok { color: #0a7a2f; }
-                .bad { color: #b00020; }
-                dl { display: grid; grid-template-columns: 9rem 1fr; gap: 0.35rem 1rem; margin-top: 1.5rem; }
-                a { color: #0b5fff; }
-              </style>
-            </head>
-            <body>
-              <h1>RAVA API</h1>
-              <p class="{{(databaseConnected ? "ok" : "bad")}}">
-                API status: <strong>{{apiStatus}}</strong>
-              </p>
-              <dl>
-                <dt>Service</dt><dd>Rava.Api</dd>
-                <dt>Database</dt><dd>{{databaseStatus}}</dd>
-                <dt>Checked</dt><dd>{{checkedAt}} UTC</dd>
-              </dl>
-              <p><a href="/api/status">JSON status</a></p>
-            </body>
-            </html>
-            """;
-
-        return Results.Content(html, "text/html; charset=utf-8");
+        FileProvider = new PhysicalFileProvider(Path.Combine(webRootPath, "images")),
+        RequestPath = "/images"
     });
+}
+
+app.UseAuthentication();
+app.UseMiddleware<Rava.Api.Middleware.PlayerBanMiddleware>();
+app.UseAuthorization();
+app.MapControllers();
+
+if (serveGameUi)
+{
+    app.MapGet("/admin", () => Results.Redirect("/admin.html"));
+    app.MapGet("/moderator", () => Results.Redirect("/moderator.html"));
+    app.MapFallbackToFile("index.html");
+}
+else
+{
+    app.MapGet("/", () => Results.Content(
+        """
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <title>RAVA API</title>
+        </head>
+        <body>API status is OK</body>
+        </html>
+        """,
+        "text/html; charset=utf-8"));
 }
 
 app.Run();

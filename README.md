@@ -47,11 +47,14 @@ Register an account, assign workers to mine zones, buy supplies, sell ore, and c
 
 ## Production
 
-The live web game is hosted at **[https://rava.binarygeek119.duckdns.org/](https://rava.binarygeek119.duckdns.org/)**.
+| Service | URL | Backend port |
+|---------|-----|----------------|
+| Game (browser UI) | [https://rava.binarygeek119.duckdns.org/](https://rava.binarygeek119.duckdns.org/) | 80 |
+| API | [https://ravaapi.binarygeek119.duckdns.org/](https://ravaapi.binarygeek119.duckdns.org/) | 5000 |
 
-The browser client calls the API at **`http://ravaapi.binarygeek119.duckdns.org`** (configured in `wwwroot/js/config.js`). Local development still uses `http://localhost:5000`.
+Deploy `server/Rava.Api/www/` to the game host (port 80). Run `Rava.Api` on the API host (port 5000). The browser client on the game URL calls the API subdomain automatically (`www/js/config.js`).
 
-Set `Email:AppBaseUrl` in `server/Rava.Api/appsettings.json` (or your server environment) to the game URL so password reset links, admin notifications, and other emails point at the public site—not `localhost`.
+Set `Email:AppBaseUrl` to `https://rava.binarygeek119.duckdns.org` so password reset links and other emails point at the game site—not the API host or `localhost`.
 
 ## Unity Client (Optional)
 
@@ -64,7 +67,7 @@ rava/
 ├── Assets/Scripts/     Unity client (optional)
 ├── server/             ASP.NET Core API + simulation
 │   ├── Rava.Api/
-│   │   └── wwwroot/    Browser client (HTML/CSS/JS)
+│   │   └── www/        Browser client (HTML/CSS/JS)
 │   ├── Rava.Core/
 │   └── Rava.Infrastructure/
 └── docker-compose.yml  PostgreSQL for local dev

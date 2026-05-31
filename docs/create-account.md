@@ -33,7 +33,7 @@ sequenceDiagram
 
 ## Client entry points
 
-### Web app (`wwwroot/js/app.js`)
+### Web app (`www/js/app.js`)
 
 1. User switches to **Register** mode and fills username, email, password.
 2. `POST /api/auth/register` with JSON body.
@@ -232,4 +232,4 @@ Host=192.168.1.2;Port=5432;Database=rava;Username=postgres;Password=...
 | `server/Rava.Core/Services/BcryptPasswordHasher.cs` | Password hashing |
 | `server/Rava.Core/Constants/GameBalance.cs` | Starter credits, grid size, supply qty |
 | `server/Rava.Infrastructure/Entities/Entities.cs` | EF entity definitions |
-| `server/Rava.Api/wwwroot/js/app.js` | Web client registration UI |
+| `server/Rava.Api/www/js/app.js` | Web client registration UI |

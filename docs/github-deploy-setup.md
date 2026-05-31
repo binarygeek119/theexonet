@@ -167,13 +167,31 @@ Configure **`DEPLOY_SSH_PASSWORD`** or **`DEPLOY_SSH_KEY`** under Secrets. See s
 
 ### `Unit rava-admin.service not found` (or moderator)
 
-The deploy synced files but the server is missing systemd units for the admin/moderator portals. On the server:
+The deploy **synced files successfully** — only the service restart failed because those systemd units were never installed on the server.
+
+**On the server** (SSH as root), create the units and start them:
 
 ```bash
-# From your repo clone on the server, or copy scripts/systemd/*.service manually
+# If you have the repo cloned on the server:
+sudo bash scripts/install-portal-units.sh
+
+# Or install all four units (api, status, admin, moderator):
 sudo bash scripts/install-systemd-units.sh
 ```
 
-Ensure `/var/www/publish/appsettings.json` includes **`AdminPortal`** and **`ModeratorPortal`** sections (see [deploy.md](deploy.md)).
+**Without a repo clone**, copy the unit files manually:
 
-Until those units exist, GitHub Actions will log a **WARNING** and skip restart for missing services instead of failing the deploy.
+```bash
+sudo cp rava-admin.service rava-moderator.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now rava-admin rava-moderator
+systemctl is-active rava-admin rava-moderator
+```
+
+Unit file sources: `scripts/systemd/rava-admin.service` and `scripts/systemd/rava-moderator.service`.
+
+Ensure `/var/www/publish/appsettings.json` includes **`AdminPortal`** and **`ModeratorPortal`** sections (see `appsettings.production.example.json`).
+
+After units exist, re-run the GitHub workflow or `sudo systemctl restart rava-admin rava-moderator`.
+
+On the latest workflow, missing units log a **WARNING** and are skipped instead of failing the deploy.

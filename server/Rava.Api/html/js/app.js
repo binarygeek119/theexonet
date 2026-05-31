@@ -1,6 +1,5 @@
 import { RavaApi } from "./api.js";
 import { GRID_SIZE, ORE_TYPES, SUPPLY_TYPES, API_BASE_URL } from "./config.js";
-import { initApiStatusMonitor } from "./api-status.js";
 import { initPlayerMessaging } from "./player-messages.js";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
 
@@ -452,6 +451,26 @@ function initBirthdayDropdowns() {
   els.birthdayYear.addEventListener("input", populateBirthdayDayOptions);
   els.birthdayYear.addEventListener("change", populateBirthdayDayOptions);
   els.birthdayMonth.dataset.initialized = "true";
+}
+
+async function initGameVersionTag() {
+  const versionEl = document.getElementById("game-version");
+  if (!versionEl) {
+    return;
+  }
+
+  try {
+    const status = await api.getStatus();
+    const label = status?.gameVersion?.trim();
+    if (!label) {
+      return;
+    }
+
+    versionEl.textContent = label;
+    versionEl.hidden = false;
+  } catch {
+    versionEl.hidden = true;
+  }
 }
 
 function getBirthdayValue() {
@@ -2006,7 +2025,7 @@ document.addEventListener("keydown", (event) => {
 
 setAuthMode("login");
 initBirthdayDropdowns();
-initApiStatusMonitor(api);
+initGameVersionTag();
 showScreen("login");
 els.mineGrid.style.setProperty("--grid-size", GRID_SIZE);
 

@@ -6,6 +6,9 @@ After=network.target
 WorkingDirectory=/var/www/publish
 ExecStart=/usr/bin/dotnet /var/www/publish/Rava.Api.dll
 Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
 Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
 Environment=DOTNET_ENVIRONMENT=Production
 User=www-data

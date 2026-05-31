@@ -21,6 +21,18 @@ var contentRootPath = Path.GetFullPath(AppContext.BaseDirectory);
 var webRootPath = Path.Combine(contentRootPath, "html");
 Directory.CreateDirectory(webRootPath);
 
+void FailStartup(string message, Exception? ex = null)
+{
+    Console.Error.WriteLine("RAVA API startup failed.");
+    Console.Error.WriteLine(message);
+    if (ex is not null)
+    {
+        Console.Error.WriteLine(ex);
+    }
+
+    Environment.Exit(1);
+}
+
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
@@ -134,12 +146,23 @@ builder.Services.AddSingleton<ServerRuntimeInfo>();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    throw new InvalidOperationException(
+    FailStartup(
         "Database connection string is missing. Copy server/Rava.Api/appsettings.json.example " +
-        "to appsettings.json and set ConnectionStrings:DefaultConnection.");
+        "to /var/www/publish/appsettings.json and set ConnectionStrings:DefaultConnection.");
 }
 
-var app = builder.Build();
+WebApplication app;
+try
+{
+    app = builder.Build();
+}
+catch (Exception ex)
+{
+    FailStartup(
+        "Failed to build the application. Check appsettings.json, credits.json, and deploy files under /var/www/publish.",
+        ex);
+    return;
+}
 
 app.Logger.LogInformation(
     "Content root: {ContentRoot}. Web root: {WebRoot}. Profile uploads: {UploadPath}",
@@ -264,7 +287,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        throw new InvalidOperationException(
+        FailStartup(
             "Could not connect to PostgreSQL or create the database schema. " +
             "Verify ConnectionStrings:DefaultConnection in appsettings.json.",
             ex);
@@ -276,9 +299,9 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        throw new InvalidOperationException(
+        FailStartup(
             $"Could not create {Path.Combine(webRootPath, ProfileAvatarStorageOptions.RelativeFolder)}. " +
-            "Ensure the service user can write under html/images/profile/.",
+            "Ensure www-data can write under html/images/profile/. Run: sudo chown -R www-data:www-data /var/www/publish",
             ex);
     }
 }
@@ -335,4 +358,11 @@ else
         "text/html; charset=utf-8"));
 }
 
-app.Run();
+try
+{
+    app.Run();
+}
+catch (Exception ex)
+{
+    FailStartup("Unhandled error while running the API.", ex);
+}

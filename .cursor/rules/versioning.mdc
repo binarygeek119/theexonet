@@ -1,0 +1,18 @@
+---
+description: Do not bump game version unless the user explicitly requests it
+alwaysApply: true
+---
+
+# Game version bumps
+
+RAVA version lives in `server/Rava.Core/Constants/GameVersion.cs` (`Major`, `Minor`, `Patch` → `V1.0.0`).
+
+**Never change `Major`, `Minor`, or `Patch` unless the user explicitly asks to bump the version** (e.g. "bump patch to 1.0.1", "release V1.1.0").
+
+When implementing features, fixes, or refactors:
+
+- Do **not** increment version as part of the change
+- Do **not** suggest bumping version in every PR or commit
+- If a release needs a version bump, ask the user which part to increase (major / minor / patch)
+
+See `docs/VERSIONING.md` for semantic versioning meaning.

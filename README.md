@@ -118,6 +118,16 @@ rava/
 └── docker-compose.yml  PostgreSQL for local dev
 ```
 
+## Versioning
+
+Public release version is **V*MAJOR*.*MINOR*.*PATCH*** (currently **V1.0.0**):
+
+- **Major** — major releases
+- **Minor** — new features
+- **Patch** — bug fixes
+
+Update `server/Rava.Core/Constants/GameVersion.cs` only when you decide to release a new version — do not bump it automatically with other changes. See **[docs/VERSIONING.md](docs/VERSIONING.md)** for the full policy and release checklist.
+
 ## Phase 1 Features
 
 - Register / login with JWT auth

@@ -528,30 +528,16 @@ body:not(.is-authenticated) .modal {
   font-size: 0.9rem;
 }
 
-.admin-portal-link {
-  display: block;
-  margin-top: 18px;
-  text-align: center;
+.game-version {
+  position: fixed;
+  right: 16px;
+  bottom: 12px;
+  margin: 0;
   color: var(--muted);
-  font-size: 0.9rem;
-  text-decoration: none;
-}
-
-.admin-portal-link:hover {
-  color: var(--text);
-}
-
-.moderator-portal-link {
-  display: block;
-  margin-top: 8px;
-  text-align: center;
-  color: var(--muted);
-  font-size: 0.9rem;
-  text-decoration: none;
-}
-
-.moderator-portal-link:hover {
-  color: var(--text);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  user-select: none;
 }
 
 #reset-group label {

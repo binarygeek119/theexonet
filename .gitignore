@@ -109,7 +109,9 @@ InitTestScene*.unity*
 # .NET backend
 /server/**/bin/
 /server/**/obj/
+/server/publish/
 /server/.vs/
+!/server/**/*.csproj
 /server/Rava.Api/appsettings.Development.json
 /server/Rava.Api/wwwroot/uploads/profiles/*
 !/server/Rava.Api/wwwroot/uploads/profiles/.gitkeep

@@ -354,94 +354,46 @@ jobs:
               "$target"
           fi
 
-      - name: Restart API service
+      - name: Restart services
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -z "${DEPLOY_API_SERVICE}" ]; then
-            echo "DEPLOY_API_SERVICE not set; skipping restart."
-            exit 0
-          fi
           host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
           remote="${DEPLOY_USER}@${host}"
           if [ "$DEPLOY_USER" = "root" ]; then
-            cmd="systemctl restart ${DEPLOY_API_SERVICE}"
+            systemctl_prefix=""
           else
-            cmd="sudo systemctl restart ${DEPLOY_API_SERVICE}"
-          fi
-          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$cmd"
-          else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$cmd"
+            systemctl_prefix="sudo "
           fi
 
-      - name: Restart status service
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          if [ -z "${DEPLOY_STATUS_SERVICE}" ]; then
-            echo "DEPLOY_STATUS_SERVICE not set; skipping status restart."
-            exit 0
-          fi
-          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${host}"
-          if [ "$DEPLOY_USER" = "root" ]; then
-            cmd="systemctl restart ${DEPLOY_STATUS_SERVICE}"
-          else
-            cmd="sudo systemctl restart ${DEPLOY_STATUS_SERVICE}"
-          fi
-          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$cmd"
-          else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$cmd"
-          fi
+          run_remote() {
+            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            else
+              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
+                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            fi
+          }
 
-      - name: Restart admin service
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          if [ -z "${DEPLOY_ADMIN_SERVICE}" ]; then
-            echo "DEPLOY_ADMIN_SERVICE not set; skipping admin restart."
-            exit 0
-          fi
-          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${host}"
-          if [ "$DEPLOY_USER" = "root" ]; then
-            cmd="systemctl restart ${DEPLOY_ADMIN_SERVICE}"
-          else
-            cmd="sudo systemctl restart ${DEPLOY_ADMIN_SERVICE}"
-          fi
-          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$cmd"
-          else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$cmd"
-          fi
+          restart_unit() {
+            local unit="$1"
+            if [ -z "$unit" ]; then
+              return 0
+            fi
+            if ! run_remote "${systemctl_prefix}systemctl cat ${unit}.service >/dev/null 2>&1"; then
+              echo "WARNING: ${unit}.service is not installed on the server; skipping restart."
+              echo "Run scripts/install-systemd-units.sh on the server (see docs/deploy.md)."
+              return 0
+            fi
+            if run_remote "${systemctl_prefix}systemctl restart ${unit}"; then
+              echo "Restarted ${unit}"
+            else
+              echo "WARNING: systemctl restart ${unit} failed (deploy files were still synced)." >&2
+            fi
+          }
 
-      - name: Restart moderator service
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          if [ -z "${DEPLOY_MODERATOR_SERVICE}" ]; then
-            echo "DEPLOY_MODERATOR_SERVICE not set; skipping moderator restart."
-            exit 0
-          fi
-          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${host}"
-          if [ "$DEPLOY_USER" = "root" ]; then
-            cmd="systemctl restart ${DEPLOY_MODERATOR_SERVICE}"
-          else
-            cmd="sudo systemctl restart ${DEPLOY_MODERATOR_SERVICE}"
-          fi
-          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$cmd"
-          else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$cmd"
-          fi
+          restart_unit "${DEPLOY_API_SERVICE}"
+          restart_unit "${DEPLOY_STATUS_SERVICE}"
+          restart_unit "${DEPLOY_ADMIN_SERVICE}"
+          restart_unit "${DEPLOY_MODERATOR_SERVICE}"

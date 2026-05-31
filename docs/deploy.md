@@ -61,7 +61,7 @@ sudo chown -R www-data:www-data /var/www/publish
 
    The API resolves paths from the folder containing `Rava.Api.dll`. With `WorkingDirectory=/var/www/publish`, uploads are written to **`/var/www/publish/html/images/profile/`** (URL path `/images/profile/...`).
 
-4. Optional: systemd unit for the API, e.g. `/etc/systemd/system/rava-api.service`:
+4. Optional: systemd unit for the API — copy from `scripts/systemd/rava-api.service` or create `/etc/systemd/system/rava-api.service`:
 
 ```ini
 [Unit]
@@ -96,7 +96,7 @@ Add to `/var/www/publish/appsettings.json`:
 }
 ```
 
-`/etc/systemd/system/rava-status.service`:
+`/etc/systemd/system/rava-status.service` — see `scripts/systemd/rava-status.service`:
 
 ```ini
 [Unit]
@@ -132,7 +132,7 @@ Add to `/var/www/publish/appsettings.json` (if not already present from `AdminPo
 }
 ```
 
-`/etc/systemd/system/rava-admin.service`:
+`/etc/systemd/system/rava-admin.service` — see `scripts/systemd/rava-admin.service`:
 
 ```ini
 [Unit]
@@ -169,7 +169,7 @@ Add to `/var/www/publish/appsettings.json`:
 }
 ```
 
-`/etc/systemd/system/rava-moderator.service`:
+`/etc/systemd/system/rava-moderator.service` — see `scripts/systemd/rava-moderator.service`:
 
 ```ini
 [Unit]
@@ -191,6 +191,12 @@ WantedBy=multi-user.target
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now rava-moderator
+```
+
+**Quick install (all four units):** copy `scripts/systemd/*.service` to the server, then:
+
+```bash
+sudo bash scripts/install-systemd-units.sh
 ```
 
 Allow passwordless service restarts for GitHub Actions (optional — use your SSH login user, not necessarily `www-data`):

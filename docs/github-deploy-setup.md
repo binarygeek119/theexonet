@@ -164,3 +164,16 @@ Set repository variable **`ENABLE_PRODUCTION_DEPLOY`** = `true` (Variables tab, 
 ### Auth fails after host keys succeed
 
 Configure **`DEPLOY_SSH_PASSWORD`** or **`DEPLOY_SSH_KEY`** under Secrets. See sections 2 and 4 above.
+
+### `Unit rava-admin.service not found` (or moderator)
+
+The deploy synced files but the server is missing systemd units for the admin/moderator portals. On the server:
+
+```bash
+# From your repo clone on the server, or copy scripts/systemd/*.service manually
+sudo bash scripts/install-systemd-units.sh
+```
+
+Ensure `/var/www/publish/appsettings.json` includes **`AdminPortal`** and **`ModeratorPortal`** sections (see [deploy.md](deploy.md)).
+
+Until those units exist, GitHub Actions will log a **WARNING** and skip restart for missing services instead of failing the deploy.

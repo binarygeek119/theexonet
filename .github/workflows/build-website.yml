@@ -394,13 +394,19 @@ jobs:
           set -euo pipefail
           host="${DEPLOY_WWW_HOST:-$DEPLOY_HOST}"
           target="${DEPLOY_USER}@${host}:${DEPLOY_WWW_PATH}/"
+          www_rsync_args=(
+            -avz
+            --delete
+            --filter 'P appsettings.json'
+            --filter 'P appsettings.Development.json'
+          )
           if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            rsync -avz --delete \
+            rsync "${www_rsync_args[@]}" \
               -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
               server/Rava.Api/html/ \
               "$target"
           else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -avz --delete \
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${www_rsync_args[@]}" \
               -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
               server/Rava.Api/html/ \
               "$target"
@@ -413,24 +419,30 @@ jobs:
           set -euo pipefail
           host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
           target="${DEPLOY_USER}@${host}:${DEPLOY_API_PATH}/"
+          # --exclude skips transfer; --filter P* prevents --delete from removing server-only files.
+          api_rsync_args=(
+            -avz
+            --delete
+            --filter 'P appsettings.json'
+            --filter 'P appsettings.Development.json'
+            --filter 'P server-runtime.json'
+            --filter 'P status-runtime.json'
+            --filter 'P html/images/profile/'
+            --filter 'P html/images/profile/***'
+            --exclude 'appsettings.json'
+            --exclude 'appsettings.Development.json'
+            --exclude 'html/images/profile/'
+            --exclude 'server-runtime.json'
+            --exclude 'status-runtime.json'
+          )
           if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            rsync -avz --delete \
+            rsync "${api_rsync_args[@]}" \
               -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              --exclude 'appsettings.json' \
-              --exclude 'appsettings.Development.json' \
-              --exclude 'html/images/profile/*' \
-              --exclude 'server-runtime.json' \
-              --exclude 'status-runtime.json' \
               publish/ \
               "$target"
           else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -avz --delete \
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${api_rsync_args[@]}" \
               -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              --exclude 'appsettings.json' \
-              --exclude 'appsettings.Development.json' \
-              --exclude 'html/images/profile/*' \
-              --exclude 'server-runtime.json' \
-              --exclude 'status-runtime.json' \
               publish/ \
               "$target"
           fi

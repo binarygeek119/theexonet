@@ -269,23 +269,30 @@ server {
 
 ## Troubleshooting `appsettings.json`
 
-If the API returns **502** or `/api/status` shows **database offline**:
+If the API returns **502**, `/api/status` shows **database offline**, or **`rava-api.service` failed (Result: core-dump)**:
 
-1. **Check the service log:** `sudo journalctl -u rava-api -n 50 --no-pager`
-2. **Verify Postgres from the API server:**  
+1. **Run diagnostics on the server:**  
+   `sudo bash scripts/diagnose-api.sh`  
+   (Or copy the script from the repo to the server first.)
+2. **Check the service log:** `sudo journalctl -u rava-api -n 80 --no-pager`
+3. **Manual startup (shows the real error on stdout):**  
+   `sudo -u www-data env ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_URLS=http://127.0.0.1:5000 dotnet /var/www/publish/Rava.Api.dll`
+4. **After fixing, clear systemd rate-limit:**  
+   `sudo systemctl reset-failed rava-api && sudo systemctl restart rava-api`
+5. **Verify Postgres from the API server:**  
    `psql "Host=YOUR_HOST;Port=5432;Database=YOUR_DB;Username=YOUR_USER;Password=YOUR_PASSWORD" -c "SELECT 1"`
-3. **Common mistakes:**
+6. **Common mistakes:**
    - `Host=localhost` when PostgreSQL is on another machine
    - Wrong database name or username (must match your real Postgres setup)
    - **`28P01: password authentication failed for user "rava"`** — production `appsettings.json` still uses `Username=rava`; use your real Postgres user (often `postgres`). Deploy never overwrites `appsettings.json`.
    - `appsettings.json` missing from the API folder (publish does not include it)
    - `credits.json` missing from the API folder
-4. **Test locally on the server:**  
+7. **Test locally on the server:**  
    `curl http://127.0.0.1:5000/api/status` — should return JSON with `"databaseStatus":"online"`
-5. **`.NET runtime missing`:** log shows `Framework: Microsoft.NETCore.App, version '10.0.0'` but only 8.x installed — install `aspnetcore-runtime-10.0` (see step 2 above).
-6. **`Address already in use` / socket bind error:** another process holds port 5000, 6000, 7000, or 7050 (`sudo ss -tlnp | grep -E '5000|6000|7000|7050'`). Do **not** put `"Urls"` in the shared `/var/www/publish/appsettings.json` — set ports only in each systemd unit (`ASPNETCORE_URLS=http://0.0.0.0:5000` for API, `:6000` for status, `:7000` for admin, `:7050` for moderator).
-7. **`Access to the path .../html/images/profile is denied`:** fix ownership on `/var/www/publish` (see upload folder permissions in step 3 above).
-8. **`Could not parse the JSON file` / `LineNumber: 308`:** `/var/www/publish/appsettings.json` is invalid (often duplicated content from repeated edits). Back it up, replace from `appsettings.production.example.json`, set your postgres password, then validate with `python3 -m json.tool /var/www/publish/appsettings.json`.
+8. **`.NET runtime missing`:** log shows `Framework: Microsoft.NETCore.App, version '10.0.0'` but only 8.x installed — install `aspnetcore-runtime-10.0` (see step 2 above).
+9. **`Address already in use` / socket bind error:** another process holds port 5000, 6000, 7000, or 7050 (`sudo ss -tlnp | grep -E '5000|6000|7000|7050'`). Do **not** put `"Urls"` in the shared `/var/www/publish/appsettings.json` — set ports only in each systemd unit (`ASPNETCORE_URLS=http://0.0.0.0:5000` for API, `:6000` for status, `:7000` for admin, `:7050` for moderator).
+10. **`Access to the path .../html/images/profile is denied`:** fix ownership on `/var/www/publish` (see upload folder permissions in step 3 above).
+11. **`Could not parse the JSON file` / `LineNumber: 308`:** `/var/www/publish/appsettings.json` is invalid (often duplicated content from repeated edits). Back it up, replace from `appsettings.production.example.json`, set your postgres password, then validate with `python3 -m json.tool /var/www/publish/appsettings.json`.
 
 ## GitHub configuration
 
@@ -324,7 +331,7 @@ Add the matching **public** key to `~/.ssh/authorized_keys` on the server.
 ## What deploy does
 
 1. **html** — `rsync` from the repo to `DEPLOY_WWW_PATH` (mirrors deletes; game host only).
-2. **API** — `rsync` publish artifact to `DEPLOY_API_PATH`, excluding `appsettings*.json` and `html/images/profile/*`. The bundle includes an `html/` folder (game UI + avatar uploads path).
+2. **API** — `rsync` publish artifact to `DEPLOY_API_PATH`, excluding and **protecting** `appsettings*.json`, runtime JSON, and `html/images/profile/` from `--delete`. The bundle includes an `html/` folder (game UI + avatar uploads path). Deploy never overwrites production secrets in `appsettings.json`.
 3. **Restart** — runs `sudo systemctl restart <DEPLOY_API_SERVICE>` and optionally `<DEPLOY_STATUS_SERVICE>`, `<DEPLOY_ADMIN_SERVICE>`, and `<DEPLOY_MODERATOR_SERVICE>` when those secrets are set.
 
 Deploy runs only on pushes to `main` (not pull requests), after build and test pass.
@@ -336,7 +343,19 @@ Deploy runs only on pushes to `main` (not pull requests), after build and test p
 rsync -av --delete /path/to/rava/server/Rava.Api/html/ /var/www/rava/
 
 # API + status + admin + moderator (from extracted GitHub release zip)
-rsync -av --exclude 'appsettings*.json' --exclude 'html/images/profile/*' \
+# --filter P* keeps server-only appsettings.json safe when using --delete
+rsync -av --delete \
+  --filter 'P appsettings.json' \
+  --filter 'P appsettings.Development.json' \
+  --filter 'P server-runtime.json' \
+  --filter 'P status-runtime.json' \
+  --filter 'P html/images/profile/' \
+  --filter 'P html/images/profile/***' \
+  --exclude 'appsettings.json' \
+  --exclude 'appsettings.Development.json' \
+  --exclude 'html/images/profile/' \
+  --exclude 'server-runtime.json' \
+  --exclude 'status-runtime.json' \
   ./publish/ /var/www/publish/
 sudo systemctl restart rava-api
 sudo systemctl restart rava-status

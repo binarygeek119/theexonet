@@ -35,6 +35,7 @@ builder.Services.Configure<GameCreditsOptions>(builder.Configuration.GetSection(
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection(AdminOptions.SectionName));
 builder.Services.Configure<ModeratorOptions>(builder.Configuration.GetSection(ModeratorOptions.SectionName));
 builder.Services.Configure<HateSpeechOptions>(builder.Configuration.GetSection(HateSpeechOptions.SectionName));
+builder.Services.Configure<HostingOptions>(builder.Configuration.GetSection(HostingOptions.SectionName));
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddMemoryCache();
@@ -121,6 +122,7 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddSingleton<IAuthorizationHandler, AdminAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, ModeratorAuthorizationHandler>();
+builder.Services.AddSingleton<ServerRuntimeInfo>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
@@ -246,7 +248,15 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
-app.UseDefaultFiles();
+
+var hostingOptions = app.Configuration.GetSection(HostingOptions.SectionName).Get<HostingOptions>() ?? new HostingOptions();
+var serveGameUi = hostingOptions.ServeGameUi ?? !app.Environment.IsProduction();
+
+if (serveGameUi)
+{
+    app.UseDefaultFiles();
+}
+
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseMiddleware<Rava.Api.Middleware.PlayerBanMiddleware>();
@@ -254,6 +264,64 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapGet("/admin", () => Results.Redirect("/admin.html"));
 app.MapGet("/moderator", () => Results.Redirect("/moderator.html"));
-app.MapFallbackToFile("index.html");
+
+if (serveGameUi)
+{
+    app.MapFallbackToFile("index.html");
+}
+else
+{
+    app.Logger.LogInformation("API-only hosting: game UI disabled on this host.");
+    app.MapGet("/index.html", () => Results.Redirect("/"));
+    app.MapGet("/", async (AppDbContext db, CancellationToken cancellationToken) =>
+    {
+        var databaseConnected = false;
+        try
+        {
+            databaseConnected = await db.Database.CanConnectAsync(cancellationToken);
+        }
+        catch
+        {
+            // Status page still loads when the database is unreachable.
+        }
+
+        var apiStatus = databaseConnected ? "online" : "degraded";
+        var databaseStatus = databaseConnected ? "online" : "offline";
+        var checkedAt = DateTime.UtcNow.ToString("u");
+
+        var html = $$"""
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>RAVA API</title>
+              <style>
+                body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; color: #1a1a1a; }
+                h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+                .ok { color: #0a7a2f; }
+                .bad { color: #b00020; }
+                dl { display: grid; grid-template-columns: 9rem 1fr; gap: 0.35rem 1rem; margin-top: 1.5rem; }
+                a { color: #0b5fff; }
+              </style>
+            </head>
+            <body>
+              <h1>RAVA API</h1>
+              <p class="{{(databaseConnected ? "ok" : "bad")}}">
+                API status: <strong>{{apiStatus}}</strong>
+              </p>
+              <dl>
+                <dt>Service</dt><dd>Rava.Api</dd>
+                <dt>Database</dt><dd>{{databaseStatus}}</dd>
+                <dt>Checked</dt><dd>{{checkedAt}} UTC</dd>
+              </dl>
+              <p><a href="/api/status">JSON status</a></p>
+            </body>
+            </html>
+            """;
+
+        return Results.Content(html, "text/html; charset=utf-8");
+    });
+}
 
 app.Run();

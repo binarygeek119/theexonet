@@ -66,6 +66,8 @@ Open **http://localhost:6000** for API/database health, response time, and links
 
 Deploy `server/Rava.Api/html/` to the game host (port 80). Run `Rava.Api` and `Rava.Status` from the same publish folder (port 5000 and 6000). The browser client on the game host calls the API host automatically (`html/js/config.js`).
 
+On the API host, set `"Hosting": { "ServeGameUi": false }` in `appsettings.json` (included in `appsettings.json.example`) so the API subdomain shows a status page at `/` instead of the game UI. Local `dotnet run` in Development still serves the game at `/` unless you override that in config.
+
 Set `Email:AppBaseUrl` to your public game site URL so password reset links and other emails point at the game site—not the API host or `localhost`.
 
 ### Auto-deploy from GitHub Actions
@@ -108,7 +110,8 @@ Friends, player market, multi-mine, mine groups, real US market API, account nuk
 
 | Method | Route | Description |
 |--------|-------|-------------|
-| GET | `/api/status` | API and database health (`status`, `databaseStatus`, `databaseConnected`) |
+| GET | `/api/status` | API and database health, player count, server uptime, first-run timestamp |
+| GET | `/api/status/economy` | Public ore/supply prices and account reward values |
 | POST | `/api/auth/register` | Create account + starter mine (email required) |
 | POST | `/api/auth/login` | Login |
 | POST | `/api/auth/forgot-password` | Email password reset link |

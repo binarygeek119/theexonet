@@ -8,9 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<StatusMonitorOptions>(
     builder.Configuration.GetSection(StatusMonitorOptions.SectionName));
 builder.Services.AddHttpClient("RavaApi");
+builder.Services.AddSingleton<MonitorRuntimeInfo>();
 
 var app = builder.Build();
-var monitorStartedUtc = DateTime.UtcNow;
+var monitorRuntime = app.Services.GetRequiredService<MonitorRuntimeInfo>();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -18,6 +19,7 @@ app.UseStaticFiles();
 app.MapGet("/api/dashboard", async (
     IHttpClientFactory httpClientFactory,
     IOptions<StatusMonitorOptions> options,
+    MonitorRuntimeInfo runtime,
     CancellationToken cancellationToken) =>
 {
     var monitor = options.Value;
@@ -54,7 +56,9 @@ app.MapGet("/api/dashboard", async (
 
     return Results.Ok(new DashboardResponse(
         DateTime.UtcNow,
-        (DateTime.UtcNow - monitorStartedUtc).TotalSeconds,
+        runtime.UptimeSeconds,
+        runtime.StartedUtc,
+        runtime.FirstRunUtc,
         apiBaseUrl,
         monitor.GameUrl,
         monitor.ApiPublicUrl,
@@ -63,6 +67,29 @@ app.MapGet("/api/dashboard", async (
         apiResponseMs,
         apiError,
         apiStatus));
+});
+
+app.MapGet("/api/economy", async (
+    IHttpClientFactory httpClientFactory,
+    IOptions<StatusMonitorOptions> options,
+    CancellationToken cancellationToken) =>
+{
+    var apiBaseUrl = options.Value.ApiBaseUrl.TrimEnd('/');
+    var client = httpClientFactory.CreateClient("RavaApi");
+    client.Timeout = TimeSpan.FromSeconds(12);
+
+    using var response = await client.GetAsync($"{apiBaseUrl}/api/status/economy", cancellationToken);
+    if (!response.IsSuccessStatusCode)
+    {
+        return Results.Problem(
+            detail: $"API returned HTTP {(int)response.StatusCode}",
+            statusCode: (int)response.StatusCode);
+    }
+
+    var payload = await response.Content.ReadFromJsonAsync<EconomyPayload>(cancellationToken);
+    return payload is null
+        ? Results.Problem("Could not read economy payload from API.")
+        : Results.Ok(payload);
 });
 
 app.Logger.LogInformation("RAVA status dashboard listening on {Urls}", builder.Configuration["Urls"] ?? "http://0.0.0.0:6000");

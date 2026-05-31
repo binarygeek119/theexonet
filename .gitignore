@@ -115,4 +115,6 @@ InitTestScene*.unity*
 /server/Rava.Api/appsettings.json
 /server/Rava.Api/appsettings.Development.json
 /server/Rava.Api/html/images/profile/*
+server-runtime.json
+status-runtime.json
 !/server/Rava.Api/html/images/profile/.gitkeep

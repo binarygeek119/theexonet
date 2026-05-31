@@ -4,6 +4,9 @@ const els = {
   lastUpdated: document.getElementById("last-updated"),
   apiOverall: document.getElementById("api-overall"),
   apiService: document.getElementById("api-service"),
+  apiPlayers: document.getElementById("api-players"),
+  apiUptime: document.getElementById("api-uptime"),
+  apiFirstRun: document.getElementById("api-first-run"),
   apiResponseMs: document.getElementById("api-response-ms"),
   apiChecked: document.getElementById("api-checked"),
   apiEndpoint: document.getElementById("api-endpoint"),
@@ -12,10 +15,12 @@ const els = {
   dbConnection: document.getElementById("db-connection"),
   dbReported: document.getElementById("db-reported"),
   monitorUptime: document.getElementById("monitor-uptime"),
+  monitorFirstRun: document.getElementById("monitor-first-run"),
   monitorUtc: document.getElementById("monitor-utc"),
   linkStatus: document.getElementById("link-status"),
   linkGame: document.getElementById("link-game"),
   linkApi: document.getElementById("link-api"),
+  linkValues: document.getElementById("link-values"),
   linkApiStatus: document.getElementById("link-api-status"),
 };
 
@@ -25,6 +30,10 @@ function setPill(element, label, tone) {
 }
 
 function formatDuration(totalSeconds) {
+  if (totalSeconds == null || Number.isNaN(totalSeconds)) {
+    return "—";
+  }
+
   const seconds = Math.floor(totalSeconds);
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
@@ -43,6 +52,11 @@ function formatUtc(value) {
   return new Date(value).toISOString().replace("T", " ").replace(".000Z", " UTC");
 }
 
+function formatCount(value) {
+  if (value == null) return "—";
+  return new Intl.NumberFormat().format(value);
+}
+
 function renderDashboard(data) {
   els.lastUpdated.textContent = `Last updated ${new Date().toLocaleString()}`;
   els.apiEndpoint.textContent = data.apiBaseUrl;
@@ -56,12 +70,16 @@ function renderDashboard(data) {
   els.linkApiStatus.href = `${data.apiBaseUrl}/api/status`;
 
   els.monitorUptime.textContent = formatDuration(data.monitorUptimeSeconds);
+  els.monitorFirstRun.textContent = formatUtc(data.monitorFirstRunUtc);
   els.monitorUtc.textContent = formatUtc(data.utc);
 
   const apiStatus = data.apiStatus;
   if (!data.apiReachable || !apiStatus) {
     setPill(els.apiOverall, "Offline", "offline");
     els.apiService.textContent = "Unreachable";
+    els.apiPlayers.textContent = "—";
+    els.apiUptime.textContent = "—";
+    els.apiFirstRun.textContent = "—";
     setPill(els.dbOverall, "Unknown", "offline");
     els.dbConnection.textContent = "Unknown";
     els.dbReported.textContent = "—";
@@ -69,6 +87,9 @@ function renderDashboard(data) {
   }
 
   els.apiService.textContent = apiStatus.service || "Rava.Api";
+  els.apiPlayers.textContent = formatCount(apiStatus.playerCount);
+  els.apiUptime.textContent = formatDuration(apiStatus.serverUptimeSeconds);
+  els.apiFirstRun.textContent = formatUtc(apiStatus.serverFirstRunUtc);
 
   if (apiStatus.status === "online" && apiStatus.databaseConnected) {
     setPill(els.apiOverall, "Online", "online");

@@ -6,6 +6,9 @@
     }
   },
   "AllowedHosts": "*",
+  "Hosting": {
+    "ServeGameUi": false
+  },
   "ConnectionStrings": {
     "DefaultConnection": "Host=YOUR_DB_HOST;Port=5432;Database=YOUR_DATABASE;Username=YOUR_DB_USER;Password=YOUR_PASSWORD"
   },

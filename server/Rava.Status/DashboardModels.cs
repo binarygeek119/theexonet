@@ -5,11 +5,36 @@ public record ApiStatusPayload(
     string Service,
     DateTime Utc,
     bool DatabaseConnected,
-    string DatabaseStatus);
+    string DatabaseStatus,
+    int? PlayerCount,
+    double ServerUptimeSeconds,
+    DateTime? ServerStartedUtc,
+    DateTime? ServerFirstRunUtc);
+
+public record EconomyItemPayload(
+    string ItemType,
+    string Category,
+    decimal Price,
+    decimal? BasePrice,
+    decimal? ChangePct,
+    string? Note);
+
+public record EconomyPayload(
+    DateTime Utc,
+    int ReferenceGameDay,
+    string MarketSource,
+    string MarketDate,
+    decimal EmergencyBuybackRate,
+    decimal SignUpCredits,
+    decimal BirthdayBonusCredits,
+    IReadOnlyList<EconomyItemPayload> OrePrices,
+    IReadOnlyList<EconomyItemPayload> SupplyPrices);
 
 public record DashboardResponse(
     DateTime Utc,
     double MonitorUptimeSeconds,
+    DateTime MonitorStartedUtc,
+    DateTime MonitorFirstRunUtc,
     string ApiBaseUrl,
     string GameUrl,
     string ApiPublicUrl,

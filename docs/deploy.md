@@ -9,12 +9,14 @@ When a build on `main` succeeds, GitHub Actions can deploy automatically:
 
 ## One-time server setup
 
-1. Create deploy user (or use existing) with SSH key access.
+1. Ensure SSH access for GitHub Actions or manual deploy (often your normal login user or `root` — this is **not** required to be the same account that runs the API).
 2. Create directories and permissions:
 
 ```bash
 sudo mkdir -p /var/www/rava /var/www/publish
-sudo chown -R deploy:deploy /var/www/rava /var/www/publish
+sudo mkdir -p /var/www/publish/html/images/profile
+# Use the same user as User= in your systemd units (www-data is typical with Apache):
+sudo chown -R www-data:www-data /var/www/rava /var/www/publish
 ```
 
    Install the **ASP.NET Core 10 runtime** (the published API targets `net10.0`; .NET 8 is not enough):
@@ -42,16 +44,18 @@ dotnet --list-runtimes
 
    Add a **`StatusMonitor`** section to the same `appsettings.json` for the status dashboard (port 6000). Do **not** add a top-level `"Urls"` key — each systemd service sets its own port via `ASPNETCORE_URLS`.
 
+   Set **`Hosting:ServeGameUi`** to **`false`** (default in `appsettings.json.example`) so the API subdomain shows a status page at `/` instead of the game UI. The game is served from the game host (`/var/www/rava`), not from the API.
+
    **Connection string:** use the same PostgreSQL host, database name, username, and password that work from your dev machine. If Postgres runs on another machine (e.g. `192.168.1.2`), do **not** use `Host=localhost` unless Postgres is installed on the API server itself. The API server must be able to reach the DB host on port 5432.
 
    **Upload folder permissions** — the API creates `html/images/profile/` at startup. The systemd service user must own (or be able to write to) `/var/www/publish`:
 
 ```bash
 sudo mkdir -p /var/www/publish/html/images/profile
-sudo chown -R deploy:deploy /var/www/publish
+sudo chown -R www-data:www-data /var/www/publish
 ```
 
-   Replace `deploy` with the `User=` from your systemd units if different.
+   Use the same username as `User=` in your systemd units (`www-data`, your login user, or omit `User=` to run as root — not recommended for production).
 
    The API resolves paths from the folder containing `Rava.Api.dll`. With `WorkingDirectory=/var/www/publish`, uploads are written to **`/var/www/publish/html/images/profile/`** (URL path `/images/profile/...`).
 
@@ -68,7 +72,7 @@ ExecStart=/usr/bin/dotnet /var/www/publish/Rava.Api.dll
 Restart=always
 Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
 Environment=DOTNET_ENVIRONMENT=Production
-User=deploy
+User=www-data
 
 [Install]
 WantedBy=multi-user.target
@@ -103,7 +107,7 @@ ExecStart=/usr/bin/dotnet /var/www/publish/Rava.Status.dll
 Restart=always
 Environment=ASPNETCORE_URLS=http://0.0.0.0:6000
 Environment=DOTNET_ENVIRONMENT=Production
-User=deploy
+User=www-data
 
 [Install]
 WantedBy=multi-user.target
@@ -114,10 +118,10 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now rava-status
 ```
 
-Allow the deploy user to restart the service without a password (adjust user and unit name):
+Allow passwordless service restarts for GitHub Actions (optional — use your SSH login user, not necessarily `www-data`):
 
 ```bash
-echo 'deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart rava-api, /bin/systemctl restart rava-status' | sudo tee /etc/sudoers.d/rava-deploy
+echo 'YOUR_SSH_USER ALL=(ALL) NOPASSWD: /bin/systemctl restart rava-api, /bin/systemctl restart rava-status' | sudo tee /etc/sudoers.d/rava-deploy
 sudo chmod 440 /etc/sudoers.d/rava-deploy
 ```
 
@@ -180,8 +184,8 @@ Leave unset (or not `true`) until secrets below are configured.
 
 | Secret | Description |
 |--------|-------------|
-| `DEPLOY_SSH_KEY` | Private SSH key (PEM) for the deploy user |
-| `DEPLOY_USER` | SSH username |
+| `DEPLOY_SSH_KEY` | Private SSH key (PEM) for SSH/rsync (your login user or `root`) |
+| `DEPLOY_USER` | SSH username for rsync (e.g. `root` or your login user — **not** required to be `www-data`) |
 | `DEPLOY_HOST` | Server hostname or IP (used when host-specific secrets are omitted) |
 | `DEPLOY_WWW_PATH` | Absolute path for static game files, e.g. `/var/www/rava` |
 | `DEPLOY_API_PATH` | Absolute path for API publish output, e.g. `/var/www/publish` |

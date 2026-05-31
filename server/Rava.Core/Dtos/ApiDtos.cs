@@ -12,7 +12,30 @@ public record ApiStatusResponse(
     string Service,
     DateTime Utc,
     bool DatabaseConnected,
-    string DatabaseStatus);
+    string DatabaseStatus,
+    int? PlayerCount = null,
+    double ServerUptimeSeconds = 0,
+    DateTime? ServerStartedUtc = null,
+    DateTime? ServerFirstRunUtc = null);
+
+public record EconomyItemPriceDto(
+    string ItemType,
+    string Category,
+    decimal Price,
+    decimal? BasePrice,
+    decimal? ChangePct,
+    string? Note = null);
+
+public record PublicEconomyResponse(
+    DateTime Utc,
+    int ReferenceGameDay,
+    string MarketSource,
+    string MarketDate,
+    decimal EmergencyBuybackRate,
+    decimal SignUpCredits,
+    decimal BirthdayBonusCredits,
+    IReadOnlyList<EconomyItemPriceDto> OrePrices,
+    IReadOnlyList<EconomyItemPriceDto> SupplyPrices);
 public record AuthResponse(
     string Token,
     Guid PlayerId,

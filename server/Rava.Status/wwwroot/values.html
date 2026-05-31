@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAVA — Item Values</title>
+  <link rel="stylesheet" href="/css/status.css">
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">Reactive Asteroid Venturing Agency</p>
+      <h1>In-Game Item Values</h1>
+      <p id="values-updated" class="subtle">Loading…</p>
+      <nav class="nav-links" aria-label="Status pages">
+        <a class="nav-link" href="/">Dashboard</a>
+        <a class="nav-link active" href="/values.html">Item values</a>
+      </nav>
+    </header>
+
+    <section class="summary-grid">
+      <article class="card">
+        <h2>Account rewards</h2>
+        <dl>
+          <div><dt>Sign-up credits</dt><dd id="signup-credits">—</dd></div>
+          <div><dt>Birthday bonus</dt><dd id="birthday-bonus">—</dd></div>
+          <div><dt>Emergency buyback</dt><dd id="buyback-rate">—</dd></div>
+        </dl>
+      </article>
+      <article class="card">
+        <h2>Market snapshot</h2>
+        <dl>
+          <div><dt>UTC date</dt><dd id="market-date">—</dd></div>
+          <div><dt>Reference game day</dt><dd id="market-game-day">—</dd></div>
+          <div><dt>Price source</dt><dd id="market-source">—</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="tables-grid">
+      <article class="card table-card">
+        <h2>Ore (NPC refinery)</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Price</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="ore-rows">
+              <tr><td colspan="3">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="card table-card">
+        <h2>Supplies (US market linked)</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Today</th>
+                <th>Base</th>
+                <th>Change</th>
+              </tr>
+            </thead>
+            <tbody id="supply-rows">
+              <tr><td colspan="4">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+  <script type="module" src="/js/values.js"></script>
+</body>
+</html>

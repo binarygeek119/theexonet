@@ -21,7 +21,7 @@ cp server/Rava.Api/appsettings.json.example server/Rava.Api/appsettings.json
 Edit `server/Rava.Api/appsettings.json`:
 
 ```json
-"DefaultConnection": "Host=192.168.1.2;Port=5432;Database=rava;Username=postgres;Password=YOUR_PASSWORD"
+"DefaultConnection": "Host=YOUR_DB_HOST;Port=5432;Database=YOUR_DATABASE;Username=YOUR_DB_USER;Password=YOUR_PASSWORD"
 ```
 
 Create the `rava` database on your server if it does not exist yet. On first run, the API creates tables automatically via EF Core (`EnsureCreated`).
@@ -58,15 +58,15 @@ Open **http://localhost:6000** for API/database health, response time, and links
 
 ## Production
 
-| Service | URL | Backend port |
-|---------|-----|----------------|
-| Game (browser UI) | [https://rava.binarygeek119.duckdns.org/](https://rava.binarygeek119.duckdns.org/) | 80 |
-| API | [https://ravaapi.binarygeek119.duckdns.org/](https://ravaapi.binarygeek119.duckdns.org/) | 5000 |
-| Status dashboard | [https://ravastatus.binarygeek119.duckdns.org/](https://ravastatus.binarygeek119.duckdns.org/) | 6000 |
+| Service | Host | Backend port |
+|---------|------|--------------|
+| Game (browser UI) | Game site (HTTPS) | 80 |
+| API | API subdomain (HTTPS) | 5000 |
+| Status dashboard | Status subdomain (HTTPS) | 6000 |
 
-Deploy `server/Rava.Api/html/` to the game host (port 80). Run `Rava.Api` on the API host (port 5000). The browser client on the game URL calls the API subdomain automatically (`html/js/config.js`).
+Deploy `server/Rava.Api/html/` to the game host (port 80). Run `Rava.Api` and `Rava.Status` from the same publish folder (port 5000 and 6000). The browser client on the game host calls the API host automatically (`html/js/config.js`).
 
-Set `Email:AppBaseUrl` to `https://rava.binarygeek119.duckdns.org` so password reset links and other emails point at the game site—not the API host or `localhost`.
+Set `Email:AppBaseUrl` to your public game site URL so password reset links and other emails point at the game site—not the API host or `localhost`.
 
 ### Auto-deploy from GitHub Actions
 

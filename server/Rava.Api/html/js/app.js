@@ -453,23 +453,33 @@ function initBirthdayDropdowns() {
   els.birthdayMonth.dataset.initialized = "true";
 }
 
-async function initGameVersionTag() {
+let cachedGameVersion = "";
+
+function setGameVersionLabel(label) {
   const versionEl = document.getElementById("game-version");
   if (!versionEl) {
     return;
   }
 
+  const text = label?.trim();
+  if (!text) {
+    versionEl.hidden = true;
+    versionEl.textContent = "";
+    cachedGameVersion = "";
+    return;
+  }
+
+  cachedGameVersion = text;
+  versionEl.textContent = text;
+  versionEl.hidden = els.loginScreen?.hidden ?? false;
+}
+
+async function initGameVersionTag() {
   try {
     const status = await api.getStatus();
-    const label = status?.gameVersion?.trim();
-    if (!label) {
-      return;
-    }
-
-    versionEl.textContent = label;
-    versionEl.hidden = false;
+    setGameVersionLabel(status?.gameVersion);
   } catch {
-    versionEl.hidden = true;
+    setGameVersionLabel("");
   }
 }
 
@@ -503,6 +513,14 @@ function showScreen(screen) {
   els.loginScreen.hidden = screen !== "login";
   els.gameScreen.hidden = screen !== "game";
   document.body.classList.toggle("is-authenticated", screen === "game");
+  if (screen === "login" && cachedGameVersion) {
+    setGameVersionLabel(cachedGameVersion);
+  } else if (screen !== "login") {
+    const versionEl = document.getElementById("game-version");
+    if (versionEl) {
+      versionEl.hidden = true;
+    }
+  }
   if (screen !== "game") {
     closeModals();
   }

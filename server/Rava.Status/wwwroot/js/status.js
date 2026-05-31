@@ -2,6 +2,7 @@ const POLL_MS = 10000;
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
+  gameVersion: document.getElementById("game-version"),
   apiOverall: document.getElementById("api-overall"),
   apiService: document.getElementById("api-service"),
   apiGameVersion: document.getElementById("api-game-version"),
@@ -65,6 +66,21 @@ function formatCount(value) {
   return new Intl.NumberFormat().format(value);
 }
 
+function setGameVersion(label) {
+  if (!els.gameVersion) {
+    return;
+  }
+
+  const text = label?.trim();
+  if (!text) {
+    els.gameVersion.hidden = true;
+    return;
+  }
+
+  els.gameVersion.textContent = text;
+  els.gameVersion.hidden = false;
+}
+
 function renderDashboard(data) {
   els.lastUpdated.textContent = `Last updated ${new Date().toLocaleString()}`;
   els.apiEndpoint.textContent = data.apiBaseUrl;
@@ -98,6 +114,7 @@ function renderDashboard(data) {
   if (!data.apiReachable || !apiStatus) {
     setPill(els.apiOverall, "Offline", "offline");
     els.apiService.textContent = "Unreachable";
+    setGameVersion(null);
     els.apiGameVersion.textContent = "—";
     els.apiPlayers.textContent = "—";
     els.apiUptime.textContent = "—";
@@ -109,6 +126,7 @@ function renderDashboard(data) {
   }
 
   els.apiService.textContent = apiStatus.service || "Rava.Api";
+  setGameVersion(apiStatus.gameVersion);
   els.apiGameVersion.textContent = apiStatus.gameVersion || "—";
   els.apiPlayers.textContent = formatCount(apiStatus.playerCount);
   els.apiUptime.textContent = formatDuration(apiStatus.serverUptimeSeconds);
@@ -148,6 +166,7 @@ async function refresh() {
     setPill(els.apiOverall, "Monitor error", "error");
     setPill(els.dbOverall, "Unknown", "offline");
     setPill(els.docsOverall, "Unknown", "offline");
+    setGameVersion(null);
     els.apiError.textContent = error.message;
     els.lastUpdated.textContent = "Failed to load dashboard data";
   }

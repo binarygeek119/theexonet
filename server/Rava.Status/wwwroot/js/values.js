@@ -1,6 +1,7 @@
 const POLL_MS = 60000;
 
 const els = {
+  gameVersion: document.getElementById("game-version"),
   updated: document.getElementById("values-updated"),
   signupCredits: document.getElementById("signup-credits"),
   birthdayBonus: document.getElementById("birthday-bonus"),
@@ -25,6 +26,21 @@ function formatPercent(value) {
 
 function formatItemName(value) {
   return value.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
+
+function setGameVersion(label) {
+  if (!els.gameVersion) {
+    return;
+  }
+
+  const text = label?.trim();
+  if (!text) {
+    els.gameVersion.hidden = true;
+    return;
+  }
+
+  els.gameVersion.textContent = text;
+  els.gameVersion.hidden = false;
 }
 
 function renderOreRows(items) {
@@ -74,12 +90,25 @@ async function refresh() {
   els.updated.textContent = "Loading item values…";
 
   try {
-    const response = await fetch("/api/economy");
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    const [economyResponse, dashboardResponse] = await Promise.all([
+      fetch("/api/economy"),
+      fetch("/api/dashboard"),
+    ]);
+
+    if (!economyResponse.ok) {
+      throw new Error(`HTTP ${economyResponse.status}`);
     }
-    renderEconomy(await response.json());
+
+    renderEconomy(await economyResponse.json());
+
+    if (dashboardResponse.ok) {
+      const dashboard = await dashboardResponse.json();
+      setGameVersion(dashboard.apiStatus?.gameVersion);
+    } else {
+      setGameVersion(null);
+    }
   } catch (error) {
+    setGameVersion(null);
     els.updated.textContent = `Failed to load item values: ${error.message}`;
     els.oreRows.innerHTML = `<tr><td colspan="3">${error.message}</td></tr>`;
     els.supplyRows.innerHTML = `<tr><td colspan="4">${error.message}</td></tr>`;

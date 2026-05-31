@@ -61,8 +61,8 @@ export function resolveApiBaseUrl() {
     return "";
   }
 
-  // Game site and any other public host: call the API subdomain.
-  return `${protocol}//${PRODUCTION_API_HOST}`;
+  // Game site and any other public host: always use HTTPS for the API subdomain.
+  return `https://${PRODUCTION_API_HOST}`;
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();

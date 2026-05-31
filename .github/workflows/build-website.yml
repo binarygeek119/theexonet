@@ -67,12 +67,15 @@ jobs:
         run: |
           dotnet publish Rava.Api/Rava.Api.csproj --configuration Release --output ./publish
           rsync -a Rava.Api/html/ publish/html/
+          dotnet publish Rava.Status/Rava.Status.csproj --configuration Release --output ./publish-status
 
       - name: Upload publish artifact
         uses: actions/upload-artifact@v4
         with:
           name: rava-website
-          path: server/publish/
+          path: |
+            server/publish/
+            server/publish-status/
           if-no-files-found: error
 
   release:
@@ -88,10 +91,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: rava-website
-          path: publish
+          path: release-bundle
 
       - name: Create release archive
-        run: zip -r "rava-website-${{ needs.build.outputs.release_tag }}.zip" publish
+        run: zip -r "rava-website-${{ needs.build.outputs.release_tag }}.zip" release-bundle/publish release-bundle/publish-status
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
@@ -107,7 +110,10 @@ jobs:
             - **Commit:** ${{ github.sha }}
             - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-            Download `rava-website-*.zip`, extract it, copy `appsettings.json.example` to `appsettings.json`, configure secrets, then run `Rava.Api`.
+            Download `rava-website-*.zip` and extract:
+
+            - **`publish/`** — `Rava.Api` (port 5000). Copy `appsettings.json.example` to `appsettings.json`, configure secrets, then run.
+            - **`publish-status/`** — `Rava.Status` dashboard (port 6000). Edit `appsettings.json` (`StatusMonitor:ApiBaseUrl` → `http://127.0.0.1:5000` on the API host).
           files: rava-website-*.zip
           generate_release_notes: true
 
@@ -126,10 +132,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: rava-website
-          path: publish
+          path: release-bundle
 
       - name: Ensure html is in publish bundle
-        run: rsync -a server/Rava.Api/html/ publish/html/
+        run: rsync -a server/Rava.Api/html/ release-bundle/publish/html/
 
       - name: Setup SSH agent
         uses: webfactory/ssh-agent@v0.9.0
@@ -183,7 +189,7 @@ jobs:
             --exclude 'appsettings.json' \
             --exclude 'appsettings.Development.json' \
             --exclude 'html/uploads/profiles/*' \
-            publish/ \
+            release-bundle/publish/ \
             "${DEPLOY_USER}@${host}:${DEPLOY_API_PATH}/"
 
       - name: Restart API service

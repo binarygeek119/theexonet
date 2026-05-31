@@ -198,4 +198,8 @@ rsync -av --delete /path/to/rava/server/Rava.Api/html/ /var/www/rava/
 rsync -av --exclude 'appsettings*.json' --exclude 'html/uploads/profiles/*' \
   ./publish/ /var/www/
 sudo systemctl restart rava-api
+
+# Status dashboard (from the same release zip)
+rsync -av ./publish-status/ /opt/rava-status/
+sudo systemctl restart rava-status
 ```

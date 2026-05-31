@@ -5,7 +5,7 @@ When a build on `main` succeeds, GitHub Actions can deploy automatically:
 | Target | Source | Typical path |
 |--------|--------|--------------|
 | Game site (port 80) | `server/Rava.Api/html/` | `/var/www/rava` |
-| API + status (ports 5000 / 6000) | `dotnet publish` output | `/var/www` |
+| API + status (ports 5000 / 6000) | `dotnet publish` output | `/var/www/publish` |
 
 ## One-time server setup
 
@@ -13,8 +13,8 @@ When a build on `main` succeeds, GitHub Actions can deploy automatically:
 2. Create directories and permissions:
 
 ```bash
-sudo mkdir -p /var/www/rava /var/www
-sudo chown -R deploy:deploy /var/www/rava /var/www
+sudo mkdir -p /var/www/rava /var/www/publish
+sudo chown -R deploy:deploy /var/www/rava /var/www/publish
 ```
 
    Install the **ASP.NET Core 10 runtime** (the published API targets `net10.0`; .NET 8 is not enough):
@@ -29,9 +29,9 @@ dotnet --list-runtimes
 
    You should see `Microsoft.AspNetCore.App 10.0.x` in the list. If the package is unavailable on your distro, use the [install script](https://learn.microsoft.com/dotnet/core/install/linux-scripted-manual#scripted-install) with `--runtime aspnetcore --channel 10.0`.
 
-3. Copy `appsettings.json.example` to `appsettings.json` on the API host (e.g. `/var/www/appsettings.json`) and set production secrets — deploy does **not** ship or overwrite this file.
+3. Copy `appsettings.json.example` to `appsettings.json` on the API host (e.g. `/var/www/publish/appsettings.json`) and set production secrets — deploy does **not** ship or overwrite this file.
 
-   Required files in `/var/www`:
+   Required files in `/var/www/publish`:
 
    | File | Source |
    |------|--------|
@@ -52,8 +52,8 @@ Description=RAVA API
 After=network.target
 
 [Service]
-WorkingDirectory=/var/www
-ExecStart=/usr/bin/dotnet /var/www/Rava.Api.dll
+WorkingDirectory=/var/www/publish
+ExecStart=/usr/bin/dotnet /var/www/publish/Rava.Api.dll
 Restart=always
 Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
 Environment=DOTNET_ENVIRONMENT=Production
@@ -68,9 +68,9 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now rava-api
 ```
 
-Optional status dashboard on port **6000** — uses the same `/var/www` folder as the API:
+Optional status dashboard on port **6000** — uses the same `/var/www/publish` folder as the API:
 
-Add to `/var/www/appsettings.json`:
+Add to `/var/www/publish/appsettings.json`:
 
 ```json
 "StatusMonitor": {
@@ -87,8 +87,8 @@ Description=RAVA Status Dashboard
 After=network.target rava-api.service
 
 [Service]
-WorkingDirectory=/var/www
-ExecStart=/usr/bin/dotnet /var/www/Rava.Status.dll
+WorkingDirectory=/var/www/publish
+ExecStart=/usr/bin/dotnet /var/www/publish/Rava.Status.dll
 Restart=always
 Environment=ASPNETCORE_URLS=http://0.0.0.0:6000
 Environment=DOTNET_ENVIRONMENT=Production
@@ -171,7 +171,7 @@ Leave unset (or not `true`) until secrets below are configured.
 | `DEPLOY_USER` | SSH username |
 | `DEPLOY_HOST` | Server hostname or IP (used when host-specific secrets are omitted) |
 | `DEPLOY_WWW_PATH` | Absolute path for static game files, e.g. `/var/www/rava` |
-| `DEPLOY_API_PATH` | Absolute path for API publish output, e.g. `/var/www` |
+| `DEPLOY_API_PATH` | Absolute path for API publish output, e.g. `/var/www/publish` |
 | `DEPLOY_WWW_HOST` | Optional; game host if different from `DEPLOY_HOST` |
 | `DEPLOY_API_HOST` | Optional; API host if different from `DEPLOY_HOST` |
 | `DEPLOY_SSH_PORT` | Optional; default `22` |
@@ -196,7 +196,7 @@ rsync -av --delete /path/to/rava/server/Rava.Api/html/ /var/www/rava/
 
 # API + status dashboard (from extracted GitHub release zip)
 rsync -av --exclude 'appsettings*.json' --exclude 'html/uploads/profiles/*' \
-  ./publish/ /var/www/
+  ./publish/ /var/www/publish/
 sudo systemctl restart rava-api
 sudo systemctl restart rava-status
 ```

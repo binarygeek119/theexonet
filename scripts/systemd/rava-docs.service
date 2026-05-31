@@ -10,6 +10,7 @@ RestartSec=5
 StandardOutput=journal
 StandardError=journal
 Environment=ASPNETCORE_URLS=http://0.0.0.0:9000
+Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=DOTNET_ENVIRONMENT=Production
 User=www-data
 

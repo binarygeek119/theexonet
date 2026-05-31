@@ -6,7 +6,11 @@ After=network.target rava-api.service
 WorkingDirectory=/var/www/publish
 ExecStart=/usr/bin/dotnet /var/www/publish/Rava.Moderator.dll
 Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
 Environment=ASPNETCORE_URLS=http://0.0.0.0:7050
+Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=DOTNET_ENVIRONMENT=Production
 User=www-data
 

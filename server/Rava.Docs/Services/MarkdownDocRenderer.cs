@@ -1,5 +1,6 @@
 using Markdig;
 using Rava.Core.Configuration;
+using Rava.Core.Constants;
 
 namespace Rava.Docs.Services;
 
@@ -54,6 +55,7 @@ public sealed class MarkdownDocRenderer(MarkdownDocCatalog catalog, DocsPortalOp
       <div>
         <p class="docs-eyebrow">Reactive Asteroid Venturing Agency</p>
         <h1>{{Escape(options.SiteTitle)}}</h1>
+        <p class="docs-version">{{Escape(GameVersion.Display)}}</p>
       </div>
       <nav class="docs-header-links" aria-label="Related sites">
         <a href="{{gameUrl}}">Play RAVA</a>

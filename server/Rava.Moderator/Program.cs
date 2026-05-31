@@ -1,25 +1,43 @@
 using Microsoft.Extensions.Options;
 using Rava.Core.Configuration;
 
-var builder = WebApplication.CreateBuilder(args);
+var contentRootPath = Path.GetFullPath(AppContext.BaseDirectory);
 
-builder.Services.Configure<ModeratorPortalOptions>(
-    builder.Configuration.GetSection(ModeratorPortalOptions.SectionName));
-
-var app = builder.Build();
-var portal = app.Services.GetRequiredService<IOptions<ModeratorPortalOptions>>().Value;
-
-app.UseDefaultFiles(new DefaultFilesOptions
+try
 {
-    DefaultFileNames = ["moderator.html", "index.html"]
-});
-app.UseStaticFiles();
+    var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+    {
+        Args = args,
+        ContentRootPath = contentRootPath,
+    });
 
-app.MapGet("/moderator", () => Results.Redirect("/moderator.html"));
+    builder.Services.Configure<ModeratorPortalOptions>(
+        builder.Configuration.GetSection(ModeratorPortalOptions.SectionName));
 
-app.Logger.LogInformation(
-    "RAVA moderator portal listening on {Urls} (public URL: {PublicUrl})",
-    builder.Configuration["Urls"] ?? "http://0.0.0.0:7050",
-    portal.PublicUrl.TrimEnd('/'));
+    var app = builder.Build();
+    var portal = app.Services.GetRequiredService<IOptions<ModeratorPortalOptions>>().Value;
+    var publicUrl = string.IsNullOrWhiteSpace(portal.PublicUrl)
+        ? new ModeratorPortalOptions().PublicUrl.TrimEnd('/')
+        : portal.PublicUrl.TrimEnd('/');
 
-app.Run();
+    app.UseDefaultFiles(new DefaultFilesOptions
+    {
+        DefaultFileNames = ["moderator.html", "index.html"]
+    });
+    app.UseStaticFiles();
+
+    app.MapGet("/moderator", () => Results.Redirect("/moderator.html"));
+
+    app.Logger.LogInformation(
+        "RAVA moderator portal listening on {Urls} (public URL: {PublicUrl})",
+        builder.Configuration["Urls"] ?? Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://0.0.0.0:7050",
+        publicUrl);
+
+    app.Run();
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine("RAVA moderator portal startup failed.");
+    Console.Error.WriteLine(ex);
+    Environment.Exit(1);
+}

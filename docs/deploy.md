@@ -170,6 +170,8 @@ If the API returns **502** or `/api/status` shows **database offline**:
 
 ## GitHub configuration
 
+See **[github-deploy-setup.md](github-deploy-setup.md)** for step-by-step setup on `binarygeek119.duckdns.org` (root SSH, password or key auth).
+
 In the repo: **Settings → Secrets and variables → Actions**.
 
 ### Repository variable
@@ -184,8 +186,9 @@ Leave unset (or not `true`) until secrets below are configured.
 
 | Secret | Description |
 |--------|-------------|
-| `DEPLOY_SSH_KEY` | Private SSH key (PEM) for SSH/rsync (your login user or `root`) |
-| `DEPLOY_USER` | SSH username for rsync (e.g. `root` or your login user — **not** required to be `www-data`) |
+| `DEPLOY_SSH_KEY` | Private SSH key (PEM) for SSH/rsync — **or** use `DEPLOY_SSH_PASSWORD` instead |
+| `DEPLOY_SSH_PASSWORD` | Root/login SSH password (used with `sshpass` when no key is configured) |
+| `DEPLOY_USER` | SSH username for rsync (default in workflow: `root`) |
 | `DEPLOY_HOST` | Server hostname or IP (used when host-specific secrets are omitted) |
 | `DEPLOY_WWW_PATH` | Absolute path for static game files, e.g. `/var/www/rava` |
 | `DEPLOY_API_PATH` | Absolute path for API publish output, e.g. `/var/www/publish` |

@@ -72,7 +72,7 @@ Set `Email:AppBaseUrl` to your public game site URL so password reset links and 
 
 ### Auto-deploy from GitHub Actions
 
-After each successful `main` build, CI can rsync `html/` to the game host and the API publish output to the API host. See **[docs/deploy.md](docs/deploy.md)** for SSH secrets, paths, and systemd setup.
+After each successful `main` build, CI can rsync `html/` to the game host and the API publish output to the API host. See **[docs/github-deploy-setup.md](docs/github-deploy-setup.md)** and **[docs/deploy.md](docs/deploy.md)** for SSH secrets, paths, and systemd setup.
 
 ## Unity Client (Optional)
 

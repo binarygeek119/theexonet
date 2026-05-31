@@ -19,7 +19,7 @@ public class DatabaseExceptionMiddleware(RequestDelegate next, ILogger<DatabaseE
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsJsonAsync(new
             {
-                message = "Database unavailable. Check PostgreSQL connection settings in appsettings.Development.json."
+                message = "Database unavailable. Check PostgreSQL connection settings in appsettings.json."
             });
         }
     }

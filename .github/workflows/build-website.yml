@@ -107,7 +107,7 @@ jobs:
             - **Commit:** ${{ github.sha }}
             - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-            Download `rava-website-*.zip`, extract it, and run `Rava.Api` with your production configuration (`appsettings.json`, database connection, etc.).
+            Download `rava-website-*.zip`, extract it, copy `appsettings.json.example` to `appsettings.json`, configure secrets, then run `Rava.Api`.
           files: rava-website-*.zip
           generate_release_notes: true
 

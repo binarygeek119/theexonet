@@ -1207,7 +1207,7 @@ async function checkAdminAccess() {
   if (!access.isAdmin) {
     const name = access.username || api.username || "unknown";
     els.deniedUser.textContent =
-      `Signed in as "${name}". Add this exact username to Admin:Usernames in appsettings.Development.json, then restart the API.`;
+      `Signed in as "${name}". Add this exact username to Admin:Usernames in appsettings.json, then restart the API.`;
     showScreen("denied");
     return false;
   }

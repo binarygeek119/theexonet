@@ -117,8 +117,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 if (string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException(
-        "Database connection string is missing. Copy server/Rava.Api/appsettings.Development.json.example " +
-        "to appsettings.Development.json and set ConnectionStrings:DefaultConnection.");
+        "Database connection string is missing. Copy server/Rava.Api/appsettings.json.example " +
+        "to appsettings.json and set ConnectionStrings:DefaultConnection.");
 }
 
 var app = builder.Build();
@@ -148,7 +148,7 @@ if (emailOptions.Enabled && !string.IsNullOrWhiteSpace(emailOptions.Host)){
 else
 {
     app.Logger.LogWarning(
-        "Email disabled. Password reset links are logged to the API console only. Set Email:Enabled=true in appsettings.Development.json.");
+        "Email disabled. Password reset links are logged to the API console only. Set Email:Enabled=true in appsettings.json.");
 }
 
 var marketOptions = builder.Configuration.GetSection(MarketOptions.SectionName).Get<MarketOptions>() ?? new MarketOptions();
@@ -168,7 +168,7 @@ var configuredAdminUsernames = app.Configuration
 if (configuredAdminUsernames.Length == 0)
 {
     app.Logger.LogWarning(
-        "Admin portal: no usernames configured. Set Admin:Usernames in appsettings.Development.json.");
+        "Admin portal: no usernames configured. Set Admin:Usernames in appsettings.json.");
 }
 else
 {
@@ -183,7 +183,7 @@ var configuredModeratorUsernames = app.Configuration
 if (configuredModeratorUsernames.Length == 0)
 {
     app.Logger.LogWarning(
-        "Moderator portal: no usernames configured. Set Moderator:Usernames in appsettings.Development.json.");
+        "Moderator portal: no usernames configured. Set Moderator:Usernames in appsettings.json.");
 }
 else
 {
@@ -209,7 +209,7 @@ using (var scope = app.Services.CreateScope())
     {
         throw new InvalidOperationException(
             "Could not connect to PostgreSQL or create the database schema. " +
-            "Verify ConnectionStrings:DefaultConnection in appsettings.Development.json.",
+            "Verify ConnectionStrings:DefaultConnection in appsettings.json.",
             ex);
     }
 }

@@ -80,7 +80,7 @@ public class SmtpEmailService(IOptions<EmailOptions> options, ILogger<SmtpEmailS
         {
             logger.LogError(
                 ex,
-                "SMTP send failed via {Host}:{Port} as {Username}. Check Email settings in appsettings.Development.json.",
+                "SMTP send failed via {Host}:{Port} as {Username}. Check Email settings in appsettings.json.",
                 settings.Host,
                 settings.Port,
                 settings.Username);

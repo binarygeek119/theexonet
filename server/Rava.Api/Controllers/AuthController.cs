@@ -176,7 +176,7 @@ public class AuthController(
                 logger.LogError(ex, "Password reset email failed for {Email}", player.Email);
                 return StatusCode(503, new
                 {
-                    message = "Could not send the reset email. Verify SMTP settings in appsettings.Development.json and restart the API."
+                    message = "Could not send the reset email. Verify SMTP settings in appsettings.json and restart the API."
                 });
             }
         }

@@ -15,10 +15,10 @@
 Copy the example config and set your connection string:
 
 ```bash
-cp server/Rava.Api/appsettings.Development.json.example server/Rava.Api/appsettings.Development.json
+cp server/Rava.Api/appsettings.json.example server/Rava.Api/appsettings.json
 ```
 
-Edit `server/Rava.Api/appsettings.Development.json`:
+Edit `server/Rava.Api/appsettings.json`:
 
 ```json
 "DefaultConnection": "Host=192.168.1.2;Port=5432;Database=rava;Username=postgres;Password=YOUR_PASSWORD"
@@ -95,7 +95,7 @@ Friends, player market, multi-mine, mine groups, real US market API, account nuk
 
 | Method | Route | Description |
 |--------|-------|-------------|
-| GET | `/api/status` | API health (online / degraded / unreachable) |
+| GET | `/api/status` | API and database health (`status`, `databaseStatus`, `databaseConnected`) |
 | POST | `/api/auth/register` | Create account + starter mine (email required) |
 | POST | `/api/auth/login` | Login |
 | POST | `/api/auth/forgot-password` | Email password reset link |

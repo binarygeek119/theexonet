@@ -214,7 +214,7 @@ WHERE p."Username" = 'testuser';
 
 ## Configuration
 
-Connection string: `appsettings.Development.json` → `ConnectionStrings:DefaultConnection`
+Connection string: `appsettings.json` → `ConnectionStrings:DefaultConnection`
 
 Example (remote Postgres):
 

@@ -17,7 +17,7 @@ sudo mkdir -p /var/www/rava /opt/rava-api
 sudo chown -R deploy:deploy /var/www/rava /opt/rava-api
 ```
 
-3. Put production `appsettings.json` (and email/DB settings) on the API host at `/opt/rava-api/appsettings.json` — it is **not** overwritten by deploy.
+3. Copy `appsettings.json.example` to `appsettings.json` on the API host (e.g. `/opt/rava-api/appsettings.json`) and set production secrets — deploy does **not** ship or overwrite this file.
 4. Optional: systemd unit for the API, e.g. `/etc/systemd/system/rava-api.service`:
 
 ```ini

@@ -7,18 +7,18 @@
   },
   "AllowedHosts": "*",
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=rava;Username=rava;Password=rava_dev"
+    "DefaultConnection": "Host=localhost;Port=5432;Database=rava;Username=postgres;Password=YOUR_PASSWORD"
   },
   "Jwt": {
-    "Key": "RavaDevSecretKey_ChangeInProduction_MinLength32!",
+    "Key": "CHANGE_ME_MinimumLength32Characters!",
     "Issuer": "Rava.Api",
     "Audience": "Rava.Client"
   },
   "Admin": {
-    "Usernames": []
+    "Usernames": [ "your-admin-username" ]
   },
   "Moderator": {
-    "Usernames": []
+    "Usernames": [ "your-moderator-username" ]
   },
   "HateSpeech": {
     "Enabled": true,
@@ -30,7 +30,7 @@
     "Port": 587,
     "Username": "",
     "Password": "",
-    "FromAddress": "noreply@rava.local",
+    "FromAddress": "noreply@example.com",
     "FromName": "RAVA — Reactive Asteroid Venturing Agency",
     "AppBaseUrl": "https://rava.binarygeek119.duckdns.org",
     "UseStartTls": true,

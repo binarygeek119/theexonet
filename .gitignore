@@ -112,6 +112,7 @@ InitTestScene*.unity*
 /server/publish/
 /server/.vs/
 !/server/**/*.csproj
+/server/Rava.Api/appsettings.json
 /server/Rava.Api/appsettings.Development.json
 /server/Rava.Api/html/uploads/profiles/*
 !/server/Rava.Api/html/uploads/profiles/.gitkeep

@@ -643,7 +643,7 @@ async function checkModeratorAccess() {
   if (!access.isModerator) {
     const name = access.username || api.username || "unknown";
     els.deniedUser.textContent =
-      `Signed in as "${name}". Add this exact username to Moderator:Usernames in appsettings.Development.json, then restart the API. Admins can also use the admin portal.`;
+      `Signed in as "${name}". Add this exact username to Moderator:Usernames in appsettings.json, then restart the API. Admins can also use the admin portal.`;
     showScreen("denied");
     return null;
   }

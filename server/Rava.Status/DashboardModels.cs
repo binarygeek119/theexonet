@@ -40,7 +40,12 @@ public record DashboardResponse(
     string GameUrl,
     string ApiPublicUrl,
     string StatusPublicUrl,
+    string DocsInternalUrl,
+    string DocsPublicUrl,
     bool ApiReachable,
     long? ApiResponseMs,
     string? ApiError,
-    ApiStatusPayload? ApiStatus);
+    ApiStatusPayload? ApiStatus,
+    bool DocsReachable,
+    long? DocsResponseMs,
+    string? DocsError);

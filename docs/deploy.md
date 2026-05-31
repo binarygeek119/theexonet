@@ -5,7 +5,7 @@ When a build on `main` succeeds, GitHub Actions can deploy automatically:
 | Target | Source | Typical path |
 |--------|--------|--------------|
 | Game site (port 80) | `server/Rava.Api/html/` | `/var/www/rava` |
-| API + status + admin + moderator (ports 5000 / 6000 / 7000 / 7050) | `dotnet publish` output | `/var/www/publish` |
+| API + status + admin + moderator + docs (ports 5000 / 6000 / 7000 / 7050 / 9000) | `dotnet publish` output | `/var/www/publish` |
 
 ## One-time server setup
 
@@ -41,10 +41,11 @@ dotnet --list-runtimes
    | `Rava.Status.dll` + `wwwroot/` | Same publish bundle |
    | `Rava.Admin.dll` + `wwwroot/` | Same publish bundle |
    | `Rava.Moderator.dll` + `wwwroot/` | Same publish bundle |
+   | `Rava.Docs.dll` + `content/` + `wwwroot/` | Same publish bundle |
    | `credits.json` | Included in publish output |
    | `appsettings.json` | Copy from `appsettings.json.example`, then edit |
 
-   Add **`StatusMonitor`**, **`AdminPortal`**, and **`ModeratorPortal`** sections to the same `appsettings.json` for the status dashboard (port 6000), admin portal (port 7000), and moderator portal (port 7050). Do **not** add a top-level `"Urls"` key — each systemd service sets its own port via `ASPNETCORE_URLS`.
+   Add **`StatusMonitor`**, **`AdminPortal`**, **`ModeratorPortal`**, and **`DocsPortal`** sections to the same `appsettings.json` for the status dashboard (port 6000), admin portal (port 7000), moderator portal (port 7050), and game docs (port 9000). Do **not** add a top-level `"Urls"` key — each systemd service sets its own port via `ASPNETCORE_URLS`.
 
    Set **`Hosting:ServeGameUi`** to **`false`** (default in `appsettings.json.example`) so the API subdomain shows a status page at `/` instead of the game UI. The game is served from the game host (`/var/www/rava`), not from the API.
 
@@ -92,7 +93,11 @@ Add to `/var/www/publish/appsettings.json`:
 ```json
 "StatusMonitor": {
   "ApiBaseUrl": "http://127.0.0.1:5000",
-  "StatusPublicUrl": "https://ravastatus.binarygeek119.duckdns.org/"
+  "GameUrl": "https://rava.binarygeek119.duckdns.org/",
+  "ApiPublicUrl": "https://ravaapi.binarygeek119.duckdns.org/",
+  "StatusPublicUrl": "https://ravastatus.binarygeek119.duckdns.org/",
+  "DocsInternalUrl": "http://127.0.0.1:9000",
+  "DocsPublicUrl": "https://ravadocs.binarygeek119.duckdns.org/"
 }
 ```
 
@@ -193,7 +198,44 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now rava-moderator
 ```
 
-**Quick install (all four units):** copy `scripts/systemd/*.service` to the server, then:
+Game docs on port **9000** — uses the same `/var/www/publish` folder as the API. Markdown source lives in the repo under `docs/game/` and is published to `content/` in the deploy bundle.
+
+Add to `/var/www/publish/appsettings.json`:
+
+```json
+"DocsPortal": {
+  "PublicUrl": "https://ravadocs.binarygeek119.duckdns.org/",
+  "GameUrl": "https://rava.binarygeek119.duckdns.org/",
+  "ContentPath": "content",
+  "SiteTitle": "RAVA Game Docs"
+}
+```
+
+`/etc/systemd/system/rava-docs.service` — see `scripts/systemd/rava-docs.service`:
+
+```ini
+[Unit]
+Description=RAVA Game Docs
+After=network.target
+
+[Service]
+WorkingDirectory=/var/www/publish
+ExecStart=/usr/bin/dotnet /var/www/publish/Rava.Docs.dll
+Restart=always
+Environment=ASPNETCORE_URLS=http://0.0.0.0:9000
+Environment=DOTNET_ENVIRONMENT=Production
+User=www-data
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now rava-docs
+```
+
+**Quick install (all five units):** copy `scripts/systemd/*.service` to the server, then:
 
 ```bash
 sudo bash scripts/install-systemd-units.sh
@@ -202,7 +244,7 @@ sudo bash scripts/install-systemd-units.sh
 Allow passwordless service restarts for GitHub Actions (optional — use your SSH login user, not necessarily `www-data`):
 
 ```bash
-echo 'YOUR_SSH_USER ALL=(ALL) NOPASSWD: /bin/systemctl restart rava-api, /bin/systemctl restart rava-status, /bin/systemctl restart rava-admin, /bin/systemctl restart rava-moderator' | sudo tee /etc/sudoers.d/rava-deploy
+echo 'YOUR_SSH_USER ALL=(ALL) NOPASSWD: /bin/systemctl restart rava-api, /bin/systemctl restart rava-status, /bin/systemctl restart rava-admin, /bin/systemctl restart rava-moderator, /bin/systemctl restart rava-docs' | sudo tee /etc/sudoers.d/rava-deploy
 sudo chmod 440 /etc/sudoers.d/rava-deploy
 ```
 
@@ -215,6 +257,24 @@ sudo chmod 440 /etc/sudoers.d/rava-deploy
 | `ravastatus.binarygeek119.duckdns.org` | port 6000 (`Rava.Status`) |
 | `ravaadmin.binarygeek119.duckdns.org` | port 7000 (`Rava.Admin`) |
 | `ravamoderator.binarygeek119.duckdns.org` | port 7050 (`Rava.Moderator`) |
+| `ravadocs.binarygeek119.duckdns.org` | port 9000 (`Rava.Docs`) |
+
+Example nginx server block for the game docs site:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name ravadocs.binarygeek119.duckdns.org;
+
+    location / {
+        proxy_pass http://127.0.0.1:9000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
 
 Example nginx server block for the moderator portal:
 
@@ -290,7 +350,7 @@ If the API returns **502**, `/api/status` shows **database offline**, or **`rava
 7. **Test locally on the server:**  
    `curl http://127.0.0.1:5000/api/status` — should return JSON with `"databaseStatus":"online"`
 8. **`.NET runtime missing`:** log shows `Framework: Microsoft.NETCore.App, version '10.0.0'` but only 8.x installed — install `aspnetcore-runtime-10.0` (see step 2 above).
-9. **`Address already in use` / socket bind error:** another process holds port 5000, 6000, 7000, or 7050 (`sudo ss -tlnp | grep -E '5000|6000|7000|7050'`). Do **not** put `"Urls"` in the shared `/var/www/publish/appsettings.json` — set ports only in each systemd unit (`ASPNETCORE_URLS=http://0.0.0.0:5000` for API, `:6000` for status, `:7000` for admin, `:7050` for moderator).
+9. **`Address already in use` / socket bind error:** another process holds port 5000, 6000, 7000, 7050, or 9000 (`sudo ss -tlnp | grep -E '5000|6000|7000|7050|9000'`). Do **not** put `"Urls"` in the shared `/var/www/publish/appsettings.json` — set ports only in each systemd unit (`ASPNETCORE_URLS=http://0.0.0.0:5000` for API, `:6000` for status, `:7000` for admin, `:7050` for moderator, `:9000` for docs).
 10. **`Access to the path .../html/images/profile is denied`:** fix ownership on `/var/www/publish` (see upload folder permissions in step 3 above).
 11. **`Could not parse the JSON file` / `LineNumber: 308`:** `/var/www/publish/appsettings.json` is invalid (often duplicated content from repeated edits). Back it up, replace from `appsettings.production.example.json`, set your postgres password, then validate with `python3 -m json.tool /var/www/publish/appsettings.json`.
 
@@ -325,6 +385,7 @@ Leave unset (or not `true`) until secrets below are configured.
 | `DEPLOY_STATUS_SERVICE` | Optional; systemd unit to restart after deploy, e.g. `rava-status` |
 | `DEPLOY_ADMIN_SERVICE` | Optional; systemd unit to restart after deploy, e.g. `rava-admin` |
 | `DEPLOY_MODERATOR_SERVICE` | Optional; systemd unit to restart after deploy, e.g. `rava-moderator` |
+| `DEPLOY_DOCS_SERVICE` | Optional; systemd unit to restart after deploy, e.g. `rava-docs` |
 
 Add the matching **public** key to `~/.ssh/authorized_keys` on the server.
 
@@ -332,7 +393,7 @@ Add the matching **public** key to `~/.ssh/authorized_keys` on the server.
 
 1. **html** — `rsync` from the repo to `DEPLOY_WWW_PATH` (mirrors deletes; game host only).
 2. **API** — `rsync` publish artifact to `DEPLOY_API_PATH`, excluding and **protecting** `appsettings*.json`, runtime JSON, and `html/images/profile/` from `--delete`. The bundle includes an `html/` folder (game UI + avatar uploads path). Deploy never overwrites production secrets in `appsettings.json`.
-3. **Restart** — runs `sudo systemctl restart <DEPLOY_API_SERVICE>` and optionally `<DEPLOY_STATUS_SERVICE>`, `<DEPLOY_ADMIN_SERVICE>`, and `<DEPLOY_MODERATOR_SERVICE>` when those secrets are set.
+3. **Restart** — runs `sudo systemctl restart` for API, status, admin, moderator, and docs services when configured.
 
 Deploy runs only on pushes to `main` (not pull requests), after build and test pass.
 
@@ -361,6 +422,7 @@ sudo systemctl restart rava-api
 sudo systemctl restart rava-status
 sudo systemctl restart rava-admin
 sudo systemctl restart rava-moderator
+sudo systemctl restart rava-docs
 ```
 
 Or use the helper script (copy `scripts/restart-rava.sh` to the server):
@@ -369,4 +431,4 @@ Or use the helper script (copy `scripts/restart-rava.sh` to the server):
 sudo bash scripts/restart-rava.sh
 ```
 
-Starts **rava-api** before **rava-status**, **rava-admin**, and **rava-moderator**, and clears stray processes on ports 5000/6000/7000/7050.
+Starts **rava-api** before **rava-status**, **rava-admin**, **rava-moderator**, and **rava-docs**, and clears stray processes on ports 5000/6000/7000/7050/9000.

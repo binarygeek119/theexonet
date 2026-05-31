@@ -78,6 +78,17 @@ dotnet run --project Rava.Moderator
 
 Open **http://localhost:7050** (production: **https://ravamoderator.binarygeek119.duckdns.org/**).
 
+### 6. Game docs (optional)
+
+Run the markdown game docs site on port **9000**:
+
+```bash
+cd server
+dotnet run --project Rava.Docs
+```
+
+Open **http://localhost:9000** (production: **https://ravadocs.binarygeek119.duckdns.org/**). Edit pages under **`docs/game/`**.
+
 ## Production
 
 | Service | Host | Backend port |
@@ -87,8 +98,9 @@ Open **http://localhost:7050** (production: **https://ravamoderator.binarygeek11
 | Status dashboard | Status subdomain (HTTPS) | 6000 |
 | Admin portal | Admin subdomain (HTTPS) | 7000 |
 | Moderator portal | Moderator subdomain (HTTPS) | 7050 |
+| Game docs | Docs subdomain (HTTPS) | 9000 |
 
-Deploy `server/Rava.Api/html/` to the game host (port 80). Run `Rava.Api`, `Rava.Status`, `Rava.Admin`, and `Rava.Moderator` from the same publish folder (ports 5000, 6000, 7000, and 7050). The browser client on the game host calls the API host automatically (`html/js/config.js`).
+Deploy `server/Rava.Api/html/` to the game host (port 80). Run `Rava.Api`, `Rava.Status`, `Rava.Admin`, `Rava.Moderator`, and `Rava.Docs` from the same publish folder (ports 5000, 6000, 7000, 7050, and 9000). The browser client on the game host calls the API host automatically (`html/js/config.js`).
 
 On the API host, set `"Hosting": { "ServeGameUi": false }` in `appsettings.json` (included in `appsettings.json.example`) so the API subdomain shows a status page at `/` instead of the game UI. Local `dotnet run` in Development still serves the game at `/` unless you override that in config.
 
@@ -113,6 +125,7 @@ rava/
 │   ├── Rava.Status/    Server status dashboard (port 6000)
 │   ├── Rava.Admin/     Admin operations portal (port 7000)
 │   ├── Rava.Moderator/ Moderator oversight portal (port 7050)
+│   ├── Rava.Docs/      Game docs markdown host (port 9000)
 │   ├── Rava.Core/
 │   └── Rava.Infrastructure/
 └── docker-compose.yml  PostgreSQL for local dev

@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SYSTEMD_SRC="${SCRIPT_DIR}/systemd"
 SYSTEMD_DST="/etc/systemd/system"
 
-units=(rava-api rava-status rava-admin rava-moderator)
+units=(rava-api rava-status rava-admin rava-moderator rava-docs)
 
 for unit in "${units[@]}"; do
   src="${SYSTEMD_SRC}/${unit}.service"

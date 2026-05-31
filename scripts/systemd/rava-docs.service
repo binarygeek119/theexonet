@@ -1,0 +1,17 @@
+[Unit]
+Description=RAVA Game Docs
+After=network.target
+
+[Service]
+WorkingDirectory=/var/www/publish
+ExecStart=/usr/bin/dotnet /var/www/publish/Rava.Docs.dll
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+Environment=ASPNETCORE_URLS=http://0.0.0.0:9000
+Environment=DOTNET_ENVIRONMENT=Production
+User=www-data
+
+[Install]
+WantedBy=multi-user.target

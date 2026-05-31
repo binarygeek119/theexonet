@@ -15,12 +15,19 @@ const els = {
   dbOverall: document.getElementById("db-overall"),
   dbConnection: document.getElementById("db-connection"),
   dbReported: document.getElementById("db-reported"),
+  docsOverall: document.getElementById("docs-overall"),
+  docsResponseMs: document.getElementById("docs-response-ms"),
+  docsChecked: document.getElementById("docs-checked"),
+  docsEndpoint: document.getElementById("docs-endpoint"),
+  docsPublicUrl: document.getElementById("docs-public-url"),
+  docsError: document.getElementById("docs-error"),
   monitorUptime: document.getElementById("monitor-uptime"),
   monitorFirstRun: document.getElementById("monitor-first-run"),
   monitorUtc: document.getElementById("monitor-utc"),
   linkStatus: document.getElementById("link-status"),
   linkGame: document.getElementById("link-game"),
   linkApi: document.getElementById("link-api"),
+  linkDocs: document.getElementById("link-docs"),
   linkValues: document.getElementById("link-values"),
   linkApiStatus: document.getElementById("link-api-status"),
 };
@@ -68,7 +75,20 @@ function renderDashboard(data) {
   els.linkStatus.href = data.statusPublicUrl;
   els.linkGame.href = data.gameUrl;
   els.linkApi.href = data.apiPublicUrl;
+  els.linkDocs.href = data.docsPublicUrl;
   els.linkApiStatus.href = `${data.apiBaseUrl}/api/status`;
+
+  els.docsEndpoint.textContent = data.docsInternalUrl;
+  els.docsPublicUrl.textContent = data.docsPublicUrl;
+  els.docsResponseMs.textContent = data.docsResponseMs != null ? `${data.docsResponseMs} ms` : "—";
+  els.docsChecked.textContent = formatUtc(data.utc);
+  els.docsError.textContent = data.docsError || "—";
+
+  if (data.docsReachable) {
+    setPill(els.docsOverall, "Online", "online");
+  } else {
+    setPill(els.docsOverall, "Offline", "offline");
+  }
 
   els.monitorUptime.textContent = formatDuration(data.monitorUptimeSeconds);
   els.monitorFirstRun.textContent = formatUtc(data.monitorFirstRunUtc);
@@ -116,6 +136,7 @@ function renderDashboard(data) {
 async function refresh() {
   setPill(els.apiOverall, "Checking…", "checking");
   setPill(els.dbOverall, "Checking…", "checking");
+  setPill(els.docsOverall, "Checking…", "checking");
 
   try {
     const response = await fetch("/api/dashboard");
@@ -126,6 +147,7 @@ async function refresh() {
   } catch (error) {
     setPill(els.apiOverall, "Monitor error", "error");
     setPill(els.dbOverall, "Unknown", "offline");
+    setPill(els.docsOverall, "Unknown", "offline");
     els.apiError.textContent = error.message;
     els.lastUpdated.textContent = "Failed to load dashboard data";
   }

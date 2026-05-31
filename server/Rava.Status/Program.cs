@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<StatusMonitorOptions>(
     builder.Configuration.GetSection(StatusMonitorOptions.SectionName));
 builder.Services.AddHttpClient("RavaApi");
+builder.Services.AddHttpClient("RavaDocs");
 builder.Services.AddSingleton<MonitorRuntimeInfo>();
 
 var app = builder.Build();
@@ -54,6 +55,32 @@ app.MapGet("/api/dashboard", async (
         apiError = ex.Message;
     }
 
+    var docsInternalUrl = monitor.DocsInternalUrl.TrimEnd('/');
+    var docsClient = httpClientFactory.CreateClient("RavaDocs");
+    docsClient.Timeout = TimeSpan.FromSeconds(8);
+
+    string? docsError = null;
+    long? docsResponseMs = null;
+    var docsReachable = false;
+
+    try
+    {
+        var stopwatch = Stopwatch.StartNew();
+        using var response = await docsClient.GetAsync($"{docsInternalUrl}/", cancellationToken);
+        stopwatch.Stop();
+        docsResponseMs = stopwatch.ElapsedMilliseconds;
+        docsReachable = response.IsSuccessStatusCode;
+
+        if (!response.IsSuccessStatusCode)
+        {
+            docsError = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";
+        }
+    }
+    catch (Exception ex)
+    {
+        docsError = ex.Message;
+    }
+
     return Results.Ok(new DashboardResponse(
         DateTime.UtcNow,
         runtime.UptimeSeconds,
@@ -63,10 +90,15 @@ app.MapGet("/api/dashboard", async (
         monitor.GameUrl,
         monitor.ApiPublicUrl,
         monitor.StatusPublicUrl,
+        docsInternalUrl,
+        monitor.DocsPublicUrl,
         apiReachable,
         apiResponseMs,
         apiError,
-        apiStatus));
+        apiStatus,
+        docsReachable,
+        docsResponseMs,
+        docsError));
 });
 
 app.MapGet("/api/economy", async (

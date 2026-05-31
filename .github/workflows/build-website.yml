@@ -8,6 +8,7 @@ on:
       - ".github/workflows/build-website.yml"
       - "docs/deploy.md"
       - "docs/github-deploy-setup.md"
+      - "docs/game/**"
   pull_request:
     branches: [main]
     paths:
@@ -15,6 +16,7 @@ on:
       - ".github/workflows/build-website.yml"
       - "docs/deploy.md"
       - "docs/github-deploy-setup.md"
+      - "docs/game/**"
   workflow_dispatch:
 
 permissions:
@@ -74,9 +76,11 @@ jobs:
           dotnet publish Rava.Status/Rava.Status.csproj --configuration Release --output ./publish-status
           dotnet publish Rava.Admin/Rava.Admin.csproj --configuration Release --output ./publish-admin
           dotnet publish Rava.Moderator/Rava.Moderator.csproj --configuration Release --output ./publish-moderator
+          dotnet publish Rava.Docs/Rava.Docs.csproj --configuration Release --output ./publish-docs
           rsync -a publish-status/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
           rsync -a publish-admin/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
           rsync -a publish-moderator/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
+          rsync -a publish-docs/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
 
       - name: Upload publish artifact
         uses: actions/upload-artifact@v7
@@ -123,6 +127,7 @@ jobs:
             - **`Rava.Status.dll`** — port 6000 (same folder; add `StatusMonitor` section to `appsettings.json`)
             - **`Rava.Admin.dll`** — port 7000 (same folder; add `AdminPortal` section to `appsettings.json`)
             - **`Rava.Moderator.dll`** — port 7050 (same folder; add `ModeratorPortal` section to `appsettings.json`)
+            - **`Rava.Docs.dll`** — port 9000 (same folder; add `DocsPortal` section to `appsettings.json`)
           files: rava-website-*.zip
           generate_release_notes: true
 
@@ -144,6 +149,7 @@ jobs:
       DEPLOY_STATUS_SERVICE: ${{ vars.DEPLOY_STATUS_SERVICE || secrets.DEPLOY_STATUS_SERVICE || 'rava-status' }}
       DEPLOY_ADMIN_SERVICE: ${{ vars.DEPLOY_ADMIN_SERVICE || secrets.DEPLOY_ADMIN_SERVICE || 'rava-admin' }}
       DEPLOY_MODERATOR_SERVICE: ${{ vars.DEPLOY_MODERATOR_SERVICE || secrets.DEPLOY_MODERATOR_SERVICE || 'rava-moderator' }}
+      DEPLOY_DOCS_SERVICE: ${{ vars.DEPLOY_DOCS_SERVICE || secrets.DEPLOY_DOCS_SERVICE || 'rava-docs' }}
 
     steps:
       - name: Checkout
@@ -490,3 +496,4 @@ jobs:
           restart_unit "${DEPLOY_STATUS_SERVICE}"
           restart_unit "${DEPLOY_ADMIN_SERVICE}"
           restart_unit "${DEPLOY_MODERATOR_SERVICE}"
+          restart_unit "${DEPLOY_DOCS_SERVICE}"

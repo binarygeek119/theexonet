@@ -95,6 +95,7 @@ Friends, player market, multi-mine, mine groups, real US market API, account nuk
 
 | Method | Route | Description |
 |--------|-------|-------------|
+| GET | `/api/status` | API health (online / degraded / unreachable) |
 | POST | `/api/auth/register` | Create account + starter mine (email required) |
 | POST | `/api/auth/login` | Login |
 | POST | `/api/auth/forgot-password` | Email password reset link |

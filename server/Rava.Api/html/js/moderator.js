@@ -1,5 +1,6 @@
 import { RavaApi } from "./api.js";
 import { API_BASE_URL } from "./config.js";
+import { initApiStatusMonitor } from "./api-status.js";
 import { initStaffMessaging } from "./staff-messages.js";
 import { initStaffPlayerMessaging } from "./staff-player-messages.js";
 import { initStaffPlayerInbox } from "./staff-player-inbox.js";
@@ -787,4 +788,5 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+initApiStatusMonitor(api);
 tryRestoreSession();

@@ -1,5 +1,6 @@
 import { RavaApi } from "./api.js";
 import { GRID_SIZE, ORE_TYPES, SUPPLY_TYPES, API_BASE_URL } from "./config.js";
+import { initApiStatusMonitor } from "./api-status.js";
 import { initPlayerMessaging } from "./player-messages.js";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
 
@@ -1951,6 +1952,7 @@ document.addEventListener("keydown", (event) => {
 
 setAuthMode("login");
 initBirthdayDropdowns();
+initApiStatusMonitor(api);
 els.mineGrid.style.setProperty("--grid-size", GRID_SIZE);
 
 const resetTokenFromUrl = new URLSearchParams(window.location.search).get("reset");

@@ -183,6 +183,28 @@ select:focus {
   border-color: rgba(153, 51, 51, 0.45);
 }
 
+.api-status {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.api-status.checking {
+  color: var(--muted);
+}
+
+.api-status.online {
+  color: var(--success);
+}
+
+.api-status.degraded {
+  color: #e6b84d;
+}
+
+.api-status.error {
+  color: #ffb3aa;
+}
+
 .ban-appeal-notice {
   margin: 12px 0;
   padding: 12px 14px;

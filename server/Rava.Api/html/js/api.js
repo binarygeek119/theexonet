@@ -130,6 +130,18 @@ export class RavaApi {
     return this.request("/api/auth/session");
   }
 
+  async getStatus() {
+    const response = await fetch(`${this.baseUrl}/api/status`, {
+      headers: { Accept: "application/json" },
+    });
+
+    if (!response.ok) {
+      throw new Error(formatHttpError(response));
+    }
+
+    return response.json();
+  }
+
   forgotPassword(email) {
     return this.request("/api/auth/forgot-password", {
       method: "POST",

@@ -113,3 +113,42 @@ curl -s http://127.0.0.1:6000/api/dashboard
 Push to `main` (changes under `server/` or the workflow file), or run **Actions → Build website → Run workflow**.
 
 Watch the **Deploy to production** job in the Actions tab.
+
+## 7. Troubleshooting
+
+### `Add SSH host keys` fails (exit code 1)
+
+GitHub Actions could not reach your server on `DEPLOY_SSH_PORT` (default **22**). The workflow now prints DNS and TCP checks; fix the underlying reachability issue on the server or in your GitHub variables.
+
+**On the server** (SSH in locally or from your PC):
+
+```bash
+# sshd running and listening on all interfaces?
+sudo systemctl status ssh
+sudo ss -tlnp | grep ':22'
+
+# firewall allows inbound SSH?
+sudo ufw status
+sudo ufw allow 22/tcp    # if ufw is active and SSH is blocked
+
+# optional: confirm from outside (run on your PC, not the server)
+ssh -p 22 root@binarygeek119.duckdns.org
+```
+
+**In GitHub → Settings → Secrets and variables → Actions → Variables:**
+
+| Check | Correct | Wrong |
+|-------|---------|-------|
+| `DEPLOY_HOST` | `binarygeek119.duckdns.org` | `https://binarygeek119.duckdns.org` |
+| `DEPLOY_SSH_PORT` | `22` (or your custom port) | blank, `22/tcp`, or a closed port |
+| `DEPLOY_WWW_HOST` / `DEPLOY_API_HOST` | leave unset if same machine | invalid hostname |
+
+If SSH is only reachable on your home network (no port forward), GitHub Actions **cannot** deploy until port **22** is open to the public internet or you use a self-hosted runner on the same network.
+
+### Deploy job skipped entirely
+
+Set repository variable **`ENABLE_PRODUCTION_DEPLOY`** = `true` (Variables tab, not Secrets).
+
+### Auth fails after host keys succeed
+
+Configure **`DEPLOY_SSH_PASSWORD`** or **`DEPLOY_SSH_KEY`** under Secrets. See sections 2 and 4 above.

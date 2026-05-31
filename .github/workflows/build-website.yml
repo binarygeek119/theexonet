@@ -190,11 +190,63 @@ jobs:
           set -euo pipefail
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
+
+          unique_hosts=()
           for host in "$DEPLOY_HOST" "$DEPLOY_WWW_HOST" "$DEPLOY_API_HOST"; do
+            host="${host#https://}"
+            host="${host#http://}"
+            host="${host%%/*}"
+            host="${host%%:*}"
             if [ -n "$host" ]; then
-              ssh-keyscan -H -p "$DEPLOY_SSH_PORT" "$host" >> ~/.ssh/known_hosts
+              duplicate=0
+              for seen in "${unique_hosts[@]:-}"; do
+                if [ "$seen" = "$host" ]; then
+                  duplicate=1
+                  break
+                fi
+              done
+              if [ "$duplicate" -eq 0 ]; then
+                unique_hosts+=("$host")
+              fi
             fi
           done
+
+          if [ "${#unique_hosts[@]}" -eq 0 ]; then
+            echo "No deploy host configured. Set repository variable DEPLOY_HOST (hostname only, e.g. binarygeek119.duckdns.org)." >&2
+            exit 1
+          fi
+
+          failed=0
+          for host in "${unique_hosts[@]}"; do
+            echo "Checking SSH reachability for ${host}:${DEPLOY_SSH_PORT}..."
+            if ! getent ahosts "$host" >/dev/null; then
+              echo "ERROR: DNS lookup failed for '${host}'. Check DEPLOY_HOST in GitHub Actions variables." >&2
+              failed=1
+              continue
+            fi
+            getent ahosts "$host" | head -n 3
+
+            if ! timeout 15 bash -c "exec 3<>/dev/tcp/${host}/${DEPLOY_SSH_PORT}" 2>/dev/null; then
+              echo "ERROR: Cannot open TCP ${host}:${DEPLOY_SSH_PORT} from GitHub Actions." >&2
+              echo "On the server: ensure sshd listens on 0.0.0.0:${DEPLOY_SSH_PORT}, firewall allows inbound SSH, and router forwards port ${DEPLOY_SSH_PORT} if needed." >&2
+              failed=1
+              continue
+            fi
+
+            scan_err="$(mktemp)"
+            if ! ssh-keyscan -T 15 -H -p "$DEPLOY_SSH_PORT" "$host" >> ~/.ssh/known_hosts 2>"$scan_err"; then
+              echo "ERROR: ssh-keyscan failed for ${host}:${DEPLOY_SSH_PORT}." >&2
+              sed 's/^/  /' "$scan_err" >&2
+              failed=1
+            else
+              echo "Added host key for ${host}:${DEPLOY_SSH_PORT}"
+            fi
+            rm -f "$scan_err"
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            exit 1
+          fi
 
       - name: Deploy static web client (html)
         env:

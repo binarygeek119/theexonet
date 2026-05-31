@@ -4,7 +4,7 @@ namespace Rava.Infrastructure.Services;
 
 public class LocalProfileAvatarStorage(ProfileAvatarStorageOptions options) : IProfileAvatarStorage
 {
-    private const string RelativeFolder = "uploads/profiles";
+    private const string RelativeFolder = ProfileAvatarStorageOptions.RelativeFolder;
 
     public async Task<string> SaveAsync(
         Guid playerId,

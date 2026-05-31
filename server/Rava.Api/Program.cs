@@ -136,7 +136,7 @@ app.Logger.LogInformation(
     "Content root: {ContentRoot}. Web root: {WebRoot}. Profile uploads: {UploadPath}",
     contentRootPath,
     webRootPath,
-    Path.Combine(webRootPath, "uploads", "profiles"));
+    Path.Combine(webRootPath, ProfileAvatarStorageOptions.RelativeFolder));
 
 try
 {
@@ -229,13 +229,13 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
-        Directory.CreateDirectory(Path.Combine(webRootPath, "uploads", "profiles"));
+        Directory.CreateDirectory(Path.Combine(webRootPath, ProfileAvatarStorageOptions.RelativeFolder));
     }
     catch (Exception ex)
     {
         throw new InvalidOperationException(
-            $"Could not create {Path.Combine(webRootPath, "uploads", "profiles")}. " +
-            "Ensure the service user can write under html/uploads/.",
+            $"Could not create {Path.Combine(webRootPath, ProfileAvatarStorageOptions.RelativeFolder)}. " +
+            "Ensure the service user can write under html/images/profile/.",
             ex);
     }
 }

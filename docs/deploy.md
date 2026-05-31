@@ -44,16 +44,16 @@ dotnet --list-runtimes
 
    **Connection string:** use the same PostgreSQL host, database name, username, and password that work from your dev machine. If Postgres runs on another machine (e.g. `192.168.1.2`), do **not** use `Host=localhost` unless Postgres is installed on the API server itself. The API server must be able to reach the DB host on port 5432.
 
-   **Upload folder permissions** — the API creates `html/uploads/profiles/` at startup. The systemd service user must own (or be able to write to) `/var/www/publish`:
+   **Upload folder permissions** — the API creates `html/images/profile/` at startup. The systemd service user must own (or be able to write to) `/var/www/publish`:
 
 ```bash
-sudo mkdir -p /var/www/publish/html/uploads/profiles
+sudo mkdir -p /var/www/publish/html/images/profile
 sudo chown -R deploy:deploy /var/www/publish
 ```
 
    Replace `deploy` with the `User=` from your systemd units if different.
 
-   The API resolves paths from the folder containing `Rava.Api.dll`. With `WorkingDirectory=/var/www/publish`, uploads are written to **`/var/www/publish/html/uploads/profiles/`** (URL path `/uploads/profiles/...`).
+   The API resolves paths from the folder containing `Rava.Api.dll`. With `WorkingDirectory=/var/www/publish`, uploads are written to **`/var/www/publish/html/images/profile/`** (URL path `/images/profile/...`).
 
 4. Optional: systemd unit for the API, e.g. `/etc/systemd/system/rava-api.service`:
 
@@ -162,7 +162,7 @@ If the API returns **502** or `/api/status` shows **database offline**:
    `curl http://127.0.0.1:5000/api/status` — should return JSON with `"databaseStatus":"online"`
 5. **`.NET runtime missing`:** log shows `Framework: Microsoft.NETCore.App, version '10.0.0'` but only 8.x installed — install `aspnetcore-runtime-10.0` (see step 2 above).
 6. **`Address already in use` / socket bind error:** another process holds port 5000 or 6000 (`sudo ss -tlnp | grep -E '5000|6000'`). Do **not** put `"Urls"` in the shared `/var/www/publish/appsettings.json` — set ports only in each systemd unit (`ASPNETCORE_URLS=http://0.0.0.0:5000` for API, `:6000` for status).
-7. **`Access to the path .../html/uploads is denied`:** fix ownership on `/var/www/publish` (see upload folder permissions in step 3 above).
+7. **`Access to the path .../html/images/profile is denied`:** fix ownership on `/var/www/publish` (see upload folder permissions in step 3 above).
 
 ## GitHub configuration
 
@@ -196,7 +196,7 @@ Add the matching **public** key to `~/.ssh/authorized_keys` on the server.
 ## What deploy does
 
 1. **html** — `rsync` from the repo to `DEPLOY_WWW_PATH` (mirrors deletes; game host only).
-2. **API** — `rsync` publish artifact to `DEPLOY_API_PATH`, excluding `appsettings*.json` and `html/uploads/profiles/*`. The bundle includes an `html/` folder (game UI + avatar uploads path).
+2. **API** — `rsync` publish artifact to `DEPLOY_API_PATH`, excluding `appsettings*.json` and `html/images/profile/*`. The bundle includes an `html/` folder (game UI + avatar uploads path).
 3. **Restart** — runs `sudo systemctl restart <DEPLOY_API_SERVICE>` and optionally `<DEPLOY_STATUS_SERVICE>` when those secrets are set.
 
 Deploy runs only on pushes to `main` (not pull requests), after build and test pass.
@@ -208,7 +208,7 @@ Deploy runs only on pushes to `main` (not pull requests), after build and test p
 rsync -av --delete /path/to/rava/server/Rava.Api/html/ /var/www/rava/
 
 # API + status dashboard (from extracted GitHub release zip)
-rsync -av --exclude 'appsettings*.json' --exclude 'html/uploads/profiles/*' \
+rsync -av --exclude 'appsettings*.json' --exclude 'html/images/profile/*' \
   ./publish/ /var/www/publish/
 sudo systemctl restart rava-api
 sudo systemctl restart rava-status

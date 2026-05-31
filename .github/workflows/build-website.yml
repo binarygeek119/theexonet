@@ -187,7 +187,7 @@ jobs:
             -e "ssh -p ${port} -o StrictHostKeyChecking=yes" \
             --exclude 'appsettings.json' \
             --exclude 'appsettings.Development.json' \
-            --exclude 'html/uploads/profiles/*' \
+            --exclude 'html/images/profile/*' \
             publish/ \
             "${DEPLOY_USER}@${host}:${DEPLOY_API_PATH}/"
 

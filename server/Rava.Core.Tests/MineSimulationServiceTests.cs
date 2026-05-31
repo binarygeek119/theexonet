@@ -22,7 +22,7 @@ public class MineSimulationServiceTests
         var result = _simulation.AdvanceDay(player, mine, inventory, market);
 
         Assert.True(result.OreExtracted.Count > 0);
-        Assert.True(inventory.Any(i => i.Category == ItemCategory.Ore && i.Quantity > 0));
+        Assert.Contains(inventory, i => i.Category == ItemCategory.Ore && i.Quantity > 0);
     }
 
     [Fact]

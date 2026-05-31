@@ -20,31 +20,45 @@ const PRODUCTION_API_HOST = "ravaapi.binarygeek119.duckdns.org";
 /** HTTPS game host (static www → port 80). */
 const PRODUCTION_GAME_HOST = "rava.binarygeek119.duckdns.org";
 
+function normalizeHost(hostname) {
+  return hostname.toLowerCase().replace(/^www\./, "");
+}
+
+function readMetaApiBase() {
+  const value = document.querySelector('meta[name="rava-api-base"]')?.getAttribute("content")?.trim();
+  return value ? value.replace(/\/$/, "") : "";
+}
+
 /** Base URL for API requests (no trailing slash). */
 export function resolveApiBaseUrl() {
   if (typeof window === "undefined") {
     return "";
   }
 
+  const metaBase = readMetaApiBase();
+  if (metaBase) {
+    return metaBase;
+  }
+
   const { hostname, port, protocol } = window.location;
+  const host = normalizeHost(hostname);
+  const apiHost = normalizeHost(PRODUCTION_API_HOST);
+
   const isLocalHost =
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "[::1]";
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "[::1]";
 
   if (isLocalHost) {
     return port === "5000" ? "" : LOCAL_API_URL;
   }
 
-  if (hostname === PRODUCTION_GAME_HOST) {
-    return `${protocol}//${PRODUCTION_API_HOST}`;
-  }
-
-  if (hostname === PRODUCTION_API_HOST) {
+  if (host === apiHost) {
     return "";
   }
 
-  return "";
+  // Game site and any other public host: call the API subdomain.
+  return `${protocol}//${PRODUCTION_API_HOST}`;
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();

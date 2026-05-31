@@ -546,7 +546,7 @@ function formatHttpError(response) {
   }
 
   if (response.status === 405) {
-    return "Password reset is not available on the running server. Stop and restart the API, then try again.";
+    return "API route not available. Requests must go to the API host (ravaapi), not the game site. Hard-refresh the page or redeploy www/.";
   }
 
   if (response.status === 503) {

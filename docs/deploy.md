@@ -53,6 +53,8 @@ sudo chown -R deploy:deploy /var/www/publish
 
    Replace `deploy` with the `User=` from your systemd units if different.
 
+   The API resolves paths from the folder containing `Rava.Api.dll`. With `WorkingDirectory=/var/www/publish`, uploads are written to **`/var/www/publish/html/uploads/profiles/`** (URL path `/uploads/profiles/...`).
+
 4. Optional: systemd unit for the API, e.g. `/etc/systemd/system/rava-api.service`:
 
 ```ini

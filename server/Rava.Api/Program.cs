@@ -16,13 +16,14 @@ using Rava.Infrastructure.Data;
 using Rava.Infrastructure.Migrations;
 using Rava.Infrastructure.Services;
 
-var contentRootPath = Directory.GetCurrentDirectory();
+var contentRootPath = Path.GetFullPath(AppContext.BaseDirectory);
 var webRootPath = Path.Combine(contentRootPath, "html");
 Directory.CreateDirectory(webRootPath);
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
+    ContentRootPath = contentRootPath,
     WebRootPath = webRootPath,
 });
 
@@ -130,6 +131,12 @@ if (string.IsNullOrWhiteSpace(connectionString))
 }
 
 var app = builder.Build();
+
+app.Logger.LogInformation(
+    "Content root: {ContentRoot}. Web root: {WebRoot}. Profile uploads: {UploadPath}",
+    contentRootPath,
+    webRootPath,
+    Path.Combine(webRootPath, "uploads", "profiles"));
 
 try
 {

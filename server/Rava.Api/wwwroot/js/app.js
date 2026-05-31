@@ -1,9 +1,9 @@
 import { RavaApi } from "./api.js";
-import { GRID_SIZE, ORE_TYPES, SUPPLY_TYPES } from "./config.js";
+import { GRID_SIZE, ORE_TYPES, SUPPLY_TYPES, API_BASE_URL } from "./config.js";
 import { initPlayerMessaging } from "./player-messages.js";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
 
-const api = new RavaApi("");
+const api = new RavaApi(API_BASE_URL);
 
 function setMessagesStatus(message, isError = false) {
   const el = document.getElementById("messages-status");

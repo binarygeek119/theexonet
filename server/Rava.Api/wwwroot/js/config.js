@@ -13,3 +13,32 @@ export const SUPPLY_TYPES = {
 };
 
 export const GRID_SIZE = 8;
+
+const LOCAL_API_URL = "http://localhost:5000";
+const PRODUCTION_API_HOST = "ravaapi.binarygeek119.duckdns.org";
+const PRODUCTION_GAME_HOST = "rava.binarygeek119.duckdns.org";
+
+/** Base URL for API requests (no trailing slash). */
+export function resolveApiBaseUrl() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const { hostname, port, protocol } = window.location;
+  const isLocalHost =
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]";
+
+  if (isLocalHost) {
+    return port === "5000" ? "" : LOCAL_API_URL;
+  }
+
+  if (hostname === PRODUCTION_GAME_HOST) {
+    return `${protocol}//${PRODUCTION_API_HOST}`;
+  }
+
+  return "";
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();

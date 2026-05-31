@@ -45,6 +45,14 @@ Open **http://localhost:5000** in your browser.
 
 Register an account, assign workers to mine zones, buy supplies, sell ore, and click **End Day** to advance.
 
+## Production
+
+The live web game is hosted at **[https://rava.binarygeek119.duckdns.org/](https://rava.binarygeek119.duckdns.org/)**.
+
+The browser client calls the API at **`http://ravaapi.binarygeek119.duckdns.org`** (configured in `wwwroot/js/config.js`). Local development still uses `http://localhost:5000`.
+
+Set `Email:AppBaseUrl` in `server/Rava.Api/appsettings.json` (or your server environment) to the game URL so password reset links, admin notifications, and other emails point at the public site—not `localhost`.
+
 ## Unity Client (Optional)
 
 Open the project in Unity 6 and press Play — the game bootstraps automatically against the same API at `http://localhost:5000`.

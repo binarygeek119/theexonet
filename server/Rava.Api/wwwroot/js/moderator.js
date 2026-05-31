@@ -1,11 +1,12 @@
 import { RavaApi } from "./api.js";
+import { API_BASE_URL } from "./config.js";
 import { initStaffMessaging } from "./staff-messages.js";
 import { initStaffPlayerMessaging } from "./staff-player-messages.js";
 import { initStaffPlayerInbox } from "./staff-player-inbox.js";
 import { initFlaggedMessages } from "./flagged-messages.js";
 import { renderSocialLinksHtml } from "./profile-social.js";
 
-const api = new RavaApi("");
+const api = new RavaApi(API_BASE_URL);
 
 const els = {
   loginScreen: document.getElementById("mod-login-screen"),

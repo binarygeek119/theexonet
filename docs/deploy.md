@@ -44,6 +44,15 @@ dotnet --list-runtimes
 
    **Connection string:** use the same PostgreSQL host, database name, username, and password that work from your dev machine. If Postgres runs on another machine (e.g. `192.168.1.2`), do **not** use `Host=localhost` unless Postgres is installed on the API server itself. The API server must be able to reach the DB host on port 5432.
 
+   **Upload folder permissions** — the API creates `html/uploads/profiles/` at startup. The systemd service user must own (or be able to write to) `/var/www/publish`:
+
+```bash
+sudo mkdir -p /var/www/publish/html/uploads/profiles
+sudo chown -R deploy:deploy /var/www/publish
+```
+
+   Replace `deploy` with the `User=` from your systemd units if different.
+
 4. Optional: systemd unit for the API, e.g. `/etc/systemd/system/rava-api.service`:
 
 ```ini
@@ -151,6 +160,7 @@ If the API returns **502** or `/api/status` shows **database offline**:
    `curl http://127.0.0.1:5000/api/status` — should return JSON with `"databaseStatus":"online"`
 5. **`.NET runtime missing`:** log shows `Framework: Microsoft.NETCore.App, version '10.0.0'` but only 8.x installed — install `aspnetcore-runtime-10.0` (see step 2 above).
 6. **`Address already in use` / socket bind error:** another process holds port 5000 or 6000 (`sudo ss -tlnp | grep -E '5000|6000'`). Do **not** put `"Urls"` in the shared `/var/www/publish/appsettings.json` — set ports only in each systemd unit (`ASPNETCORE_URLS=http://0.0.0.0:5000` for API, `:6000` for status).
+7. **`Access to the path .../html/uploads is denied`:** fix ownership on `/var/www/publish` (see upload folder permissions in step 3 above).
 
 ## GitHub configuration
 

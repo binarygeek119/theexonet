@@ -209,7 +209,6 @@ using (var scope = app.Services.CreateScope())
     {
         db.Database.EnsureCreated();
         await DatabaseSchemaUpdater.ApplyAsync(db);
-        Directory.CreateDirectory(Path.Combine(webRootPath, "uploads", "profiles"));
         await scope.ServiceProvider.GetRequiredService<PlayerDataMigrationRunner>()
             .RunPendingAsync();
     }
@@ -218,6 +217,18 @@ using (var scope = app.Services.CreateScope())
         throw new InvalidOperationException(
             "Could not connect to PostgreSQL or create the database schema. " +
             "Verify ConnectionStrings:DefaultConnection in appsettings.json.",
+            ex);
+    }
+
+    try
+    {
+        Directory.CreateDirectory(Path.Combine(webRootPath, "uploads", "profiles"));
+    }
+    catch (Exception ex)
+    {
+        throw new InvalidOperationException(
+            $"Could not create {Path.Combine(webRootPath, "uploads", "profiles")}. " +
+            "Ensure the service user can write under html/uploads/.",
             ex);
     }
 }

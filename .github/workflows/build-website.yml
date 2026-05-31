@@ -200,7 +200,32 @@ jobs:
           normalize_path() {
             local p="${1:-}"
             p="$(printf '%s' "$p" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+            # Strip accidental rsync destination pasted into a path variable.
+            if [[ "$p" =~ ^[^/@[:space:]]+@[^:]+:(/.+)$ ]]; then
+              p="${BASH_REMATCH[1]}"
+            elif [[ "$p" =~ ^[^/@[:space:]]+:(/.+)$ ]]; then
+              p="${BASH_REMATCH[1]}"
+            fi
+            while [[ "$p" == */ ]] && [[ "$p" != "/" ]]; do
+              p="${p%/}"
+            done
             printf '%s' "$p"
+          }
+          validate_path() {
+            local name="$1"
+            local p="$2"
+            if [ -z "$p" ]; then
+              echo "ERROR: ${name} is empty. Use an absolute path, e.g. /var/www/publish." >&2
+              exit 1
+            fi
+            if [[ "$p" != /* ]]; then
+              echo "ERROR: ${name} must start with / (got '${p}'). Do not include user@host: — set DEPLOY_HOST and DEPLOY_USER separately." >&2
+              exit 1
+            fi
+            if [[ "$p" == *@* ]] || [[ "$p" == *:* ]]; then
+              echo "ERROR: ${name} must be a filesystem path only (got '${p}'). Use /var/www/publish, not user@host:/var/www/publish." >&2
+              exit 1
+            fi
           }
 
           host="$(normalize_host "$DEPLOY_HOST")"
@@ -235,6 +260,8 @@ jobs:
 
           www_path="$(normalize_path "$DEPLOY_WWW_PATH")"
           api_path="$(normalize_path "$DEPLOY_API_PATH")"
+          validate_path "DEPLOY_WWW_PATH" "$www_path"
+          validate_path "DEPLOY_API_PATH" "$api_path"
           echo "DEPLOY_WWW_PATH=$www_path" >> "$GITHUB_ENV"
           echo "DEPLOY_API_PATH=$api_path" >> "$GITHUB_ENV"
 
@@ -305,6 +332,38 @@ jobs:
           if [ "$failed" -ne 0 ]; then
             exit 1
           fi
+
+      - name: Ensure remote deploy directories exist
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ "$DEPLOY_USER" = "root" ]; then
+            mkdir_cmd="mkdir -p"
+          else
+            mkdir_cmd="sudo mkdir -p"
+          fi
+
+          run_remote() {
+            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$1" "$2"
+            else
+              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
+                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$1" "$2"
+            fi
+          }
+
+          ensure_dir() {
+            local host="$1"
+            local path="$2"
+            local label="$3"
+            local remote="${DEPLOY_USER}@${host}"
+            echo "Ensuring ${label} directory exists: ${path}"
+            run_remote "$remote" "${mkdir_cmd} '${path}'"
+          }
+
+          ensure_dir "${DEPLOY_WWW_HOST:-$DEPLOY_HOST}" "$DEPLOY_WWW_PATH" "www"
+          ensure_dir "${DEPLOY_API_HOST:-$DEPLOY_HOST}" "$DEPLOY_API_PATH" "api"
 
       - name: Deploy static web client (html)
         env:

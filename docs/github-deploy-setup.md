@@ -67,6 +67,8 @@ Valid characters: letters, numbers, underscore `_`. Must start with a letter or 
 | `DEPLOY_API_SERVICE` | `rava-api` |
 | `DEPLOY_STATUS_SERVICE` | `rava-status` |
 
+`DEPLOY_WWW_PATH` and `DEPLOY_API_PATH` must be **paths only** (`/var/www/publish`), not full rsync targets like `root@host:/var/www/publish`. Host and user go in `DEPLOY_HOST` and `DEPLOY_USER`.
+
 If these variables are set, you do not need the matching secrets.
 
 ## 4. SSH key alternative (optional)
@@ -127,6 +129,19 @@ Watch the **Deploy to production** job in the Actions tab.
 | trailing space or newline | remove in GitHub Variables UI |
 
 The workflow now normalizes hostnames before deploy. Fix the variable in **Settings → Actions → Variables**, then re-run the workflow.
+
+### rsync `mkdir "user@host:/var/www/..." failed`
+
+`DEPLOY_WWW_PATH` or **`DEPLOY_API_PATH`** was set to a full rsync target (`user@host:/path`) instead of the path alone. Fix:
+
+| Variable | Value |
+|----------|--------|
+| `DEPLOY_HOST` | `binarygeek119.duckdns.org` |
+| `DEPLOY_USER` | `root` |
+| `DEPLOY_WWW_PATH` | `/var/www/rava` |
+| `DEPLOY_API_PATH` | `/var/www/publish` |
+
+The workflow now strips accidental `user@host:` prefixes and creates remote directories before rsync.
 
 ### `Add SSH host keys` fails (exit code 1)
 

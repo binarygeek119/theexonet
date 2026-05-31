@@ -64,7 +64,9 @@ jobs:
         run: dotnet test Rava.slnx --configuration Release --no-build --verbosity normal
 
       - name: Publish web app
-        run: dotnet publish Rava.Api/Rava.Api.csproj --configuration Release --output ./publish
+        run: |
+          dotnet publish Rava.Api/Rava.Api.csproj --configuration Release --output ./publish
+          rsync -a Rava.Api/www/ publish/www/
 
       - name: Upload publish artifact
         uses: actions/upload-artifact@v4
@@ -125,6 +127,9 @@ jobs:
         with:
           name: rava-website
           path: publish
+
+      - name: Ensure www is in publish bundle
+        run: rsync -a server/Rava.Api/www/ publish/www/
 
       - name: Setup SSH agent
         uses: webfactory/ssh-agent@v0.9.0

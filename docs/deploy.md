@@ -82,7 +82,7 @@ Add the matching **public** key to `~/.ssh/authorized_keys` on the server.
 ## What deploy does
 
 1. **www** — `rsync` from the repo to `DEPLOY_WWW_PATH` (mirrors deletes; game host only).
-2. **API** — `rsync` publish artifact to `DEPLOY_API_PATH`, excluding `appsettings*.json` and `www/uploads/profiles/*`.
+2. **API** — `rsync` publish artifact to `DEPLOY_API_PATH`, excluding `appsettings*.json` and `www/uploads/profiles/*`. The bundle includes a `www/` folder (game UI + avatar uploads path).
 3. **Restart** — runs `sudo systemctl restart <DEPLOY_API_SERVICE>` when `DEPLOY_API_SERVICE` is set.
 
 Deploy runs only on pushes to `main` (not pull requests), after build and test pass.

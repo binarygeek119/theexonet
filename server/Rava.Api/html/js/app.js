@@ -436,6 +436,10 @@ function ensureBirthdayDropdownsReady() {
 function showScreen(screen) {
   els.loginScreen.hidden = screen !== "login";
   els.gameScreen.hidden = screen !== "game";
+  document.body.classList.toggle("is-authenticated", screen === "game");
+  if (screen !== "game") {
+    closeModals();
+  }
   if (screen === "game") {
     startUtcTimers();
   } else {
@@ -1953,13 +1957,13 @@ document.addEventListener("keydown", (event) => {
 setAuthMode("login");
 initBirthdayDropdowns();
 initApiStatusMonitor(api);
+showScreen("login");
 els.mineGrid.style.setProperty("--grid-size", GRID_SIZE);
 
 const resetTokenFromUrl = new URLSearchParams(window.location.search).get("reset");
 if (resetTokenFromUrl) {
   els.resetToken.value = resetTokenFromUrl;
   setAuthMode("reset");
-  showScreen("login");
 } else {
   tryAutoLogin();
 }

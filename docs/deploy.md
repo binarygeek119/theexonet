@@ -5,7 +5,7 @@ When a build on `main` succeeds, GitHub Actions can deploy automatically:
 | Target | Source | Typical path |
 |--------|--------|--------------|
 | Game site (port 80) | `server/Rava.Api/html/` | `/var/www/rava` |
-| API (port 5000) | `dotnet publish` output | `/opt/rava-api` |
+| API (port 5000) | `dotnet publish` output | `/var/www/rava-api` |
 
 ## One-time server setup
 
@@ -13,11 +13,22 @@ When a build on `main` succeeds, GitHub Actions can deploy automatically:
 2. Create directories and permissions:
 
 ```bash
-sudo mkdir -p /var/www/rava /opt/rava-api
-sudo chown -R deploy:deploy /var/www/rava /opt/rava-api
+sudo mkdir -p /var/www/rava /var/www/rava-api
+sudo chown -R deploy:deploy /var/www/rava /var/www/rava-api
 ```
 
-3. Copy `appsettings.json.example` to `appsettings.json` on the API host (e.g. `/opt/rava-api/appsettings.json`) and set production secrets — deploy does **not** ship or overwrite this file.
+3. Copy `appsettings.json.example` to `appsettings.json` on the API host (e.g. `/var/www/rava-api/appsettings.json`) and set production secrets — deploy does **not** ship or overwrite this file.
+
+   Required files in the API folder (`/var/www/rava-api`):
+
+   | File | Source |
+   |------|--------|
+   | `Rava.Api.dll` + dependencies | GitHub release / `dotnet publish` |
+   | `credits.json` | Included in publish output |
+   | `appsettings.json` | Copy from `appsettings.json.example`, then edit |
+
+   **Connection string:** use the same PostgreSQL host, database name, username, and password that work from your dev machine. If Postgres runs on another machine (e.g. `192.168.1.2`), do **not** use `Host=localhost` unless Postgres is installed on the API server itself. The API server must be able to reach the DB host on port 5432.
+
 4. Optional: systemd unit for the API, e.g. `/etc/systemd/system/rava-api.service`:
 
 ```ini
@@ -26,8 +37,8 @@ Description=RAVA API
 After=network.target
 
 [Service]
-WorkingDirectory=/opt/rava-api
-ExecStart=/usr/bin/dotnet /opt/rava-api/Rava.Api.dll
+WorkingDirectory=/var/www/rava-api
+ExecStart=/usr/bin/dotnet /var/www/rava-api/Rava.Api.dll
 Restart=always
 Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
 Environment=DOTNET_ENVIRONMENT=Production
@@ -51,6 +62,21 @@ sudo chmod 440 /etc/sudoers.d/rava-deploy
 
 5. Configure your reverse proxy (HTTPS → port 80 for game, HTTPS → port 5000 for API).
 
+## Troubleshooting `appsettings.json`
+
+If the API returns **502** or `/api/status` shows **database offline**:
+
+1. **Check the service log:** `sudo journalctl -u rava-api -n 50 --no-pager`
+2. **Verify Postgres from the API server:**  
+   `psql "Host=YOUR_HOST;Port=5432;Database=YOUR_DB;Username=YOUR_USER;Password=YOUR_PASSWORD" -c "SELECT 1"`
+3. **Common mistakes:**
+   - `Host=localhost` when PostgreSQL is on another machine
+   - Wrong database name or username (must match your real Postgres setup)
+   - `appsettings.json` missing from the API folder (publish does not include it)
+   - `credits.json` missing from the API folder
+4. **Test locally on the server:**  
+   `curl http://127.0.0.1:5000/api/status` — should return JSON with `"databaseStatus":"online"`
+
 ## GitHub configuration
 
 In the repo: **Settings → Secrets and variables → Actions**.
@@ -71,7 +97,7 @@ Leave unset (or not `true`) until secrets below are configured.
 | `DEPLOY_USER` | SSH username |
 | `DEPLOY_HOST` | Server hostname or IP (used when host-specific secrets are omitted) |
 | `DEPLOY_WWW_PATH` | Absolute path for static game files, e.g. `/var/www/rava` |
-| `DEPLOY_API_PATH` | Absolute path for API publish output, e.g. `/opt/rava-api` |
+| `DEPLOY_API_PATH` | Absolute path for API publish output, e.g. `/var/www/rava-api` |
 | `DEPLOY_WWW_HOST` | Optional; game host if different from `DEPLOY_HOST` |
 | `DEPLOY_API_HOST` | Optional; API host if different from `DEPLOY_HOST` |
 | `DEPLOY_SSH_PORT` | Optional; default `22` |
@@ -95,6 +121,6 @@ rsync -av --delete /path/to/rava/server/Rava.Api/html/ /var/www/rava/
 
 # API (from extracted GitHub release zip)
 rsync -av --exclude 'appsettings*.json' --exclude 'html/uploads/profiles/*' \
-  ./publish/ /opt/rava-api/
+  ./publish/ /var/www/rava-api/
 sudo systemctl restart rava-api
 ```

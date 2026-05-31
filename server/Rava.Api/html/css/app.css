@@ -279,9 +279,13 @@ select:focus {
   border-bottom: 1px solid var(--border);
 }
 
-#game-screen {
+#game-screen:not([hidden]) {
   display: flex;
   min-height: 100vh;
+}
+
+#game-screen[hidden] {
+  display: none !important;
 }
 
 .game-nav {
@@ -428,7 +432,11 @@ select:focus {
 }
 
 .modal[hidden] {
-  display: none;
+  display: none !important;
+}
+
+body:not(.is-authenticated) .modal {
+  display: none !important;
 }
 
 .modal-card {
@@ -692,7 +700,7 @@ select:focus {
     grid-template-columns: 1fr;
   }
 
-  #game-screen {
+  #game-screen:not([hidden]) {
     flex-direction: column;
   }
 

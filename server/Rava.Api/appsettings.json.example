@@ -7,7 +7,7 @@
   },
   "AllowedHosts": "*",
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=rava;Username=postgres;Password=YOUR_PASSWORD"
+    "DefaultConnection": "Host=YOUR_DB_HOST;Port=5432;Database=YOUR_DATABASE;Username=YOUR_DB_USER;Password=YOUR_PASSWORD"
   },
   "Jwt": {
     "Key": "CHANGE_ME_MinimumLength32Characters!",

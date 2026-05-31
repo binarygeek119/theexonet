@@ -7,7 +7,12 @@ public record LoginRequest(string Username, string Password);
 public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Token, string NewPassword);
 public record MessageResponse(string Message);
-public record ApiStatusResponse(string Status, string Service, DateTime Utc, bool DatabaseConnected);
+public record ApiStatusResponse(
+    string Status,
+    string Service,
+    DateTime Utc,
+    bool DatabaseConnected,
+    string DatabaseStatus);
 public record AuthResponse(
     string Token,
     Guid PlayerId,

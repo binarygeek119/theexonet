@@ -20,15 +20,17 @@ public class StatusController(AppDbContext db) : ControllerBase
         }
         catch
         {
-            // Report degraded status when the database is unreachable.
+            // Report offline database status when the server is unreachable.
         }
 
+        var databaseStatus = databaseConnected ? "online" : "offline";
         var status = databaseConnected ? "online" : "degraded";
 
         return Ok(new ApiStatusResponse(
             status,
             "Rava.Api",
             DateTime.UtcNow,
-            databaseConnected));
+            databaseConnected,
+            databaseStatus));
     }
 }

@@ -197,6 +197,7 @@ jobs:
             host="${host#http://}"
             host="${host%%/*}"
             host="${host%%:*}"
+            host="$(printf '%s' "$host" | tr -d '[:space:]')"
             if [ -n "$host" ]; then
               duplicate=0
               for seen in "${unique_hosts[@]:-}"; do

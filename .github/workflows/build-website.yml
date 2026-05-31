@@ -141,7 +141,7 @@ jobs:
       DEPLOY_HOST: ${{ vars.DEPLOY_HOST || secrets.DEPLOY_HOST || 'binarygeek119.duckdns.org' }}
       DEPLOY_USER: ${{ vars.DEPLOY_USER || secrets.DEPLOY_USER || 'root' }}
       DEPLOY_SSH_PORT: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
-      DEPLOY_WWW_PATH: ${{ vars.DEPLOY_WWW_PATH || secrets.DEPLOY_WWW_PATH || '/var/www/rava' }}
+      DEPLOY_WWW_PATH: ${{ vars.DEPLOY_WWW_PATH || secrets.DEPLOY_WWW_PATH || '/var/www/publish' }}
       DEPLOY_API_PATH: ${{ vars.DEPLOY_API_PATH || secrets.DEPLOY_API_PATH || '/var/www/publish' }}
       DEPLOY_WWW_HOST: ${{ vars.DEPLOY_WWW_HOST || secrets.DEPLOY_WWW_HOST || '' }}
       DEPLOY_API_HOST: ${{ vars.DEPLOY_API_HOST || secrets.DEPLOY_API_HOST || '' }}
@@ -232,6 +232,15 @@ jobs:
               echo "ERROR: ${name} must be a filesystem path only (got '${p}'). Use /var/www/publish, not user@host:/var/www/publish." >&2
               exit 1
             fi
+            if [ "$p" = "/var/www" ]; then
+              echo "ERROR: ${name} must not be /var/www alone — that drops html, wwwroot, and .aspnet beside publish." >&2
+              echo "Use /var/www/publish for API + portals + game html (recommended)." >&2
+              exit 1
+            fi
+            if [ "$p" = "/var/www/html" ] || [ "$p" = "/var/www/wwwroot" ]; then
+              echo "ERROR: ${name} should be /var/www/publish, not a subfolder created by a bad deploy (${p})." >&2
+              exit 1
+            fi
           }
 
           host="$(normalize_host "$DEPLOY_HOST")"
@@ -273,16 +282,16 @@ jobs:
 
           effective_www_host="${www_host:-$host}"
           effective_api_host="${api_host:-$host}"
-          if [ "$effective_www_host" = "$effective_api_host" ] && [ "$www_path" = "$api_path" ]; then
+          if [ "$effective_www_host" = "$effective_api_host" ] && { [ "$www_path" = "$api_path" ] || [ "$www_path" = "${api_path}/html" ]; }; then
             echo "DEPLOY_SKIP_WWW_RSYNC=true" >> "$GITHUB_ENV"
-            echo "DEPLOY_WWW_PATH matches DEPLOY_API_PATH — game html ships in publish/html/ (skipping separate www rsync)."
+            echo "DEPLOY_WWW_PATH is under publish — game html ships in publish/html/ (skipping separate www rsync)."
           else
             echo "DEPLOY_SKIP_WWW_RSYNC=false" >> "$GITHUB_ENV"
           fi
 
           echo "Deploy targets:"
-          if [ "$effective_www_host" = "$effective_api_host" ] && [ "$www_path" = "$api_path" ]; then
-            echo "  publish (api + html): ${user}@${effective_api_host}:${api_path}/"
+          if [ "${DEPLOY_SKIP_WWW_RSYNC:-false}" = "true" ]; then
+            echo "  publish (api + html + portals): ${user}@${effective_api_host}:${api_path}/"
           else
             echo "  www: ${user}@${effective_www_host}:${www_path}/"
             echo "  api: ${user}@${effective_api_host}:${api_path}/"
@@ -383,10 +392,11 @@ jobs:
 
           www_host="${DEPLOY_WWW_HOST:-$DEPLOY_HOST}"
           api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          if [ "$www_host" = "$api_host" ] && [ "$DEPLOY_WWW_PATH" = "$DEPLOY_API_PATH" ]; then
+          if [ "${DEPLOY_SKIP_WWW_RSYNC:-false}" = "true" ]; then
             ensure_dir "$api_host" "$DEPLOY_API_PATH" "publish"
             ensure_dir "$api_host" "${DEPLOY_API_PATH}/html" "publish html"
             ensure_dir "$api_host" "${DEPLOY_API_PATH}/html/images/profile" "profile uploads"
+            ensure_dir "$api_host" "${DEPLOY_API_PATH}/.aspnet" "aspnet keys"
           else
             ensure_dir "$www_host" "$DEPLOY_WWW_PATH" "www"
             ensure_dir "$api_host" "$DEPLOY_API_PATH" "api"
@@ -435,6 +445,8 @@ jobs:
             --filter 'P status-runtime.json'
             --filter 'P html/images/profile/'
             --filter 'P html/images/profile/***'
+            --filter 'P .aspnet/'
+            --filter 'P .aspnet/***'
             --exclude 'appsettings.json'
             --exclude 'appsettings.Development.json'
             --exclude 'html/images/profile/'

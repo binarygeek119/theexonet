@@ -11,8 +11,8 @@ Deploy runs automatically on pushes to `main` when **`ENABLE_PRODUCTION_DEPLOY`*
 | Host | `binarygeek119.duckdns.org` |
 | Port | `22` |
 | SSH user | `root` |
-| Game static files | `/var/www/rava` |
-| API + status publish | `/var/www/publish` |
+| Game + API publish root | `/var/www/publish` |
+| Game html (nginx docroot) | `/var/www/publish/html` |
 | API systemd unit | `rava-api` |
 | Status systemd unit | `rava-status` |
 
@@ -62,12 +62,14 @@ Valid characters: letters, numbers, underscore `_`. Must start with a letter or 
 | `DEPLOY_HOST` | `binarygeek119.duckdns.org` |
 | `DEPLOY_USER` | `root` |
 | `DEPLOY_SSH_PORT` | `22` |
-| `DEPLOY_WWW_PATH` | `/var/www/rava` (or `/var/www/publish` if game + API share one folder) |
+| `DEPLOY_WWW_PATH` | `/var/www/publish` |
 | `DEPLOY_API_PATH` | `/var/www/publish` |
 | `DEPLOY_API_SERVICE` | `rava-api` |
 | `DEPLOY_STATUS_SERVICE` | `rava-status` |
 
-**Single-folder setup:** set both `DEPLOY_WWW_PATH` and `DEPLOY_API_PATH` to `/var/www/publish`. The workflow skips the separate html rsync and deploys game files under `publish/html/`. Point nginx/Apache for the game site at `/var/www/publish/html` (or keep `/var/www/rava` and only set `DEPLOY_WWW_PATH` to that path).
+**Single-folder setup (recommended):** set both `DEPLOY_WWW_PATH` and `DEPLOY_API_PATH` to `/var/www/publish`. The workflow skips the separate html rsync and deploys game files under `publish/html/`. Point nginx/Apache for the game site at `/var/www/publish/html`.
+
+**Never use `/var/www` alone** for either path — that rsyncs html and portal `wwwroot` files beside `publish/` and creates `/var/www/.aspnet` outside the app folder.
 
 `DEPLOY_WWW_PATH` and `DEPLOY_API_PATH` must be **paths only** (`/var/www/publish`), not full rsync targets like `root@host:/var/www/publish`. Host and user go in `DEPLOY_HOST` and `DEPLOY_USER`.
 
@@ -140,10 +142,14 @@ The workflow now normalizes hostnames before deploy. Fix the variable in **Setti
 |----------|--------|
 | `DEPLOY_HOST` | `binarygeek119.duckdns.org` |
 | `DEPLOY_USER` | `root` |
-| `DEPLOY_WWW_PATH` | `/var/www/rava` |
+| `DEPLOY_WWW_PATH` | `/var/www/publish` |
 | `DEPLOY_API_PATH` | `/var/www/publish` |
 
-The workflow now strips accidental `user@host:` prefixes and creates remote directories before rsync.
+The workflow now strips accidental `user@host:` prefixes, rejects `/var/www` as a deploy path, and creates remote directories before rsync.
+
+### Stray `/var/www/html`, `/var/www/wwwroot`, or `/var/www/.aspnet`
+
+`DEPLOY_WWW_PATH` or `DEPLOY_API_PATH` was `/var/www` (parent directory) instead of `/var/www/publish`. Fix both variables to `/var/www/publish`, then on the server move or remove the stray folders (see `docs/deploy.md` troubleshooting item 12).
 
 ### `Add SSH host keys` fails (exit code 1)
 

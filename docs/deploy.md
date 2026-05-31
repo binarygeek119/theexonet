@@ -4,8 +4,9 @@ When a build on `main` succeeds, GitHub Actions can deploy automatically:
 
 | Target | Source | Typical path |
 |--------|--------|--------------|
-| Game site (port 80) | `server/Rava.Api/html/` | `/var/www/rava` |
-| API + status + admin + moderator + docs (ports 5000 / 6000 / 7000 / 7050 / 9000) | `dotnet publish` output | `/var/www/publish` |
+| Game site (port 80) + API + status + admin + moderator + docs | `dotnet publish` output (game UI under `html/`) | `/var/www/publish` |
+
+**Recommended:** one folder — set both `DEPLOY_WWW_PATH` and `DEPLOY_API_PATH` to `/var/www/publish`. Point nginx/Apache for the game site at `/var/www/publish/html`. Do **not** set either path to `/var/www` alone (that drops `html/`, `wwwroot/`, and `.aspnet/` beside `publish/`).
 
 ## One-time server setup
 
@@ -13,10 +14,11 @@ When a build on `main` succeeds, GitHub Actions can deploy automatically:
 2. Create directories and permissions:
 
 ```bash
-sudo mkdir -p /var/www/rava /var/www/publish
+sudo mkdir -p /var/www/publish
 sudo mkdir -p /var/www/publish/html/images/profile
+sudo mkdir -p /var/www/publish/.aspnet
 # Use the same user as User= in your systemd units (www-data is typical with Apache):
-sudo chown -R www-data:www-data /var/www/rava /var/www/publish
+sudo chown -R www-data:www-data /var/www/publish
 ```
 
    Install the **ASP.NET Core 10 runtime** (the published API targets `net10.0`; .NET 8 is not enough):
@@ -47,7 +49,7 @@ dotnet --list-runtimes
 
    Add **`StatusMonitor`**, **`AdminPortal`**, **`ModeratorPortal`**, and **`DocsPortal`** sections to the same `appsettings.json` for the status dashboard (port 6000), admin portal (port 7000), moderator portal (port 7050), and game docs (port 9000). Do **not** add a top-level `"Urls"` key — each systemd service sets its own port via `ASPNETCORE_URLS`.
 
-   Set **`Hosting:ServeGameUi`** to **`false`** (default in `appsettings.json.example`) so the API subdomain shows a status page at `/` instead of the game UI. The game is served from the game host (`/var/www/rava`), not from the API.
+   Set **`Hosting:ServeGameUi`** to **`false`** (default in `appsettings.json.example`) so the API subdomain shows a status page at `/` instead of the game UI. The game is served from `/var/www/publish/html` (nginx/Apache on port 80), not from the API.
 
    **Connection string:** use the same PostgreSQL host, database name, username, and password that work from your dev machine. If Postgres runs on another machine (e.g. `192.168.1.2`), do **not** use `Host=localhost` unless Postgres is installed on the API server itself. The API server must be able to reach the DB host on port 5432.
 
@@ -353,6 +355,14 @@ If the API returns **502**, `/api/status` shows **database offline**, or **`rava
 9. **`Address already in use` / socket bind error:** another process holds port 5000, 6000, 7000, 7050, or 9000 (`sudo ss -tlnp | grep -E '5000|6000|7000|7050|9000'`). Do **not** put `"Urls"` in the shared `/var/www/publish/appsettings.json` — set ports only in each systemd unit (`ASPNETCORE_URLS=http://0.0.0.0:5000` for API, `:6000` for status, `:7000` for admin, `:7050` for moderator, `:9000` for docs).
 10. **`Access to the path .../html/images/profile is denied`:** fix ownership on `/var/www/publish` (see upload folder permissions in step 3 above).
 11. **`Could not parse the JSON file` / `LineNumber: 308`:** `/var/www/publish/appsettings.json` is invalid (often duplicated content from repeated edits). Back it up, replace from `appsettings.production.example.json`, set your postgres password, then validate with `python3 -m json.tool /var/www/publish/appsettings.json`.
+12. **Stray `/var/www/html`, `/var/www/wwwroot`, or `/var/www/.aspnet`:** `DEPLOY_WWW_PATH` or `DEPLOY_API_PATH` was set to `/var/www` instead of `/var/www/publish`. Set both GitHub variables to `/var/www/publish`, remove the stray folders after confirming nothing important lives there, and re-run deploy:
+
+```bash
+# Only after verifying these are not your live game/API files:
+sudo rm -rf /var/www/html /var/www/wwwroot
+sudo mv /var/www/.aspnet /var/www/publish/.aspnet 2>/dev/null || true
+sudo chown -R www-data:www-data /var/www/publish
+```
 
 ## GitHub configuration
 
@@ -376,8 +386,8 @@ Leave unset (or not `true`) until secrets below are configured.
 | `DEPLOY_SSH_PASSWORD` | Root/login SSH password (used with `sshpass` when no key is configured) |
 | `DEPLOY_USER` | SSH username for rsync (default in workflow: `root`) |
 | `DEPLOY_HOST` | Server hostname or IP (used when host-specific secrets are omitted) |
-| `DEPLOY_WWW_PATH` | Absolute path for static game files, e.g. `/var/www/rava` |
-| `DEPLOY_API_PATH` | Absolute path for API publish output, e.g. `/var/www/publish` |
+| `DEPLOY_WWW_PATH` | Absolute path for deploy root — use `/var/www/publish` (same as API path) |
+| `DEPLOY_API_PATH` | Absolute path for API publish output — `/var/www/publish` |
 | `DEPLOY_WWW_HOST` | Optional; game host if different from `DEPLOY_HOST` |
 | `DEPLOY_API_HOST` | Optional; API host if different from `DEPLOY_HOST` |
 | `DEPLOY_SSH_PORT` | Optional; default `22` |
@@ -391,8 +401,8 @@ Add the matching **public** key to `~/.ssh/authorized_keys` on the server.
 
 ## What deploy does
 
-1. **html** — `rsync` from the repo to `DEPLOY_WWW_PATH` (mirrors deletes; game host only).
-2. **API** — `rsync` publish artifact to `DEPLOY_API_PATH`, excluding and **protecting** `appsettings*.json`, runtime JSON, and `html/images/profile/` from `--delete`. The bundle includes an `html/` folder (game UI + avatar uploads path). Deploy never overwrites production secrets in `appsettings.json`.
+1. **publish** — `rsync` from the `dotnet publish` artifact to `DEPLOY_API_PATH` (mirrors deletes except protected paths: `appsettings.json`, `html/images/profile/`, `.aspnet/`). The bundle includes an `html/` folder (game UI + avatar uploads path). Deploy never overwrites production secrets in `appsettings.json`.
+2. **html** — skipped when `DEPLOY_WWW_PATH` equals `DEPLOY_API_PATH` (or `${DEPLOY_API_PATH}/html`); game files ship inside `publish/html/`. A separate html rsync only runs when www and api paths differ (legacy `/var/www/rava` layout).
 3. **Restart** — runs `sudo systemctl restart` for API, status, admin, moderator, and docs services when configured.
 
 Deploy runs only on pushes to `main` (not pull requests), after build and test pass.
@@ -400,11 +410,8 @@ Deploy runs only on pushes to `main` (not pull requests), after build and test p
 ## Manual deploy on the server
 
 ```bash
-# Static game site (from a git checkout)
-rsync -av --delete /path/to/rava/server/Rava.Api/html/ /var/www/rava/
-
-# API + status + admin + moderator (from extracted GitHub release zip)
-# --filter P* keeps server-only appsettings.json safe when using --delete
+# API + game html + status + admin + moderator + docs (from extracted GitHub release zip)
+# --filter P* keeps server-only appsettings.json and .aspnet keys safe when using --delete
 rsync -av --delete \
   --filter 'P appsettings.json' \
   --filter 'P appsettings.Development.json' \
@@ -412,6 +419,8 @@ rsync -av --delete \
   --filter 'P status-runtime.json' \
   --filter 'P html/images/profile/' \
   --filter 'P html/images/profile/***' \
+  --filter 'P .aspnet/' \
+  --filter 'P .aspnet/***' \
   --exclude 'appsettings.json' \
   --exclude 'appsettings.Development.json' \
   --exclude 'html/images/profile/' \

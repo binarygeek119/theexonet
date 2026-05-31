@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAVA — Server Status</title>
+  <link rel="stylesheet" href="/css/status.css">
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">Reactive Asteroid Venturing Agency</p>
+      <h1>Server Status</h1>
+      <p id="last-updated" class="subtle">Loading…</p>
+    </header>
+
+    <section class="grid" aria-live="polite">
+      <article class="card" id="card-api">
+        <h2>Game API</h2>
+        <p class="status-pill checking" id="api-overall">Checking…</p>
+        <dl>
+          <div><dt>Service</dt><dd id="api-service">—</dd></div>
+          <div><dt>Response</dt><dd id="api-response-ms">—</dd></div>
+          <div><dt>Checked</dt><dd id="api-checked">—</dd></div>
+          <div><dt>Endpoint</dt><dd id="api-endpoint">—</dd></div>
+          <div><dt>Error</dt><dd id="api-error">—</dd></div>
+        </dl>
+      </article>
+
+      <article class="card" id="card-database">
+        <h2>PostgreSQL</h2>
+        <p class="status-pill checking" id="db-overall">Checking…</p>
+        <dl>
+          <div><dt>Connection</dt><dd id="db-connection">—</dd></div>
+          <div><dt>Reported at</dt><dd id="db-reported">—</dd></div>
+        </dl>
+      </article>
+
+      <article class="card" id="card-monitor">
+        <h2>Status Monitor</h2>
+        <p class="status-pill online" id="monitor-overall">Online</p>
+        <dl>
+          <div><dt>Uptime</dt><dd id="monitor-uptime">—</dd></div>
+          <div><dt>Server time (UTC)</dt><dd id="monitor-utc">—</dd></div>
+          <div><dt>Poll interval</dt><dd>10 seconds</dd></div>
+        </dl>
+      </article>
+
+      <article class="card links-card">
+        <h2>Links</h2>
+        <ul class="links">
+          <li><a id="link-status" href="#" target="_blank" rel="noopener">Status dashboard</a></li>
+          <li><a id="link-game" href="#" target="_blank" rel="noopener">Game site</a></li>
+          <li><a id="link-api" href="#" target="_blank" rel="noopener">Public API</a></li>
+          <li><a id="link-api-status" href="#" target="_blank" rel="noopener">Raw API status JSON</a></li>
+        </ul>
+      </article>
+    </section>
+  </main>
+  <script type="module" src="/js/status.js"></script>
+</body>
+</html>

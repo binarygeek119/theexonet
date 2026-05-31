@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="Rava.Api/Rava.Api.csproj" />
+  <Project Path="Rava.Status/Rava.Status.csproj" />
   <Project Path="Rava.Core.Tests/Rava.Core.Tests.csproj" />
   <Project Path="Rava.Core/Rava.Core.csproj" />
   <Project Path="Rava.Infrastructure/Rava.Infrastructure.csproj" />

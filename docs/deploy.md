@@ -65,6 +65,45 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now rava-api
 ```
 
+Optional status dashboard on port **6000** (`server/Rava.Status`):
+
+```bash
+dotnet publish server/Rava.Status/Rava.Status.csproj --configuration Release --output /opt/rava-status
+```
+
+Edit `/opt/rava-status/appsettings.json`:
+
+```json
+"StatusMonitor": {
+  "ApiBaseUrl": "http://127.0.0.1:5000",
+  "StatusPublicUrl": "https://ravastatus.binarygeek119.duckdns.org/"
+}
+```
+
+`/etc/systemd/system/rava-status.service`:
+
+```ini
+[Unit]
+Description=RAVA Status Dashboard
+After=network.target rava-api.service
+
+[Service]
+WorkingDirectory=/opt/rava-status
+ExecStart=/usr/bin/dotnet /opt/rava-status/Rava.Status.dll
+Restart=always
+Environment=ASPNETCORE_URLS=http://0.0.0.0:6000
+Environment=DOTNET_ENVIRONMENT=Production
+User=deploy
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now rava-status
+```
+
 Allow the deploy user to restart the service without a password (adjust user and unit name):
 
 ```bash
@@ -72,7 +111,30 @@ echo 'deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart rava-api' | sudo tee /et
 sudo chmod 440 /etc/sudoers.d/rava-deploy
 ```
 
-5. Configure your reverse proxy (HTTPS → port 80 for game, HTTPS → port 5000 for API).
+5. Configure your reverse proxy:
+
+| Host | Backend |
+|------|---------|
+| `rava.binarygeek119.duckdns.org` | port 80 (game static site) |
+| `ravaapi.binarygeek119.duckdns.org` | port 5000 (`Rava.Api`) |
+| `ravastatus.binarygeek119.duckdns.org` | port 6000 (`Rava.Status`) |
+
+Example nginx server block for the status dashboard:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name ravastatus.binarygeek119.duckdns.org;
+
+    location / {
+        proxy_pass http://127.0.0.1:6000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
 
 ## Troubleshooting `appsettings.json`
 

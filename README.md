@@ -45,12 +45,24 @@ Open **http://localhost:5000** in your browser.
 
 Register an account, assign workers to mine zones, buy supplies, sell ore, and click **End Day** to advance.
 
+### 3. Status dashboard (optional)
+
+Run the server status UI on port **6000** (polls the game API):
+
+```bash
+cd server
+dotnet run --project Rava.Status
+```
+
+Open **http://localhost:6000** for API/database health, response time, and links.
+
 ## Production
 
 | Service | URL | Backend port |
 |---------|-----|----------------|
 | Game (browser UI) | [https://rava.binarygeek119.duckdns.org/](https://rava.binarygeek119.duckdns.org/) | 80 |
 | API | [https://ravaapi.binarygeek119.duckdns.org/](https://ravaapi.binarygeek119.duckdns.org/) | 5000 |
+| Status dashboard | [https://ravastatus.binarygeek119.duckdns.org/](https://ravastatus.binarygeek119.duckdns.org/) | 6000 |
 
 Deploy `server/Rava.Api/html/` to the game host (port 80). Run `Rava.Api` on the API host (port 5000). The browser client on the game URL calls the API subdomain automatically (`html/js/config.js`).
 
@@ -72,6 +84,7 @@ rava/
 ├── server/             ASP.NET Core API + simulation
 │   ├── Rava.Api/
 │   │   └── html/       Browser client (HTML/CSS/JS)
+│   ├── Rava.Status/    Server status dashboard (port 6000)
 │   ├── Rava.Core/
 │   └── Rava.Infrastructure/
 └── docker-compose.yml  PostgreSQL for local dev

@@ -9,6 +9,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 SRC_DIR="${1:-$SCRIPT_DIR}"
 LIB_DIR="${RAVA_LIB_DIR:-/usr/local/lib/rava/scripts}"
+DATA_DIR="${RAVA_DATA_DIR:-/usr/local/lib/rava/data}"
 BIN_DIR="/usr/local/bin"
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -41,6 +42,17 @@ for script in \
 done
 
 cp -f "${SRC_DIR}/systemd/"*.service "${LIB_DIR}/systemd/"
+
+REPO_API_DIR="${SRC_DIR}/../server/Rava.Api"
+if [ -d "${REPO_API_DIR}" ]; then
+  mkdir -p "${DATA_DIR}"
+  for csv in credits.csv market-items.csv trade-items.csv hate-speech-terms.csv bad-language-terms.csv political-terms.csv sexual-terms.csv; do
+    if [ -f "${REPO_API_DIR}/${csv}" ]; then
+      cp -f "${REPO_API_DIR}/${csv}" "${DATA_DIR}/${csv}"
+    fi
+  done
+  echo "Installed CSV data files to ${DATA_DIR}"
+fi
 
 declare -A bin_links=(
   [restart-rava.sh]=restart-rava

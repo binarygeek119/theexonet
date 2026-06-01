@@ -35,6 +35,19 @@ prepare_publish_dir() {
     exit 1
   fi
 
+  if [ ! -f "${PUBLISH_DIR}/credits.csv" ]; then
+    echo "Missing publish CSV spreadsheets — syncing from ${RAVA_DATA_DIR:-/usr/local/lib/rava/data}..."
+    if [ -x /usr/local/bin/sync-rava-data ]; then
+      sync-rava-data || {
+        echo "WARN: sync-rava-data failed. Run: sudo install-rava-scripts (from git checkout)" >&2
+      }
+    elif [ -f /usr/local/lib/rava/scripts/sync-publish-data.sh ]; then
+      bash /usr/local/lib/rava/scripts/sync-publish-data.sh || true
+    else
+      echo "WARN: credits.csv missing and sync-rava-data not installed." >&2
+    fi
+  fi
+
   mkdir -p \
     "${PUBLISH_DIR}/html/images/profile" \
     "${PUBLISH_DIR}/html/images/profile-backgrounds" \

@@ -84,6 +84,10 @@ jobs:
           rsync -a publish-admin/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
           rsync -a publish-moderator/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
           rsync -a publish-docs/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
+          cp -f Rava.Api/*.csv publish/
+          test -f publish/credits.csv
+          test -f publish/market-items.csv
+          test -f publish/hate-speech-terms.csv
 
       - name: Upload publish artifact
         uses: actions/upload-artifact@v7
@@ -484,6 +488,13 @@ jobs:
             --filter 'P appsettings.Development.json'
             --filter 'P server-runtime.json'
             --filter 'P status-runtime.json'
+            --filter 'P credits.csv'
+            --filter 'P market-items.csv'
+            --filter 'P trade-items.csv'
+            --filter 'P hate-speech-terms.csv'
+            --filter 'P bad-language-terms.csv'
+            --filter 'P political-terms.csv'
+            --filter 'P sexual-terms.csv'
             --filter 'P html/images/profile/'
             --filter 'P html/images/profile/***'
             --filter 'P html/images/profile-backgrounds/'

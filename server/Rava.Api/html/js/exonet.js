@@ -1,5 +1,5 @@
 import { renderSocialLinksHtml } from "./profile-social.js?v=20260529-login";
-import { API_BASE_URL } from "./config.js";
+import { API_BASE_URL, readMetaApiBase } from "./config.js";
 
 const BOOKMARKS = [
   { slug: "home", title: "Exonet Portal", subtitle: "Start here" },
@@ -732,7 +732,10 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       if (parts.length === 1) {
         return { view: "reporters" };
       }
-      return { view: "reporter", reporterSlug: parts.slice(1).join("/") };
+      return {
+        view: "reporter",
+        reporterSlug: decodeURIComponent(parts.slice(1).join("/")),
+      };
     }
     return { view: "story", storyId: parts.join("/") };
   }
@@ -777,29 +780,37 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       .replace(/^-+|-+$/g, "");
   }
 
+  function normalizeReporterSlug(value) {
+    return String(value ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/_/g, "-")
+      .replace(/\./g, "-")
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
   function offworldNewsReporterPath(reporterSlug) {
-    return `sites/offworld-news/reporters/${reporterSlug}`;
+    const slug = normalizeReporterSlug(reporterSlug) || String(reporterSlug ?? "").trim();
+    return `sites/offworld-news/reporters/${encodeURIComponent(slug)}`;
   }
 
   function resolveReporterSlug(authorName, authorSlug) {
+    const slugCandidate = normalizeReporterSlug(authorSlug);
+    if (slugCandidate) {
+      return slugCandidate;
+    }
+
     const name = String(authorName ?? "").trim();
     if (name) {
       return offworldNewsReporterSlug(name);
     }
 
-    const slugCandidate = String(authorSlug ?? "").trim();
-    if (slugCandidate && !/\s/.test(slugCandidate)) {
-      return slugCandidate.toLowerCase().replace(/_/g, "-").replace(/\.+/g, (dots) => (dots.length > 0 ? "-" : ""));
-    }
-
-    if (slugCandidate) {
-      return offworldNewsReporterSlug(slugCandidate);
-    }
-
     return "mira-solano";
   }
 
-  async function fetchOffworldNewsReporterDetail(reporterSlug) {
+  async function fetchOffworldNewsReporterDetail(reporterSlug, authorName) {
     const normalized = decodeURIComponent(String(reporterSlug ?? "")).trim();
     const candidates = [];
     const add = (value) => {
@@ -810,8 +821,14 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     };
 
     add(normalized);
+    add(normalizeReporterSlug(normalized));
     add(offworldNewsReporterSlug(normalized));
-    add(normalized.replace(/\./g, "-").replace(/_/g, "-"));
+
+    const name = String(authorName ?? "").trim();
+    if (name) {
+      add(name);
+      add(offworldNewsReporterSlug(name));
+    }
 
     let lastError = null;
     for (const candidate of candidates) {
@@ -829,9 +846,9 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
   }
 
   function renderNewsByline(authorName, authorSlug) {
-    const name = authorName ?? "Mira Solano";
+    const name = String(authorName ?? "").trim() || "Mira Solano";
     const slug = resolveReporterSlug(name, authorSlug);
-    return `<p class="exonet-news-byline">By <button type="button" class="exonet-link-btn exonet-news-reporter-link" data-news-reporter="${escapeHtml(slug)}" aria-label="Open ${escapeHtml(name)} ONN bureau profile">${escapeHtml(name)}</button></p>`;
+    return `<p class="exonet-news-byline">By <button type="button" class="exonet-link-btn exonet-news-reporter-link" data-news-reporter="${escapeHtml(slug)}" data-news-author="${escapeHtml(name)}" aria-label="Open ${escapeHtml(name)} ONN bureau profile">${escapeHtml(name)}</button></p>`;
   }
 
   function bindOffworldNewsReporterLinks(root) {
@@ -908,8 +925,9 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       return url;
     }
 
-    if (API_BASE_URL && url.startsWith("/exonet/")) {
-      return `${API_BASE_URL}${url}`;
+    const apiBase = API_BASE_URL || readMetaApiBase();
+    if (apiBase && url.startsWith("/")) {
+      return `${apiBase.replace(/\/$/, "")}${url}`;
     }
 
     return url;
@@ -1149,7 +1167,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     const pageSlug = offworldNewsReporterPath(reporterSlug);
 
     try {
-      const detail = await fetchOffworldNewsReporterDetail(reporterSlug);
+      const detail = await fetchOffworldNewsReporterDetail(reporterSlug, "");
       const reporter = pickField(detail, "reporter");
       if (!reporter) {
         throw new Error("Reporter payload was incomplete.");

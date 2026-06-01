@@ -420,12 +420,21 @@ var serveGameUi = hostingOptions.ServeGameUi ?? !app.Environment.IsProduction();
 var resolvedHostingPaths = app.Services.GetRequiredService<RavaHostingPaths>();
 var reportersAssetsRoot = resolvedHostingPaths.OffworldNewsReportersAssetsRoot;
 Directory.CreateDirectory(reportersAssetsRoot);
-MigrateLegacyReporterPortraitAssets(
-    Path.Combine(webRootPath, "exonet", "offworld-news", "reporters"),
-    reportersAssetsRoot);
+var legacyReportersAssetsRoot = Path.Combine(webRootPath, "exonet", "offworld-news", "reporters");
+MigrateLegacyReporterPortraitAssets(legacyReportersAssetsRoot, reportersAssetsRoot);
+
+var reporterFileProviders = new List<IFileProvider>
+{
+    new PhysicalFileProvider(reportersAssetsRoot),
+};
+if (Directory.Exists(legacyReportersAssetsRoot))
+{
+    reporterFileProviders.Add(new PhysicalFileProvider(legacyReportersAssetsRoot));
+}
+
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(reportersAssetsRoot),
+    FileProvider = new CompositeFileProvider(reporterFileProviders),
     RequestPath = OffworldNewsReporterPaths.PublicReportersPath,
 });
 

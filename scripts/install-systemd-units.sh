@@ -28,11 +28,32 @@ if [ -f "${SYSTEMD_SRC}/rava-permissions.default" ] && [ ! -f /etc/default/rava-
   echo "Installed /etc/default/rava-permissions"
 fi
 
-mkdir -p "${LIB_DIR}"
-for script in rava-hosting-env.sh audit-hosting-permissions.sh fix-hosting-permissions.sh rava-permissions-watch.sh; do
+mkdir -p "${LIB_DIR}/systemd"
+for script in rava-hosting-env.sh audit-hosting-permissions.sh fix-hosting-permissions.sh rava-permissions-watch.sh install-permissions-service.sh install-rava-permissions-service.sh; do
   if [ -f "${SCRIPT_DIR}/${script}" ]; then
     cp -f "${SCRIPT_DIR}/${script}" "${LIB_DIR}/${script}"
     chmod 755 "${LIB_DIR}/${script}"
+  fi
+done
+if [ -d "${SYSTEMD_SRC}" ]; then
+  cp -f "${SYSTEMD_SRC}/"*.service "${LIB_DIR}/systemd/" 2>/dev/null || true
+  if [ -f "${SYSTEMD_SRC}/rava-permissions.default" ]; then
+    cp -f "${SYSTEMD_SRC}/rava-permissions.default" "${LIB_DIR}/systemd/rava-permissions.default"
+  fi
+fi
+
+BIN_DIR="/usr/local/bin"
+for link in install-rava-permissions-service fix-rava-permissions audit-rava-permissions; do
+  case "${link}" in
+    install-rava-permissions-service)
+      target="${LIB_DIR}/install-rava-permissions-service.sh" ;;
+    fix-rava-permissions)
+      target="${LIB_DIR}/fix-hosting-permissions.sh" ;;
+    audit-rava-permissions)
+      target="${LIB_DIR}/audit-hosting-permissions.sh" ;;
+  esac
+  if [ -f "${target}" ]; then
+    ln -sf "${target}" "${BIN_DIR}/${link}"
   fi
 done
 

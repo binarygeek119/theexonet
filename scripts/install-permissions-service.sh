@@ -15,26 +15,58 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-for script in rava-hosting-env.sh audit-hosting-permissions.sh fix-hosting-permissions.sh rava-permissions-watch.sh; do
-  if [ ! -f "${SCRIPT_DIR}/${script}" ]; then
-    echo "Missing ${SCRIPT_DIR}/${script}" >&2
-    exit 1
+resolve_unit_file() {
+  local candidate
+  for candidate in \
+    "${SCRIPT_DIR}/systemd/${UNIT}.service" \
+    "${LIB_DIR}/systemd/${UNIT}.service"; do
+    if [ -f "${candidate}" ]; then
+      printf '%s' "${candidate}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+resolve_default_file() {
+  local candidate
+  for candidate in \
+    "${SCRIPT_DIR}/systemd/rava-permissions.default" \
+    "${LIB_DIR}/systemd/rava-permissions.default"; do
+    if [ -f "${candidate}" ]; then
+      printf '%s' "${candidate}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+mkdir -p "${LIB_DIR}/systemd"
+
+for script in rava-hosting-env.sh audit-hosting-permissions.sh fix-hosting-permissions.sh rava-permissions-watch.sh install-permissions-service.sh install-rava-permissions-service.sh; do
+  if [ -f "${SCRIPT_DIR}/${script}" ]; then
+    cp -f "${SCRIPT_DIR}/${script}" "${LIB_DIR}/${script}"
+    chmod 755 "${LIB_DIR}/${script}"
   fi
-  cp -f "${SCRIPT_DIR}/${script}" "${LIB_DIR}/${script}"
-  chmod 755 "${LIB_DIR}/${script}"
 done
 
-if [ ! -f "${SCRIPT_DIR}/systemd/${UNIT}.service" ]; then
-  echo "Missing unit file: ${SCRIPT_DIR}/systemd/${UNIT}.service" >&2
+unit_src="$(resolve_unit_file)" || {
+  echo "Missing unit file ${UNIT}.service under ${SCRIPT_DIR}/systemd or ${LIB_DIR}/systemd." >&2
+  echo "Run from a git checkout or: sudo install-rava-scripts" >&2
   exit 1
-fi
+}
 
-cp -f "${SCRIPT_DIR}/systemd/${UNIT}.service" "${SYSTEMD_DST}/${UNIT}.service"
+cp -f "${unit_src}" "${SYSTEMD_DST}/${UNIT}.service"
+cp -f "${unit_src}" "${LIB_DIR}/systemd/${UNIT}.service"
 
-if [ ! -f "${DEFAULT_DST}" ] && [ -f "${SCRIPT_DIR}/systemd/rava-permissions.default" ]; then
-  cp -f "${SCRIPT_DIR}/systemd/rava-permissions.default" "${DEFAULT_DST}"
-  chmod 644 "${DEFAULT_DST}"
-  echo "Installed ${DEFAULT_DST}"
+if [ ! -f "${DEFAULT_DST}" ]; then
+  default_src="$(resolve_default_file)" || true
+  if [ -n "${default_src:-}" ]; then
+    cp -f "${default_src}" "${DEFAULT_DST}"
+    chmod 644 "${DEFAULT_DST}"
+    cp -f "${default_src}" "${LIB_DIR}/systemd/rava-permissions.default"
+    echo "Installed ${DEFAULT_DST}"
+  fi
 fi
 
 systemctl daemon-reload

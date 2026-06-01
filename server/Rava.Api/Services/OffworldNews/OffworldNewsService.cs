@@ -103,21 +103,21 @@ public sealed class OffworldNewsService(
     }
 
     public OffworldNewsReportersDto ListReporters() =>
-        new(OffworldNewsReporterCatalog.All.Select(OffworldNewsReporterCatalog.ToDto).ToList());
+        new(OffworldNewsReporterCatalog.All.Select(MapReporterDto).ToList());
 
     public IReadOnlyList<OffworldNewsReporterDto> SearchReporters(string query, int limit = 20) =>
-        OffworldNewsReporterCatalog.Search(query, limit).Select(OffworldNewsReporterCatalog.ToDto).ToList();
+        OffworldNewsReporterCatalog.Search(query, limit).Select(MapReporterDto).ToList();
 
     public OffworldNewsReporterDetailDto? GetReporterDetail(string slug, int storyLimit = 15)
     {
-        var reporter = OffworldNewsReporterCatalog.Resolve(slug);
+        var reporter = OffworldNewsReporterCatalog.Resolve(Uri.UnescapeDataString(slug));
         if (reporter is null)
         {
             return null;
         }
 
         var stories = ListStoriesByReporter(reporter.DisplayName, storyLimit);
-        return new OffworldNewsReporterDetailDto(OffworldNewsReporterCatalog.ToDto(reporter), stories);
+        return new OffworldNewsReporterDetailDto(MapReporterDto(reporter), stories);
     }
 
     public async Task<(OffworldNewsReporterPortraitGenerationSummary? Summary, string? Error)> RegenerateReporterPortraitsAsync(
@@ -308,8 +308,8 @@ public sealed class OffworldNewsService(
 
     private static OffworldNewsStoryDto EnrichStoryAuthor(OffworldNewsStoryDto story)
     {
-        var reporter = OffworldNewsReporterCatalog.Resolve(story.Author)
-            ?? OffworldNewsReporterCatalog.Resolve(story.AuthorSlug);
+        var reporter = OffworldNewsReporterCatalog.Resolve(story.AuthorSlug)
+            ?? OffworldNewsReporterCatalog.Resolve(story.Author);
         if (reporter is null)
         {
             return story;
@@ -478,6 +478,9 @@ public sealed class OffworldNewsService(
                 GetCacheRoot());
         }
     }
+
+    private OffworldNewsReporterDto MapReporterDto(OffworldNewsReporterProfile reporter) =>
+        OffworldNewsReporterCatalog.ToDto(reporter, hostingPaths.ReporterAssetRoots());
 
     private string GetCacheRoot() => _cacheRoot;
 

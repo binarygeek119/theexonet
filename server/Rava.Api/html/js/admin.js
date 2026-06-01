@@ -1,5 +1,5 @@
 import { RavaApi } from "./api.js?v=20260602-portrait-partial";
-import { API_BASE_URL } from "./config.js";
+import { API_BASE_URL, readMetaApiBase } from "./config.js";
 import { initApiStatusMonitor } from "./api-status.js";
 import { initStaffMessaging } from "./staff-messages.js";
 import { initStaffPlayerMessaging } from "./staff-player-messages.js";
@@ -975,8 +975,9 @@ function resolveAdminAssetUrl(url) {
     return url;
   }
 
-  if (API_BASE_URL && url.startsWith("/exonet/")) {
-    return `${API_BASE_URL}${url}`;
+  const apiBase = API_BASE_URL || readMetaApiBase();
+  if (apiBase && url.startsWith("/")) {
+    return `${apiBase.replace(/\/$/, "")}${url}`;
   }
 
   return url;

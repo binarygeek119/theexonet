@@ -28,7 +28,7 @@ function normalizeHost(hostname) {
   return hostname.toLowerCase().replace(/^www\./, "");
 }
 
-function readMetaApiBase() {
+export function readMetaApiBase() {
   const value = document.querySelector('meta[name="rava-api-base"]')?.getAttribute("content")?.trim();
   return value ? value.replace(/\/$/, "") : "";
 }

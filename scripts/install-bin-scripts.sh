@@ -44,6 +44,7 @@ for script in \
   rava-hosting-env.sh \
   rava-permissions-watch.sh \
   install-permissions-service.sh \
+  install-rava-permissions-service.sh \
   install-bin-scripts.sh; do
   if [ ! -f "${SRC_DIR}/${script}" ]; then
     echo "Missing ${SRC_DIR}/${script}" >&2
@@ -54,6 +55,9 @@ for script in \
 done
 
 cp -f "${SRC_DIR}/systemd/"*.service "${LIB_DIR}/systemd/"
+if [ -f "${SRC_DIR}/systemd/rava-permissions.default" ]; then
+  cp -f "${SRC_DIR}/systemd/rava-permissions.default" "${LIB_DIR}/systemd/rava-permissions.default"
+fi
 
 REPO_API_DIR="${SRC_DIR}/../server/Rava.Api"
 if [ -d "${REPO_API_DIR}" ]; then
@@ -94,6 +98,7 @@ declare -A bin_links=(
   [fix-hosting-permissions.sh]=fix-rava-permissions
   [audit-hosting-permissions.sh]=audit-rava-permissions
   [install-permissions-service.sh]=install-rava-permissions-service
+  [install-rava-permissions-service.sh]=install-rava-permissions-service
 )
 
 for src in "${!bin_links[@]}"; do
@@ -101,4 +106,4 @@ for src in "${!bin_links[@]}"; do
   echo "Installed ${BIN_DIR}/${bin_links[$src]}"
 done
 
-echo "Done. Example: sudo restart-rava"
+echo "Done. Example: sudo restart-rava | sudo install-rava-permissions-service"

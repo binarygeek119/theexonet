@@ -40,7 +40,7 @@ sudo bash scripts/install-bin-scripts.sh
    | `sudo install-rava-scripts` | Re-run installer after `git pull` |
    | `sudo fix-rava-permissions` | One-shot fix for `/var/www/data` and publish paths |
    | `sudo audit-rava-permissions` | Check ownership/writability (exit 1 if broken) |
-   | `sudo install-rava-permissions-service` | Install/enable `rava-permissions` watcher only |
+   | `sudo install-rava-permissions-service` | Install/enable `rava-permissions` watcher only (run `install-rava-scripts` first if the command is missing) |
 
    Optional override: `RAVA_LIB_DIR=/custom/path sudo install-rava-scripts /path/to/scripts`
 

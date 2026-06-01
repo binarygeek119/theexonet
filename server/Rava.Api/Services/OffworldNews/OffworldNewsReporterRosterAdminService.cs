@@ -122,10 +122,12 @@ public sealed class OffworldNewsReporterRosterAdminService(
             settingsStore.ActivePoolCount());
     }
 
-    private static AdminOffworldNewsReporterRowDto ToAdminRow(
+    private AdminOffworldNewsReporterRowDto ToAdminRow(
         OffworldNewsReporterProfile reporter,
-        bool inStoryPool) =>
-        new(
+        bool inStoryPool)
+    {
+        var assetRoots = hostingPaths.ReporterAssetRoots();
+        return new(
             reporter.Slug,
             reporter.DisplayName,
             reporter.Title,
@@ -138,8 +140,9 @@ public sealed class OffworldNewsReporterRosterAdminService(
             reporter.StoryKicker,
             reporter.Specialties,
             inStoryPool,
-            OffworldNewsReporterPaths.AvatarUrl(reporter.Slug),
-            OffworldNewsReporterPaths.BackgroundUrl(reporter.Slug));
+            OffworldNewsReporterPaths.ResolveAvatarUrl(reporter.Slug, assetRoots),
+            OffworldNewsReporterPaths.ResolveBackgroundUrl(reporter.Slug, assetRoots));
+    }
 
     private static IReadOnlyList<string> ParseSpecialties(string? specialties) =>
         string.IsNullOrWhiteSpace(specialties)
@@ -172,7 +175,14 @@ public sealed class OffworldNewsReporterRosterAdminService(
 
     private void RenameReporterAssets(string oldSlug, string newSlug)
     {
-        var root = hostingPaths.OffworldNewsReportersAssetsRoot;
+        foreach (var root in hostingPaths.ReporterAssetRoots())
+        {
+            RenameReporterAssetsInRoot(root, oldSlug, newSlug);
+        }
+    }
+
+    private void RenameReporterAssetsInRoot(string root, string oldSlug, string newSlug)
+    {
         var oldFolder = OffworldNewsReporterPaths.ReporterFolder(root, oldSlug);
         var newFolder = OffworldNewsReporterPaths.ReporterFolder(root, newSlug);
         if (!Directory.Exists(oldFolder))

@@ -242,7 +242,7 @@ public static class OffworldNewsReporterCatalog
         return text.Length <= 140 ? text : $"{text[..137].TrimEnd()}…";
     }
 
-    public static OffworldNewsReporterDto ToDto(OffworldNewsReporterProfile reporter) =>
+    public static OffworldNewsReporterDto ToDto(OffworldNewsReporterProfile reporter, params string[] assetRoots) =>
         new(
             reporter.Slug,
             reporter.DisplayName,
@@ -255,8 +255,12 @@ public static class OffworldNewsReporterCatalog
             reporter.OnnBio,
             DirectoryTeaser(reporter),
             reporter.Specialties,
-            OffworldNewsReporterPaths.AvatarUrl(reporter.Slug),
-            OffworldNewsReporterPaths.BackgroundUrl(reporter.Slug),
+            assetRoots.Length > 0
+                ? OffworldNewsReporterPaths.ResolveAvatarUrl(reporter.Slug, assetRoots)
+                : OffworldNewsReporterPaths.AvatarUrl(reporter.Slug),
+            assetRoots.Length > 0
+                ? OffworldNewsReporterPaths.ResolveBackgroundUrl(reporter.Slug, assetRoots)
+                : OffworldNewsReporterPaths.BackgroundUrl(reporter.Slug),
             DirectoryProfilePath(reporter.Slug),
             OnnProfilePath(reporter.Slug));
 
@@ -352,4 +356,36 @@ public static class OffworldNewsReporterPaths
 
     public static string BackgroundFilePath(string reportersRoot, string slug) =>
         Path.Combine(ReporterFolder(reportersRoot, slug), "background.jpg");
+
+  /// <summary>
+  /// Public URL for an asset when it exists under any of the given roots (newest root wins).
+  /// Includes a cache-busting query from file mtime.
+  /// </summary>
+    public static string ResolveAvatarUrl(string slug, params string[] reportersRoots) =>
+        ResolvePublicAssetUrl(slug, "avatar.jpg", reportersRoots);
+
+    public static string ResolveBackgroundUrl(string slug, params string[] reportersRoots) =>
+        ResolvePublicAssetUrl(slug, "background.jpg", reportersRoots);
+
+    public static string ResolvePublicAssetUrl(string slug, string fileName, params string[] reportersRoots)
+    {
+        foreach (var root in reportersRoots)
+        {
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                continue;
+            }
+
+            var filePath = Path.Combine(ReporterFolder(root, slug), fileName);
+            if (!File.Exists(filePath))
+            {
+                continue;
+            }
+
+            var version = File.GetLastWriteTimeUtc(filePath).ToFileTimeUtc();
+            return $"{PublicReportersPath}/{slug}/{fileName}?v={version}";
+        }
+
+        return $"{PublicReportersPath}/{slug}/{fileName}";
+    }
 }

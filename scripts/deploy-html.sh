@@ -47,6 +47,7 @@ rsync -av \
   --exclude 'images/profile-backgrounds/' \
   --exclude 'exonet/offworld-news/editions/' \
   --exclude 'exonet/offworld-news/images/' \
+  --exclude 'exonet/offworld-news/reporters/' \
   "${SRC_DIR}/" "${DEST_DIR}/"
 
 echo "Deployed html from ${SRC_DIR} to ${DEST_DIR}"

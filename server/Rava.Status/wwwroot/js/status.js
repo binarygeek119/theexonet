@@ -34,6 +34,14 @@ const els = {
   moderatorEndpoint: document.getElementById("moderator-endpoint"),
   moderatorPublicUrl: document.getElementById("moderator-public-url"),
   moderatorError: document.getElementById("moderator-error"),
+  openaiOverall: document.getElementById("openai-overall"),
+  openaiDescription: document.getElementById("openai-description"),
+  openaiIndicator: document.getElementById("openai-indicator"),
+  openaiResponseMs: document.getElementById("openai-response-ms"),
+  openaiChecked: document.getElementById("openai-checked"),
+  openaiStatusPage: document.getElementById("openai-status-page"),
+  openaiComponents: document.getElementById("openai-components"),
+  openaiError: document.getElementById("openai-error"),
   monitorUptime: document.getElementById("monitor-uptime"),
   monitorFirstRun: document.getElementById("monitor-first-run"),
   monitorUtc: document.getElementById("monitor-utc"),
@@ -45,6 +53,7 @@ const els = {
   linkModerator: document.getElementById("link-moderator"),
   linkValues: document.getElementById("link-values"),
   linkApiStatus: document.getElementById("link-api-status"),
+  linkOpenAiStatus: document.getElementById("link-openai-status"),
 };
 
 function setPill(element, label, tone) {
@@ -93,6 +102,61 @@ function setGameVersion(label) {
 
   els.gameVersion.textContent = text;
   els.gameVersion.hidden = false;
+}
+
+function openAiIndicatorTone(indicator) {
+  const value = String(indicator ?? "").toLowerCase();
+  if (value === "none") {
+    return "online";
+  }
+
+  if (value === "maintenance" || value === "minor") {
+    return "degraded";
+  }
+
+  if (value === "major" || value === "critical") {
+    return "offline";
+  }
+
+  return "checking";
+}
+
+function formatOpenAiComponents(components) {
+  if (!Array.isArray(components) || components.length === 0) {
+    return "None";
+  }
+
+  return components
+    .map((component) => {
+      const name = component?.name ?? "Unknown";
+      const status = component?.status ?? "unknown";
+      return `${name} (${status})`;
+    })
+    .join("; ");
+}
+
+function renderOpenAiCard(openAi, checkedUtc) {
+  const statusPageUrl = openAi?.statusPageUrl || "https://status.openai.com/";
+  els.openaiStatusPage.textContent = statusPageUrl;
+  if (els.linkOpenAiStatus) {
+    els.linkOpenAiStatus.href = statusPageUrl;
+  }
+
+  els.openaiResponseMs.textContent = openAi?.responseMs != null ? `${openAi.responseMs} ms` : "—";
+  els.openaiChecked.textContent = formatUtc(checkedUtc);
+  els.openaiError.textContent = openAi?.error || "—";
+  els.openaiIndicator.textContent = openAi?.indicator || "—";
+  els.openaiDescription.textContent = openAi?.description || "—";
+  els.openaiComponents.textContent = formatOpenAiComponents(openAi?.degradedComponents);
+
+  if (!openAi?.reachable) {
+    setPill(els.openaiOverall, "Unreachable", "offline");
+    return;
+  }
+
+  const indicator = String(openAi.indicator ?? "").toLowerCase();
+  const label = openAi.description?.trim() || (indicator === "none" ? "Operational" : indicator || "Unknown");
+  setPill(els.openaiOverall, label, openAiIndicatorTone(indicator));
 }
 
 function renderPortalCard(portal, {
@@ -158,6 +222,8 @@ function renderDashboard(data) {
     error: els.moderatorError,
   }, data.utc);
 
+  renderOpenAiCard(data.openAi, data.utc);
+
   els.monitorUptime.textContent = formatDuration(data.monitorUptimeSeconds);
   els.monitorFirstRun.textContent = formatUtc(data.monitorFirstRunUtc);
   els.monitorUtc.textContent = formatUtc(data.utc);
@@ -209,6 +275,7 @@ async function refresh() {
   setPill(els.docsOverall, "Checking…", "checking");
   setPill(els.adminOverall, "Checking…", "checking");
   setPill(els.moderatorOverall, "Checking…", "checking");
+  setPill(els.openaiOverall, "Checking…", "checking");
 
   try {
     const response = await fetch("/api/dashboard");
@@ -222,6 +289,7 @@ async function refresh() {
     setPill(els.docsOverall, "Unknown", "offline");
     setPill(els.adminOverall, "Unknown", "offline");
     setPill(els.moderatorOverall, "Unknown", "offline");
+    setPill(els.openaiOverall, "Unknown", "offline");
     setGameVersion(null);
     els.apiError.textContent = error.message;
     els.lastUpdated.textContent = "Failed to load dashboard data";

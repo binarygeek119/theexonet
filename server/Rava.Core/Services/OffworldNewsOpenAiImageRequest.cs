@@ -71,15 +71,18 @@ public static class OffworldNewsOpenAiImageRequest
         if (string.Equals(model, "dall-e-3", StringComparison.OrdinalIgnoreCase))
         {
             body["quality"] = "standard";
+            body["response_format"] = "b64_json";
             return body;
         }
 
-        if (!IsDalleModel(model))
+        if (IsDalleModel(model))
         {
-            // Unknown / future model names: send only the common parameters.
+            body["response_format"] = "b64_json";
             return body;
         }
 
+        // Unknown / future model names: request inline bytes when supported.
+        body["response_format"] = "b64_json";
         return body;
     }
 }

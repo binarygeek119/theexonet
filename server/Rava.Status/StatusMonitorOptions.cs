@@ -14,4 +14,8 @@ public class StatusMonitorOptions
     public string AdminPublicUrl { get; set; } = "https://ravaadmin.binarygeek119.duckdns.org/";
     public string ModeratorInternalUrl { get; set; } = "http://127.0.0.1:7050";
     public string ModeratorPublicUrl { get; set; } = "https://ravamoderator.binarygeek119.duckdns.org/";
+
+    public string OpenAiStatusSummaryUrl { get; set; } = OpenAiStatusProbe.DefaultSummaryUrl;
+
+    public string OpenAiStatusPageUrl { get; set; } = OpenAiStatusProbe.DefaultStatusPageUrl;
 }

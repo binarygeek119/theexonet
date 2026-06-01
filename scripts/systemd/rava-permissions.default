@@ -1,0 +1,19 @@
+# /etc/default/rava-permissions — optional overrides for rava-permissions.service
+# Copy on install: cp rava-permissions.default /etc/default/rava-permissions
+
+# RAVA paths (must match API systemd units)
+# RAVA_PUBLISH_DIR=/var/www/publish
+# RAVA_DATA_DIR=/var/www/data
+# RAVA_SERVICE_USER=www-data
+
+# Poll writable directories every N seconds
+POLL_INTERVAL=30
+
+# Minimum seconds between automatic fixes (debounce)
+DEBOUNCE_SECONDS=10
+
+# systemd units to watch for permission errors in logs
+RAVA_JOURNAL_UNITS="rava-api rava-admin rava-moderator rava-docs rava-status"
+
+# Extended grep pattern (ERE) for journal lines that trigger an immediate fix
+# RAVA_JOURNAL_PATTERN='Permission denied|Access to the path|UnauthorizedAccessException|EACCES|is denied'

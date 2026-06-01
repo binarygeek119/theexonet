@@ -13,6 +13,7 @@ public sealed class RavaHostingPaths
 
     public required string WebRoot { get; init; }
 
+    /// <summary>AI-generated reporter portraits and banners (persists under data/exonet in production).</summary>
     public string OffworldNewsReportersAssetsRoot =>
-        Path.Combine(WebRoot, "exonet", "offworld-news", "reporters");
+        Path.Combine(OffworldNewsCacheRoot, "reporters");
 }

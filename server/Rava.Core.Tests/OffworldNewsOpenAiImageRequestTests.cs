@@ -30,28 +30,28 @@ public class OffworldNewsOpenAiImageRequestTests
     }
 
     [Fact]
-    public void BuildRequestBody_Dalle3_OmitsResponseFormat()
+    public void BuildRequestBody_Dalle3_RequestsBase64()
     {
         var body = OffworldNewsOpenAiImageRequest.BuildRequestBody(
             "dall-e-3",
             "A mining scene",
             "1792x1024");
 
-        Assert.False(body.ContainsKey("response_format"));
+        Assert.Equal("b64_json", body["response_format"]);
         Assert.Equal("standard", body["quality"]);
         Assert.Equal("1792x1024", body["size"]);
         Assert.False(body.ContainsKey("output_format"));
     }
 
     [Fact]
-    public void BuildRequestBody_UnknownModel_UsesMinimalParameters()
+    public void BuildRequestBody_UnknownModel_RequestsBase64()
     {
         var body = OffworldNewsOpenAiImageRequest.BuildRequestBody(
             "some-future-model",
             "A mining scene",
             "1792x1024");
 
-        Assert.False(body.ContainsKey("response_format"));
+        Assert.Equal("b64_json", body["response_format"]);
         Assert.False(body.ContainsKey("quality"));
         Assert.False(body.ContainsKey("output_format"));
         Assert.Equal("1536x1024", body["size"]);

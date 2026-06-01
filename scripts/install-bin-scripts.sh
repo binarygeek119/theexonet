@@ -40,6 +40,10 @@ for script in \
   migrate-publish-data-to-var-www.sh \
   sync-publish-data.sh \
   fix-hosting-permissions.sh \
+  audit-hosting-permissions.sh \
+  rava-hosting-env.sh \
+  rava-permissions-watch.sh \
+  install-permissions-service.sh \
   install-bin-scripts.sh; do
   if [ ! -f "${SRC_DIR}/${script}" ]; then
     echo "Missing ${SRC_DIR}/${script}" >&2
@@ -69,6 +73,7 @@ if [ -d "${REPO_API_DIR}" ]; then
       --exclude 'images/profile-backgrounds/' \
       --exclude 'exonet/offworld-news/editions/' \
       --exclude 'exonet/offworld-news/images/' \
+      --exclude 'exonet/offworld-news/reporters/' \
       "${REPO_API_DIR}/html/" "${HTML_TEMPLATE_DIR}/"
     echo "Installed html template to ${HTML_TEMPLATE_DIR}"
   fi
@@ -87,6 +92,8 @@ declare -A bin_links=(
   [sync-publish-data.sh]=sync-rava-data
   [migrate-publish-data-to-var-www.sh]=migrate-rava-data
   [fix-hosting-permissions.sh]=fix-rava-permissions
+  [audit-hosting-permissions.sh]=audit-rava-permissions
+  [install-permissions-service.sh]=install-rava-permissions-service
 )
 
 for src in "${!bin_links[@]}"; do

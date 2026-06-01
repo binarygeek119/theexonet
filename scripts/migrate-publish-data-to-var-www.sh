@@ -91,6 +91,7 @@ migrate_offworld_news_dir() {
 
 migrate_offworld_news_dir editions
 migrate_offworld_news_dir images
+migrate_offworld_news_dir reporters
 
 if [ "$moved" -eq 0 ]; then
   echo "Nothing to migrate from ${PUBLISH_DIR}."

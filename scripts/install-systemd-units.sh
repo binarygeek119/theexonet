@@ -7,8 +7,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 SYSTEMD_SRC="${SCRIPT_DIR}/systemd"
 SYSTEMD_DST="/etc/systemd/system"
+LIB_DIR="${RAVA_LIB_DIR:-/usr/local/lib/rava/scripts}"
 
-units=(rava-api rava-status rava-admin rava-moderator rava-docs)
+units=(rava-api rava-status rava-admin rava-moderator rava-docs rava-permissions)
 
 for unit in "${units[@]}"; do
   src="${SYSTEMD_SRC}/${unit}.service"
@@ -19,6 +20,20 @@ for unit in "${units[@]}"; do
   fi
   cp "$src" "$dst"
   echo "Installed ${dst}"
+done
+
+if [ -f "${SYSTEMD_SRC}/rava-permissions.default" ] && [ ! -f /etc/default/rava-permissions ]; then
+  cp -f "${SYSTEMD_SRC}/rava-permissions.default" /etc/default/rava-permissions
+  chmod 644 /etc/default/rava-permissions
+  echo "Installed /etc/default/rava-permissions"
+fi
+
+mkdir -p "${LIB_DIR}"
+for script in rava-hosting-env.sh audit-hosting-permissions.sh fix-hosting-permissions.sh rava-permissions-watch.sh; do
+  if [ -f "${SCRIPT_DIR}/${script}" ]; then
+    cp -f "${SCRIPT_DIR}/${script}" "${LIB_DIR}/${script}"
+    chmod 755 "${LIB_DIR}/${script}"
+  fi
 done
 
 systemctl daemon-reload

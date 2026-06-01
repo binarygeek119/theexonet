@@ -32,12 +32,15 @@ sudo bash scripts/install-bin-scripts.sh
 
    | Command | Purpose |
    |---------|---------|
-   | `sudo restart-rava` | Stop/start all five services, free ports |
+   | `sudo restart-rava` | Stop/start all six services, free ports |
    | `sudo diagnose-rava-api` | API startup checks |
    | `sudo diagnose-rava-portals` | Admin/moderator/docs checks |
-   | `sudo install-rava-systemd` | Install all five systemd units |
+   | `sudo install-rava-systemd` | Install all six systemd units (includes permissions watcher) |
    | `sudo install-rava-portals` | Install admin + moderator units only |
    | `sudo install-rava-scripts` | Re-run installer after `git pull` |
+   | `sudo fix-rava-permissions` | One-shot fix for `/var/www/data` and publish paths |
+   | `sudo audit-rava-permissions` | Check ownership/writability (exit 1 if broken) |
+   | `sudo install-rava-permissions-service` | Install/enable `rava-permissions` watcher only |
 
    Optional override: `RAVA_LIB_DIR=/custom/path sudo install-rava-scripts /path/to/scripts`
 
@@ -389,7 +392,7 @@ If the API returns **502**, `/api/status` shows **database offline**, or **`rava
    `curl http://127.0.0.1:5000/api/status` — should return JSON with `"databaseStatus":"online"`
 8. **`.NET runtime missing`:** log shows `Framework: Microsoft.NETCore.App, version '10.0.0'` but only 8.x installed — install `aspnetcore-runtime-10.0` (see step 2 above).
 9. **`Address already in use` / socket bind error:** another process holds port 5000, 6000, 7000, 7050, or 9000 (`sudo ss -tlnp | grep -E '5000|6000|7000|7050|9000'`). Do **not** put `"Urls"` in the shared `/var/www/publish/appsettings.json` — set ports only in each systemd unit (`ASPNETCORE_URLS=http://0.0.0.0:5000` for API, `:6000` for status, `:7000` for admin, `:7050` for moderator, `:9000` for docs).
-10. **`Access to the path .../html/images/profile is denied`:** fix ownership on `/var/www/publish` (see upload folder permissions in step 3 above).
+10. **`Access to the path ... is denied` / upload or Offworld News write failures:** run `sudo fix-rava-permissions`, then enable the auto-watcher: `sudo install-rava-permissions-service` (or `sudo install-rava-systemd`, which installs `rava-permissions.service`). The watcher runs as **root**, polls `/var/www/data` every 30s, and fixes permissions when RAVA logs mention `Permission denied` or paths are not writable by `www-data`. Logs: `journalctl -u rava-permissions -f`.
 11. **`Could not parse the JSON file` / `LineNumber: 308`:** `/var/www/publish/appsettings.json` is invalid (often duplicated content from repeated edits). Back it up, replace from `appsettings.production.example.json`, set your postgres password, then validate with `python3 -m json.tool /var/www/publish/appsettings.json`.
 12. **Admin / moderator / docs `core-dump` (ABRT):** run `sudo diagnose-rava-portals`. Common causes: missing `Rava.Admin.dll` / `Rava.Moderator.dll` / `Rava.Docs.dll` or `content/` (redeploy from `main`), port 7000/7050/9000 already in use, or a broken systemd unit missing `Environment=ASPNETCORE_URLS`. Reinstall units with `sudo install-rava-systemd`, then `sudo systemctl reset-failed rava-admin rava-moderator rava-docs`.
 13. **Stray `/var/www/html`, `/var/www/wwwroot`, or `/var/www/.aspnet`:** `DEPLOY_WWW_PATH` or `DEPLOY_API_PATH` was set to `/var/www` instead of `/var/www/publish`. Set both GitHub variables to `/var/www/publish`, remove the stray folders after confirming nothing important lives there, and re-run deploy:

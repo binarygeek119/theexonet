@@ -40,6 +40,45 @@ void FailStartup(string message, Exception? ex = null)
     Environment.Exit(1);
 }
 
+static void MigrateLegacyReporterPortraitAssets(string legacyRoot, string targetRoot)
+{
+    if (!Directory.Exists(legacyRoot))
+    {
+        return;
+    }
+
+    Directory.CreateDirectory(targetRoot);
+    foreach (var slugDir in Directory.EnumerateDirectories(legacyRoot))
+    {
+        var slug = Path.GetFileName(slugDir);
+        if (string.IsNullOrEmpty(slug))
+        {
+            continue;
+        }
+
+        var destDir = Path.Combine(targetRoot, slug);
+        Directory.CreateDirectory(destDir);
+
+        foreach (var sourceFile in Directory.EnumerateFiles(slugDir, "*.jpg"))
+        {
+            var fileName = Path.GetFileName(sourceFile);
+            var destFile = Path.Combine(destDir, fileName);
+            if (!File.Exists(destFile))
+            {
+                File.Copy(sourceFile, destFile, overwrite: false);
+                continue;
+            }
+
+            var sourceInfo = new FileInfo(sourceFile);
+            var destInfo = new FileInfo(destFile);
+            if (sourceInfo.Length > destInfo.Length)
+            {
+                File.Copy(sourceFile, destFile, overwrite: true);
+            }
+        }
+    }
+}
+
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
@@ -381,6 +420,9 @@ var serveGameUi = hostingOptions.ServeGameUi ?? !app.Environment.IsProduction();
 var resolvedHostingPaths = app.Services.GetRequiredService<RavaHostingPaths>();
 var reportersAssetsRoot = resolvedHostingPaths.OffworldNewsReportersAssetsRoot;
 Directory.CreateDirectory(reportersAssetsRoot);
+MigrateLegacyReporterPortraitAssets(
+    Path.Combine(webRootPath, "exonet", "offworld-news", "reporters"),
+    reportersAssetsRoot);
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(reportersAssetsRoot),

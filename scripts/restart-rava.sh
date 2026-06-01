@@ -10,6 +10,7 @@ STATUS_SERVICE="${RAVA_STATUS_SERVICE:-rava-status}"
 ADMIN_SERVICE="${RAVA_ADMIN_SERVICE:-rava-admin}"
 MODERATOR_SERVICE="${RAVA_MODERATOR_SERVICE:-rava-moderator}"
 DOCS_SERVICE="${RAVA_DOCS_SERVICE:-rava-docs}"
+PERMISSIONS_SERVICE="${RAVA_PERMISSIONS_SERVICE:-rava-permissions}"
 PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
 DATA_DIR="${RAVA_DATA_DIR:-/var/www/data}"
 SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
@@ -66,8 +67,14 @@ prepare_publish_dir() {
   mkdir -p \
     "${DATA_DIR}/images/profile" \
     "${DATA_DIR}/images/profile-backgrounds" \
+    "${DATA_DIR}/images/company-logos" \
     "${DATA_DIR}/exonet/offworld-news/editions" \
-    "${DATA_DIR}/exonet/offworld-news/images"
+    "${DATA_DIR}/exonet/offworld-news/images" \
+    "${DATA_DIR}/exonet/offworld-news/reporters"
+
+  if [ "$(id -u)" -eq 0 ] && command -v fix-rava-permissions >/dev/null 2>&1; then
+    fix-rava-permissions -q || true
+  fi
 
   for subdir in profile profile-backgrounds; do
     src="${PUBLISH_DIR}/html/images/${subdir}"
@@ -78,7 +85,7 @@ prepare_publish_dir() {
     fi
   done
 
-  for subdir in editions images; do
+  for subdir in editions images reporters; do
     src="${PUBLISH_DIR}/html/exonet/offworld-news/${subdir}"
     dest="${DATA_DIR}/exonet/offworld-news/${subdir}"
     if [ -d "$src" ] && [ -z "$(ls -A "$dest" 2>/dev/null || true)" ] && [ -n "$(ls -A "$src" 2>/dev/null || true)" ]; then
@@ -191,6 +198,11 @@ systemctl start "${MODERATOR_SERVICE}"
 echo "Starting ${DOCS_SERVICE}..."
 systemctl start "${DOCS_SERVICE}"
 
+if systemctl list-unit-files "${PERMISSIONS_SERVICE}.service" --no-legend 2>/dev/null | grep -q "${PERMISSIONS_SERVICE}"; then
+  echo "Starting ${PERMISSIONS_SERVICE}..."
+  systemctl start "${PERMISSIONS_SERVICE}" 2>/dev/null || true
+fi
+
 sleep 5
 
 systemctl is-active --quiet "${API_SERVICE}" && echo "${API_SERVICE}: running" || { echo "${API_SERVICE}: FAILED"; show_service_failure "${API_SERVICE}"; }
@@ -198,6 +210,9 @@ systemctl is-active --quiet "${STATUS_SERVICE}" && echo "${STATUS_SERVICE}: runn
 systemctl is-active --quiet "${ADMIN_SERVICE}" && echo "${ADMIN_SERVICE}: running" || { echo "${ADMIN_SERVICE}: FAILED"; show_service_failure "${ADMIN_SERVICE}"; }
 systemctl is-active --quiet "${MODERATOR_SERVICE}" && echo "${MODERATOR_SERVICE}: running" || { echo "${MODERATOR_SERVICE}: FAILED"; show_service_failure "${MODERATOR_SERVICE}"; }
 systemctl is-active --quiet "${DOCS_SERVICE}" && echo "${DOCS_SERVICE}: running" || { echo "${DOCS_SERVICE}: FAILED"; show_service_failure "${DOCS_SERVICE}"; }
+if systemctl is-active --quiet "${PERMISSIONS_SERVICE}" 2>/dev/null; then
+  echo "${PERMISSIONS_SERVICE}: running"
+fi
 
 if command -v curl >/dev/null 2>&1; then
   curl -sf http://127.0.0.1:5000/api/status >/dev/null && echo "API health: OK" || echo "API health: unreachable"

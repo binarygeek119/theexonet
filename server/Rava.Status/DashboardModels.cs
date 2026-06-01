@@ -38,6 +38,18 @@ public record PortalStatusPayload(
     long? ResponseMs,
     string? Error);
 
+public record OpenAiComponentStatusPayload(string Name, string Status);
+
+public record OpenAiStatusPayload(
+    string StatusPageUrl,
+    string SummaryUrl,
+    bool Reachable,
+    long? ResponseMs,
+    string? Indicator,
+    string? Description,
+    IReadOnlyList<OpenAiComponentStatusPayload> DegradedComponents,
+    string? Error);
+
 public record DashboardResponse(
     DateTime Utc,
     double MonitorUptimeSeconds,
@@ -55,4 +67,5 @@ public record DashboardResponse(
     ApiStatusPayload? ApiStatus,
     PortalStatusPayload DocsPortal,
     PortalStatusPayload AdminPortal,
-    PortalStatusPayload ModeratorPortal);
+    PortalStatusPayload ModeratorPortal,
+    OpenAiStatusPayload OpenAi);

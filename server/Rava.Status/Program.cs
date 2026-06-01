@@ -18,6 +18,7 @@ builder.Services.Configure<StatusMonitorOptions>(
     builder.Configuration.GetSection(StatusMonitorOptions.SectionName));
 builder.Services.AddHttpClient("RavaApi");
 builder.Services.AddHttpClient("RavaPortal");
+builder.Services.AddHttpClient("OpenAiStatus");
 builder.Services.AddSingleton<MonitorRuntimeInfo>();
 
 var app = builder.Build();
@@ -86,6 +87,14 @@ app.MapGet("/api/dashboard", async (
         "/moderator.html",
         cancellationToken);
 
+    var openAiClient = httpClientFactory.CreateClient("OpenAiStatus");
+    openAiClient.Timeout = TimeSpan.FromSeconds(8);
+    var openAiStatus = await OpenAiStatusProbe.FetchAsync(
+        openAiClient,
+        monitor.OpenAiStatusSummaryUrl,
+        monitor.OpenAiStatusPageUrl,
+        cancellationToken);
+
     return Results.Ok(new DashboardResponse(
         DateTime.UtcNow,
         runtime.UptimeSeconds,
@@ -103,7 +112,8 @@ app.MapGet("/api/dashboard", async (
         apiStatus,
         docsPortal,
         adminPortal,
-        moderatorPortal));
+        moderatorPortal,
+        openAiStatus));
 });
 
 app.MapGet("/api/economy", async (

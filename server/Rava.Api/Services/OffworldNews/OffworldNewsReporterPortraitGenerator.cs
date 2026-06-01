@@ -201,7 +201,9 @@ public sealed class OffworldNewsReporterPortraitGenerator(
 
     private sealed class ImageData
     {
+        [JsonPropertyName("b64_json")]
         public string? B64Json { get; set; }
+
         public string? Url { get; set; }
     }
 

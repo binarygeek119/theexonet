@@ -79,7 +79,12 @@ builder.Services.Configure<ModeratorPortalOptions>(builder.Configuration.GetSect
 builder.Services.Configure<AdminPortalOptions>(builder.Configuration.GetSection(AdminPortalOptions.SectionName));
 builder.Services.Configure<HostingOptions>(builder.Configuration.GetSection(HostingOptions.SectionName));
 builder.Services.Configure<OffworldNewsOptions>(builder.Configuration.GetSection(OffworldNewsOptions.SectionName));
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.DictionaryKeyPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 builder.Services.AddOpenApi();
 builder.Services.AddMemoryCache();
 builder.Services.AddCors(options =>

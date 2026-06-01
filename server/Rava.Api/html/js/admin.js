@@ -1,4 +1,4 @@
-import { RavaApi } from "./api.js";
+import { RavaApi } from "./api.js?v=20260602-onn-portraits";
 import { API_BASE_URL } from "./config.js";
 import { initApiStatusMonitor } from "./api-status.js";
 import { initStaffMessaging } from "./staff-messages.js";
@@ -912,41 +912,69 @@ function setOffworldNewsButtonsDisabled(disabled) {
   els.offworldNewsRegenReporterPortraitsBtn.disabled = disabled;
 }
 
-function onnReporterField(id, label, value, { textarea = false, hint = "" } = {}) {
+function pickJson(value, camelKey) {
+  if (value == null) {
+    return undefined;
+  }
+
+  if (value[camelKey] !== undefined && value[camelKey] !== null) {
+    return value[camelKey];
+  }
+
+  const pascalKey = camelKey.charAt(0).toUpperCase() + camelKey.slice(1);
+  return value[pascalKey];
+}
+
+function readOnnSlugFromForm(form) {
+  const fromInput = form.querySelector("[data-onn-slug]")?.value?.trim() ?? "";
+  if (fromInput) {
+    return fromInput;
+  }
+
+  return String(form.dataset.slug ?? "").trim();
+}
+
+function onnReporterField(id, label, value, { textarea = false, hint = "", slugInput = false } = {}) {
+  const attrs = slugInput ? ' data-onn-slug type="text"' : ` id="${id}" type="text"`;
   const control = textarea
     ? `<textarea id="${id}" rows="3">${escapeHtml(value ?? "")}</textarea>`
-    : `<input id="${id}" type="text" value="${escapeHtml(value ?? "")}">`;
+    : `<input${attrs} value="${escapeHtml(value ?? "")}">`;
   const hintHtml = hint ? `<span class="admin-page-desc">${escapeHtml(hint)}</span>` : "";
   return `<label>${escapeHtml(label)}${control}${hintHtml}</label>`;
 }
 
 function renderOnnReporters(page) {
-  const reporters = page.reporters ?? [];
-  const settings = page.settings ?? {};
-  els.onnReportersPath.textContent = `Roster: ${page.reportersFilePath ?? ""}. Story pool: ${settings.activePoolCount ?? 0} of ${settings.totalReporters ?? reporters.length} reporters.`;
-  els.onnPoolSize.value = settings.reporterPoolSize ?? 0;
+  const reporters = pickJson(page, "reporters") ?? [];
+  const settings = pickJson(page, "settings") ?? {};
+  const reportersFilePath = pickJson(page, "reportersFilePath") ?? "";
+  els.onnReportersPath.textContent = `Roster: ${reportersFilePath}. Story pool: ${pickJson(settings, "activePoolCount") ?? 0} of ${pickJson(settings, "totalReporters") ?? reporters.length} reporters.`;
+  els.onnPoolSize.value = pickJson(settings, "reporterPoolSize") ?? 0;
 
   els.onnReportersList.innerHTML = reporters
     .map((reporter) => {
-      const poolTag = reporter.inStoryPool ? " · in story pool" : "";
-      const specialties = (reporter.specialties ?? []).join("; ");
-      const formId = `admin-onn-form-${reporter.slug}`;
+      const slug = String(pickJson(reporter, "slug") ?? "").trim();
+      const displayName = pickJson(reporter, "displayName") ?? "";
+      const beat = pickJson(reporter, "beat") ?? "";
+      const inStoryPool = Boolean(pickJson(reporter, "inStoryPool"));
+      const poolTag = inStoryPool ? " · in story pool" : "";
+      const specialties = (pickJson(reporter, "specialties") ?? []).join("; ");
+      const formId = `admin-onn-form-${slug || "reporter"}`;
       return `<details class="admin-onn-reporter">
         <summary>
-          <strong>${escapeHtml(reporter.displayName)}</strong>
-          <span class="admin-onn-reporter-meta">${escapeHtml(reporter.slug)} · ${escapeHtml(reporter.beat)}${poolTag}</span>
+          <strong>${escapeHtml(displayName)}</strong>
+          <span class="admin-onn-reporter-meta">${escapeHtml(slug)} · ${escapeHtml(beat)}${poolTag}</span>
         </summary>
-        <form id="${formId}" class="admin-onn-reporter-form" data-slug="${escapeHtml(reporter.slug)}">
-          ${onnReporterField(`${formId}-slug`, "Slug (URL)", reporter.slug, { hint: "Change only when renaming; updates portrait folder and friend links." })}
-          ${onnReporterField(`${formId}-name`, "Display name", reporter.displayName)}
-          ${onnReporterField(`${formId}-title`, "Title", reporter.title)}
-          ${onnReporterField(`${formId}-beat`, "Beat", reporter.beat)}
-          ${onnReporterField(`${formId}-bureau`, "Bureau", reporter.bureau)}
-          ${onnReporterField(`${formId}-personality`, "Personality", reporter.personality, { textarea: true })}
-          ${onnReporterField(`${formId}-voice`, "Writing voice", reporter.writingVoice, { textarea: true })}
-          ${onnReporterField(`${formId}-directory-bio`, "Directory bio", reporter.directoryBio, { textarea: true })}
-          ${onnReporterField(`${formId}-onn-bio`, "ONN bio", reporter.onnBio, { textarea: true })}
-          ${onnReporterField(`${formId}-kicker`, "Story kicker", reporter.storyKicker, { textarea: true })}
+        <form id="${formId}" class="admin-onn-reporter-form" data-slug="${escapeHtml(slug)}">
+          ${onnReporterField(`${formId}-slug`, "Slug (URL)", slug, { slugInput: true, hint: "Change only when renaming; updates portrait folder and friend links." })}
+          ${onnReporterField(`${formId}-name`, "Display name", displayName)}
+          ${onnReporterField(`${formId}-title`, "Title", pickJson(reporter, "title"))}
+          ${onnReporterField(`${formId}-beat`, "Beat", beat)}
+          ${onnReporterField(`${formId}-bureau`, "Bureau", pickJson(reporter, "bureau"))}
+          ${onnReporterField(`${formId}-personality`, "Personality", pickJson(reporter, "personality"), { textarea: true })}
+          ${onnReporterField(`${formId}-voice`, "Writing voice", pickJson(reporter, "writingVoice"), { textarea: true })}
+          ${onnReporterField(`${formId}-directory-bio`, "Directory bio", pickJson(reporter, "directoryBio"), { textarea: true })}
+          ${onnReporterField(`${formId}-onn-bio`, "ONN bio", pickJson(reporter, "onnBio"), { textarea: true })}
+          ${onnReporterField(`${formId}-kicker`, "Story kicker", pickJson(reporter, "storyKicker"), { textarea: true })}
           ${onnReporterField(`${formId}-specialties`, "Specialties", specialties, { hint: "Separate with semicolons (;)." })}
           <div class="button-row">
             <button type="submit" class="btn primary">Save reporter</button>
@@ -979,9 +1007,8 @@ function renderOnnReporters(page) {
 
 function readOnnReporterForm(form) {
   const prefix = form.id;
-  const slugField = document.getElementById(`${prefix}-slug`);
-  const newSlug = slugField?.value.trim() ?? "";
-  const originalSlug = form.dataset.slug ?? "";
+  const newSlug = readOnnSlugFromForm(form);
+  const originalSlug = String(form.dataset.slug ?? "").trim();
   return {
     newSlug: newSlug !== originalSlug ? newSlug : null,
     displayName: document.getElementById(`${prefix}-name`)?.value.trim() ?? "",
@@ -1003,7 +1030,8 @@ async function loadOnnReporters() {
     const page = await api.adminGetOffworldNewsReporters();
     state.onnReporters = page;
     renderOnnReporters(page);
-    setStatus(els.onnReportersStatus, `${page.reporters?.length ?? 0} reporters loaded.`);
+    const count = (pickJson(page, "reporters") ?? []).length;
+    setStatus(els.onnReportersStatus, `${count} reporters loaded.`);
   } catch (error) {
     els.onnReportersList.innerHTML = "";
     setStatus(els.onnReportersStatus, error.message, true);
@@ -1012,14 +1040,19 @@ async function loadOnnReporters() {
 
 async function saveOnnReporter(form) {
   const statusEl = form.querySelector(".admin-onn-reporter-form-status");
-  const slug = form.dataset.slug ?? "";
+  const routeSlug = String(form.dataset.slug ?? "").trim();
+  if (!routeSlug) {
+    setStatus(statusEl, "Reporter slug is missing. Reload the page and try again.", true);
+    return;
+  }
+
   const body = readOnnReporterForm(form);
   setStatus(statusEl, "Saving…");
   form.querySelectorAll("button").forEach((button) => {
     button.disabled = true;
   });
   try {
-    await api.adminUpdateOffworldNewsReporter(slug, body);
+    await api.adminUpdateOffworldNewsReporter(routeSlug, body);
     await loadOnnReporters();
     setStatus(statusEl, "Reporter saved.");
   } catch (error) {
@@ -1033,9 +1066,13 @@ async function saveOnnReporter(form) {
 
 async function regenerateOnnReporterPortraits(form) {
   const statusEl = form.querySelector(".admin-onn-reporter-form-status");
-  const slug =
-    document.getElementById(`${form.id}-slug`)?.value.trim() || form.dataset.slug || "";
-  const name = document.getElementById(`${form.id}-name`)?.value.trim() || slug;
+  const slug = readOnnSlugFromForm(form);
+  const name = form.querySelector(`#${form.id}-name`)?.value.trim() || slug;
+  if (!slug) {
+    setStatus(statusEl, "Reporter slug is missing. Reload the page and try again.", true);
+    return;
+  }
+
   if (!window.confirm(`Regenerate AI portrait and banner for ${name}? This uses OffworldNews.ApiKey.`)) {
     return;
   }
@@ -1075,9 +1112,11 @@ async function saveOnnPoolSize(event) {
   try {
     const settings = await api.adminUpdateOffworldNewsSettings(size);
     await loadOnnReporters();
+    const poolSize = pickJson(settings, "reporterPoolSize") ?? 0;
+    const activeCount = pickJson(settings, "activePoolCount") ?? 0;
     setStatus(
       els.onnPoolStatus,
-      `Story pool set to ${settings.reporterPoolSize === 0 ? "all reporters" : settings.reporterPoolSize} (${settings.activePoolCount} active).`,
+      `Story pool set to ${poolSize === 0 ? "all reporters" : poolSize} (${activeCount} active).`,
     );
   } catch (error) {
     setStatus(els.onnPoolStatus, error.message, true);

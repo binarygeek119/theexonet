@@ -437,10 +437,11 @@ Add the matching **public** key to `~/.ssh/authorized_keys` on the server.
 ## What deploy does
 
 1. **publish** — `rsync` from the `dotnet publish` artifact to `DEPLOY_API_PATH` (mirrors deletes except protected paths: `appsettings.json`, `html/images/profile/`, `html/images/profile-backgrounds/`, `.aspnet/`). The bundle includes an `html/` folder (game UI + upload paths). Deploy never overwrites production secrets in `appsettings.json`.
-2. **html** — skipped when `DEPLOY_WWW_PATH` equals `DEPLOY_API_PATH` (or `${DEPLOY_API_PATH}/html`); game files ship inside `publish/html/`. A separate html rsync only runs when www and api paths differ (legacy `/var/www/rava` layout).
-3. **Restart** — runs `sudo systemctl restart` for API, status, admin, moderator, and docs services when configured.
+2. **admin/moderator wwwroot** — after publish, CI runs `scripts/sync-portal-wwwroot.sh` and rsyncs `admin.html`, `moderator.html`, and portal JS/CSS into `${DEPLOY_API_PATH}/wwwroot/`. **Rava.Admin** (port 7000) and **Rava.Moderator** (port 7050) serve static files from that folder (`WorkingDirectory=/var/www/publish`).
+3. **html** — skipped when `DEPLOY_WWW_PATH` equals `DEPLOY_API_PATH` (or `${DEPLOY_API_PATH}/html`); game files ship inside `publish/html/`. A separate html rsync only runs when www and api paths differ (legacy `/var/www/rava` layout).
+4. **Restart** — runs `sudo systemctl restart` for API, status, admin, moderator, and docs services when configured.
 
-Deploy runs only on pushes to `main` (not pull requests), after build and test pass.
+Deploy runs in the **RAVA CI** workflow (`.github/workflows/build-website.yml`) on pushes to `main` (not pull requests), after build and test pass.
 
 ## Manual deploy on the server
 

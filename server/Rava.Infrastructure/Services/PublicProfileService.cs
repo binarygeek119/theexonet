@@ -49,7 +49,8 @@ public class PublicProfileService(
         };
 
         var summaries = await MapSummariesAsync(players, ct);
-        return new PublicProfileSearchResponse(query, normalizedMode, summaries);
+        var merged = MergeReporterSearchResults(query, limit, summaries);
+        return new PublicProfileSearchResponse(query, normalizedMode, merged);
     }
 
     public async Task<PublicProfileLeaderboardResponse> GetLeaderboardAsync(
@@ -101,6 +102,12 @@ public class PublicProfileService(
 
     public async Task<PublicProfileDetailDto?> GetByUsernameAsync(string username, CancellationToken ct)
     {
+        var reporter = OffworldNewsReporterSocial.TryGetByUsername(username);
+        if (reporter is not null)
+        {
+            return OffworldNewsReporterProfileMapper.ToPublicDetail(reporter);
+        }
+
         var normalized = username.Trim().ToLowerInvariant();
         var player = await db.Players.AsNoTracking()
             .Include(p => p.Inventory)
@@ -159,11 +166,70 @@ public class PublicProfileService(
         return new OffworldNewsCompanyContext(rising, struggling);
     }
 
+    private static IReadOnlyList<PublicProfileSummaryDto> MergeReporterSearchResults(
+        string query,
+        int limit,
+        IReadOnlyList<PublicProfileSummaryDto> playerSummaries)
+    {
+        var reporters = new List<PublicProfileSummaryDto>();
+        var byNumber = OffworldNewsReporterSocial.TryGetByProfileNumber(
+            ProfileNumberNormalizer.Normalize(query));
+        if (byNumber is not null)
+        {
+            reporters.Add(OffworldNewsReporterProfileMapper.ToPublicSummary(byNumber));
+        }
+
+        foreach (var reporter in OffworldNewsReporterSocial.Search(query, limit))
+        {
+            if (reporters.Any(r => string.Equals(r.ReporterSlug, reporter.Slug, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            reporters.Add(OffworldNewsReporterProfileMapper.ToPublicSummary(reporter));
+        }
+
+        if (reporters.Count == 0)
+        {
+            return playerSummaries;
+        }
+
+        var playerNumbers = new HashSet<string>(
+            playerSummaries.Select(p => p.ProfileNumber),
+            StringComparer.OrdinalIgnoreCase);
+
+        var merged = new List<PublicProfileSummaryDto>();
+        foreach (var reporter in reporters)
+        {
+            if (!playerNumbers.Contains(reporter.ProfileNumber))
+            {
+                merged.Add(reporter);
+            }
+        }
+
+        foreach (var player in playerSummaries)
+        {
+            if (merged.Count >= limit)
+            {
+                break;
+            }
+
+            merged.Add(player);
+        }
+
+        return merged.Take(limit).ToList();
+    }
+
     private async Task<List<PlayerEntity>> SearchAutoAsync(string query, int limit, CancellationToken ct)
     {
         var normalizedNumber = ProfileNumberNormalizer.Normalize(query);
         if (!string.IsNullOrWhiteSpace(normalizedNumber))
         {
+            if (OffworldNewsReporterSocial.TryGetByProfileNumber(normalizedNumber) is not null)
+            {
+                return [];
+            }
+
             var byNumber = await db.Players.AsNoTracking()
                 .Where(p => p.ProfileNumber == normalizedNumber)
                 .Take(limit)

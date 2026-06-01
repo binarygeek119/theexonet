@@ -62,6 +62,18 @@ public static class DatabaseSchemaUpdater
             );
             CREATE INDEX IF NOT EXISTS "IX_Friendships_PlayerId" ON "Friendships" ("PlayerId");
             CREATE INDEX IF NOT EXISTS "IX_Friendships_FriendId" ON "Friendships" ("FriendId");
+            CREATE TABLE IF NOT EXISTS "ReporterFriendships" (
+                "Id" uuid NOT NULL,
+                "PlayerId" uuid NOT NULL,
+                "ReporterSlug" text NOT NULL,
+                "CreatedAt" timestamp with time zone NOT NULL DEFAULT NOW(),
+                CONSTRAINT "PK_ReporterFriendships" PRIMARY KEY ("Id"),
+                CONSTRAINT "FK_ReporterFriendships_Players_PlayerId" FOREIGN KEY ("PlayerId")
+                    REFERENCES "Players" ("Id") ON DELETE CASCADE
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_ReporterFriendships_PlayerId_ReporterSlug"
+                ON "ReporterFriendships" ("PlayerId", "ReporterSlug");
+            CREATE INDEX IF NOT EXISTS "IX_ReporterFriendships_PlayerId" ON "ReporterFriendships" ("PlayerId");
             CREATE TABLE IF NOT EXISTS "DataMigrations" (
                 "Id" text NOT NULL,
                 "AppliedAt" timestamp with time zone NOT NULL DEFAULT NOW(),

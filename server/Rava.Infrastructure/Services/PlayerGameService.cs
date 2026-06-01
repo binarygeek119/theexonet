@@ -29,7 +29,8 @@ public class PlayerGameService(
     IProfileAvatarStorage profileAvatarStorage,
     IProfileBackgroundStorage profileBackgroundStorage,
     SpecialEventService specialEventService,
-    IGameCreditsConfig gameCreditsConfig)
+    IGameCreditsConfig gameCreditsConfig,
+    ReporterFriendshipService reporterFriendshipService)
 {
     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> DayProcessLocks = new();
     private IGameCreditsConfig Credits => gameCreditsConfig;
@@ -561,6 +562,14 @@ public class PlayerGameService(
         Guid viewerId,
         CancellationToken ct)
     {
+        var reporter = OffworldNewsReporterSocial.TryGetByUsername(username);
+        if (reporter is not null)
+        {
+            var (status, friendshipId) =
+                await reporterFriendshipService.GetFriendshipStatusAsync(viewerId, reporter.Slug, ct);
+            return OffworldNewsReporterProfileMapper.ToPlayerProfile(reporter, status, friendshipId);
+        }
+
         var normalized = username.Trim().ToLowerInvariant();
         var player = await db.Players.FirstOrDefaultAsync(p => p.Username.ToLower() == normalized, ct);
         if (player is null)
@@ -771,8 +780,14 @@ public class PlayerGameService(
             }
         }
 
+        var reporterFriends = await reporterFriendshipService.GetFriendSummariesAsync(playerId, ct);
+        var mergedFriends = friends
+            .Concat(reporterFriends)
+            .OrderBy(f => f.Username, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
         return new FriendsListResponse(
-            friends.OrderBy(f => f.Username, StringComparer.OrdinalIgnoreCase).ToList(),
+            mergedFriends,
             incoming.OrderBy(f => f.Username, StringComparer.OrdinalIgnoreCase).ToList(),
             outgoing.OrderBy(f => f.Username, StringComparer.OrdinalIgnoreCase).ToList());
     }
@@ -786,6 +801,12 @@ public class PlayerGameService(
         if (normalized is null)
         {
             return (false, ProfileNumberFormats.ValidationMessage);
+        }
+
+        var reporter = OffworldNewsReporterSocial.TryGetByProfileNumber(normalized);
+        if (reporter is not null)
+        {
+            return await reporterFriendshipService.AddFriendAsync(playerId, reporter.Slug, ct);
         }
 
         var target = await db.Players.AsNoTracking()
@@ -861,6 +882,13 @@ public class PlayerGameService(
         Guid friendshipId,
         CancellationToken ct)
     {
+        var reporterLink = await db.ReporterFriendships.AsNoTracking()
+            .AnyAsync(f => f.Id == friendshipId && f.PlayerId == playerId, ct);
+        if (reporterLink)
+        {
+            return await reporterFriendshipService.RemoveFriendAsync(playerId, friendshipId, ct);
+        }
+
         var friendship = await db.Friendships.FirstOrDefaultAsync(
             f => f.Id == friendshipId && (f.PlayerId == playerId || f.FriendId == playerId),
             ct);
@@ -944,28 +972,40 @@ public class PlayerGameService(
                         (f.PlayerId == playerId || f.FriendId == playerId))
             .ToListAsync(ct);
 
-        if (friendships.Count == 0)
+        var friends = new List<ProfileFriendDto>();
+        if (friendships.Count > 0)
         {
-            return [];
-        }
+            var otherIds = friendships
+                .Select(f => f.PlayerId == playerId ? f.FriendId : f.PlayerId)
+                .Distinct()
+                .ToList();
 
-        var otherIds = friendships
-            .Select(f => f.PlayerId == playerId ? f.FriendId : f.PlayerId)
-            .Distinct()
-            .ToList();
+            var players = await db.Players.AsNoTracking()
+                .Where(p => otherIds.Contains(p.Id))
+                .ToListAsync(ct);
 
-        var players = await db.Players.AsNoTracking()
-            .Where(p => otherIds.Contains(p.Id))
-            .OrderBy(p => p.Username)
-            .ToListAsync(ct);
-
-        return players
-            .Select(p => new ProfileFriendDto(
+            friends.AddRange(players.Select(p => new ProfileFriendDto(
                 p.Id,
                 p.Username,
                 p.ProfileNumber,
                 p.ProfileMood,
-                string.Empty))
+                string.Empty)));
+        }
+
+        foreach (var reporter in await reporterFriendshipService.GetFriendSummariesAsync(playerId, ct))
+        {
+            friends.Add(new ProfileFriendDto(
+                Guid.Empty,
+                reporter.Username,
+                reporter.ProfileNumber,
+                reporter.Mood,
+                string.Empty,
+                IsReporter: true,
+                ReporterSlug: reporter.ReporterSlug));
+        }
+
+        return friends
+            .OrderBy(f => f.Username, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 

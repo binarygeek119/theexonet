@@ -9,7 +9,7 @@ import {
 } from "./currency.js";
 import { initPlayerMessaging } from "./player-messages.js";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
-import { initExonet } from "./exonet.js?v=20260601-offworld-images";
+import { initExonet } from "./exonet.js?v=20260601-reporter-social";
 
 const api = new RavaApi(API_BASE_URL);
 
@@ -1023,8 +1023,8 @@ function renderProfileFriends(profile) {
     const name = document.createElement("button");
     name.type = "button";
     name.className = "profile-friend-name";
-    name.textContent = friend.username;
-    name.addEventListener("click", () => openProfile(friend.username));
+    name.textContent = friend.isReporter ? `${friend.username} · ONN` : friend.username;
+    name.addEventListener("click", () => openProfile(profileOpenKey(friend)));
 
     const number = document.createElement("span");
     number.className = "profile-friend-number";
@@ -1034,15 +1034,25 @@ function renderProfileFriends(profile) {
 
     const status = document.createElement("p");
     status.className = "profile-friend-status";
-    status.textContent = formatPublicStatus(friend.publicStatus);
+    status.textContent = friend.isReporter
+      ? "ONN correspondent"
+      : formatPublicStatus(friend.publicStatus);
 
     const mood = document.createElement("p");
     mood.className = "profile-friend-mood";
-    mood.textContent = friend.mood || "Ready to mine.";
+    mood.textContent = friend.mood || (friend.isReporter ? "On assignment." : "Ready to mine.");
 
     item.append(head, status, mood);
     els.profileFriendsList.appendChild(item);
   }
+}
+
+function profileOpenKey(profile) {
+  if (profile?.isReporter && profile.reporterSlug) {
+    return profile.reporterSlug;
+  }
+
+  return profile?.username ?? "";
 }
 
 function renderProfile(profile) {
@@ -1050,8 +1060,9 @@ function renderProfile(profile) {
   applyProfileTheme();
   renderProfileAvatar(profile);
   applyProfileBannerBackground(els.profileBanner, profile.profileBackgroundUrl);
-  els.profileUsername.textContent = profile.username;
-  els.profileMoodDisplay.textContent = profile.mood || "Ready to mine.";
+  const displayName = profile.isReporter ? profile.username : profile.username;
+  els.profileUsername.textContent = profile.isReporter ? `${displayName} · ONN` : displayName;
+  els.profileMoodDisplay.textContent = profile.mood || (profile.isReporter ? "On assignment." : "Ready to mine.");
   els.profileNumber.textContent = profile.profileNumber || "---";
   els.profileSidebarNumber.textContent = profile.profileNumber || "---";
   const signedUp = formatProfileDate(profile.memberSince);
@@ -1060,16 +1071,33 @@ function renderProfile(profile) {
   setProfileText(els.profileAboutView, profile.aboutMe, "No bio yet.");
   setProfileText(els.profileInterestsView, profile.interests, "Nothing listed yet.");
   setProfileText(els.profileMusicView, profile.music, "Silence in the void.");
-  els.profileSocialView.innerHTML = renderSocialLinksHtml(profile);
-  els.profileSocialView.classList.toggle("empty", !hasSocialLinks(profile));
-  els.profileMineName.textContent = profile.mineName ?? "---";
-  els.profileGameDay.textContent = String(profile.currentGameDay ?? "---");
-  setRaxHtml(els.profileCredits, profile.credits ?? 0);
-  els.profileWorkers.textContent = String(profile.workerCount ?? 0);
-  els.profileZones.textContent = String(profile.zoneCount ?? 0);
+  if (profile.isReporter) {
+    const onnPath = profile.onnProfilePath || `sites/offworld-news/reporters/${profile.reporterSlug}`;
+    els.profileSocialView.innerHTML = `<p class="profile-reporter-links"><button type="button" class="btn ghost profile-reporter-link" data-open-onn-bureau>Open ONN bureau profile →</button></p>`;
+    els.profileSocialView.classList.remove("empty");
+    els.profileSocialView.querySelector("[data-open-onn-bureau]")?.addEventListener("click", () => {
+      exonet.open(onnPath);
+    });
+  } else {
+    els.profileSocialView.innerHTML = renderSocialLinksHtml(profile);
+    els.profileSocialView.classList.toggle("empty", !hasSocialLinks(profile));
+  }
+  if (profile.isReporter) {
+    els.profileMineName.textContent = profile.mineName ?? "Offworld News Network";
+    els.profileGameDay.textContent = "—";
+    setRaxHtml(els.profileCredits, 0);
+    els.profileWorkers.textContent = "—";
+    els.profileZones.textContent = "—";
+  } else {
+    els.profileMineName.textContent = profile.mineName ?? "---";
+    els.profileGameDay.textContent = String(profile.currentGameDay ?? "---");
+    setRaxHtml(els.profileCredits, profile.credits ?? 0);
+    els.profileWorkers.textContent = String(profile.workerCount ?? 0);
+    els.profileZones.textContent = String(profile.zoneCount ?? 0);
+  }
 
   const isOwner = Boolean(profile.isOwner);
-  setHidden(els.profileCustomizeBtn, !isOwner);
+  setHidden(els.profileCustomizeBtn, !isOwner || profile.isReporter);
   if (isOwner) {
     populateProfileEditForm(profile);
     renderProfileEditAvatar(profile);
@@ -1181,13 +1209,15 @@ function renderProfileFriendPanel(profile) {
 
   const status = profile.friendshipStatus ?? "none";
   setHidden(els.profileAddFriendBtn, status !== "none");
-  setHidden(els.profileAcceptFriendBtn, status !== "pending_incoming");
-  setHidden(els.profileMessageFriendBtn, status !== "accepted");
+  setHidden(els.profileAcceptFriendBtn, status !== "pending_incoming" || profile.isReporter);
+  setHidden(els.profileMessageFriendBtn, status !== "accepted" || profile.isReporter);
   setHidden(els.profileRemoveFriendBtn, !["pending_outgoing", "pending_incoming", "accepted"].includes(status));
 
   switch (status) {
     case "accepted":
-      els.profileFriendStatus.textContent = `${profile.username} is your friend.`;
+      els.profileFriendStatus.textContent = profile.isReporter
+        ? `${profile.username} is on your friends list.`
+        : `${profile.username} is your friend.`;
       els.profileRemoveFriendBtn.textContent = "Remove Friend";
       break;
     case "pending_outgoing":
@@ -1244,7 +1274,10 @@ function createFriendItem(
   name.type = "button";
   name.className = "friend-item-name btn ghost";
   name.textContent = friend.username;
-  name.addEventListener("click", () => openProfile(friend.username));
+  name.addEventListener("click", () => openProfile(profileOpenKey(friend)));
+  if (friend.isReporter) {
+    name.textContent = `${friend.username} · ONN`;
+  }
 
   const number = document.createElement("span");
   number.className = "friend-item-number";
@@ -1254,7 +1287,7 @@ function createFriendItem(
 
   const mood = document.createElement("div");
   mood.className = "friend-item-mood";
-  mood.textContent = friend.mood || "Ready to mine.";
+  mood.textContent = friend.mood || (friend.isReporter ? "ONN correspondent" : "Ready to mine.");
 
   item.append(head, mood);
 
@@ -1262,7 +1295,7 @@ function createFriendItem(
     const actions = document.createElement("div");
     actions.className = "friend-item-actions";
 
-    if (showMessage) {
+    if (showMessage && !friend.isReporter) {
       const messageBtn = document.createElement("button");
       messageBtn.type = "button";
       messageBtn.className = "btn primary";

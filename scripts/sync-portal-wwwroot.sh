@@ -32,6 +32,7 @@ for rel in \
   css/admin.css \
   css/moderator.css \
   js/admin.js \
+  js/admin-testing-mode.js \
   js/moderator.js \
   js/api.js \
   js/api-status.js \

@@ -57,6 +57,7 @@ verify_portal_files() {
   for required in \
     "${PUBLISH_DIR}/wwwroot/admin.html" \
     "${PUBLISH_DIR}/wwwroot/moderator.html" \
+    "${PUBLISH_DIR}/wwwroot/js/admin-testing-mode.js" \
     "${PUBLISH_DIR}/wwwroot/js/currency.js" \
     "${PUBLISH_DIR}/wwwroot/images/currency.svg"; do
     if [ ! -f "$required" ]; then
@@ -74,6 +75,7 @@ restart_portals() {
     curl -sf http://127.0.0.1:7000/admin.html >/dev/null && echo "Admin portal: OK" || echo "Admin portal: unreachable"
     curl -sf http://127.0.0.1:7050/moderator.html >/dev/null && echo "Moderator portal: OK" || echo "Moderator portal: unreachable"
     curl -sf http://127.0.0.1:7000/js/currency.js >/dev/null && echo "Admin currency.js: OK" || echo "Admin currency.js: missing"
+    curl -sf http://127.0.0.1:7000/js/admin-testing-mode.js >/dev/null && echo "Admin admin-testing-mode.js: OK" || echo "Admin admin-testing-mode.js: missing"
     curl -sf http://127.0.0.1:7000/images/currency.svg >/dev/null && echo "Admin currency.svg: OK" || echo "Admin currency.svg: missing"
   fi
 }
@@ -107,6 +109,14 @@ dotnet publish "${SERVER_DIR}/Rava.Moderator/Rava.Moderator.csproj" \
   --configuration Release \
   --output "${work}/publish-moderator"
 
+bash "${SCRIPT_DIR}/sync-portal-wwwroot.sh" \
+  "${SERVER_DIR}/Rava.Api/html" \
+  "${work}/publish-admin/wwwroot"
+
+bash "${SCRIPT_DIR}/sync-portal-wwwroot.sh" \
+  "${SERVER_DIR}/Rava.Api/html" \
+  "${work}/publish-moderator/wwwroot"
+
 rsync -a \
   --exclude 'appsettings.json' \
   --exclude 'appsettings.Development.json' \
@@ -124,6 +134,7 @@ for required in \
   "${PUBLISH_DIR}/Rava.Moderator.dll" \
   "${PUBLISH_DIR}/wwwroot/admin.html" \
   "${PUBLISH_DIR}/wwwroot/moderator.html" \
+  "${PUBLISH_DIR}/wwwroot/js/admin-testing-mode.js" \
   "${PUBLISH_DIR}/wwwroot/js/currency.js" \
   "${PUBLISH_DIR}/wwwroot/images/currency.svg"; do
   if [ ! -f "$required" ]; then

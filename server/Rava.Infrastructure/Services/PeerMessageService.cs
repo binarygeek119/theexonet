@@ -63,6 +63,11 @@ public class PeerMessageService(
             return (null, "You cannot message yourself.");
         }
 
+        if (toPlayerId == Guid.Empty)
+        {
+            return (null, "ONN correspondents are not available for direct miner messages.");
+        }
+
         var recipientExists = await db.Players.AsNoTracking()
             .AnyAsync(p => p.Id == toPlayerId, ct);
         if (!recipientExists)

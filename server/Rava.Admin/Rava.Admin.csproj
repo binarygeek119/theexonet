@@ -15,6 +15,7 @@
     <Content Include="..\Rava.Api\html\css\app.css" Link="wwwroot\css\app.css" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\css\admin.css" Link="wwwroot\css\admin.css" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\admin.js" Link="wwwroot\js\admin.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Rava.Api\html\js\admin-testing-mode.js" Link="wwwroot\js\admin-testing-mode.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\api.js" Link="wwwroot\js\api.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\api-status.js" Link="wwwroot\js\api-status.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\config.js" Link="wwwroot\js\config.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

@@ -23,7 +23,7 @@ Option A — install SDK 10 (recommended for manual deploy-rava-portals):
   sudo apt-get install -y dotnet-sdk-10.0
 
 Option B — let GitHub Actions deploy DLLs + wwwroot (no SDK on server needed):
-  Push to main and wait for "Deploy game html and portals" to succeed.
+  Push to main and wait for the "RAVA CI" workflow to succeed.
 
 Option C — sync portal static files only (wwwroot, no DLL rebuild):
   sudo deploy-rava-portals --static-only

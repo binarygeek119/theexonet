@@ -218,7 +218,10 @@ public record PlayerProfileResponse(
     Guid? CompanyNameListingId = null,
     decimal? CompanyNameListingPrice = null,
     IReadOnlyList<ReclaimableCompanyNameDto>? ReclaimableCompanyNames = null,
-    decimal CompanyNameReclaimFee = 0);
+    decimal CompanyNameReclaimFee = 0,
+    bool IsReporter = false,
+    string ReporterSlug = "",
+    string OnnProfilePath = "");
 
 public record UpdateCompanyNameRequest(string CompanyName);
 
@@ -253,7 +256,9 @@ public record PublicProfileSummaryDto(
     int WorkerCount,
     int ZoneCount,
     decimal CompanyValue,
-    int Rank = 0);
+    int Rank = 0,
+    bool IsReporter = false,
+    string ReporterSlug = "");
 
 public record PublicProfileDetailDto(
     string Username,
@@ -273,7 +278,10 @@ public record PublicProfileDetailDto(
     int CurrentGameDay,
     int WorkerCount,
     int ZoneCount,
-    decimal CompanyValue);
+    decimal CompanyValue,
+    bool IsReporter = false,
+    string ReporterSlug = "",
+    string OnnProfilePath = "");
 
 public record PublicProfileSearchResponse(
     string Query,
@@ -290,7 +298,9 @@ public record ProfileFriendDto(
     string Username,
     string ProfileNumber,
     string Mood,
-    string PublicStatus);
+    string PublicStatus,
+    bool IsReporter = false,
+    string ReporterSlug = "");
 
 public record UpdatePlayerProfileRequest(
     string Mood,
@@ -310,7 +320,9 @@ public record FriendSummaryDto(
     string ProfileNumber,
     string Mood,
     string Status,
-    DateTime Since);
+    DateTime Since,
+    bool IsReporter = false,
+    string ReporterSlug = "");
 
 public record FriendsListResponse(
     IReadOnlyList<FriendSummaryDto> Friends,

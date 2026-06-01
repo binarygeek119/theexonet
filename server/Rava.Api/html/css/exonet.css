@@ -566,6 +566,20 @@
   margin-top: 14px;
 }
 
+.exonet-onn-reporters-intro {
+  margin-bottom: 4px;
+}
+
+.exonet-news-reporter-teaser {
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .exonet-news-archives {
   display: grid;
   gap: 10px;

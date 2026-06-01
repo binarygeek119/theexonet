@@ -14,6 +14,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<MarketPriceHistoryEntity> MarketPriceHistory => Set<MarketPriceHistoryEntity>();
     public DbSet<GameWorldEntity> GameWorld => Set<GameWorldEntity>();
     public DbSet<FriendshipEntity> Friendships => Set<FriendshipEntity>();
+    public DbSet<ReporterFriendshipEntity> ReporterFriendships => Set<ReporterFriendshipEntity>();
     public DbSet<MineGroupEntity> MineGroups => Set<MineGroupEntity>();
     public DbSet<MarketListingEntity> MarketListings => Set<MarketListingEntity>();
     public DbSet<TradeAuctionEntity> TradeAuctions => Set<TradeAuctionEntity>();
@@ -101,6 +102,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(f => f.Friend)
                 .WithMany()
                 .HasForeignKey(f => f.FriendId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ReporterFriendshipEntity>(e =>
+        {
+            e.HasIndex(f => new { f.PlayerId, f.ReporterSlug }).IsUnique();
+            e.HasOne(f => f.Player)
+                .WithMany()
+                .HasForeignKey(f => f.PlayerId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

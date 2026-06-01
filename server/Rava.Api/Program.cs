@@ -115,6 +115,7 @@ builder.Services.AddScoped<PlayerProfileUpgrader>();
 builder.Services.AddScoped<CompanyNameService>();
 builder.Services.AddScoped<TradeAuctionService>();
 builder.Services.AddScoped<PublicProfileService>();
+builder.Services.AddScoped<ReporterFriendshipService>();
 builder.Services.AddHttpClient(OpenAiOffworldNewsGenerator.HttpClientName, client =>
 {
     client.Timeout = TimeSpan.FromMinutes(3);

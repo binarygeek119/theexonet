@@ -563,8 +563,38 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
 
     const profile = await api.getPublicProfileByUsername(username);
     const avatarHtml = profile.profileImageUrl
-      ? `<img class="exonet-profile-avatar" src="${escapeHtml(profile.profileImageUrl)}" alt="">`
+      ? `<img class="exonet-profile-avatar" src="${escapeHtml(resolveExonetAssetUrl(profile.profileImageUrl))}" alt="">`
       : `<div class="exonet-profile-initials">${escapeHtml(profileInitials(profile.username))}</div>`;
+
+    if (profile.isReporter) {
+      const profileSlug = profile.reporterSlug || username;
+      const onnPath = profile.onnProfilePath || offworldNewsReporterPath(profileSlug);
+      content.innerHTML = `
+        ${pageHeader(`${profile.username} · ONN`, `profile/${profileSlug}`)}
+        <div class="exonet-panel exonet-profile-card exonet-profile-card-reporter">
+          <div class="exonet-profile-head">
+            ${avatarHtml}
+            <div>
+              <h3>${escapeHtml(profile.username)}</h3>
+              <p class="exonet-muted">${escapeHtml(profile.profileNumber ?? "—")} · ${escapeHtml(profile.companyName ?? "Offworld News Network")}</p>
+              <p>${escapeHtml(profile.mood || "On assignment.")}</p>
+            </div>
+          </div>
+          <p><strong>About</strong><br>${escapeHtml(profile.aboutMe || "No bio published.")}</p>
+          <p><strong>Beats &amp; specialties</strong><br>${escapeHtml(profile.interests || "Nothing listed.")}</p>
+          <p><strong>Desk</strong><br>${escapeHtml(profile.music || "ONN relay desk")}</p>
+          <div class="exonet-reporter-directory-actions">
+            <button type="button" class="btn primary" data-open-onn-profile>Open ONN bureau profile →</button>
+            <button type="button" class="btn ghost" data-nav-reporter-directory>Reporter directory →</button>
+          </div>
+          <p class="exonet-muted">ONN correspondents use miner profile numbers so you can add them as friends in-game. They do not receive miner direct messages.</p>
+        </div>`;
+      content.querySelector("[data-open-onn-profile]")?.addEventListener("click", () => navigate(onnPath));
+      content.querySelector("[data-nav-reporter-directory]")?.addEventListener("click", () => {
+        navigate(`reporters/${profileSlug}`);
+      });
+      return;
+    }
 
     content.innerHTML = `
       ${pageHeader(`${profile.username}`, `profile/${profile.username}`)}
@@ -625,9 +655,9 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
           .map(
             (entry) => `
           <button type="button" class="exonet-tile" data-profile="${escapeHtml(entry.username)}">
-            <strong>${escapeHtml(entry.username)}</strong>
-            <span>${escapeHtml(entry.companyName ?? "Unknown mine")}</span>
-            <span>${escapeHtml(entry.profileNumber ?? "—")} · ${formatRaxPlain(entry.companyValue ?? 0)}</span>
+            <strong>${escapeHtml(entry.username)}${entry.isReporter ? " · ONN" : ""}</strong>
+            <span>${escapeHtml(entry.companyName ?? (entry.isReporter ? "Offworld News Network" : "Unknown mine"))}</span>
+            <span>${escapeHtml(entry.profileNumber ?? "—")}${entry.isReporter ? "" : ` · ${formatRaxPlain(entry.companyValue ?? 0)}`}</span>
           </button>`,
           )
           .join("")}
@@ -673,21 +703,28 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     });
   }
 
+  /** Player-facing masthead never shows internal edition source (e.g. openai / template). */
+  function offworldNewsPlayerSourceLabel() {
+    return "";
+  }
+
   function renderReporterDirectoryCards(reporters) {
     return reporters
-      .map(
-        (reporter) => `
+      .map((reporter) => {
+        const avatarUrl = resolveExonetAssetUrl(reporter.avatarUrl);
+        const backgroundUrl = resolveExonetAssetUrl(reporter.backgroundUrl);
+        return `
         <button type="button" class="exonet-reporter-directory-card" data-reporter-directory="${escapeHtml(reporter.slug)}">
-          <div class="exonet-reporter-directory-banner" style="background-image:url('${escapeHtml(reporter.backgroundUrl)}')"></div>
+          <div class="exonet-reporter-directory-banner" style="background-image:url('${escapeHtml(backgroundUrl)}')"></div>
           <div class="exonet-reporter-directory-body">
-            <img class="exonet-reporter-directory-avatar" src="${escapeHtml(reporter.avatarUrl)}" alt="">
+            <img class="exonet-reporter-directory-avatar" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(reporter.displayName)}">
             <strong>${escapeHtml(reporter.displayName)}</strong>
             <span class="exonet-news-reporter-personality">${escapeHtml(reporter.personality ?? "")}</span>
             <span class="exonet-muted">@${escapeHtml(reporter.handle)} · ${escapeHtml(reporter.beat)}</span>
             <span>${escapeHtml(reporter.directoryTeaser ?? reporter.directoryBio ?? "")}</span>
           </div>
-        </button>`,
-      )
+        </button>`;
+      })
       .join("");
   }
 
@@ -709,8 +746,8 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
         content.innerHTML = `
           ${pageHeader(reporter.displayName, `reporters/${slug}`)}
           <div class="exonet-panel exonet-reporter-directory-profile">
-            <div class="exonet-reporter-directory-hero" style="background-image:url('${escapeHtml(reporter.backgroundUrl)}')">
-              <img class="exonet-reporter-directory-hero-avatar" src="${escapeHtml(reporter.avatarUrl)}" alt="">
+            <div class="exonet-reporter-directory-hero" style="background-image:url('${escapeHtml(resolveExonetAssetUrl(reporter.backgroundUrl))}')">
+              <img class="exonet-reporter-directory-hero-avatar" src="${escapeHtml(resolveExonetAssetUrl(reporter.avatarUrl))}" alt="${escapeHtml(reporter.displayName)}">
             </div>
             <div class="exonet-reporter-directory-hero-copy">
               <h3>${escapeHtml(reporter.displayName)}</h3>
@@ -721,6 +758,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
               <p>${escapeHtml(reporter.directoryBio ?? "")}</p>
               ${specialties ? `<div class="exonet-news-reporter-tags">${specialties}</div>` : ""}
               <div class="exonet-reporter-directory-actions">
+                <button type="button" class="btn primary" data-open-miner-profile>View miner profile →</button>
                 <button type="button" class="btn primary" data-open-onn-profile>Open ONN bureau profile →</button>
                 <button type="button" class="btn ghost" data-back-reporters>← Reporter Directory</button>
               </div>
@@ -730,6 +768,9 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
             <p class="exonet-muted">This is the public Exonet directory entry. Story archives and filed pieces live on the Offworld News Network site.</p>
           </div>`;
 
+        content.querySelector("[data-open-miner-profile]")?.addEventListener("click", () => {
+          navigate(`profile/${slug}`);
+        });
         content.querySelector("[data-open-onn-profile]")?.addEventListener("click", () => {
           navigate(reporter.onnProfilePath ?? offworldNewsReporterPath(slug));
         });
@@ -923,20 +964,42 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     return `${plain.slice(0, maxLength).trim()}…`;
   }
 
-  function resolveOffworldNewsImageUrl(imageUrl) {
-    if (!imageUrl) {
+  function resolveExonetAssetUrl(url) {
+    if (!url) {
       return "";
     }
 
-    if (/^https?:\/\//i.test(imageUrl)) {
-      return imageUrl;
+    if (/^https?:\/\//i.test(url)) {
+      return url;
     }
 
-    if (imageUrl.startsWith("/exonet/offworld-news/images/") && API_BASE_URL) {
-      return `${API_BASE_URL}${imageUrl}`;
+    if (API_BASE_URL && url.startsWith("/exonet/")) {
+      return `${API_BASE_URL}${url}`;
     }
 
-    return imageUrl;
+    return url;
+  }
+
+  function resolveOffworldNewsImageUrl(imageUrl) {
+    return resolveExonetAssetUrl(imageUrl);
+  }
+
+  function renderOnnReporterCard(reporter) {
+    const avatarUrl = resolveExonetAssetUrl(reporter.avatarUrl);
+    const backgroundUrl = resolveExonetAssetUrl(reporter.backgroundUrl);
+
+    return `
+      <button type="button" class="exonet-reporter-directory-card" data-news-reporter="${escapeHtml(reporter.slug)}">
+        <div class="exonet-reporter-directory-banner" style="background-image:url('${escapeHtml(backgroundUrl)}')"></div>
+        <div class="exonet-reporter-directory-body">
+          <img class="exonet-reporter-directory-avatar" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(reporter.displayName)}">
+          <strong>${escapeHtml(reporter.displayName)}</strong>
+          <span class="exonet-muted">${escapeHtml(reporter.title)}</span>
+          <span class="exonet-muted">${escapeHtml(reporter.beat)} · ${escapeHtml(reporter.bureau)}</span>
+          <span class="exonet-news-reporter-teaser">${escapeHtml(reporter.onnBio ?? reporter.directoryBio ?? reporter.directoryTeaser ?? "")}</span>
+          <span class="exonet-news-read-more">View profile →</span>
+        </div>
+      </button>`;
   }
 
   function renderNewsImage(imageUrl, className = "exonet-news-thumb", aspect = "") {
@@ -1022,7 +1085,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
   function renderOffworldNewsEditionPage(edition, { archiveDate = "", pageSlug, backLabel = "", backSlug = "" } = {}) {
     const stories = edition.stories ?? [];
     const editionLabel = formatNewsEditionDate(edition.editionDate ?? archiveDate);
-    const sourceLabel = "Relay bulletin edition";
+    const sourceLabel = offworldNewsPlayerSourceLabel();
     const featured = stories[0];
     const rest = stories.slice(1);
 
@@ -1035,7 +1098,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
         <section class="exonet-news-list">
           ${rest.map((story) => renderOffworldNewsStoryCard(story, false, archiveDate)).join("")}
         </section>
-        <p class="exonet-news-footer">${archiveDate ? "Archived ONN relay edition" : "New edition daily at UTC midnight · Click any story for the full article"}</p>
+        <p class="exonet-news-footer">${archiveDate ? "Archived ONN relay edition" : "New edition daily at UTC midnight · Click any story for the full article"} · <button type="button" class="exonet-link-btn" data-news-reporters>Reporters</button></p>
       </div>`;
 
     content.querySelector("[data-news-back]")?.addEventListener("click", () => navigate(backSlug));
@@ -1049,41 +1112,25 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     const reporters = roster.reporters ?? [];
 
     content.innerHTML = `
-      ${pageHeader("Offworld News Network", "sites/offworld-news/reporters")}
+      ${pageHeader("Reporters", "sites/offworld-news/reporters")}
       <div class="exonet-news-site">
-        ${renderOffworldNewsMasthead("ONN correspondent roster", "", reporters.length, { showArchivesButton: true, showReportersButton: false })}
+        ${renderOffworldNewsMasthead("Reporters", "", reporters.length, { showArchivesButton: true, showReportersButton: false })}
         <button type="button" class="exonet-news-back btn ghost" data-news-back>← Today's edition</button>
-        <div class="exonet-panel">
-          <h3>Bureau profiles</h3>
-          <p class="exonet-muted">Newsroom pages with recent filed stories. For the public searchable directory (like miner profiles), use <button type="button" class="exonet-link-btn" data-open-directory>exo://reporters</button>.</p>
+        <div class="exonet-panel exonet-onn-reporters-intro">
+          <p class="exonet-muted">Correspondents filing for the Offworld News Network across the belt. Select a profile to read their bureau bio and recent stories.</p>
           <form id="exonet-onn-reporter-search" class="exonet-search-row">
-            <input id="exonet-onn-reporter-query" type="search" placeholder="Search ONN roster…" required>
+            <input id="exonet-onn-reporter-query" type="search" placeholder="Search by name, beat, or bureau…" required>
             <button type="submit" class="btn primary">Search</button>
           </form>
           <div id="exonet-onn-reporter-results"></div>
         </div>
         <div class="exonet-reporter-directory-grid exonet-onn-reporter-grid">
-          ${reporters
-            .map(
-              (reporter) => `
-            <button type="button" class="exonet-reporter-directory-card" data-news-reporter="${escapeHtml(reporter.slug)}">
-              <div class="exonet-reporter-directory-banner" style="background-image:url('${escapeHtml(reporter.backgroundUrl)}')"></div>
-              <div class="exonet-reporter-directory-body">
-                <img class="exonet-reporter-directory-avatar" src="${escapeHtml(reporter.avatarUrl)}" alt="">
-                <strong>${escapeHtml(reporter.displayName)}</strong>
-                <span class="exonet-news-reporter-personality">${escapeHtml(reporter.personality ?? "")}</span>
-                <span class="exonet-muted">${escapeHtml(reporter.title)}</span>
-                <span class="exonet-muted">${escapeHtml(reporter.beat)} · ${escapeHtml(reporter.bureau)}</span>
-              </div>
-            </button>`,
-            )
-            .join("")}
+          ${reporters.map((reporter) => renderOnnReporterCard(reporter)).join("")}
         </div>
       </div>`;
 
     content.querySelector("[data-news-back]")?.addEventListener("click", () => navigate("sites/offworld-news"));
     bindOffworldNewsArchivesButton(content);
-    content.querySelector("[data-open-directory]")?.addEventListener("click", () => navigate("reporters"));
     bindOffworldNewsReporterLinks(content);
 
     const resultsHost = content.querySelector("#exonet-onn-reporter-results");
@@ -1158,14 +1205,14 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
         .join("");
 
       content.innerHTML = `
-        ${pageHeader("Offworld News Network", pageSlug)}
+        ${pageHeader(reporter.displayName, pageSlug)}
         <div class="exonet-news-site">
-          ${renderOffworldNewsMasthead(reporter.network ?? "Offworld News Network", "", null, { showArchivesButton: true })}
-          <button type="button" class="exonet-news-back btn ghost" data-news-back>← Today's edition</button>
+          ${renderOffworldNewsMasthead("Reporters", "", null, { showArchivesButton: true, showReportersButton: false })}
+          <button type="button" class="exonet-news-back btn ghost" data-news-reporters-list>← All reporters</button>
           <section class="exonet-news-reporter-profile">
-            <div class="exonet-news-reporter-banner" style="background-image:url('${escapeHtml(reporter.backgroundUrl)}')"></div>
+            <div class="exonet-news-reporter-banner" style="background-image:url('${escapeHtml(resolveExonetAssetUrl(reporter.backgroundUrl))}')"></div>
             <div class="exonet-news-reporter-main">
-              <img class="exonet-news-reporter-avatar" src="${escapeHtml(reporter.avatarUrl)}" alt="">
+              <img class="exonet-news-reporter-avatar" src="${escapeHtml(resolveExonetAssetUrl(reporter.avatarUrl))}" alt="${escapeHtml(reporter.displayName)}">
               <div class="exonet-news-reporter-copy">
                 <h2 class="exonet-news-reporter-name">${escapeHtml(reporter.displayName)}</h2>
                 <p class="exonet-news-reporter-personality">${escapeHtml(reporter.personality ?? "")}</p>
@@ -1173,9 +1220,6 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
                 <p class="exonet-news-reporter-meta">${escapeHtml(reporter.beat)} desk · ${escapeHtml(reporter.bureau)}</p>
                 <p class="exonet-news-reporter-bio">${escapeHtml(reporter.onnBio ?? reporter.directoryBio ?? "")}</p>
                 ${specialties ? `<div class="exonet-news-reporter-tags">${specialties}</div>` : ""}
-                <div class="exonet-reporter-directory-actions">
-                  <button type="button" class="btn ghost" data-open-directory-profile>Directory profile (@${escapeHtml(reporter.handle)}) →</button>
-                </div>
               </div>
             </div>
           </section>
@@ -1200,11 +1244,8 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
           </section>
         </div>`;
 
-      content.querySelector("[data-news-back]")?.addEventListener("click", () => navigate("sites/offworld-news"));
-      bindOffworldNewsToolbar(content);
-      content.querySelector("[data-open-directory-profile]")?.addEventListener("click", () => {
-        navigate(reporter.directoryProfilePath ?? `reporters/${reporterSlug}`);
-      });
+      content.querySelector("[data-news-reporters-list]")?.addEventListener("click", () => navigate("sites/offworld-news/reporters"));
+      bindOffworldNewsArchivesButton(content);
       content.querySelectorAll("[data-news-story-link]").forEach((button) => {
         button.addEventListener("click", () => navigate(button.dataset.newsStoryLink));
       });
@@ -1212,8 +1253,8 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       content.innerHTML = `
         ${pageHeader("Offworld News Network", pageSlug)}
         <div class="exonet-panel"><p class="exonet-muted">Reporter not found on the ONN roster.</p></div>
-        <button type="button" class="btn ghost" data-news-back>← Today's edition</button>`;
-      content.querySelector("[data-news-back]")?.addEventListener("click", () => navigate("sites/offworld-news"));
+        <button type="button" class="btn ghost" data-news-reporters-list>← All reporters</button>`;
+      content.querySelector("[data-news-reporters-list]")?.addEventListener("click", () => navigate("sites/offworld-news/reporters"));
     }
   }
 

@@ -120,16 +120,25 @@ curl -s http://127.0.0.1:6000/api/dashboard
 
 ## 6. Trigger a deploy
 
-**Full stack** (API, status, admin, moderator, docs, game html): push to `main` under `server/` or run **Actions → Build website → Run workflow**. Requires `ENABLE_PRODUCTION_DEPLOY=true` for the **Deploy to production** job.
+One workflow handles everything: **Actions → RAVA CI** (file: `.github/workflows/build-website.yml`).
 
-**Fast path** (game html + status + admin/moderator): push changes under `server/Rava.Api/html/`, `server/Rava.Status/`, `server/Rava.Admin/`, or `server/Rava.Moderator/` — **Actions → Deploy game html and portals** runs automatically. It publishes `Rava.Status.dll`, `Rava.Admin.dll`, and `Rava.Moderator.dll`, syncs their `wwwroot/` assets, and restarts `rava-status`, `rava-admin`, and `rava-moderator`.
+Push to `main` under `server/` or `scripts/` (or run the workflow manually). It will:
 
-On the server you can also run:
+1. **Build and test** — restore, build, test, validate JavaScript
+2. **Publish GitHub release** — zip of `publish/` + `data/` (skipped on pull requests)
+3. **Deploy to production** — when `ENABLE_PRODUCTION_DEPLOY=true` (skipped on pull requests)
+
+Manual run options (**Run workflow**):
+
+- **skip deploy** — build + release only, no SSH/rsync to the server
+
+On the server you can also deploy without GitHub Actions:
 
 ```bash
 sudo deploy-rava-html          # game html only
 sudo deploy-rava-status        # status dashboard publish + restart
 sudo deploy-rava-portals       # admin + moderator publish + restart
+```
 
 From a git checkout on the server (e.g. `/opt/rava/rava`):
 
@@ -139,9 +148,8 @@ git pull
 sudo install-rava-scripts      # refresh /usr/local/bin helpers
 sudo deploy-rava-portals       # auto-finds ./server
 ```
-```
 
-Watch the **Deploy to production** or **Sync html, status, and admin/moderator portals** job in the Actions tab.
+Watch the **RAVA CI** workflow in the Actions tab.
 
 ## 7. Troubleshooting
 

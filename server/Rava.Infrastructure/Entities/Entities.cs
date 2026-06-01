@@ -31,6 +31,7 @@ public class PlayerEntity
     public string ProfileAvatarPreset { get; set; } = PlayerProfileDefaults.AvatarPreset;
     public string ProfileGender { get; set; } = string.Empty;
     public string ProfilePreferredPronouns { get; set; } = string.Empty;
+    public string ProfileLocale { get; set; } = string.Empty;
     public string ProfileBackgroundUrl { get; set; } = string.Empty;
     public int ProfileBackgroundRevision { get; set; }
 

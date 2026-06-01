@@ -9,7 +9,8 @@ public record RegisterRequest(
     string Password,
     string Birthday,
     string ProfileGender = "",
-    string? ProfilePreferredPronouns = null);
+    string? ProfilePreferredPronouns = null,
+    string ProfileLocale = "");
 public record LoginRequest(string Username, string Password);
 public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Token, string NewPassword);
@@ -299,6 +300,7 @@ public record PlayerProfileResponse(
     bool HasCustomProfilePhoto = false,
     string ProfileGender = "",
     string ProfilePreferredPronouns = "",
+    string ProfileLocale = "",
     string PronounSubject = "they",
     string PronounObject = "them",
     string PronounPossessive = "their",
@@ -406,7 +408,8 @@ public record UpdatePlayerProfileRequest(
     string Facebook,
     string? ProfileAvatarPreset = null,
     string? ProfileGender = null,
-    string? ProfilePreferredPronouns = null);
+    string? ProfilePreferredPronouns = null,
+    string? ProfileLocale = null);
 
 public record FriendSummaryDto(
     Guid FriendshipId,

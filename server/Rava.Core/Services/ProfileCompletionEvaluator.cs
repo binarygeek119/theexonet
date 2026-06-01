@@ -11,8 +11,9 @@ public static class ProfileCompletionEvaluator
 {
     public const string FieldGender = "gender";
     public const string FieldPreferredPronouns = "preferredPronouns";
+    public const string FieldLocale = "locale";
 
-    public static ProfileCompletionStatus Evaluate(string? gender, string? preferredPronouns)
+    public static ProfileCompletionStatus Evaluate(string? gender, string? preferredPronouns, string? locale)
     {
         var missing = new List<ProfileCompletionFieldDto>();
         var normalizedGender = ProfileGender.Normalize(gender);
@@ -25,6 +26,11 @@ public static class ProfileCompletionEvaluator
                  string.IsNullOrEmpty(ProfilePreferredPronouns.Normalize(preferredPronouns)))
         {
             missing.Add(new ProfileCompletionFieldDto(FieldPreferredPronouns));
+        }
+
+        if (string.IsNullOrEmpty(ProfileLocale.Normalize(locale)))
+        {
+            missing.Add(new ProfileCompletionFieldDto(FieldLocale));
         }
 
         return new ProfileCompletionStatus(missing.Count > 0, missing);

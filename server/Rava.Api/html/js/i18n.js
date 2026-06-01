@@ -165,10 +165,10 @@ export function wireLocaleSelector(selectEl) {
 
 export function wireLocaleSelectors() {
   if (!WEBLATE_LIVE) {
-    document.querySelectorAll(".locale-select-label").forEach((el) => {
+    document.querySelectorAll(".locale-select-label.game-locale-label").forEach((el) => {
       el.hidden = true;
     });
-    return;
   }
+
   document.querySelectorAll("[data-locale-select]").forEach((el) => wireLocaleSelector(el));
 }

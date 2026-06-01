@@ -50,7 +50,8 @@ public class PlayerGameService(
             request.Password,
             request.Birthday,
             request.ProfileGender,
-            request.ProfilePreferredPronouns);
+            request.ProfilePreferredPronouns,
+            request.ProfileLocale);
         if (validationError is not null)
         {
             return (null, null, validationError);
@@ -72,6 +73,7 @@ public class PlayerGameService(
         var profilePreferredPronouns = ProfileGender.RequiresPreferredPronouns(profileGender)
             ? ProfilePreferredPronouns.Normalize(request.ProfilePreferredPronouns)
             : string.Empty;
+        var profileLocale = ProfileLocale.Normalize(request.ProfileLocale);
 
         var player = new PlayerEntity
         {
@@ -85,6 +87,7 @@ public class PlayerGameService(
             Birthday = birthday,
             ProfileGender = profileGender,
             ProfilePreferredPronouns = profilePreferredPronouns,
+            ProfileLocale = profileLocale,
             ProfileNumber = await profileUpgrader.CreateUniqueProfileNumberAsync(ct)
         };
 
@@ -621,12 +624,20 @@ public class PlayerGameService(
             return (null, presetError);
         }
 
-        var genderError = ProfileValidator.ValidateGenderAndPronouns(
-            request.ProfileGender,
-            request.ProfilePreferredPronouns);
-        if (genderError is not null)
+        if (request.ProfileGender is not null || request.ProfilePreferredPronouns is not null)
         {
-            return (null, genderError);
+            var genderError = ProfileValidator.ValidateGenderAndPronouns(
+                request.ProfileGender ?? string.Empty,
+                request.ProfilePreferredPronouns);
+            if (genderError is not null)
+            {
+                return (null, genderError);
+            }
+        }
+
+        if (request.ProfileLocale is not null && !ProfileLocale.IsValid(request.ProfileLocale))
+        {
+            return (null, "Choose a supported interface language.");
         }
 
         var player = await db.Players.FirstOrDefaultAsync(p => p.Id == playerId, ct);
@@ -669,6 +680,17 @@ public class PlayerGameService(
         {
             player.ProfilePreferredPronouns = ProfilePreferredPronouns.Normalize(
                 request.ProfilePreferredPronouns);
+        }
+
+        if (request.ProfileLocale is not null)
+        {
+            var normalizedLocale = ProfileLocale.Normalize(request.ProfileLocale);
+            if (string.IsNullOrEmpty(normalizedLocale))
+            {
+                return (null, "Choose a supported interface language.");
+            }
+
+            player.ProfileLocale = normalizedLocale;
         }
 
         await profileUpgrader.EnsurePlayerUpgradedAsync(player, ct);
@@ -1055,7 +1077,10 @@ public class PlayerGameService(
         var logoGeneration = await ResolveCompanyLogoGenerationAsync(mine, ct);
         var pronouns = MapPronouns(player);
         var completion = isOwner
-            ? ProfileCompletionEvaluator.Evaluate(player.ProfileGender, player.ProfilePreferredPronouns)
+            ? ProfileCompletionEvaluator.Evaluate(
+                player.ProfileGender,
+                player.ProfilePreferredPronouns,
+                player.ProfileLocale)
             : new ProfileCompletionStatus(false, []);
 
         return new PlayerProfileResponse(
@@ -1099,6 +1124,7 @@ public class PlayerGameService(
             HasCustomProfilePhoto: ProfileAvatarPresets.HasCustomUpload(player.ProfileImageUrl),
             ProfileGender: player.ProfileGender,
             ProfilePreferredPronouns: player.ProfilePreferredPronouns,
+            ProfileLocale: player.ProfileLocale,
             PronounSubject: pronouns.Subject,
             PronounObject: pronouns.Object,
             PronounPossessive: pronouns.Possessive,

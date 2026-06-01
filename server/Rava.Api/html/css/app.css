@@ -847,6 +847,10 @@ body:not(.is-authenticated) .modal {
   margin-bottom: 10px;
 }
 
+.locale-select-label--auth {
+  margin-bottom: 0.75rem;
+}
+
 .login-card .locale-select-label {
   margin-bottom: 14px;
 }

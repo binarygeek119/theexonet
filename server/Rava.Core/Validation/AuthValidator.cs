@@ -17,7 +17,8 @@ public static partial class AuthValidator
         string password,
         string birthday,
         string profileGender,
-        string? profilePreferredPronouns)
+        string? profilePreferredPronouns,
+        string profileLocale)
     {
         var usernameError = ValidateUsername(username);
         if (usernameError is not null)
@@ -48,7 +49,18 @@ public static partial class AuthValidator
             return "Gender is required.";
         }
 
-        return ProfileValidator.ValidateGenderAndPronouns(profileGender, profilePreferredPronouns);
+        var genderError = ProfileValidator.ValidateGenderAndPronouns(profileGender, profilePreferredPronouns);
+        if (genderError is not null)
+        {
+            return genderError;
+        }
+
+        if (!ProfileLocale.IsValid(profileLocale))
+        {
+            return "Choose a supported interface language.";
+        }
+
+        return null;
     }
 
     public static string? ValidateBirthday(string birthday)

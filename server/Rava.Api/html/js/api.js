@@ -119,7 +119,7 @@ export class RavaApi {
     return response.json();
   }
 
-  register(username, email, password, birthday, profileGender, profilePreferredPronouns) {
+  register(username, email, password, birthday, profileGender, profilePreferredPronouns, profileLocale) {
     return this.request("/api/auth/register", {
       method: "POST",
       body: {
@@ -129,6 +129,7 @@ export class RavaApi {
         birthday,
         profileGender,
         profilePreferredPronouns: profilePreferredPronouns || null,
+        profileLocale,
       },
       auth: false,
     });

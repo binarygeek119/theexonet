@@ -10,7 +10,7 @@ import {
 import { initPlayerMessaging } from "./player-messages.js";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
 import { initExonet } from "./exonet.js?v=20260602-onn-profile-portraits";
-import { initI18n, applyTranslations, wireLocaleSelectors, t } from "./i18n.js";
+import { initI18n, applyTranslations, wireLocaleSelectors, wireLocaleSelector, getLocale, setLocale, t } from "./i18n.js";
 
 const api = new RavaApi(API_BASE_URL);
 
@@ -55,6 +55,17 @@ function resetRegisterProfileFields() {
     els.registerPronounsInput.value = "";
   }
   syncRegisterGenderUi();
+}
+
+async function applyProfileLocaleFromServer(profile) {
+  if (!profile?.isOwner || !profile.profileLocale) {
+    return;
+  }
+
+  if (getLocale() !== profile.profileLocale) {
+    await setLocale(profile.profileLocale);
+    applyTranslations(document);
+  }
 }
 
 function capitalizePronoun(word) {
@@ -182,6 +193,7 @@ const els = {
   emailGroup: document.getElementById("email-group"),
   birthdayGroup: document.getElementById("birthday-group"),
   registerProfileGroup: document.getElementById("register-profile-group"),
+  registerLocaleSelect: document.getElementById("locale-select-register"),
   registerGenderInput: document.getElementById("register-gender-input"),
   registerPronounsGroup: document.getElementById("register-pronouns-group"),
   registerPronounsInput: document.getElementById("register-pronouns-input"),
@@ -361,6 +373,8 @@ const els = {
   profileSaveBtn: document.getElementById("profile-save-btn"),
   profileSaveStatus: document.getElementById("profile-save-status"),
   profileCompletionModal: document.getElementById("profile-completion-modal"),
+  profileCompletionLocaleBlock: document.getElementById("profile-completion-locale-block"),
+  profileCompletionLocaleSelect: document.getElementById("profile-completion-locale-select"),
   profileCompletionGenderBlock: document.getElementById("profile-completion-gender-block"),
   profileCompletionGenderInput: document.getElementById("profile-completion-gender-input"),
   profileCompletionPronounsBlock: document.getElementById("profile-completion-pronouns-block"),
@@ -1060,6 +1074,7 @@ function profileUpdatePayloadFromState(overrides = {}) {
     profileAvatarPreset: profile.profileAvatarPreset ?? "neutral",
     profileGender: gender,
     profilePreferredPronouns: preferredPronouns,
+    profileLocale: profile.profileLocale ?? "",
     ...overrides,
   };
 }
@@ -1100,11 +1115,18 @@ function renderProfileCompletionModal(profile) {
     return;
   }
 
+  const needsLocale = profileCompletionNeedsField(profile, "locale");
   const needsGender = profileCompletionNeedsField(profile, "gender");
   const needsPronouns = profileCompletionNeedsField(profile, "preferredPronouns");
 
+  setHidden(els.profileCompletionLocaleBlock, !needsLocale);
   setHidden(els.profileCompletionGenderBlock, !needsGender);
   setHidden(els.profileCompletionPronounsBlock, !needsPronouns);
+
+  if (needsLocale && els.profileCompletionLocaleSelect) {
+    wireLocaleSelector(els.profileCompletionLocaleSelect);
+    els.profileCompletionLocaleSelect.value = profile.profileLocale || getLocale();
+  }
 
   if (els.profileCompletionGenderInput) {
     els.profileCompletionGenderInput.value = needsGender ? (profile.profileGender ?? "") : "";
@@ -1123,10 +1145,14 @@ function renderProfileCompletionModal(profile) {
 
   els.profileCompletionModal.hidden = false;
   document.body.appendChild(els.profileCompletionModal);
-  els.profileCompletionGenderInput?.focus();
+  if (needsLocale) {
+    els.profileCompletionLocaleSelect?.focus();
+  } else {
+    els.profileCompletionGenderInput?.focus();
+  }
 }
 
-function maybeShowProfileCompletion(profile) {
+async function maybeShowProfileCompletion(profile) {
   if (!profile?.isOwner || profile.isReporter) {
     setHidden(els.profileCompletionModal, true);
     return;
@@ -1139,6 +1165,7 @@ function maybeShowProfileCompletion(profile) {
   }
 
   setHidden(els.profileCompletionModal, true);
+  await applyProfileLocaleFromServer(profile);
 }
 
 async function saveProfileCompletion() {
@@ -1146,8 +1173,23 @@ async function saveProfileCompletion() {
     return;
   }
 
-  const gender = els.profileCompletionGenderInput?.value ?? "";
-  if (profileCompletionNeedsField(state.profile, "gender") && !gender) {
+  const needsLocale = profileCompletionNeedsField(state.profile, "locale");
+  const needsGender = profileCompletionNeedsField(state.profile, "gender");
+  const profileLocale = needsLocale
+    ? (els.profileCompletionLocaleSelect?.value ?? "")
+    : null;
+
+  if (needsLocale && !profileLocale) {
+    els.profileCompletionStatus.textContent = t("profile.completion.localeRequired");
+    els.profileCompletionStatus.classList.add("error");
+    els.profileCompletionLocaleSelect?.focus();
+    return;
+  }
+
+  const gender = needsGender
+    ? (els.profileCompletionGenderInput?.value ?? "")
+    : (state.profile.profileGender ?? "");
+  if (needsGender && !gender) {
     els.profileCompletionStatus.textContent = t("profile.completion.genderRequired");
     els.profileCompletionStatus.classList.add("error");
     els.profileCompletionGenderInput?.focus();
@@ -1155,7 +1197,9 @@ async function saveProfileCompletion() {
   }
 
   const preferredPronouns = profileGenderRequiresPronouns(gender)
-    ? (els.profileCompletionPronounsInput?.value ?? "")
+    ? needsGender || profileCompletionNeedsField(state.profile, "preferredPronouns")
+      ? (els.profileCompletionPronounsInput?.value ?? "")
+      : (state.profile.profilePreferredPronouns ?? "")
     : "";
 
   if (profileGenderRequiresPronouns(gender) && !preferredPronouns) {
@@ -1172,15 +1216,22 @@ async function saveProfileCompletion() {
   }
 
   try {
-    const profile = await api.updateProfile(
-      profileUpdatePayloadFromState({
-        profileGender: gender,
-        profilePreferredPronouns: preferredPronouns,
-      }),
-    );
+    const overrides = {
+      profileGender: gender,
+      profilePreferredPronouns: preferredPronouns,
+    };
+    if (needsLocale && profileLocale) {
+      overrides.profileLocale = profileLocale;
+    }
+
+    const profile = await api.updateProfile(profileUpdatePayloadFromState(overrides));
     state.profile = profile;
+    if (needsLocale && profileLocale) {
+      await setLocale(profileLocale);
+      applyTranslations(document);
+    }
     renderProfileGenderPronouns(profile);
-    maybeShowProfileCompletion(profile);
+    await maybeShowProfileCompletion(profile);
     els.profileCompletionStatus.textContent = t("profile.completion.saved");
     els.profileCompletionStatus.classList.add("success");
   } catch (error) {
@@ -2335,7 +2386,7 @@ async function refreshAll() {
   try {
     const profile = await api.getProfile();
     state.profile = profile;
-    maybeShowProfileCompletion(profile);
+    await maybeShowProfileCompletion(profile);
   } catch {
     // Profile fetch is optional during refresh; completion modal runs on next successful load.
   }
@@ -3089,6 +3140,13 @@ async function authenticate(register) {
 
   const profileGender = els.registerGenderInput?.value?.trim() ?? "";
   const profilePreferredPronouns = els.registerPronounsInput?.value?.trim() ?? "";
+  const profileLocale = els.registerLocaleSelect?.value?.trim() ?? getLocale();
+  if (isRegister && !profileLocale) {
+    notifyRegisterResult(t("auth.languageRequiredSignup"), "error");
+    els.registerLocaleSelect?.focus();
+    return;
+  }
+
   if (isRegister && !profileGender) {
     notifyRegisterResult(t("auth.genderRequiredSignup"), "error");
     els.registerGenderInput?.focus();
@@ -3104,7 +3162,9 @@ async function authenticate(register) {
   showLoginStatus(isRegister ? t("auth.creatingAccount") : t("auth.connecting"), "info");
   try {
     if (isRegister) {
-      await api.register(username, email, password, birthday, profileGender, profilePreferredPronouns);
+      await api.register(username, email, password, birthday, profileGender, profilePreferredPronouns, profileLocale);
+      await setLocale(profileLocale);
+      applyTranslations(document);
       els.password.value = "";
       els.email.value = "";
       resetBirthdayDropdowns();

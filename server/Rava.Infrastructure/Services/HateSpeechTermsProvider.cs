@@ -84,5 +84,5 @@ public class HateSpeechTermsProvider(
         File.Exists(path) ? HateSpeechTermsCsvLoader.LoadFromFile(path) : [];
 
     private string ResolvePath(string fileName) =>
-        Path.Combine(environment.ContentRootPath, fileName);
+        RavaDataPaths.ResolveFile(environment.ContentRootPath, fileName);
 }

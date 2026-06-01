@@ -84,16 +84,19 @@ jobs:
           rsync -a publish-admin/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
           rsync -a publish-moderator/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
           rsync -a publish-docs/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
-          cp -f Rava.Api/*.csv publish/
-          test -f publish/credits.csv
-          test -f publish/market-items.csv
-          test -f publish/hate-speech-terms.csv
+          mkdir -p data
+          cp -f Rava.Api/*.csv data/
+          test -f data/credits.csv
+          test -f data/market-items.csv
+          test -f data/hate-speech-terms.csv
 
       - name: Upload publish artifact
         uses: actions/upload-artifact@v7
         with:
           name: rava-website
-          path: server/publish/
+          path: |
+            server/publish/
+            server/data/
           if-no-files-found: error
 
   release:
@@ -109,10 +112,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: rava-website
-          path: publish
+          path: .
 
       - name: Create release archive
-        run: zip -r "rava-website-${{ needs.build.outputs.release_tag }}.zip" publish
+        run: zip -r "rava-website-${{ needs.build.outputs.release_tag }}.zip" publish data
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
@@ -166,7 +169,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: rava-website
-          path: publish
+          path: .
 
       - name: Ensure html is in publish bundle
         run: rsync -a server/Rava.Api/html/ publish/html/
@@ -402,8 +405,6 @@ jobs:
           if [ "${DEPLOY_SKIP_WWW_RSYNC:-false}" = "true" ]; then
             ensure_dir "$api_host" "$DEPLOY_API_PATH" "publish"
             ensure_dir "$api_host" "${DEPLOY_API_PATH}/html" "publish html"
-            ensure_dir "$api_host" "${DEPLOY_API_PATH}/html/images/profile" "profile uploads"
-            ensure_dir "$api_host" "${DEPLOY_API_PATH}/html/images/profile-backgrounds" "profile background uploads"
             ensure_dir "$api_host" "${DEPLOY_API_PATH}/.aspnet" "aspnet keys"
           else
             ensure_dir "$www_host" "$DEPLOY_WWW_PATH" "www"
@@ -446,14 +447,6 @@ jobs:
           target="${remote}:${DEPLOY_API_PATH}/html/"
           html_rsync_args=(
             -avz
-            --filter 'P images/profile/'
-            --filter 'P images/profile/***'
-            --filter 'P images/profile-backgrounds/'
-            --filter 'P images/profile-backgrounds/***'
-            --filter 'P exonet/offworld-news/editions/'
-            --filter 'P exonet/offworld-news/editions/***'
-            --filter 'P exonet/offworld-news/images/'
-            --filter 'P exonet/offworld-news/images/***'
             --exclude 'uploads/'
             --exclude 'images/profile/'
             --exclude 'images/profile-backgrounds/'
@@ -488,29 +481,10 @@ jobs:
             --filter 'P appsettings.Development.json'
             --filter 'P server-runtime.json'
             --filter 'P status-runtime.json'
-            --filter 'P credits.csv'
-            --filter 'P market-items.csv'
-            --filter 'P trade-items.csv'
-            --filter 'P hate-speech-terms.csv'
-            --filter 'P bad-language-terms.csv'
-            --filter 'P political-terms.csv'
-            --filter 'P sexual-terms.csv'
-            --filter 'P html/images/profile/'
-            --filter 'P html/images/profile/***'
-            --filter 'P html/images/profile-backgrounds/'
-            --filter 'P html/images/profile-backgrounds/***'
-            --filter 'P exonet/offworld-news/editions/'
-            --filter 'P exonet/offworld-news/editions/***'
-            --filter 'P exonet/offworld-news/images/'
-            --filter 'P exonet/offworld-news/images/***'
             --filter 'P .aspnet/'
             --filter 'P .aspnet/***'
             --exclude 'appsettings.json'
             --exclude 'appsettings.Development.json'
-            --exclude 'html/images/profile/'
-            --exclude 'html/images/profile-backgrounds/'
-            --exclude 'exonet/offworld-news/editions/'
-            --exclude 'exonet/offworld-news/images/'
             --exclude 'server-runtime.json'
             --exclude 'status-runtime.json'
           )
@@ -525,6 +499,8 @@ jobs:
               publish/ \
               "$target"
           fi
+
+      # /var/www/data is server-managed (appsettings.json + CSVs). Deploy never rsyncs there.
 
       - name: Restart services
         env:

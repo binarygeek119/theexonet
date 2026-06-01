@@ -41,6 +41,18 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     WebRootPath = webRootPath,
 });
 
+builder.Configuration.AddRavaDataJsonFiles(contentRootPath);
+
+var dataRootPath = RavaDataPaths.Resolve(contentRootPath);
+var imagesRootPath = RavaDataPaths.ResolveImagesRoot(contentRootPath, webRootPath);
+var offworldNewsOptionsForPaths =
+    builder.Configuration.GetSection(OffworldNewsOptions.SectionName).Get<OffworldNewsOptions>()
+    ?? new OffworldNewsOptions();
+var offworldNewsCacheRoot = RavaDataPaths.ResolveOffworldNewsCacheRoot(
+    contentRootPath,
+    webRootPath,
+    offworldNewsOptionsForPaths.CacheDirectory);
+
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.Configure<MarketOptions>(builder.Configuration.GetSection(MarketOptions.SectionName));
 builder.Services.Configure<TradeOptions>(builder.Configuration.GetSection(TradeOptions.SectionName));
@@ -97,12 +109,12 @@ builder.Services.AddHostedService<OffworldNewsSchedulerService>();
 builder.Services.AddSingleton<IProfileAvatarStorage>(sp =>
     new LocalProfileAvatarStorage(new ProfileAvatarStorageOptions
     {
-        WebRootPath = webRootPath
+        ImagesRootPath = imagesRootPath
     }));
 builder.Services.AddSingleton<IProfileBackgroundStorage>(sp =>
     new LocalProfileBackgroundStorage(new ProfileBackgroundStorageOptions
     {
-        WebRootPath = webRootPath
+        ImagesRootPath = imagesRootPath
     }));
 builder.Services.Configure<FormOptions>(options =>
 {
@@ -165,7 +177,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 {
     FailStartup(
         "Database connection string is missing. Copy server/Rava.Api/appsettings.json.example " +
-        "to /var/www/publish/appsettings.json and set ConnectionStrings:DefaultConnection.");
+        "to /var/www/data/appsettings.json and set ConnectionStrings:DefaultConnection.");
 }
 
 WebApplication app;
@@ -176,7 +188,7 @@ try
 catch (Exception ex)
 {
     FailStartup(
-        "Failed to build the application. Check appsettings.json, credits.csv, and deploy files under /var/www/publish.",
+        "Failed to build the application. Check appsettings.json and CSV files under /var/www/data.",
         ex);
     return;
 }
@@ -185,8 +197,8 @@ app.Logger.LogInformation(
     "Content root: {ContentRoot}. Web root: {WebRoot}. Profile uploads: {AvatarPath}. Profile backgrounds: {BackgroundPath}",
     contentRootPath,
     webRootPath,
-    Path.Combine(webRootPath, ProfileAvatarStorageOptions.RelativeFolder),
-    Path.Combine(webRootPath, ProfileBackgroundStorageOptions.RelativeFolder));
+    Path.Combine(imagesRootPath, ProfileAvatarStorageOptions.RelativeFolder),
+    Path.Combine(imagesRootPath, ProfileBackgroundStorageOptions.RelativeFolder));
 
 try
 {
@@ -221,7 +233,7 @@ if (marketOptions.UseLiveData)
 {
     app.Logger.LogInformation(
         "Live US market prices enabled (Yahoo Finance, refresh at UTC midnight). Items file: {ItemsFile}",
-        Path.Combine(contentRootPath, marketOptions.ItemsFile));
+        Path.Combine(dataRootPath, marketOptions.ItemsFile));
 }
 else
 {
@@ -229,13 +241,13 @@ else
 }
 
 var tradeOptions = builder.Configuration.GetSection(TradeOptions.SectionName).Get<TradeOptions>() ?? new TradeOptions();
-var tradeItemsPath = Path.Combine(contentRootPath, tradeOptions.ItemsFile);
+var tradeItemsPath = RavaDataPaths.ResolveFile(contentRootPath, tradeOptions.ItemsFile);
 app.Logger.LogInformation(
     "Trade market items file: {ItemsFile}",
     tradeItemsPath);
 
 var creditsOptions = builder.Configuration.GetSection(GameCreditsOptions.SectionName).Get<GameCreditsOptions>() ?? new GameCreditsOptions();
-var creditsPath = Path.Combine(contentRootPath, creditsOptions.CreditsFile);
+var creditsPath = RavaDataPaths.ResolveFile(contentRootPath, creditsOptions.CreditsFile);
 app.Logger.LogInformation("Game credits spreadsheet: {CreditsFile}", creditsPath);
 
 var configuredAdminUsernames = app.Configuration
@@ -317,14 +329,14 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
-        Directory.CreateDirectory(Path.Combine(webRootPath, ProfileAvatarStorageOptions.RelativeFolder));
-        Directory.CreateDirectory(Path.Combine(webRootPath, ProfileBackgroundStorageOptions.RelativeFolder));
+        Directory.CreateDirectory(Path.Combine(imagesRootPath, ProfileAvatarStorageOptions.RelativeFolder));
+        Directory.CreateDirectory(Path.Combine(imagesRootPath, ProfileBackgroundStorageOptions.RelativeFolder));
     }
     catch (Exception ex)
     {
         FailStartup(
-            $"Could not create profile image folders under {webRootPath}. " +
-            "Ensure www-data can write under html/images/. Run: sudo chown -R www-data:www-data /var/www/publish",
+            $"Could not create profile image folders under {imagesRootPath}. " +
+            "Ensure www-data can write under /var/www/data/images/. Run: sudo chown -R www-data:www-data /var/www/data",
             ex);
     }
 }
@@ -341,6 +353,23 @@ var serveGameUi = hostingOptions.ServeGameUi ?? !app.Environment.IsProduction();
 
 if (serveGameUi)
 {
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(Path.Combine(offworldNewsCacheRoot, "images")),
+        RequestPath = $"/{RavaDataPaths.OffworldNewsPublicPath}/images"
+    });
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(
+            Path.Combine(imagesRootPath, ProfileAvatarStorageOptions.RelativeFolder)),
+        RequestPath = $"/{ProfileAvatarStorageOptions.PublicUrlPath}"
+    });
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(
+            Path.Combine(imagesRootPath, ProfileBackgroundStorageOptions.RelativeFolder)),
+        RequestPath = $"/{ProfileBackgroundStorageOptions.PublicUrlPath}"
+    });
     app.UseDefaultFiles();
     app.UseStaticFiles();
 }
@@ -349,7 +378,12 @@ else
     app.Logger.LogInformation("API-only hosting: game UI disabled on this host.");
     app.UseStaticFiles(new StaticFileOptions
     {
-        FileProvider = new PhysicalFileProvider(Path.Combine(webRootPath, "images")),
+        FileProvider = new PhysicalFileProvider(Path.Combine(offworldNewsCacheRoot, "images")),
+        RequestPath = $"/{RavaDataPaths.OffworldNewsPublicPath}/images"
+    });
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(imagesRootPath),
         RequestPath = "/images"
     });
 }

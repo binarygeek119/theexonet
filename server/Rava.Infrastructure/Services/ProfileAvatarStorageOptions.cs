@@ -2,7 +2,9 @@ namespace Rava.Infrastructure.Services;
 
 public class ProfileAvatarStorageOptions
 {
-    public const string RelativeFolder = "images/profile";
+    public const string RelativeFolder = "profile";
 
-    public string WebRootPath { get; set; } = string.Empty;
+    public const string PublicUrlPath = "images/profile";
+
+    public string ImagesRootPath { get; set; } = string.Empty;
 }

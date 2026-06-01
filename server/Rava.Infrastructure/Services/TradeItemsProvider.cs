@@ -31,7 +31,7 @@ public class TradeItemsProvider(
     private TradeItemsCatalog GetCatalog()
     {
         var settings = options.CurrentValue;
-        var path = Path.Combine(environment.ContentRootPath, settings.ItemsFile);
+        var path = RavaDataPaths.ResolveFile(environment.ContentRootPath, settings.ItemsFile);
 
         if (!File.Exists(path))
         {

@@ -101,14 +101,6 @@ jobs:
           target="${remote}:${DEPLOY_API_PATH}/html/"
           html_rsync_args=(
             -avz
-            --filter 'P images/profile/'
-            --filter 'P images/profile/***'
-            --filter 'P images/profile-backgrounds/'
-            --filter 'P images/profile-backgrounds/***'
-            --filter 'P exonet/offworld-news/editions/'
-            --filter 'P exonet/offworld-news/editions/***'
-            --filter 'P exonet/offworld-news/images/'
-            --filter 'P exonet/offworld-news/images/***'
             --exclude 'uploads/'
             --exclude 'images/profile/'
             --exclude 'images/profile-backgrounds/'

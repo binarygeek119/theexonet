@@ -11,6 +11,8 @@ try
         ContentRootPath = contentRootPath,
     });
 
+    builder.Configuration.AddRavaDataJsonFiles(contentRootPath);
+
     builder.Services.Configure<ModeratorPortalOptions>(
         builder.Configuration.GetSection(ModeratorPortalOptions.SectionName));
 

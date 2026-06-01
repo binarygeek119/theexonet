@@ -1,9 +1,18 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
+using Rava.Core.Configuration;
 using Rava.Status;
 
-var builder = WebApplication.CreateBuilder(args);
+var contentRootPath = Path.GetFullPath(AppContext.BaseDirectory);
+
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = contentRootPath,
+});
+
+builder.Configuration.AddRavaDataJsonFiles(contentRootPath);
 
 builder.Services.Configure<StatusMonitorOptions>(
     builder.Configuration.GetSection(StatusMonitorOptions.SectionName));

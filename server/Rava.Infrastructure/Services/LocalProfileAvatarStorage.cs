@@ -12,7 +12,7 @@ public class LocalProfileAvatarStorage(ProfileAvatarStorageOptions options) : IP
         string contentType,
         CancellationToken cancellationToken)
     {
-        var directory = Path.Combine(options.WebRootPath, RelativeFolder);
+        var directory = Path.Combine(options.ImagesRootPath, RelativeFolder);
         Directory.CreateDirectory(directory);
         await DeleteForPlayerAsync(playerId, cancellationToken);
 
@@ -23,12 +23,12 @@ public class LocalProfileAvatarStorage(ProfileAvatarStorageOptions options) : IP
         await using var output = File.Create(absolutePath);
         await content.CopyToAsync(output, cancellationToken);
 
-        return $"/{RelativeFolder}/{fileName}";
+        return $"/{ProfileAvatarStorageOptions.PublicUrlPath}/{fileName}";
     }
 
     public Task DeleteForPlayerAsync(Guid playerId, CancellationToken cancellationToken)
     {
-        var directory = Path.Combine(options.WebRootPath, RelativeFolder);
+        var directory = Path.Combine(options.ImagesRootPath, RelativeFolder);
         if (!Directory.Exists(directory))
         {
             return Task.CompletedTask;

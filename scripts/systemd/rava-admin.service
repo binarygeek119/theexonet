@@ -12,6 +12,7 @@ StandardError=journal
 Environment=ASPNETCORE_URLS=http://0.0.0.0:7000
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=DOTNET_ENVIRONMENT=Production
+Environment=RAVA_DATA_DIR=/var/www/data
 User=www-data
 
 [Install]

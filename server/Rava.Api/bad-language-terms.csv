@@ -1,6 +1,169 @@
-Term,Notes
-# Profanity and other bad language. One term per row in the Term column.
-# Political terms go in political-terms.csv (same format).
-# Pornographic or sexual terms go in sexual-terms.csv (same format).
-# Opens in Excel or Google Sheets. Lines starting with # are ignored.
-# Changes reload automatically when the file is saved.
+Term,Notes             
+# General profanity and bad language moderation terms. per row in the Term column.
+# One term per row in the Term column.     
+# Lines starting with # are ignored. sexual-terms.csv (same format).    
+# Opens in Excel or Google Sheets. Lines starting with # are ignored. 
+fuck,General profanity reload automatically when the file is saved.     
+fucking,General profanity            
+fucker,General profanity            
+fuckwit,General profanity            
+fucktard,General profanity            
+motherfucker,General profanity            
+motherfucking,General profanity            
+shit,General profanity            
+shitty,General profanity            
+shithead,General profanity            
+shitface,General profanity            
+bullshit,General profanity            
+horseshit,General profanity            
+cunt,Strong profanity            
+cunting,Strong profanity            
+cuntface,Strong profanity            
+cuntlicker,Strong profanity            
+piss,General profanity            
+pissing,General profanity            
+pissed,General profanity            
+piss off,General profanity           
+pisshead,General profanity            
+asshole,General profanity            
+asshole,General profanity            
+asshat,General profanity            
+assclown,General profanity            
+dumbass,General profanity            
+jackass,General profanity            
+bastard,General profanity            
+son of a bitch,General profanity         
+bitch,General profanity            
+bitching,General profanity            
+son of a whore,General profanity         
+whore,General profanity            
+slut,General profanity            
+slutty,General profanity            
+dick,General profanity            
+dickhead,General profanity            
+dickbag,General profanity            
+cock,General profanity            
+cockhead,General profanity            
+cockblock,General profanity            
+cocksucker,General profanity            
+prick,General profanity            
+twat,General profanity            
+wanker,General profanity            
+tosser,General profanity            
+bollocks,General profanity            
+bugger,General profanity            
+buggery,General profanity            
+damn,General profanity            
+goddamn,General profanity            
+goddammit,General profanity            
+hell,General profanity            
+go to hell,General profanity          
+hellhole,General profanity            
+crap,General profanity            
+crappy,General profanity            
+screw you,General profanity           
+screwed,General profanity            
+pissflaps,Strong profanity            
+pissfuck,Strong profanity            
+shitstain,General profanity            
+shite,General profanity            
+shitfaced,General profanity            
+arse,General profanity            
+arsehole,General profanity            
+arsehole,General profanity            
+bellend,General profanity            
+knobhead,General profanity            
+muppet,General profanity            
+pillock,General profanity            
+plonker,General profanity            
+wazzock,General profanity            
+git,General profanity            
+numpty,General profanity            
+dumbfuck,General profanity            
+fucknugget,General profanity            
+fuckwit,General profanity            
+gobshite,General profanity            
+gobshite,General profanity            
+minge,General profanity            
+jizz,General profanity            
+jizzed,General profanity            
+spunk,General profanity            
+spunked,General profanity            
+cum,General profanity            
+cumming,General profanity            
+cumshot,General profanity            
+fudgepacker,General profanity            
+rimjob,General profanity            
+rimming,General profanity            
+blowjob,General profanity            
+handjob,General profanity            
+jack off,General profanity           
+jacking off,General profanity           
+wank,General profanity            
+wanking,General profanity            
+wanker,General profanity            
+tits,General profanity            
+titty,General profanity            
+boobies,General profanity            
+titties,General profanity            
+knockers,General profanity            
+jugs,General profanity            
+melons,General profanity            
+baps,General profanity            
+cleavage,General profanity            
+arse,General profanity            
+butt,General profanity            
+bum,General profanity            
+butthole,General profanity            
+ass,General profanity            
+asshole,General profanity            
+arsehole,General profanity            
+shit,General profanity            
+piss,General profanity            
+crap,General profanity            
+bugger,General profanity            
+bloody hell,General profanity           
+christ almighty,General profanity           
+jesus christ,General profanity           
+for christ's sake,General profanity          
+for god's sake,General profanity          
+for fuck's sake,General profanity          
+for crying out loud,General profanity         
+goddamnit,General profanity            
+goddammit,General profanity            
+son of a bitch,General profanity         
+motherfucker,General profanity            
+bastard,General profanity            
+bitch,General profanity            
+dickhead,General profanity            
+arsehole,General profanity            
+wanker,General profanity            
+twat,General profanity            
+cunt,General profanity            
+bollocks,General profanity            
+bugger,General profanity            
+bloody,General profanity            
+sod off,General profanity           
+piss off,General profanity           
+fuck off,General profanity           
+choke on it,General profanity          
+eat shit,General profanity           
+eat shit and die,General profanity         
+go fuck yourself,General profanity          
+screw you,General profanity           
+shove it up your ass,General profanity        
+up yours,General profanity           
+kiss my ass,General profanity          
+bite me,General profanity           
+bite my shiny metal ass,General profanity        
+suck my dick,General profanity          
+suck my balls,General profanity          
+blow me,General profanity           
+eat me,General profanity           
+lick me,General profanity           
+lick my ass,General profanity          
+kiss my grits,General profanity          
+kiss my butt,General profanity          
+kiss my arse,General profanity          
+kiss my rear,General profanity          
+kiss my posterior,General profanity          

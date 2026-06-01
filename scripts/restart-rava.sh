@@ -10,6 +10,7 @@ ADMIN_SERVICE="${RAVA_ADMIN_SERVICE:-rava-admin}"
 MODERATOR_SERVICE="${RAVA_MODERATOR_SERVICE:-rava-moderator}"
 DOCS_SERVICE="${RAVA_DOCS_SERVICE:-rava-docs}"
 PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
+DATA_DIR="${RAVA_DATA_DIR:-/var/www/data}"
 SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
 
 free_port() {
@@ -35,8 +36,13 @@ prepare_publish_dir() {
     exit 1
   fi
 
-  if [ ! -f "${PUBLISH_DIR}/credits.csv" ]; then
-    echo "Missing publish CSV spreadsheets — syncing from ${RAVA_DATA_DIR:-/usr/local/lib/rava/data}..."
+  mkdir -p "${DATA_DIR}"
+  if [ "$(id -u)" -eq 0 ]; then
+    chown "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}" 2>/dev/null || true
+  fi
+
+  if [ ! -f "${DATA_DIR}/credits.csv" ]; then
+    echo "Missing data CSV spreadsheets — syncing to ${DATA_DIR}..."
     if [ -x /usr/local/bin/sync-rava-data ]; then
       sync-rava-data || {
         echo "WARN: sync-rava-data failed. Run: sudo install-rava-scripts (from git checkout)" >&2
@@ -48,16 +54,41 @@ prepare_publish_dir() {
     fi
   fi
 
+  if [ ! -f "${DATA_DIR}/appsettings.json" ] && [ -f "${PUBLISH_DIR}/appsettings.json" ]; then
+    echo "Migrating appsettings.json from publish to ${DATA_DIR}..."
+    cp -f "${PUBLISH_DIR}/appsettings.json" "${DATA_DIR}/appsettings.json"
+    if [ "$(id -u)" -eq 0 ]; then
+      chown "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}/appsettings.json" 2>/dev/null || true
+    fi
+  fi
+
   mkdir -p \
-    "${PUBLISH_DIR}/html/images/profile" \
-    "${PUBLISH_DIR}/html/images/profile-backgrounds" \
-    "${PUBLISH_DIR}/html/exonet/offworld-news/editions" \
-    "${PUBLISH_DIR}/html/exonet/offworld-news/images"
+    "${DATA_DIR}/images/profile" \
+    "${DATA_DIR}/images/profile-backgrounds" \
+    "${DATA_DIR}/exonet/offworld-news/editions" \
+    "${DATA_DIR}/exonet/offworld-news/images"
+
+  for subdir in profile profile-backgrounds; do
+    src="${PUBLISH_DIR}/html/images/${subdir}"
+    dest="${DATA_DIR}/images/${subdir}"
+    if [ -d "$src" ] && [ -z "$(ls -A "$dest" 2>/dev/null || true)" ] && [ -n "$(ls -A "$src" 2>/dev/null || true)" ]; then
+      echo "Migrating player images ${src} -> ${dest}..."
+      rsync -a "${src}/" "${dest}/"
+    fi
+  done
+
+  for subdir in editions images; do
+    src="${PUBLISH_DIR}/html/exonet/offworld-news/${subdir}"
+    dest="${DATA_DIR}/exonet/offworld-news/${subdir}"
+    if [ -d "$src" ] && [ -z "$(ls -A "$dest" 2>/dev/null || true)" ] && [ -n "$(ls -A "$src" 2>/dev/null || true)" ]; then
+      echo "Migrating Offworld News ${subdir} ${src} -> ${dest}..."
+      rsync -a "${src}/" "${dest}/"
+    fi
+  done
 
   if [ "$(id -u)" -eq 0 ]; then
-    chown -R "${SERVICE_USER}:${SERVICE_USER}" \
-      "${PUBLISH_DIR}/html/images" \
-      "${PUBLISH_DIR}/html/exonet/offworld-news" 2>/dev/null || true
+    chown -R "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}/images" 2>/dev/null || true
+    chown -R "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}/exonet" 2>/dev/null || true
   fi
 }
 

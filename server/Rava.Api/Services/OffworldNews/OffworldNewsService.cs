@@ -310,7 +310,10 @@ public sealed class OffworldNewsService(
             webRoot = Path.Combine(environment.ContentRootPath, "html");
         }
 
-        return Path.Combine(webRoot, _options.CacheDirectory);
+        return RavaDataPaths.ResolveOffworldNewsCacheRoot(
+            environment.ContentRootPath,
+            webRoot,
+            _options.CacheDirectory);
     }
 
     private string GetEditionFilePath(DateOnly date) =>

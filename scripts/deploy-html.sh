@@ -20,31 +20,13 @@ if [ ! -d "${SRC_DIR}" ]; then
   exit 1
 fi
 
-mkdir -p \
-  "${DEST_DIR}/images/profile" \
-  "${DEST_DIR}/images/profile-backgrounds" \
-  "${DEST_DIR}/exonet/offworld-news/editions" \
-  "${DEST_DIR}/exonet/offworld-news/images"
-
 rsync -av \
-  --filter 'P images/profile/' \
-  --filter 'P images/profile/***' \
-  --filter 'P images/profile-backgrounds/' \
-  --filter 'P images/profile-backgrounds/***' \
-  --filter 'P exonet/offworld-news/editions/' \
-  --filter 'P exonet/offworld-news/editions/***' \
-  --filter 'P exonet/offworld-news/images/' \
-  --filter 'P exonet/offworld-news/images/***' \
   --exclude 'uploads/' \
   --exclude 'images/profile/' \
   --exclude 'images/profile-backgrounds/' \
   --exclude 'exonet/offworld-news/editions/' \
   --exclude 'exonet/offworld-news/images/' \
   "${SRC_DIR}/" "${DEST_DIR}/"
-
-chown -R "${SERVICE_USER}:${SERVICE_USER}" \
-  "${DEST_DIR}/images" \
-  "${DEST_DIR}/exonet/offworld-news" 2>/dev/null || true
 
 echo "Deployed html to ${DEST_DIR}"
 echo "Verify: node --check ${DEST_DIR}/js/api.js 2>/dev/null || sed -n '350,395p' ${DEST_DIR}/js/api.js"

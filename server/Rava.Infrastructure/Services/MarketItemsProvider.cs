@@ -27,7 +27,7 @@ public class MarketItemsProvider(
     private MarketItemsCatalog GetCatalog()
     {
         var settings = options.CurrentValue;
-        var path = Path.Combine(environment.ContentRootPath, settings.ItemsFile);
+        var path = RavaDataPaths.ResolveFile(environment.ContentRootPath, settings.ItemsFile);
 
         if (!File.Exists(path))
         {

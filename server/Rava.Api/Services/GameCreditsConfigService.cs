@@ -12,7 +12,7 @@ public class GameCreditsConfigService(
     GameCreditsProvider creditsProvider)
 {
     public string FilePath =>
-        Path.Combine(environment.ContentRootPath, optionsMonitor.CurrentValue.CreditsFile);
+        RavaDataPaths.ResolveFile(environment.ContentRootPath, optionsMonitor.CurrentValue.CreditsFile);
 
     public GameCreditsConfigResponse GetConfig()
     {

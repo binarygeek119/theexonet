@@ -27,7 +27,7 @@ public class GameCreditsProvider(
     private GameCreditsValues GetValues()
     {
         var settings = options.CurrentValue;
-        var path = Path.Combine(environment.ContentRootPath, settings.CreditsFile);
+        var path = RavaDataPaths.ResolveFile(environment.ContentRootPath, settings.CreditsFile);
 
         if (!File.Exists(path))
         {

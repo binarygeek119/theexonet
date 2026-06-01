@@ -12,6 +12,8 @@ try
         ContentRootPath = contentRootPath,
     });
 
+    builder.Configuration.AddRavaDataJsonFiles(contentRootPath);
+
     builder.Services.Configure<DocsPortalOptions>(
         builder.Configuration.GetSection(DocsPortalOptions.SectionName));
 

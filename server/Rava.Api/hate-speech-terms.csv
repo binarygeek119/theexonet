@@ -1,7 +1,201 @@
-Term,Notes
-# Hate speech terms only. One term per row in the Term column.
-# Bad language / profanity goes in bad-language-terms.csv (same format).
-# Political terms go in political-terms.csv (same format).
-# Pornographic or sexual terms go in sexual-terms.csv (same format).
-# Opens in Excel or Google Sheets. Lines starting with # are ignored.
-# Changes reload automatically when the file is saved.
+Term,Notes              
+# Hate speech racial and LGBTQ moderation terms. row in the Term column.  
+# One term per row in the Term column. format).     
+# Lines starting with # are ignored. format).       
+# Neutral identity terms are commented out near the bottom to avoid over-flagging.  
+# Opens in Excel or Google Sheets. Lines starting with # are ignored.  
+white power,Hate slogan automatically when the file is saved.      
+white pride,Hate slogan            
+white supremacy,Hate ideology            
+white nationalist,Hate ideology            
+white separatist,Hate ideology            
+racial purity,Hate ideology            
+master race,Hate ideology            
+race war,Hate phrase            
+ethnostate,Hate ideology             
+ethnic cleansing,Hate phrase            
+blood and soil,Hate slogan           
+sieg heil,Hate slogan            
+heil hitler,Hate slogan            
+1488,Hate symbol             
+14/88,Hate symbol             
+WPWW,Hate acronym             
+RAHOWA,Hate acronym             
+day of the rope,Hate phrase          
+jews will not replace us,Hate slogan         
+you will not replace us,Hate slogan         
+holohoax,Antisemitic phrase             
+six gorillion,Antisemitic phrase            
+gas the jews,Violent hate phrase          
+kill all jews,Violent hate phrase          
+kill all blacks,Violent hate phrase          
+kill all muslims,Violent hate phrase          
+kill all gays,Violent hate phrase          
+kill all trans,Violent hate phrase          
+deport all jews,Hate phrase           
+deport all blacks,Hate phrase           
+deport all muslims,Hate phrase           
+deport all gays,Hate phrase           
+deport all trans,Hate phrase           
+go back to africa,Racist phrase          
+go back to mexico,Racist phrase          
+go back to china,Racist phrase          
+go back to your country,Racist phrase         
+remove kebab,Anti-Muslim hate phrase           
+subhuman,Hate speech             
+vermin,Hate speech             
+race traitor,Hate phrase            
+mudblood,Racist phrase             
+mongrel,Racist phrase             
+miscegenation,Racist concept             
+nigger,Anti-Black slur             
+nigga,Anti-Black slur or reclaimed term          
+n1gger,Anti-Black slur variant            
+n1gga,Anti-Black slur variant            
+nigg*r,Anti-Black slur variant            
+nigg@,Anti-Black slur variant            
+negro,Outdated racial term            
+coon,Anti-Black slur             
+jigaboo,Anti-Black slur             
+porch monkey,Anti-Black slur            
+sambo,Anti-Black slur             
+darkie,Anti-Black slur             
+tar baby,Anti-Black slur            
+spook,Anti-Black slur             
+uppity negro,Anti-Black phrase            
+black monkey,Anti-Black slur            
+ape,Context-dependent racial insult            
+kike,Antisemitic slur             
+kyke,Antisemitic slur variant            
+heeb,Antisemitic slur             
+yid,Antisemitic slur             
+jewboy,Antisemitic slur             
+oven dodger,Antisemitic slur            
+christ killer,Antisemitic slur            
+shekel goblin,Antisemitic slur            
+zionazi,Antisemitic phrase             
+chink,Anti-Asian slur             
+gook,Anti-Asian slur             
+zipperhead,Anti-Asian slur             
+jap,Anti-Japanese slur             
+nip,Anti-Japanese slur             
+slant eye,Anti-Asian slur            
+slopehead,Anti-Asian slur             
+ching chong,Anti-Asian mockery            
+chinaman,Outdated anti-Chinese term            
+yellow peril,Anti-Asian phrase            
+rice monkey,Anti-Asian slur            
+dog eater,Anti-Asian slur            
+spic,Anti-Latino slur             
+wetback,Anti-Latino slur             
+beaner,Anti-Latino slur             
+greaser,Anti-Latino slur             
+taco bender,Anti-Latino slur            
+border hopper,Anti-immigrant slur            
+anchor baby,Anti-immigrant phrase            
+illegal alien,Anti-immigrant phrase            
+sand nigger,Anti-Arab slur            
+towelhead,Anti-Arab or anti-Muslim slur           
+raghead,Anti-Arab or anti-Muslim slur           
+camel jockey,Anti-Arab slur            
+dune coon,Anti-Arab slur            
+muzzie,Anti-Muslim slur             
+haji,Anti-Muslim or anti-Arab slur           
+hadji,Anti-Muslim or anti-Arab slur           
+terrorist muslim,Anti-Muslim phrase            
+paki,Anti-South Asian slur            
+dothead,Anti-South Asian slur            
+curry muncher,Anti-South Asian slur           
+coolie,Anti-Asian or anti-South Asian slur          
+redskin,Anti-Native slur             
+injun,Anti-Native slur             
+prairie nigger,Anti-Native slur            
+wagon burner,Anti-Native slur            
+squaw,Anti-Native slur             
+drunken indian,Anti-Native phrase            
+gypsy,Anti-Roma slur or context-dependent term          
+gypo,Anti-Roma slur             
+pikey,Anti-Roma or anti-Traveller slur           
+tinker,Anti-Traveller slur             
+cracker,Anti-white slur             
+honky,Anti-white slur             
+whitey,Anti-white slur             
+mayo monkey,Anti-white slur            
+white devil,Anti-white slur            
+faggot,Anti-gay slur             
+fag,Anti-gay slur             
+f4g,Anti-gay slur variant            
+f@ggot,Anti-gay slur variant            
+dyke,Anti-lesbian slur or reclaimed term          
+bulldyke,Anti-lesbian slur             
+bull dyke,Anti-lesbian slur            
+lesbo,Anti-lesbian slur             
+homo,Anti-gay slur or context-dependent term          
+sodomite,Anti-gay slur             
+fairy,Anti-gay slur             
+fruit,Anti-gay slur             
+fruitcake,Anti-gay slur             
+pansy,Anti-gay slur             
+poof,Anti-gay slur             
+poofter,Anti-gay slur             
+pillow biter,Anti-gay slur            
+fudge packer,Anti-gay slur            
+carpet muncher,Anti-lesbian slur            
+tranny,Anti-trans slur             
+trannie,Anti-trans slur variant            
+troon,Anti-trans slur             
+shemale,Anti-trans slur             
+he-she,Anti-trans slur             
+it is a man,Anti-trans phrase          
+trap,Anti-trans slur when targeting people          
+zippertits,Anti-trans slur             
+gender freak,Anti-LGBTQ slur            
+groomer,Anti-LGBTQ slur when targeting LGBTQ people         
+trans groomer,Anti-trans phrase            
+gay agenda,Anti-LGBTQ phrase            
+homosexual agenda,Anti-LGBTQ phrase            
+trans agenda,Anti-trans phrase            
+trans ideology,Anti-trans phrase            
+gender ideology,Anti-LGBTQ phrase            
+LGBTP,Anti-LGBTQ smear             
+LGBTQ groomer,Anti-LGBTQ phrase            
+gays are pedophiles,Anti-LGBTQ phrase           
+trans are pedophiles,Anti-trans phrase           
+kill the gays,Violent anti-LGBTQ phrase          
+kill the trans,Violent anti-trans phrase          
+              
+# Optional neutral LGBTQ keywords. Uncomment only if you want to flag all LGBTQ-related discussion.
+# gay,Neutral LGBTQ keyword           
+# lesbian,Neutral LGBTQ keyword           
+# bisexual,Neutral LGBTQ keyword           
+# trans,Neutral LGBTQ keyword           
+# transgender,Neutral LGBTQ keyword           
+# queer,Neutral or reclaimed LGBTQ keyword         
+# LGBTQ,Neutral LGBTQ keyword           
+# LGBT,Neutral LGBTQ keyword           
+# nonbinary,Neutral LGBTQ keyword           
+# non-binary,Neutral LGBTQ keyword           
+# genderqueer,Neutral LGBTQ keyword           
+# intersex,Neutral LGBTQ keyword           
+# pansexual,Neutral LGBTQ keyword           
+# asexual,Neutral LGBTQ keyword           
+# same-sex,Neutral LGBTQ keyword           
+# pronouns,Neutral LGBTQ-related keyword           
+# gender identity,Neutral LGBTQ-related keyword          
+# gender expression,Neutral LGBTQ-related keyword          
+# gender dysphoria,Neutral LGBTQ-related keyword          
+# drag queen,Neutral LGBTQ-related keyword          
+# drag king,Neutral LGBTQ-related keyword          
+              
+# Optional neutral race ethnicity religion keywords. Uncomment only if you want broad topic filtering.
+# Black,Neutral race keyword           
+# white,Neutral race keyword           
+# Asian,Neutral ethnicity keyword           
+# Latino,Neutral ethnicity keyword           
+# Hispanic,Neutral ethnicity keyword           
+# Jewish,Neutral religion or ethnicity keyword         
+# Muslim,Neutral religion keyword           
+# Arab,Neutral ethnicity keyword           
+# Native American,Neutral ethnicity keyword          
+# Indigenous,Neutral ethnicity keyword           
+# Roma,Neutral ethnicity keyword           

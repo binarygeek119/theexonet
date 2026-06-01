@@ -1,4 +1,109 @@
-Term,Notes
-# Political terms. One term per row in the Term column.
-# Opens in Excel or Google Sheets. Lines starting with # are ignored.
-# Changes reload automatically when the file is saved.
+Term Notes           
+"# Political terms. One term per row in the Term column." Political terms. One term per row in the Term column.  
+"# Opens in Excel or Google Sheets. Lines starting with # are ignored." Opens in Excel or Google Sheets. Lines starting with # are ignored.
+"# Changes reload automatically when the file is saved." Changes reload automatically when the file is saved.    
+            
+election "General politics"           
+vote "General politics"           
+voting "General politics"           
+voter "General politics"           
+ballot "General politics"           
+polling "General politics"           
+campaign "General politics"           
+candidate "General politics"           
+"primary election" "General politics"           
+"general election" "General politics"           
+referendum "General politics"           
+proposition "General politics"           
+politics "General politics"           
+political "General politics"           
+politician "General politics"           
+government Government           
+congress Government           
+senate Government           
+parliament Government           
+president Government           
+"prime minister" Government           
+governor Government           
+mayor Government           
+minister Government           
+lawmakers Government           
+legislation Government           
+bill Government           
+law Government           
+policy Government           
+"executive order" Government           
+"supreme court" Government           
+constitution Government           
+constitutional Government           
+democracy Ideology           
+republic Ideology           
+liberal Ideology           
+conservative Ideology           
+"left wing" Ideology           
+"right wing" Ideology           
+progressive Ideology           
+socialist Ideology           
+communist Ideology           
+capitalist Ideology           
+libertarian Ideology           
+nationalist Ideology           
+populist Ideology           
+fascist Ideology           
+authoritarian Ideology           
+anarchist Ideology           
+democrat "Political party"           
+republican "Political party"           
+independent "Political party"           
+"green party" "Political party"           
+"labour party" "Political party"           
+"conservative party" "Political party"           
+"liberal party" "Political party"           
+"democratic party" "Political party"           
+"republican party" "Political party"           
+GOP "Political party"           
+DNC "Political party"           
+RNC "Political party"           
+MAGA "Political slogan/movement"           
+antifa "Political movement"           
+activism "Political activity"           
+activist "Political activity"           
+protest "Political activity"           
+riot "Political activity"           
+demonstration "Political activity"           
+lobbying "Political activity"           
+lobbyist "Political activity"           
+petition "Political activity"           
+impeachment "Political process"           
+coup "Political instability"           
+revolution "Political instability"           
+"civil war" "Political instability"           
+insurrection "Political instability"           
+secession "Political instability"           
+propaganda "Political messaging"           
+censorship "Political issue"           
+"free speech" "Political issue"           
+"gun control" "Political issue"           
+"second amendment" "Political issue"           
+abortion "Political issue"           
+immigration "Political issue"           
+"border security" "Political issue"           
+"climate policy" "Political issue"           
+"tax policy" "Political issue"           
+"healthcare policy" "Political issue"           
+"foreign policy" "Political issue"           
+war "Political issue"           
+sanctions "Political issue"           
+"social justice" "Political issue"           
+DEI "Political issue"           
+woke "Political issue"           
+anti-woke "Political issue"           
+"identity politics" "Political issue"           
+globalism "Political issue"           
+"deep state" "Political phrase"           
+"fake news" "Political phrase"           
+"mainstream media" "Political phrase"           
+"state media" "Political phrase"           
+"culture war" "Political phrase"           
+"cancel culture" "Political phrase"           
+"political correctness" "Political phrase"           

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copy required CSV spreadsheets from a repo checkout into the live publish folder.
+# Copy required CSV spreadsheets into the live data directory (/var/www/data by default).
 # Run on the server as root after git pull:
 #   sudo bash scripts/sync-publish-data.sh
 #   sudo bash scripts/sync-publish-data.sh /path/to/rava-1/server/Rava.Api
@@ -7,8 +7,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-DATA_DIR="${RAVA_DATA_DIR:-/usr/local/lib/rava/data}"
-DEST_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
+TEMPLATE_DIR="${RAVA_TEMPLATE_DATA_DIR:-/usr/local/lib/rava/data}"
+DEST_DIR="${RAVA_DATA_DIR:-/var/www/data}"
+PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
 SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -28,12 +29,12 @@ resolve_src_dir() {
     return
   fi
 
-  if [ -f "${DATA_DIR}/credits.csv" ]; then
-    printf '%s' "$DATA_DIR"
+  if [ -f "${TEMPLATE_DIR}/credits.csv" ]; then
+    printf '%s' "$TEMPLATE_DIR"
     return
   fi
 
-  echo "Missing CSV source. Pass server/Rava.Api, git pull + install-rava-scripts, or populate ${DATA_DIR}." >&2
+  echo "Missing CSV source. Pass server/Rava.Api, git pull + install-rava-scripts, or populate ${TEMPLATE_DIR}." >&2
   exit 1
 }
 
@@ -66,5 +67,13 @@ for file in "${files[@]}"; do
   echo "Installed ${DEST_DIR}/${file}"
 done
 
-chown "${SERVICE_USER}:${SERVICE_USER}" "${DEST_DIR}"/*.csv 2>/dev/null || true
+if [ -f "${PUBLISH_DIR}/appsettings.json" ] && [ ! -f "${DEST_DIR}/appsettings.json" ]; then
+  cp -f "${PUBLISH_DIR}/appsettings.json" "${DEST_DIR}/appsettings.json"
+  echo "Migrated ${PUBLISH_DIR}/appsettings.json -> ${DEST_DIR}/appsettings.json"
+fi
+
+chown "${SERVICE_USER}:${SERVICE_USER}" "${DEST_DIR}" "${DEST_DIR}"/*.csv 2>/dev/null || true
+if [ -f "${DEST_DIR}/appsettings.json" ]; then
+  chown "${SERVICE_USER}:${SERVICE_USER}" "${DEST_DIR}/appsettings.json" 2>/dev/null || true
+fi
 echo "Done."

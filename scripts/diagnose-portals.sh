@@ -4,17 +4,18 @@
 set -euo pipefail
 
 PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
+DATA_DIR="${RAVA_DATA_DIR:-/var/www/data}"
 SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
 
 units=(rava-admin:7000:Rava.Admin.dll:wwwroot/admin.html rava-moderator:7050:Rava.Moderator.dll:wwwroot/moderator.html rava-docs:9000:Rava.Docs.dll:content/index.md)
 
 echo "=== RAVA portal diagnostics ==="
 echo "Publish dir: ${PUBLISH_DIR}"
+echo "Data dir:    ${DATA_DIR}"
 echo
 
 echo "--- Required publish files ---"
 shared=(
-  "${PUBLISH_DIR}/appsettings.json"
   "${PUBLISH_DIR}/Rava.Core.dll"
 )
 for file in "${shared[@]}"; do
@@ -24,6 +25,13 @@ for file in "${shared[@]}"; do
     echo "MISSING  $file"
   fi
 done
+echo
+
+if [ -f "${DATA_DIR}/appsettings.json" ]; then
+  echo "OK  ${DATA_DIR}/appsettings.json"
+else
+  echo "MISSING  ${DATA_DIR}/appsettings.json (portals read config from RAVA_DATA_DIR)"
+fi
 echo
 
 for spec in "${units[@]}"; do
@@ -67,7 +75,7 @@ for spec in "${units[@]}"; do
     echo "Manual startup test (5s, as ${SERVICE_USER}):"
     set +e
     timeout 5 sudo -u "${SERVICE_USER}" \
-      env ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_URLS="http://127.0.0.1:${port}" \
+      env ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_URLS="http://127.0.0.1:${port}" RAVA_DATA_DIR="${DATA_DIR}" \
       dotnet "$dll_path" 2>&1 | head -n 25
     test_status=${PIPESTATUS[0]}
     set -e

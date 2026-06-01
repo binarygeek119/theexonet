@@ -20,6 +20,6 @@ public class OffworldNewsOptions
     /// <summary>Up to this many stories per day receive an AI illustration (remainder use placeholders).</summary>
     public int MaxImagesPerDay { get; set; } = 5;
 
-    /// <summary>Relative to WebRoot (html/). Generated editions and images are stored here.</summary>
-    public string CacheDirectory { get; set; } = "exonet/offworld-news";
+    /// <summary>Relative to the Exonet root (data/exonet or html/exonet). Stores generated editions and images.</summary>
+    public string CacheDirectory { get; set; } = "offworld-news";
 }

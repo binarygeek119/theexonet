@@ -1,31 +1,32 @@
 #!/bin/bash
 # Publish admin + moderator portals into the live publish folder and restart services.
 # Run on the server as root:
-#   sudo deploy-rava-portals
-# Or from a repo checkout:
-#   sudo bash scripts/deploy-portals.sh /path/to/rava-1/server
+#   cd /opt/rava/rava && sudo deploy-rava-portals
+#   sudo deploy-rava-portals /opt/rava/rava/server
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-SERVER_DIR="${1:-${SCRIPT_DIR}/../server}"
 PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
 ADMIN_SERVICE="${RAVA_ADMIN_SERVICE:-rava-admin}"
 MODERATOR_SERVICE="${RAVA_MODERATOR_SERVICE:-rava-moderator}"
+SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run as root: sudo bash $0" >&2
   exit 1
 fi
 
+SERVER_DIR="$(bash "${SCRIPT_DIR}/resolve-server-dir.sh" "${1:-}")"
+
 if [ ! -f "${SERVER_DIR}/Rava.Admin/Rava.Admin.csproj" ]; then
   echo "Missing ${SERVER_DIR}/Rava.Admin/Rava.Admin.csproj" >&2
-  echo "Pass the server directory: sudo bash $0 /path/to/rava-1/server" >&2
   exit 1
 fi
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
+echo "Using server sources: ${SERVER_DIR}"
 echo "Publishing admin portal..."
 dotnet publish "${SERVER_DIR}/Rava.Admin/Rava.Admin.csproj" \
   --configuration Release \
@@ -49,6 +50,8 @@ rsync -a \
 bash "${SCRIPT_DIR}/sync-portal-wwwroot.sh" \
   "${SERVER_DIR}/Rava.Api/html" \
   "${PUBLISH_DIR}/wwwroot"
+
+chown -R "${SERVICE_USER}:${SERVICE_USER}" "${PUBLISH_DIR}/wwwroot" 2>/dev/null || true
 
 for required in \
   "${PUBLISH_DIR}/Rava.Admin.dll" \

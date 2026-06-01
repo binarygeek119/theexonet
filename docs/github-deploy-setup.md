@@ -130,6 +130,15 @@ On the server you can also run:
 sudo deploy-rava-html          # game html only
 sudo deploy-rava-status        # status dashboard publish + restart
 sudo deploy-rava-portals       # admin + moderator publish + restart
+
+From a git checkout on the server (e.g. `/opt/rava/rava`):
+
+```bash
+cd /opt/rava/rava
+git pull
+sudo install-rava-scripts      # refresh /usr/local/bin helpers
+sudo deploy-rava-portals       # auto-finds ./server
+```
 ```
 
 Watch the **Deploy to production** or **Sync html, status, and admin/moderator portals** job in the Actions tab.

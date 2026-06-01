@@ -1,30 +1,31 @@
 #!/bin/bash
 # Publish the status dashboard into the live publish folder and restart rava-status.
 # Run on the server as root:
-#   sudo deploy-rava-status
-# Or from a repo checkout:
-#   sudo bash scripts/deploy-status.sh /path/to/rava-1/server
+#   cd /opt/rava/rava && sudo deploy-rava-status
+#   sudo deploy-rava-status /opt/rava/rava/server
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-SERVER_DIR="${1:-${SCRIPT_DIR}/../server}"
 PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
 STATUS_SERVICE="${RAVA_STATUS_SERVICE:-rava-status}"
+SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run as root: sudo bash $0" >&2
   exit 1
 fi
 
+SERVER_DIR="$(bash "${SCRIPT_DIR}/resolve-server-dir.sh" "${1:-}")"
+
 if [ ! -f "${SERVER_DIR}/Rava.Status/Rava.Status.csproj" ]; then
   echo "Missing ${SERVER_DIR}/Rava.Status/Rava.Status.csproj" >&2
-  echo "Pass the server directory: sudo bash $0 /path/to/rava-1/server" >&2
   exit 1
 fi
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
+echo "Using server sources: ${SERVER_DIR}"
 echo "Publishing status dashboard..."
 dotnet publish "${SERVER_DIR}/Rava.Status/Rava.Status.csproj" \
   --configuration Release \
@@ -35,6 +36,8 @@ rsync -a \
   --exclude 'appsettings.Development.json' \
   --exclude 'status-runtime.json' \
   "${work}/publish-status/" "${PUBLISH_DIR}/"
+
+chown -R "${SERVICE_USER}:${SERVICE_USER}" "${PUBLISH_DIR}/wwwroot" 2>/dev/null || true
 
 for required in \
   "${PUBLISH_DIR}/Rava.Status.dll" \

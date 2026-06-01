@@ -4,6 +4,12 @@ namespace Rava.Core.Tests;
 
 public class OffworldNewsTemplateGeneratorTests
 {
+    public OffworldNewsTemplateGeneratorTests()
+    {
+        var csvPath = Path.Combine(AppContext.BaseDirectory, "offworld-news-reporters.csv");
+        OffworldNewsReporterCatalog.Configure(AppContext.BaseDirectory, Path.GetFileName(csvPath));
+    }
+
     [Fact]
     public void Generate_produces_five_stories_for_a_fixed_date()
     {

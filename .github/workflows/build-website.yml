@@ -469,6 +469,43 @@ jobs:
               "$target"
           fi
 
+      - name: Install helper scripts
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${host}"
+          if [ "$DEPLOY_USER" = "root" ]; then
+            sudo_prefix=""
+          else
+            sudo_prefix="sudo "
+          fi
+
+          run_remote() {
+            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            else
+              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
+                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            fi
+          }
+
+          staging="/tmp/rava-scripts-install"
+          echo "Syncing scripts/ to ${remote}:${staging}"
+          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+            rsync -az --delete scripts/ \
+              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              "${remote}:${staging}/"
+          else
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -az --delete scripts/ \
+              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              "${remote}:${staging}/"
+          fi
+
+          run_remote "${sudo_prefix}bash ${staging}/install-bin-scripts.sh ${staging}"
+          echo "Installed /usr/local/bin/restart-rava and related helpers."
+
       - name: Restart services
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
@@ -477,9 +514,9 @@ jobs:
           host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
           remote="${DEPLOY_USER}@${host}"
           if [ "$DEPLOY_USER" = "root" ]; then
-            systemctl_prefix=""
+            sudo_prefix=""
           else
-            systemctl_prefix="sudo "
+            sudo_prefix="sudo "
           fi
 
           run_remote() {
@@ -496,20 +533,34 @@ jobs:
             if [ -z "$unit" ]; then
               return 0
             fi
-            if ! run_remote "${systemctl_prefix}systemctl cat ${unit}.service >/dev/null 2>&1"; then
+            if ! run_remote "${sudo_prefix}systemctl cat ${unit}.service >/dev/null 2>&1"; then
               echo "WARNING: ${unit}.service is not installed on the server; skipping restart."
-              echo "Run scripts/install-systemd-units.sh on the server (see docs/deploy.md)."
+              echo "Run sudo install-rava-systemd on the server (see docs/deploy.md)."
               return 0
             fi
-            if run_remote "${systemctl_prefix}systemctl restart ${unit}"; then
+            if run_remote "${sudo_prefix}systemctl restart ${unit}"; then
               echo "Restarted ${unit}"
             else
               echo "WARNING: systemctl restart ${unit} failed (deploy files were still synced)." >&2
             fi
           }
 
-          restart_unit "${DEPLOY_API_SERVICE}"
-          restart_unit "${DEPLOY_STATUS_SERVICE}"
-          restart_unit "${DEPLOY_ADMIN_SERVICE}"
-          restart_unit "${DEPLOY_MODERATOR_SERVICE}"
-          restart_unit "${DEPLOY_DOCS_SERVICE}"
+          if run_remote "command -v restart-rava >/dev/null 2>&1"; then
+            if run_remote "${sudo_prefix}restart-rava"; then
+              echo "Restarted services via restart-rava"
+            else
+              echo "WARNING: restart-rava failed; trying individual service restarts." >&2
+              restart_unit "${DEPLOY_API_SERVICE}"
+              restart_unit "${DEPLOY_STATUS_SERVICE}"
+              restart_unit "${DEPLOY_ADMIN_SERVICE}"
+              restart_unit "${DEPLOY_MODERATOR_SERVICE}"
+              restart_unit "${DEPLOY_DOCS_SERVICE}"
+            fi
+          else
+            echo "WARNING: restart-rava not found; falling back to systemctl restart." >&2
+            restart_unit "${DEPLOY_API_SERVICE}"
+            restart_unit "${DEPLOY_STATUS_SERVICE}"
+            restart_unit "${DEPLOY_ADMIN_SERVICE}"
+            restart_unit "${DEPLOY_MODERATOR_SERVICE}"
+            restart_unit "${DEPLOY_DOCS_SERVICE}"
+          fi

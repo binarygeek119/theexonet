@@ -1,9 +1,10 @@
 #!/bin/bash
 # Install RAVA systemd units on production. Run on the server as root:
+#   sudo install-rava-systemd
 #   sudo bash scripts/install-systemd-units.sh
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 SYSTEMD_SRC="${SCRIPT_DIR}/systemd"
 SYSTEMD_DST="/etc/systemd/system"
 

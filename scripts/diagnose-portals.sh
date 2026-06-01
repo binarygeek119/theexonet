@@ -1,6 +1,6 @@
 #!/bin/bash
 # Diagnose rava-admin, rava-moderator, and rava-docs startup failures.
-# Run on the server: sudo bash scripts/diagnose-portals.sh
+# Run on the server: sudo diagnose-rava-portals
 set -euo pipefail
 
 PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"

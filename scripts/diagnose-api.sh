@@ -1,6 +1,6 @@
 #!/bin/bash
 # Diagnose rava-api startup failures on production.
-# Run on the server: sudo bash scripts/diagnose-api.sh
+# Run on the server: sudo diagnose-rava-api
 set -euo pipefail
 
 PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"

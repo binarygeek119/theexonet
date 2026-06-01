@@ -105,7 +105,9 @@ Add the **private** key contents as secret `DEPLOY_SSH_KEY` (PEM/OpenSSH format)
 
 ## 5. One-time server prep
 
-See [deploy.md](deploy.md) for .NET 10, systemd units, `appsettings.json`, and Apache/nginx.
+See [deploy.md](deploy.md) for .NET 10, systemd units, `appsettings.json`, Apache/nginx, and `/usr/local/bin` helpers.
+
+Each deploy syncs `scripts/` to the server, runs `install-bin-scripts.sh`, then `restart-rava` (falls back to per-service `systemctl restart` if needed).
 
 After first deploy, confirm:
 
@@ -195,11 +197,11 @@ The deploy **synced files successfully** — only the service restart failed bec
 **On the server** (SSH as root), create the units and start them:
 
 ```bash
-# If you have the repo cloned on the server:
-sudo bash scripts/install-portal-units.sh
+# If you have the repo cloned on the server (install to PATH first: sudo bash scripts/install-bin-scripts.sh):
+sudo install-rava-portals
 
-# Or install all four units (api, status, admin, moderator):
-sudo bash scripts/install-systemd-units.sh
+# Or install all five units (api, status, admin, moderator, docs):
+sudo install-rava-systemd
 ```
 
 **Without a repo clone**, copy the unit files manually:
@@ -215,6 +217,6 @@ Unit file sources: `scripts/systemd/rava-admin.service` and `scripts/systemd/rav
 
 Ensure `/var/www/publish/appsettings.json` includes **`AdminPortal`** and **`ModeratorPortal`** sections (see `appsettings.production.example.json`).
 
-After units exist, re-run the GitHub workflow or `sudo systemctl restart rava-admin rava-moderator`.
+After units exist, re-run the GitHub workflow or `sudo restart-rava`.
 
-On the latest workflow, missing units log a **WARNING** and are skipped instead of failing the deploy.
+On the latest workflow, missing units log a **WARNING** and are skipped instead of failing the deploy. The workflow installs helpers to `/usr/local/bin` automatically.

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Restart RAVA API (5000), status (6000), admin portal (7000), moderator portal (7050), and docs (9000) on production.
-# Run as root: sudo bash /path/to/restart-rava.sh
+# Run as root: sudo restart-rava
 
 set -euo pipefail
 

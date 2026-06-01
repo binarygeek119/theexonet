@@ -22,6 +22,25 @@ sudo mkdir -p /var/www/publish/.aspnet
 sudo chown -R www-data:www-data /var/www/publish
 ```
 
+   **Helper scripts in `/usr/local/bin`** — install once from a repo clone (or copy `scripts/` to the server), then use short commands from anywhere:
+
+```bash
+sudo bash scripts/install-bin-scripts.sh
+```
+
+   This copies scripts to `/usr/local/lib/rava/scripts/` and adds symlinks:
+
+   | Command | Purpose |
+   |---------|---------|
+   | `sudo restart-rava` | Stop/start all five services, free ports |
+   | `sudo diagnose-rava-api` | API startup checks |
+   | `sudo diagnose-rava-portals` | Admin/moderator/docs checks |
+   | `sudo install-rava-systemd` | Install all five systemd units |
+   | `sudo install-rava-portals` | Install admin + moderator units only |
+   | `sudo install-rava-scripts` | Re-run installer after `git pull` |
+
+   Optional override: `RAVA_LIB_DIR=/custom/path sudo install-rava-scripts /path/to/scripts`
+
    Install the **ASP.NET Core 10 runtime** (the published API targets `net10.0`; .NET 8 is not enough):
 
 ```bash
@@ -242,15 +261,17 @@ sudo systemctl enable --now rava-docs
 **Quick install (all five units):** copy `scripts/systemd/*.service` to the server, then:
 
 ```bash
-sudo bash scripts/install-systemd-units.sh
+sudo install-rava-systemd
 ```
 
-Allow passwordless service restarts for GitHub Actions (optional — use your SSH login user, not necessarily `www-data`):
+Allow passwordless deploy commands for GitHub Actions (optional — use your SSH login user, not necessarily `www-data`):
 
 ```bash
-echo 'YOUR_SSH_USER ALL=(ALL) NOPASSWD: /bin/systemctl restart rava-api, /bin/systemctl restart rava-status, /bin/systemctl restart rava-admin, /bin/systemctl restart rava-moderator, /bin/systemctl restart rava-docs' | sudo tee /etc/sudoers.d/rava-deploy
+echo 'YOUR_SSH_USER ALL=(ALL) NOPASSWD: /usr/local/bin/restart-rava, /usr/local/lib/rava/scripts/restart-rava.sh, /usr/local/bin/install-rava-scripts, /usr/local/lib/rava/scripts/install-bin-scripts.sh, /bin/systemctl restart rava-api, /bin/systemctl restart rava-status, /bin/systemctl restart rava-admin, /bin/systemctl restart rava-moderator, /bin/systemctl restart rava-docs' | sudo tee /etc/sudoers.d/rava-deploy
 sudo chmod 440 /etc/sudoers.d/rava-deploy
 ```
+
+The deploy workflow syncs `scripts/` on each run, installs helpers to `/usr/local/bin`, then runs `restart-rava`.
 
 5. Configure your reverse proxy:
 
@@ -336,8 +357,7 @@ server {
 If the API returns **502**, `/api/status` shows **database offline**, or **`rava-api.service` failed (Result: core-dump)**:
 
 1. **Run diagnostics on the server:**  
-   `sudo bash scripts/diagnose-api.sh`  
-   (Or copy the script from the repo to the server first.)
+   `sudo diagnose-rava-api`
 2. **Check the service log:** `sudo journalctl -u rava-api -n 80 --no-pager`
 3. **Manual startup (shows the real error on stdout):**  
    `sudo -u www-data env ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_URLS=http://127.0.0.1:5000 dotnet /var/www/publish/Rava.Api.dll`
@@ -357,7 +377,7 @@ If the API returns **502**, `/api/status` shows **database offline**, or **`rava
 9. **`Address already in use` / socket bind error:** another process holds port 5000, 6000, 7000, 7050, or 9000 (`sudo ss -tlnp | grep -E '5000|6000|7000|7050|9000'`). Do **not** put `"Urls"` in the shared `/var/www/publish/appsettings.json` — set ports only in each systemd unit (`ASPNETCORE_URLS=http://0.0.0.0:5000` for API, `:6000` for status, `:7000` for admin, `:7050` for moderator, `:9000` for docs).
 10. **`Access to the path .../html/images/profile is denied`:** fix ownership on `/var/www/publish` (see upload folder permissions in step 3 above).
 11. **`Could not parse the JSON file` / `LineNumber: 308`:** `/var/www/publish/appsettings.json` is invalid (often duplicated content from repeated edits). Back it up, replace from `appsettings.production.example.json`, set your postgres password, then validate with `python3 -m json.tool /var/www/publish/appsettings.json`.
-12. **Admin / moderator / docs `core-dump` (ABRT):** run `sudo bash scripts/diagnose-portals.sh`. Common causes: missing `Rava.Admin.dll` / `Rava.Moderator.dll` / `Rava.Docs.dll` or `content/` (redeploy from `main`), port 7000/7050/9000 already in use, or a broken systemd unit missing `Environment=ASPNETCORE_URLS`. Reinstall units with `sudo bash scripts/install-systemd-units.sh`, then `sudo systemctl reset-failed rava-admin rava-moderator rava-docs`.
+12. **Admin / moderator / docs `core-dump` (ABRT):** run `sudo diagnose-rava-portals`. Common causes: missing `Rava.Admin.dll` / `Rava.Moderator.dll` / `Rava.Docs.dll` or `content/` (redeploy from `main`), port 7000/7050/9000 already in use, or a broken systemd unit missing `Environment=ASPNETCORE_URLS`. Reinstall units with `sudo install-rava-systemd`, then `sudo systemctl reset-failed rava-admin rava-moderator rava-docs`.
 13. **Stray `/var/www/html`, `/var/www/wwwroot`, or `/var/www/.aspnet`:** `DEPLOY_WWW_PATH` or `DEPLOY_API_PATH` was set to `/var/www` instead of `/var/www/publish`. Set both GitHub variables to `/var/www/publish`, remove the stray folders after confirming nothing important lives there, and re-run deploy:
 
 ```bash
@@ -440,10 +460,10 @@ sudo systemctl restart rava-moderator
 sudo systemctl restart rava-docs
 ```
 
-Or use the helper script (copy `scripts/restart-rava.sh` to the server):
+Or use the helper (after `sudo bash scripts/install-bin-scripts.sh` once):
 
 ```bash
-sudo bash scripts/restart-rava.sh
+sudo restart-rava
 ```
 
 Starts **rava-api** before **rava-status**, **rava-admin**, **rava-moderator**, and **rava-docs**, and clears stray processes on ports 5000/6000/7000/7050/9000.

@@ -1,10 +1,11 @@
 #!/bin/bash
 # Install admin + moderator systemd units when rava-api and rava-status already exist.
 # Run on the server as root:
+#   sudo install-rava-portals
 #   sudo bash scripts/install-portal-units.sh
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 SYSTEMD_SRC="${SCRIPT_DIR}/systemd"
 SYSTEMD_DST="/etc/systemd/system"
 

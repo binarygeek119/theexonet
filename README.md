@@ -89,9 +89,9 @@ dotnet run --project Rava.Docs
 
 Open **http://localhost:9000** (production: **https://ravadocs.binarygeek119.duckdns.org/**). Edit pages under **`docs/game/`**.
 
-## Translations (Weblate)
+## Translations (i18n / Weblate later)
 
-UI strings for the game, admin, moderator, and status portals live in JSON under `server/Rava.Api/html/locales/` and `server/Rava.Status/wwwroot/locales/`. Connect the repo to Weblate using root **`weblate.yml`**. Offworld News / Exonet (AI articles) is excluded. See **[docs/TRANSLATION.md](docs/TRANSLATION.md)**.
+UI strings live in JSON under `server/Rava.Api/html/locales/` and `server/Rava.Status/wwwroot/locales/` (`data-i18n` + `i18n.js`). **Weblate is disabled for now** (English-only, config in `weblate.yml.off`). See **[docs/TRANSLATION.md](docs/TRANSLATION.md)** for go-live steps. Exonet / Offworld News stays excluded.
 
 ## Production
 

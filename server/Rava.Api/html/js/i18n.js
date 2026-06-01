@@ -1,19 +1,27 @@
 /**
- * RAVA web UI translations (Weblate-managed JSON under /locales/).
+ * RAVA web UI translations (JSON under /locales/).
  * Exonet / Offworld News (exonet.js, AI articles) is intentionally excluded.
+ * Set WEBLATE_LIVE when Weblate is connected and translated locale folders ship in deploy.
  */
+
+/** false until go-live: rename weblate.yml.off → weblate.yml and enable non-en locales. */
+export const WEBLATE_LIVE = false;
 
 const LOCALE_STORAGE_KEY = "rava-locale";
 const DEFAULT_LOCALE = "en";
 
-/** BCP 47 codes Weblate may add; only en is shipped in-repo until translated. */
-export const LOCALE_OPTIONS = [
+const LOCALE_OPTIONS_ALL = [
   { code: "en", label: "English" },
   { code: "es", label: "Español" },
   { code: "fr", label: "Français" },
   { code: "de", label: "Deutsch" },
   { code: "pt", label: "Português" },
 ];
+
+/** Languages shown in the picker; English only until WEBLATE_LIVE. */
+export const LOCALE_OPTIONS = WEBLATE_LIVE
+  ? LOCALE_OPTIONS_ALL
+  : [{ code: "en", label: "English" }];
 
 let activeLocale = DEFAULT_LOCALE;
 let messages = {};
@@ -64,7 +72,10 @@ async function loadNamespace(locale, namespace) {
 export async function initI18n({ locale, namespaces: ns } = {}) {
   namespaces = ns ?? ["game"];
   const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
-  activeLocale = normalizeLocale(locale ?? stored ?? navigator.language ?? DEFAULT_LOCALE);
+  const preferred = WEBLATE_LIVE
+    ? locale ?? stored ?? navigator.language ?? DEFAULT_LOCALE
+    : DEFAULT_LOCALE;
+  activeLocale = normalizeLocale(preferred);
   localStorage.setItem(LOCALE_STORAGE_KEY, activeLocale);
 
   const bundles = await Promise.all(
@@ -153,5 +164,11 @@ export function wireLocaleSelector(selectEl) {
 }
 
 export function wireLocaleSelectors() {
+  if (!WEBLATE_LIVE) {
+    document.querySelectorAll(".locale-select-label").forEach((el) => {
+      el.hidden = true;
+    });
+    return;
+  }
   document.querySelectorAll("[data-locale-select]").forEach((el) => wireLocaleSelector(el));
 }

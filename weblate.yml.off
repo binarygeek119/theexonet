@@ -1,4 +1,6 @@
-# Weblate component discovery (https://docs.weblate.org/en/latest/admin/install/docker.html)
+# INACTIVE — Weblate only auto-discovers weblate.yml at repo root.
+# Go live: git mv weblate.yml.off weblate.yml, set WEBLATE_LIVE = true in both js/i18n.js files.
+# https://docs.weblate.org/en/latest/admin/install/docker.html
 # Offworld News / Exonet AI content is not included — see docs/TRANSLATION.md
 
 translate:

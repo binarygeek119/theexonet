@@ -2,10 +2,21 @@
 
 Player-facing UI strings live in JSON locale files and are loaded by [`server/Rava.Api/html/js/i18n.js`](../server/Rava.Api/html/js/i18n.js).
 
-## Weblate project
+## Status: disabled (pre–go-live)
+
+Weblate is **not** active yet. The UI stays **English-only** and language pickers are hidden (`WEBLATE_LIVE = false` in both `i18n.js` files). Component config is kept in [`weblate.yml.off`](../weblate.yml.off) so discovery does not run until you enable it.
+
+### Go-live checklist
+
+1. Rename [`weblate.yml.off`](../weblate.yml.off) → `weblate.yml` and connect the repo in Weblate.
+2. Set `WEBLATE_LIVE = true` in `server/Rava.Api/html/js/i18n.js` and `server/Rava.Status/wwwroot/js/i18n.js`.
+3. Merge translated `es/`, `fr/`, etc. locale folders and deploy HTML/wwwroot.
+4. Pause or remove any test Weblate project that was pointed at a fork.
+
+## Weblate project (when enabled)
 
 1. Add this GitHub repository to Weblate.
-2. Enable **weblate.yml** component discovery (or import the four components from [`weblate.yml`](../weblate.yml) manually).
+2. Enable **weblate.yml** component discovery (or import the four components from `weblate.yml` manually).
 3. Source language: **English (`en`)**.
 4. Translators work in `game.json`, `admin.json`, `moderator.json`, and `status.json`; merged PRs add `es/`, `fr/`, etc.
 

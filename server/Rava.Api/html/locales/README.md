@@ -1,6 +1,6 @@
-# RAVA UI translations (Weblate)
+# RAVA UI translations
 
-English JSON files in `en/` are the **source** strings. Weblate opens PRs with `es/`, `fr/`, etc.
+English JSON files in `en/` are the **source** strings. Weblate is **off** until go-live (`weblate.yml.off`, `WEBLATE_LIVE` in `js/i18n.js`); then Weblate can open PRs with `es/`, `fr/`, etc.
 
 ## Components
 
@@ -11,7 +11,7 @@ English JSON files in `en/` are the **source** strings. Weblate opens PRs with `
 | `moderator.json` | Moderator portal (`moderator.html`) |
 | `status.json` | Status dashboard (`Rava.Status/wwwroot`) |
 
-Repository root [`weblate.yml`](../../../weblate.yml) defines Weblate components.
+Repository root [`weblate.yml.off`](../../../weblate.yml.off) defines Weblate components (rename to `weblate.yml` when enabling).
 
 ## Not translated here
 

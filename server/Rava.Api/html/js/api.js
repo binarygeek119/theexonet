@@ -203,6 +203,32 @@ export class RavaApi {
     return this.request("/api/status/economy", { auth: false });
   }
 
+  searchPublicProfiles(query, mode = "auto", limit = 20) {
+    const params = new URLSearchParams({
+      q: query,
+      mode,
+      limit: String(limit),
+    });
+    return this.request(`/api/public/profiles/search?${params.toString()}`, { auth: false });
+  }
+
+  getPublicProfileLeaderboard(sort = "companyValue", limit = 25) {
+    const params = new URLSearchParams({
+      sort,
+      limit: String(limit),
+    });
+    return this.request(`/api/public/profiles/leaderboard?${params.toString()}`, { auth: false });
+  }
+
+  getPublicProfileByUsername(username) {
+    return this.request(`/api/public/profiles/user/${encodeURIComponent(username)}`, { auth: false });
+  }
+
+  getOffworldNews(date) {
+    const params = date ? `?date=${encodeURIComponent(date)}` : "";
+    return this.request(`/api/public/offworld-news${params}`, { auth: false });
+  }
+
   getTradeItems() {
     return this.request("/api/trade/items", { auth: false });
   }

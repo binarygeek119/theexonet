@@ -243,6 +243,48 @@ public record CompanyNameListingDto(
 
 public record CompanyNameListingsResponse(IReadOnlyList<CompanyNameListingDto> Listings);
 
+public record PublicProfileSummaryDto(
+    string Username,
+    string ProfileNumber,
+    string CompanyName,
+    string Mood,
+    string ProfileImageUrl,
+    int CurrentGameDay,
+    int WorkerCount,
+    int ZoneCount,
+    decimal CompanyValue,
+    int Rank = 0);
+
+public record PublicProfileDetailDto(
+    string Username,
+    string ProfileNumber,
+    string CompanyName,
+    string ProfileImageUrl,
+    string Mood,
+    string AboutMe,
+    string Interests,
+    string Music,
+    string Discord,
+    string Bluesky,
+    string Twitter,
+    string Youtube,
+    string Facebook,
+    DateTime MemberSince,
+    int CurrentGameDay,
+    int WorkerCount,
+    int ZoneCount,
+    decimal CompanyValue);
+
+public record PublicProfileSearchResponse(
+    string Query,
+    string Mode,
+    IReadOnlyList<PublicProfileSummaryDto> Results);
+
+public record PublicProfileLeaderboardResponse(
+    string Sort,
+    IReadOnlyList<PublicProfileSummaryDto> Entries,
+    IReadOnlyList<string> ComingSoonSorts);
+
 public record ProfileFriendDto(
     Guid PlayerId,
     string Username,

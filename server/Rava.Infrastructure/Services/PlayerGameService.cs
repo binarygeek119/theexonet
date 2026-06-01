@@ -431,7 +431,7 @@ public class PlayerGameService(
             Type = request.EmergencyBuyback ? TransactionType.EmergencyBuyback : TransactionType.OreSale,
             Amount = totalValue,
             Description = request.EmergencyBuyback
-                ? $"Emergency buyback: {request.Quantity} {oreType} at 50%"
+                ? $"Emergency buy back: {request.Quantity} {oreType} at 50%"
                 : $"Sold {request.Quantity} {oreType}",
             GameDay = player.CurrentGameDay
         });

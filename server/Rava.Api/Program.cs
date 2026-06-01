@@ -9,6 +9,7 @@ using Npgsql;
 using Rava.Api.Controllers;
 using Rava.Api.Services;
 using Rava.Api.Services.Market;
+using Rava.Api.Services.OffworldNews;
 using Rava.Core.Configuration;
 using Rava.Core.Interfaces;
 using Rava.Core.Services;
@@ -50,6 +51,7 @@ builder.Services.Configure<HateSpeechOptions>(builder.Configuration.GetSection(H
 builder.Services.Configure<ModeratorPortalOptions>(builder.Configuration.GetSection(ModeratorPortalOptions.SectionName));
 builder.Services.Configure<AdminPortalOptions>(builder.Configuration.GetSection(AdminPortalOptions.SectionName));
 builder.Services.Configure<HostingOptions>(builder.Configuration.GetSection(HostingOptions.SectionName));
+builder.Services.Configure<OffworldNewsOptions>(builder.Configuration.GetSection(OffworldNewsOptions.SectionName));
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddMemoryCache();
@@ -85,6 +87,12 @@ builder.Services.AddScoped<SpecialEventService>();
 builder.Services.AddScoped<PlayerProfileUpgrader>();
 builder.Services.AddScoped<CompanyNameService>();
 builder.Services.AddScoped<TradeAuctionService>();
+builder.Services.AddScoped<PublicProfileService>();
+builder.Services.AddHttpClient(OpenAiOffworldNewsGenerator.HttpClientName, client =>
+{
+    client.Timeout = TimeSpan.FromMinutes(3);
+});
+builder.Services.AddSingleton<OffworldNewsService>();
 builder.Services.AddSingleton<IProfileAvatarStorage>(sp =>
     new LocalProfileAvatarStorage(new ProfileAvatarStorageOptions
     {

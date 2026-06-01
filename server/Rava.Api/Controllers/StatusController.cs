@@ -95,7 +95,7 @@ public class StatusController(
                     basePrice,
                     basePrice,
                     null,
-                    $"Emergency buyback: {buybackPrice} credits (50%)");
+                    $"Emergency buy back: {buybackPrice} credits (50%)");
             })
             .ToList();
 

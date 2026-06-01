@@ -87,9 +87,10 @@ const playerMessaging = initPlayerMessaging({
     staffRecipient: document.getElementById("player-staff-recipient"),
     staffBody: document.getElementById("player-staff-body"),
     staffSendBtn: document.getElementById("player-staff-send-btn"),
+    peerCompose: document.getElementById("player-peer-compose"),
     staffCompose: document.getElementById("player-staff-compose"),
     staffToggleBtn: document.getElementById("player-staff-toggle-btn"),
-    staffCloseBtn: document.getElementById("player-staff-close-btn"),
+    peerToggleBtn: document.getElementById("player-peer-toggle-btn"),
   },
   setStatus: (_el, message, isError) => setMessagesStatus(message, isError),
 });

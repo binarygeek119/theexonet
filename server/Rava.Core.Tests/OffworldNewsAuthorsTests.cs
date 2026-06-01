@@ -4,6 +4,12 @@ namespace Rava.Core.Tests;
 
 public class OffworldNewsAuthorsTests
 {
+    public OffworldNewsAuthorsTests()
+    {
+        var csvPath = Path.Combine(AppContext.BaseDirectory, "offworld-news-reporters.csv");
+        OffworldNewsReporterCatalog.Configure(AppContext.BaseDirectory, Path.GetFileName(csvPath));
+    }
+
     [Fact]
     public void Reporters_has_fifteen_unique_bylines()
     {

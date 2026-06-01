@@ -75,6 +75,20 @@
 
     <main class="admin-main">
       <section id="admin-page-dashboard" class="admin-page">
+        <section class="admin-panel admin-testing-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Testing mode</h2>
+              <p class="admin-page-desc">Adds synthetic players with random profiles, Rax balances, and mining stats on the Players and Rax pages. Nothing is saved to the database.</p>
+            </div>
+          </div>
+          <label class="admin-testing-toggle" for="admin-testing-mode-toggle">
+            <input id="admin-testing-mode-toggle" type="checkbox">
+            <span>Enable testing mode</span>
+          </label>
+          <p id="admin-testing-mode-hint" class="admin-page-desc" hidden>Testing players are marked <span class="admin-testing-badge">TEST</span> in lists.</p>
+        </section>
+
         <section class="admin-panel">
           <h2>Dashboard</h2>
           <div id="admin-stats" class="admin-stats"></div>
@@ -370,6 +384,9 @@
         <h2 id="admin-profile-title">Player Profile</h2>
         <button id="admin-profile-close-btn" type="button" class="btn ghost">Close</button>
       </header>
+      <p id="admin-profile-testing-banner" class="admin-testing-profile-banner" hidden>
+        Testing dummy profile — moderation and messaging are disabled.
+      </p>
 
       <div class="admin-profile-banner">
         <div id="admin-profile-avatar" class="admin-profile-avatar">
@@ -504,6 +521,6 @@
     </div>
   </div>
 
-  <script type="module" src="/js/admin.js?v=20260529-admin"></script>
+  <script type="module" src="/js/admin.js?v=20260601-admin"></script>
 </body>
 </html>

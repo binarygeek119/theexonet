@@ -506,11 +506,11 @@
       <p id="messages-status" class="friends-status"></p>
       <div class="player-message-actions">
         <button id="player-staff-toggle-btn" type="button" class="btn ghost">Message staff</button>
+        <button id="player-peer-toggle-btn" type="button" class="btn ghost" hidden>Back to friends</button>
       </div>
       <section id="player-staff-compose" class="player-message-compose" hidden>
         <div class="player-message-compose-head">
           <h3>Message staff</h3>
-          <button id="player-staff-close-btn" type="button" class="btn ghost">Close</button>
         </div>
         <label for="player-staff-recipient">To</label>
         <select id="player-staff-recipient">
@@ -524,7 +524,7 @@
           placeholder="Write a message to an admin or moderator…"></textarea>
         <button id="player-staff-send-btn" type="button" class="btn accent">Send to staff</button>
       </section>
-      <section class="player-message-compose">
+      <section id="player-peer-compose" class="player-message-compose">
         <h3>Send to friend</h3>
         <label for="player-message-recipient">To</label>
         <select id="player-message-recipient">

@@ -13,6 +13,13 @@ import {
   RAX_NAME,
   formatRewardAmount,
 } from "./currency.js";
+import {
+  getDummyPlayerProfile,
+  isDummyPlayerId,
+  loadTestingModeEnabled,
+  mergePlayersForDisplay,
+  saveTestingModeEnabled,
+} from "./admin-testing-mode.js";
 
 const api = new RavaApi(API_BASE_URL);
 
@@ -66,6 +73,9 @@ const els = {
   offworldNewsRegenReporterPortraitsBtn: document.getElementById(
     "admin-offworld-news-regen-reporter-portraits-btn",
   ),
+  testingModeToggle: document.getElementById("admin-testing-mode-toggle"),
+  testingModeHint: document.getElementById("admin-testing-mode-hint"),
+  profileTestingBanner: document.getElementById("admin-profile-testing-banner"),
   playerSearch: document.getElementById("admin-player-search"),
   playerSearchBtn: document.getElementById("admin-player-search-btn"),
   playersStatus: document.getElementById("admin-players-status"),
@@ -221,6 +231,7 @@ const state = {
   gameCreditsConfig: null,
   events: [],
   editingEventId: null,
+  testingMode: loadTestingModeEnabled(),
 };
 
 function setStatus(el, message, isError = false) {
@@ -330,7 +341,40 @@ function setProfileText(el, value, emptyText) {
   el.classList.toggle("empty", !text);
 }
 
+function isTestingDummyProfile(profile) {
+  return Boolean(profile?.isTestingDummy) || isDummyPlayerId(profile?.id);
+}
+
+function renderTestingModeUi() {
+  if (els.testingModeToggle) {
+    els.testingModeToggle.checked = state.testingMode;
+  }
+  if (els.testingModeHint) {
+    els.testingModeHint.hidden = !state.testingMode;
+  }
+}
+
+function setTestingMode(enabled) {
+  state.testingMode = enabled;
+  saveTestingModeEnabled(enabled);
+  renderTestingModeUi();
+  if (state.page === "players") {
+    loadPlayers().catch((error) => setStatus(els.playersStatus, error.message, true));
+  } else if (state.page === "credits") {
+    loadCreditsPage().catch((error) => setStatus(els.creditsStatus, error.message, true));
+  }
+}
+
+function applyPlayersForDisplay(realPlayers, search) {
+  return mergePlayersForDisplay(state.testingMode, search, realPlayers);
+}
+
 function renderAdminProfile(profile) {
+  const isDummy = isTestingDummyProfile(profile);
+  if (els.profileTestingBanner) {
+    els.profileTestingBanner.hidden = !isDummy;
+  }
+
   const imageUrl = profile.profileImageUrl;
   if (imageUrl) {
     els.profileAvatarImg.src = imageUrl;
@@ -366,7 +410,7 @@ function renderAdminProfile(profile) {
   els.profileZones.textContent = String(profile.zoneCount ?? 0);
   els.profileMineCount.textContent = String(profile.mineCount ?? 0);
   const isProtectedAdmin = Boolean(profile.isProtectedAdmin);
-  const hideModeration = isProtectedAdmin;
+  const hideModeration = isProtectedAdmin || isDummy;
   if (els.profileFlagBox) {
     els.profileFlagBox.hidden = hideModeration;
   }
@@ -375,6 +419,10 @@ function renderAdminProfile(profile) {
   }
   if (document.querySelector("#admin-profile-modal .admin-profile-warning-box")) {
     document.querySelector("#admin-profile-modal .admin-profile-warning-box").hidden = hideModeration;
+  }
+  const messageBox = document.querySelector("#admin-profile-modal .admin-profile-message-box");
+  if (messageBox) {
+    messageBox.hidden = hideModeration;
   }
   if (!hideModeration) {
     renderProfileFlags(profile);
@@ -480,7 +528,7 @@ function setProfileBanStatus(message, isError = false) {
 }
 
 async function submitProfileBan() {
-  if (!state.profilePlayerId) {
+  if (!state.profilePlayerId || isDummyPlayerId(state.profilePlayerId)) {
     return;
   }
 
@@ -511,7 +559,7 @@ async function submitProfileBan() {
 }
 
 async function liftProfileBan() {
-  if (!state.profilePlayerId) {
+  if (!state.profilePlayerId || isDummyPlayerId(state.profilePlayerId)) {
     return;
   }
 
@@ -604,7 +652,7 @@ function setProfileWarningStatus(message, isError = false) {
 }
 
 async function submitProfileWarning() {
-  if (!state.profilePlayerId) {
+  if (!state.profilePlayerId || isDummyPlayerId(state.profilePlayerId)) {
     return;
   }
 
@@ -636,7 +684,7 @@ function setProfileFlagStatus(message, isError = false) {
 }
 
 async function submitProfileFlag() {
-  if (!state.profilePlayerId) {
+  if (!state.profilePlayerId || isDummyPlayerId(state.profilePlayerId)) {
     return;
   }
 
@@ -672,6 +720,32 @@ function closeAdminProfileModal() {
 
 async function openPlayerProfile(playerId) {
   try {
+    if (isDummyPlayerId(playerId)) {
+      const profile = getDummyPlayerProfile(playerId);
+      if (!profile) {
+        setStatus(els.playersStatus, "Testing profile not found.", true);
+        return;
+      }
+
+      state.profilePlayerId = playerId;
+      els.profileFlagCommentInput.value = "";
+      els.profileBanReason.value = "";
+      staffPlayerMessaging.clearForm();
+      setProfileFlagStatus("");
+      setProfileWarningStatus("");
+      if (els.profileWarningReason) {
+        els.profileWarningReason.value = "";
+      }
+      setProfileBanStatus("");
+      renderAdminProfile(profile);
+      if (els.profileMessageHistory) {
+        els.profileMessageHistory.innerHTML =
+          `<p class="admin-empty-note">No messages — testing dummy profile.</p>`;
+      }
+      openAdminProfileModal();
+      return;
+    }
+
     await ensureBanLevelsLoaded();
     state.profilePlayerId = playerId;
     els.profileFlagCommentInput.value = "";
@@ -692,6 +766,12 @@ async function openPlayerProfile(playerId) {
   }
 }
 
+function testingBadgeHtml(player) {
+  return player.isTestingDummy
+    ? ` <span class="admin-testing-badge">TEST</span>`
+    : "";
+}
+
 function renderPlayersTable(players) {
   if (!players.length) {
     els.playersBody.innerHTML = `<tr><td colspan="7">No players found.</td></tr>`;
@@ -701,8 +781,8 @@ function renderPlayersTable(players) {
   els.playersBody.innerHTML = players
     .map(
       (player) => `
-        <tr data-player-id="${player.id}">
-          <td>${escapeHtml(player.username)}</td>
+        <tr data-player-id="${player.id}"${player.isTestingDummy ? ' data-testing-dummy="1"' : ""}>
+          <td>${escapeHtml(player.username)}${testingBadgeHtml(player)}</td>
           <td>${escapeHtml(player.email)}</td>
           <td class="admin-credits-current">${formatCredits(player.credits)}</td>
           <td>${player.mineCount}</td>
@@ -723,28 +803,37 @@ function renderCreditsTable(players) {
   }
 
   els.creditsBody.innerHTML = players
-    .map(
-      (player) => `
-        <tr data-player-id="${player.id}">
-          <td>${escapeHtml(player.username)}</td>
+    .map((player) => {
+      const isDummy = Boolean(player.isTestingDummy);
+      return `
+        <tr data-player-id="${player.id}"${isDummy ? ' data-testing-dummy="1"' : ""}>
+          <td>${escapeHtml(player.username)}${testingBadgeHtml(player)}</td>
           <td>${escapeHtml(player.email)}</td>
           <td class="admin-credits-current">${formatCredits(player.credits)}</td>
           <td>
-            <input
+            ${
+              isDummy
+                ? `<span class="admin-page-desc">Dummy (read-only)</span>`
+                : `<input
               class="admin-credits-input"
               type="number"
               min="0"
               step="0.01"
               value="${Number(player.credits)}"
-              aria-label="New ${RAX_NAME} balance for ${escapeHtml(player.username)}">
+              aria-label="New ${RAX_NAME} balance for ${escapeHtml(player.username)}">`
+            }
           </td>
           <td>
             <div class="admin-row-actions">
-              <button type="button" class="btn success admin-save-credits-btn">Save</button>
+              ${
+                isDummy
+                  ? `<button type="button" class="btn ghost admin-view-profile-btn">View profile</button>`
+                  : `<button type="button" class="btn success admin-save-credits-btn">Save</button>`
+              }
             </div>
           </td>
-        </tr>`
-    )
+        </tr>`;
+    })
     .join("");
 }
 
@@ -869,10 +958,16 @@ async function regenerateOffworldNewsImages() {
 
 async function loadPlayers() {
   setStatus(els.playersStatus, "Loading…");
-  const response = await api.adminPlayers(els.playerSearch.value.trim());
-  state.players = response.players ?? [];
+  const search = els.playerSearch.value.trim();
+  const response = await api.adminPlayers(search);
+  state.players = applyPlayersForDisplay(response.players ?? [], search);
   renderPlayersTable(state.players);
-  setStatus(els.playersStatus, `${state.players.length} player(s) shown`);
+  const dummyCount = state.players.filter((player) => player.isTestingDummy).length;
+  const suffix =
+    state.testingMode && dummyCount && !search
+      ? ` (${dummyCount} testing dummy${dummyCount === 1 ? "" : "ies"})`
+      : "";
+  setStatus(els.playersStatus, `${state.players.length} player(s) shown${suffix}`);
 }
 
 async function loadCreditsPage() {
@@ -885,10 +980,16 @@ async function loadCreditsPage() {
 
   state.gameCreditsConfig = configResponse.credits ?? null;
   renderGameCreditsConfig(configResponse);
-  state.players = playersResponse.players ?? [];
+  const search = els.creditsSearch.value.trim();
+  state.players = applyPlayersForDisplay(playersResponse.players ?? [], search);
   renderCreditsTable(state.players);
   setStatus(els.gameCreditsStatus, "Loaded");
-  setStatus(els.creditsStatus, `${state.players.length} player(s) shown`);
+  const dummyCount = state.players.filter((player) => player.isTestingDummy).length;
+  const suffix =
+    state.testingMode && dummyCount && !search
+      ? ` (${dummyCount} testing dummy${dummyCount === 1 ? "" : "ies"})`
+      : "";
+  setStatus(els.creditsStatus, `${state.players.length} player(s) shown${suffix}`);
 }
 
 function toDateTimeLocalValue(iso) {
@@ -1244,6 +1345,7 @@ async function loadFlaggedPage() {
 }
 
 async function loadPortal() {
+  renderTestingModeUi();
   await ensureBanLevelsLoaded();
   await loadDashboard();
   await staffMessaging.refreshUnreadBadge();
@@ -1298,6 +1400,10 @@ async function loadCurrentPage() {
 }
 
 async function saveCreditsForRow(row, statusEl) {
+  if (row?.dataset.testingDummy === "1") {
+    return;
+  }
+
   const playerId = row?.dataset.playerId;
   const input = row?.querySelector(".admin-credits-input");
   const button = row?.querySelector(".admin-save-credits-btn");
@@ -1512,6 +1618,15 @@ els.gameCreditsResetBtn.addEventListener("click", () => {
 });
 
 els.creditsBody.addEventListener("click", async (event) => {
+  const profileButton = event.target.closest(".admin-view-profile-btn");
+  if (profileButton) {
+    const playerId = profileButton.closest("tr")?.dataset.playerId;
+    if (playerId) {
+      await openPlayerProfile(playerId);
+    }
+    return;
+  }
+
   const button = event.target.closest(".admin-save-credits-btn");
   if (!button) {
     return;
@@ -1618,6 +1733,13 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+if (els.testingModeToggle) {
+  els.testingModeToggle.addEventListener("change", () => {
+    setTestingMode(els.testingModeToggle.checked);
+  });
+}
+
+renderTestingModeUi();
 showPage("dashboard");
 initApiStatusMonitor(api);
 tryRestoreSession();

@@ -213,6 +213,49 @@
   flex-wrap: wrap;
 }
 
+.admin-testing-panel {
+  border-color: rgba(120, 180, 255, 0.35);
+}
+
+.admin-testing-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.admin-testing-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.admin-testing-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  color: #0b1220;
+  background: #7eb8ff;
+}
+
+.admin-testing-profile-banner {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #dbeafe;
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(120, 180, 255, 0.35);
+}
+
 .admin-profile-modal {
   z-index: 3100;
 }

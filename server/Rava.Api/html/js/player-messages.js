@@ -79,24 +79,80 @@ export function initPlayerMessaging({ api, els, setStatus }) {
   let selectedMessageId = null;
   let selectedMessageKind = null;
   let composePlayerId = null;
+  /** @type {"peer" | "staff"} */
+  let messageViewMode = "peer";
 
-  function hideStaffCompose() {
+  function isStaffMessage(message) {
+    return message.kind === "staff" || message.kind === "to-staff";
+  }
+
+  function getVisibleMessages() {
+    return inboxMessages.filter((message) =>
+      messageViewMode === "staff" ? isStaffMessage(message) : message.kind === "peer"
+    );
+  }
+
+  function showPeerMode() {
+    messageViewMode = "peer";
+    if (els.peerCompose) {
+      els.peerCompose.hidden = false;
+    }
     if (els.staffCompose) {
       els.staffCompose.hidden = true;
     }
     if (els.staffToggleBtn) {
       els.staffToggleBtn.hidden = false;
     }
+    if (els.peerToggleBtn) {
+      els.peerToggleBtn.hidden = true;
+    }
+    selectFirstVisibleMessage();
   }
 
-  function showStaffCompose() {
+  function showStaffMode() {
+    messageViewMode = "staff";
+    if (els.peerCompose) {
+      els.peerCompose.hidden = true;
+    }
     if (els.staffCompose) {
       els.staffCompose.hidden = false;
     }
     if (els.staffToggleBtn) {
       els.staffToggleBtn.hidden = true;
     }
+    if (els.peerToggleBtn) {
+      els.peerToggleBtn.hidden = false;
+    }
+    selectFirstVisibleMessage();
     els.staffRecipient?.focus();
+  }
+
+  function selectFirstVisibleMessage() {
+    const visible = getVisibleMessages();
+    const firstUnread =
+      visible.find((item) => !item.isRead && !item.isSentByMe) ?? visible[0] ?? null;
+
+    if (firstUnread) {
+      selectedMessageKind = firstUnread.kind;
+      selectedMessageId = firstUnread.id;
+    } else {
+      selectedMessageKind = null;
+      selectedMessageId = null;
+    }
+
+    renderInbox();
+    renderDetail(
+      selectedMessageKind && selectedMessageId
+        ? findMessage(selectedMessageKind, selectedMessageId)
+        : null
+    );
+    updateStatusCount();
+  }
+
+  function updateStatusCount() {
+    const visible = getVisibleMessages();
+    const label = messageViewMode === "staff" ? "staff " : "";
+    setStatus(els.messagesStatus, `${visible.length} ${label}message(s)`);
   }
 
   function getMessageKey(message) {
@@ -118,13 +174,16 @@ export function initPlayerMessaging({ api, els, setStatus }) {
   }
 
   function renderInbox() {
-    if (!inboxMessages.length) {
-      els.messagesInbox.innerHTML = `<p class="friends-status">No messages yet.</p>`;
+    const visible = getVisibleMessages();
+    if (!visible.length) {
+      const emptyLabel =
+        messageViewMode === "staff" ? "No staff messages yet." : "No friend messages yet.";
+      els.messagesInbox.innerHTML = `<p class="friends-status">${emptyLabel}</p>`;
       els.messagesDetail.innerHTML = `<p class="friends-status">Select a message to read it.</p>`;
       return;
     }
 
-    els.messagesInbox.innerHTML = inboxMessages
+    els.messagesInbox.innerHTML = visible
       .map((message) => {
         const key = getMessageKey(message);
         const active = key === `${selectedMessageKind}:${selectedMessageId}`;
@@ -238,6 +297,7 @@ export function initPlayerMessaging({ api, els, setStatus }) {
       );
       renderInbox();
       renderDetail(updated);
+      updateStatusCount();
       await refreshUnreadBadge();
     } catch (error) {
       setStatus(els.messagesStatus, error.message, true);
@@ -245,7 +305,6 @@ export function initPlayerMessaging({ api, els, setStatus }) {
   }
 
   async function loadMessages() {
-    hideStaffCompose();
     setStatus(els.messagesStatus, "Loading...");
     const [staffResponse, peerResponse, toStaffResponse, friendsResponse, contactsResponse] =
       await Promise.all([
@@ -270,8 +329,9 @@ export function initPlayerMessaging({ api, els, setStatus }) {
       els.messageRecipient.value = composePlayerId;
     }
 
+    const visible = getVisibleMessages();
     const firstUnread =
-      inboxMessages.find((item) => !item.isRead && !item.isSentByMe) ?? inboxMessages[0] ?? null;
+      visible.find((item) => !item.isRead && !item.isSentByMe) ?? visible[0] ?? null;
 
     if (firstUnread) {
       selectedMessageKind = firstUnread.kind;
@@ -295,7 +355,7 @@ export function initPlayerMessaging({ api, els, setStatus }) {
       }
     }
 
-    setStatus(els.messagesStatus, `${inboxMessages.length} message(s)`);
+    updateStatusCount();
     await refreshUnreadBadge();
   }
 
@@ -351,7 +411,6 @@ export function initPlayerMessaging({ api, els, setStatus }) {
     try {
       const result = await api.sendPlayerStaffMessage(toStaffUsername, body);
       els.staffBody.value = "";
-      hideStaffCompose();
       setStatus(els.messagesStatus, result.statusMessage ?? "Message sent to staff.");
       await loadMessages();
     } catch (error) {
@@ -362,6 +421,7 @@ export function initPlayerMessaging({ api, els, setStatus }) {
   }
 
   function openToPlayer(playerId) {
+    showPeerMode();
     composePlayerId = playerId || null;
     if (composePlayerId && els.messageRecipient) {
       els.messageRecipient.value = composePlayerId;
@@ -380,15 +440,17 @@ export function initPlayerMessaging({ api, els, setStatus }) {
 
   if (els.staffToggleBtn) {
     els.staffToggleBtn.addEventListener("click", () => {
-      showStaffCompose();
+      showStaffMode();
     });
   }
 
-  if (els.staffCloseBtn) {
-    els.staffCloseBtn.addEventListener("click", () => {
-      hideStaffCompose();
+  if (els.peerToggleBtn) {
+    els.peerToggleBtn.addEventListener("click", () => {
+      showPeerMode();
     });
   }
+
+  showPeerMode();
 
   els.messagesInbox.addEventListener("click", (event) => {
     const button = event.target.closest(".staff-message-item");

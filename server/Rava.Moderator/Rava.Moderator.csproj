@@ -19,11 +19,13 @@
     <Content Include="..\Rava.Api\html\js\api.js" Link="wwwroot\js\api.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\api-status.js" Link="wwwroot\js\api-status.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\config.js" Link="wwwroot\js\config.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Rava.Api\html\js\currency.js" Link="wwwroot\js\currency.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\flagged-messages.js" Link="wwwroot\js\flagged-messages.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\profile-social.js" Link="wwwroot\js\profile-social.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\staff-messages.js" Link="wwwroot\js\staff-messages.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\staff-player-inbox.js" Link="wwwroot\js\staff-player-inbox.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\staff-player-messages.js" Link="wwwroot\js\staff-player-messages.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Rava.Api\html\images\currency.svg" Link="wwwroot\images\currency.svg" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

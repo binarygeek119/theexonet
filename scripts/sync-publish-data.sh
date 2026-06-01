@@ -48,6 +48,7 @@ files=(
   bad-language-terms.csv
   political-terms.csv
   sexual-terms.csv
+  offworld-news-reporters.csv
 )
 
 missing_src=0

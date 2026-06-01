@@ -64,6 +64,7 @@ var hostingPaths = new RavaHostingPaths
     OffworldNewsCacheRoot = offworldNewsCacheRoot,
     WebRoot = webRootPath,
 };
+RavaDataFileBootstrap.EnsureFromPublish(contentRootPath, offworldNewsOptionsForPaths.ReportersFile);
 OffworldNewsReporterCatalog.Configure(contentRootPath, offworldNewsOptionsForPaths.ReportersFile);
 builder.Services.AddSingleton(hostingPaths);
 

@@ -54,7 +54,7 @@ cp -f "${SRC_DIR}/systemd/"*.service "${LIB_DIR}/systemd/"
 REPO_API_DIR="${SRC_DIR}/../server/Rava.Api"
 if [ -d "${REPO_API_DIR}" ]; then
   mkdir -p "${TEMPLATE_DIR}"
-  for csv in credits.csv market-items.csv trade-items.csv hate-speech-terms.csv bad-language-terms.csv political-terms.csv sexual-terms.csv; do
+  for csv in credits.csv market-items.csv trade-items.csv hate-speech-terms.csv bad-language-terms.csv political-terms.csv sexual-terms.csv offworld-news-reporters.csv; do
     if [ -f "${REPO_API_DIR}/${csv}" ]; then
       cp -f "${REPO_API_DIR}/${csv}" "${TEMPLATE_DIR}/${csv}"
     fi

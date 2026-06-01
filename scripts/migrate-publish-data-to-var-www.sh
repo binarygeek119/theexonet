@@ -24,6 +24,7 @@ files=(
   bad-language-terms.csv
   political-terms.csv
   sexual-terms.csv
+  offworld-news-reporters.csv
 )
 
 moved=0

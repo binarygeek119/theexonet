@@ -1,4 +1,4 @@
-import { renderSocialLinksHtml } from "./profile-social.js";
+import { renderSocialLinksHtml } from "./profile-social.js?v=20260529-login";
 
 const BOOKMARKS = [
   { slug: "home", title: "Exonet Portal", subtitle: "Start here" },

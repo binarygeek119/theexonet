@@ -122,16 +122,17 @@ curl -s http://127.0.0.1:6000/api/dashboard
 
 **Full stack** (API, status, admin, moderator, docs, game html): push to `main` under `server/` or run **Actions → Build website → Run workflow**. Requires `ENABLE_PRODUCTION_DEPLOY=true` for the **Deploy to production** job.
 
-**Fast path** (game html + admin/moderator portals only): push changes under `server/Rava.Api/html/`, `server/Rava.Admin/`, or `server/Rava.Moderator/` — **Actions → Deploy game html and portals** runs automatically. It publishes `Rava.Admin.dll` / `Rava.Moderator.dll`, syncs `wwwroot/` (including `/js/currency.js`), and restarts `rava-admin` and `rava-moderator`.
+**Fast path** (game html + status + admin/moderator): push changes under `server/Rava.Api/html/`, `server/Rava.Status/`, `server/Rava.Admin/`, or `server/Rava.Moderator/` — **Actions → Deploy game html and portals** runs automatically. It publishes `Rava.Status.dll`, `Rava.Admin.dll`, and `Rava.Moderator.dll`, syncs their `wwwroot/` assets, and restarts `rava-status`, `rava-admin`, and `rava-moderator`.
 
 On the server you can also run:
 
 ```bash
 sudo deploy-rava-html          # game html only
+sudo deploy-rava-status        # status dashboard publish + restart
 sudo deploy-rava-portals       # admin + moderator publish + restart
 ```
 
-Watch the **Deploy to production** or **Sync html and admin/moderator portals** job in the Actions tab.
+Watch the **Deploy to production** or **Sync html, status, and admin/moderator portals** job in the Actions tab.
 
 ## 7. Troubleshooting
 

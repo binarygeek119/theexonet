@@ -8,8 +8,10 @@ on:
       - "server/Rava.Api/html/**"
       - "server/Rava.Admin/**"
       - "server/Rava.Moderator/**"
+      - "server/Rava.Status/**"
       - "scripts/deploy-html.sh"
       - "scripts/deploy-portals.sh"
+      - "scripts/deploy-status.sh"
       - ".github/workflows/deploy-html.yml"
 
 permissions:
@@ -17,7 +19,7 @@ permissions:
 
 jobs:
   deploy-html:
-    name: Sync html and admin/moderator portals
+    name: Sync html, status, and admin/moderator portals
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -26,6 +28,7 @@ jobs:
       DEPLOY_SSH_PORT: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
       DEPLOY_API_PATH: ${{ vars.DEPLOY_API_PATH || secrets.DEPLOY_API_PATH || '/var/www/publish' }}
       DEPLOY_API_HOST: ${{ vars.DEPLOY_API_HOST || secrets.DEPLOY_API_HOST || '' }}
+      DEPLOY_STATUS_SERVICE: ${{ vars.DEPLOY_STATUS_SERVICE || secrets.DEPLOY_STATUS_SERVICE || 'rava-status' }}
       DEPLOY_ADMIN_SERVICE: ${{ vars.DEPLOY_ADMIN_SERVICE || secrets.DEPLOY_ADMIN_SERVICE || 'rava-admin' }}
       DEPLOY_MODERATOR_SERVICE: ${{ vars.DEPLOY_MODERATOR_SERVICE || secrets.DEPLOY_MODERATOR_SERVICE || 'rava-moderator' }}
 
@@ -41,6 +44,8 @@ jobs:
           node --check server/Rava.Api/html/js/admin.js
           node --check server/Rava.Api/html/js/moderator.js
           node --check server/Rava.Api/html/js/currency.js
+          node --check server/Rava.Status/wwwroot/js/status.js
+          node --check server/Rava.Status/wwwroot/js/values.js
 
       - name: Detect deploy auth method
         id: auth
@@ -105,12 +110,15 @@ jobs:
           dotnet-version: 10.0.x
           dotnet-quality: preview
 
-      - name: Publish admin and moderator portals
+      - name: Publish status, admin, and moderator
         working-directory: server
         run: |
           set -euo pipefail
+          dotnet publish Rava.Status/Rava.Status.csproj --configuration Release --output ./publish-status
           dotnet publish Rava.Admin/Rava.Admin.csproj --configuration Release --output ./publish-admin
           dotnet publish Rava.Moderator/Rava.Moderator.csproj --configuration Release --output ./publish-moderator
+          test -f publish-status/Rava.Status.dll
+          test -f publish-status/wwwroot/js/status.js
           test -f publish-admin/Rava.Admin.dll
           test -f publish-moderator/Rava.Moderator.dll
           test -f publish-admin/wwwroot/js/currency.js
@@ -145,7 +153,7 @@ jobs:
               "$target"
           fi
 
-      - name: Deploy admin and moderator portals
+      - name: Deploy status, admin, and moderator
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
         run: |
@@ -157,9 +165,15 @@ jobs:
             -avz
             --exclude 'appsettings.json'
             --exclude 'appsettings.Development.json'
+            --exclude 'status-runtime.json'
+            --filter 'P status-runtime.json'
           )
-          echo "Deploying admin portal to ${target}"
+          echo "Deploying status dashboard to ${target}"
           if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+            rsync "${portal_rsync_args[@]}" \
+              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              server/publish-status/ \
+              "$target"
             rsync "${portal_rsync_args[@]}" \
               -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
               server/publish-admin/ \
@@ -171,6 +185,10 @@ jobs:
           else
             SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${portal_rsync_args[@]}" \
               -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              server/publish-status/ \
+              "$target"
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${portal_rsync_args[@]}" \
+              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
               server/publish-admin/ \
               "$target"
             SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${portal_rsync_args[@]}" \
@@ -179,7 +197,7 @@ jobs:
               "$target"
           fi
 
-      - name: Restart admin and moderator services
+      - name: Restart status, admin, and moderator services
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
         run: |
@@ -217,12 +235,14 @@ jobs:
             fi
           }
 
+          restart_unit "${DEPLOY_STATUS_SERVICE}"
           restart_unit "${DEPLOY_ADMIN_SERVICE}"
           restart_unit "${DEPLOY_MODERATOR_SERVICE}"
 
           if run_remote "command -v curl >/dev/null 2>&1"; then
+            run_remote "curl -sf -o /dev/null -w 'status dashboard HTTP %{http_code}\n' http://127.0.0.1:6000/ || true"
             run_remote "curl -sf -o /dev/null -w 'admin currency.js HTTP %{http_code}\n' http://127.0.0.1:7000/js/currency.js || true"
             run_remote "curl -sf -o /dev/null -w 'moderator currency.js HTTP %{http_code}\n' http://127.0.0.1:7050/js/currency.js || true"
           fi
 
-          echo "Done. Hard-refresh admin/moderator and verify /js/currency.js returns 200."
+          echo "Done. Hard-refresh status/admin/moderator sites after deploy."

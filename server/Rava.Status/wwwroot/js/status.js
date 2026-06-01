@@ -22,6 +22,18 @@ const els = {
   docsEndpoint: document.getElementById("docs-endpoint"),
   docsPublicUrl: document.getElementById("docs-public-url"),
   docsError: document.getElementById("docs-error"),
+  adminOverall: document.getElementById("admin-overall"),
+  adminResponseMs: document.getElementById("admin-response-ms"),
+  adminChecked: document.getElementById("admin-checked"),
+  adminEndpoint: document.getElementById("admin-endpoint"),
+  adminPublicUrl: document.getElementById("admin-public-url"),
+  adminError: document.getElementById("admin-error"),
+  moderatorOverall: document.getElementById("moderator-overall"),
+  moderatorResponseMs: document.getElementById("moderator-response-ms"),
+  moderatorChecked: document.getElementById("moderator-checked"),
+  moderatorEndpoint: document.getElementById("moderator-endpoint"),
+  moderatorPublicUrl: document.getElementById("moderator-public-url"),
+  moderatorError: document.getElementById("moderator-error"),
   monitorUptime: document.getElementById("monitor-uptime"),
   monitorFirstRun: document.getElementById("monitor-first-run"),
   monitorUtc: document.getElementById("monitor-utc"),
@@ -29,6 +41,8 @@ const els = {
   linkGame: document.getElementById("link-game"),
   linkApi: document.getElementById("link-api"),
   linkDocs: document.getElementById("link-docs"),
+  linkAdmin: document.getElementById("link-admin"),
+  linkModerator: document.getElementById("link-moderator"),
   linkValues: document.getElementById("link-values"),
   linkApiStatus: document.getElementById("link-api-status"),
 };
@@ -81,6 +95,27 @@ function setGameVersion(label) {
   els.gameVersion.hidden = false;
 }
 
+function renderPortalCard(portal, {
+  overall,
+  responseMs,
+  checked,
+  endpoint,
+  publicUrl,
+  error,
+}, checkedUtc) {
+  endpoint.textContent = portal?.internalUrl || "—";
+  publicUrl.textContent = portal?.publicUrl || "—";
+  responseMs.textContent = portal?.responseMs != null ? `${portal.responseMs} ms` : "—";
+  checked.textContent = formatUtc(checkedUtc);
+  error.textContent = portal?.error || "—";
+
+  if (portal?.reachable) {
+    setPill(overall, "Online", "online");
+  } else {
+    setPill(overall, "Offline", "offline");
+  }
+}
+
 function renderDashboard(data) {
   els.lastUpdated.textContent = `Last updated ${new Date().toLocaleString()}`;
   els.apiEndpoint.textContent = data.apiBaseUrl;
@@ -91,20 +126,37 @@ function renderDashboard(data) {
   els.linkStatus.href = data.statusPublicUrl;
   els.linkGame.href = data.gameUrl;
   els.linkApi.href = data.apiPublicUrl;
-  els.linkDocs.href = data.docsPublicUrl;
+  els.linkDocs.href = data.docsPortal?.publicUrl || data.docsPublicUrl;
+  els.linkAdmin.href = data.adminPortal?.publicUrl || "#";
+  els.linkModerator.href = data.moderatorPortal?.publicUrl || "#";
   els.linkApiStatus.href = `${data.apiBaseUrl}/api/status`;
 
-  els.docsEndpoint.textContent = data.docsInternalUrl;
-  els.docsPublicUrl.textContent = data.docsPublicUrl;
-  els.docsResponseMs.textContent = data.docsResponseMs != null ? `${data.docsResponseMs} ms` : "—";
-  els.docsChecked.textContent = formatUtc(data.utc);
-  els.docsError.textContent = data.docsError || "—";
+  renderPortalCard(data.docsPortal, {
+    overall: els.docsOverall,
+    responseMs: els.docsResponseMs,
+    checked: els.docsChecked,
+    endpoint: els.docsEndpoint,
+    publicUrl: els.docsPublicUrl,
+    error: els.docsError,
+  }, data.utc);
 
-  if (data.docsReachable) {
-    setPill(els.docsOverall, "Online", "online");
-  } else {
-    setPill(els.docsOverall, "Offline", "offline");
-  }
+  renderPortalCard(data.adminPortal, {
+    overall: els.adminOverall,
+    responseMs: els.adminResponseMs,
+    checked: els.adminChecked,
+    endpoint: els.adminEndpoint,
+    publicUrl: els.adminPublicUrl,
+    error: els.adminError,
+  }, data.utc);
+
+  renderPortalCard(data.moderatorPortal, {
+    overall: els.moderatorOverall,
+    responseMs: els.moderatorResponseMs,
+    checked: els.moderatorChecked,
+    endpoint: els.moderatorEndpoint,
+    publicUrl: els.moderatorPublicUrl,
+    error: els.moderatorError,
+  }, data.utc);
 
   els.monitorUptime.textContent = formatDuration(data.monitorUptimeSeconds);
   els.monitorFirstRun.textContent = formatUtc(data.monitorFirstRunUtc);
@@ -155,6 +207,8 @@ async function refresh() {
   setPill(els.apiOverall, "Checking…", "checking");
   setPill(els.dbOverall, "Checking…", "checking");
   setPill(els.docsOverall, "Checking…", "checking");
+  setPill(els.adminOverall, "Checking…", "checking");
+  setPill(els.moderatorOverall, "Checking…", "checking");
 
   try {
     const response = await fetch("/api/dashboard");
@@ -166,6 +220,8 @@ async function refresh() {
     setPill(els.apiOverall, "Monitor error", "error");
     setPill(els.dbOverall, "Unknown", "offline");
     setPill(els.docsOverall, "Unknown", "offline");
+    setPill(els.adminOverall, "Unknown", "offline");
+    setPill(els.moderatorOverall, "Unknown", "offline");
     setGameVersion(null);
     els.apiError.textContent = error.message;
     els.lastUpdated.textContent = "Failed to load dashboard data";

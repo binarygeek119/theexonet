@@ -13,6 +13,7 @@ public class OffworldNewsOptions
 
     public string TextModel { get; set; } = "gpt-4o-mini";
 
+    /// <summary>DALL-E 3 default. GPT image models (gpt-image-1, gpt-image-1.5, …) are also supported.</summary>
     public string ImageModel { get; set; } = "dall-e-3";
 
     public int StoriesPerDay { get; set; } = 5;

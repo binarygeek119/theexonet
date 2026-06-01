@@ -23,21 +23,25 @@ try
         ? new AdminPortalOptions().PublicUrl.TrimEnd('/')
         : portal.PublicUrl.TrimEnd('/');
 
-    // Serve every file under publish/wwwroot from disk so deploy rsync works without
-    // rebuilding the static web assets manifest baked into Rava.Admin.dll.
+    // Prefer files on disk (deploy rsync) but fall back to the publish manifest when a
+    // page is missing — wwwroot is shared with Rava.Status so admin.html may not exist yet.
     var webRootPath = Path.Combine(contentRootPath, "wwwroot");
-    var webRoot = Directory.Exists(webRootPath)
-        ? new PhysicalFileProvider(webRootPath)
-        : app.Environment.WebRootFileProvider;
+    IFileProvider fileProvider = app.Environment.WebRootFileProvider;
+    if (Directory.Exists(webRootPath))
+    {
+        fileProvider = new CompositeFileProvider(
+            new PhysicalFileProvider(webRootPath),
+            app.Environment.WebRootFileProvider);
+    }
 
     app.UseDefaultFiles(new DefaultFilesOptions
     {
-        FileProvider = webRoot,
+        FileProvider = fileProvider,
         DefaultFileNames = ["admin.html", "index.html"]
     });
     app.UseStaticFiles(new StaticFileOptions
     {
-        FileProvider = webRoot
+        FileProvider = fileProvider
     });
 
     app.MapGet("/admin", () => Results.Redirect("/admin.html"));

@@ -24,18 +24,22 @@ try
         : portal.PublicUrl.TrimEnd('/');
 
     var webRootPath = Path.Combine(contentRootPath, "wwwroot");
-    var webRoot = Directory.Exists(webRootPath)
-        ? new PhysicalFileProvider(webRootPath)
-        : app.Environment.WebRootFileProvider;
+    IFileProvider fileProvider = app.Environment.WebRootFileProvider;
+    if (Directory.Exists(webRootPath))
+    {
+        fileProvider = new CompositeFileProvider(
+            new PhysicalFileProvider(webRootPath),
+            app.Environment.WebRootFileProvider);
+    }
 
     app.UseDefaultFiles(new DefaultFilesOptions
     {
-        FileProvider = webRoot,
+        FileProvider = fileProvider,
         DefaultFileNames = ["moderator.html", "index.html"]
     });
     app.UseStaticFiles(new StaticFileOptions
     {
-        FileProvider = webRoot
+        FileProvider = fileProvider
     });
 
     app.MapGet("/moderator", () => Results.Redirect("/moderator.html"));

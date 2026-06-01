@@ -39,6 +39,12 @@ fix_publish_tree() {
   ensure_dir "${WWW_ROOT}" 755
   ensure_dir "${PUBLISH_DIR}" 755
   ensure_dir "${PUBLISH_DIR}/.aspnet" 775 "${SERVICE_USER}:${SERVICE_GROUP}"
+  if [ -d "${PUBLISH_DIR}/wwwroot" ]; then
+    chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "${PUBLISH_DIR}/wwwroot"
+    find "${PUBLISH_DIR}/wwwroot" -type d -exec chmod 755 {} +
+    find "${PUBLISH_DIR}/wwwroot" -type f -exec chmod 644 {} +
+    echo "OK  ${PUBLISH_DIR}/wwwroot (644/755, ${SERVICE_USER})"
+  fi
 }
 
 fix_data_tree() {

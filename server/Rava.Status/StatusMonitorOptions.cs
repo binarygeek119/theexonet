@@ -10,4 +10,8 @@ public class StatusMonitorOptions
     public string StatusPublicUrl { get; set; } = "https://ravastatus.binarygeek119.duckdns.org/";
     public string DocsInternalUrl { get; set; } = "http://127.0.0.1:9000";
     public string DocsPublicUrl { get; set; } = "https://ravadocs.binarygeek119.duckdns.org/";
+    public string AdminInternalUrl { get; set; } = "http://127.0.0.1:7000";
+    public string AdminPublicUrl { get; set; } = "https://ravaadmin.binarygeek119.duckdns.org/";
+    public string ModeratorInternalUrl { get; set; } = "http://127.0.0.1:7050";
+    public string ModeratorPublicUrl { get; set; } = "https://ravamoderator.binarygeek119.duckdns.org/";
 }

@@ -4,6 +4,7 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 API_SERVICE="${RAVA_API_SERVICE:-rava-api}"
 STATUS_SERVICE="${RAVA_STATUS_SERVICE:-rava-status}"
 ADMIN_SERVICE="${RAVA_ADMIN_SERVICE:-rava-admin}"
@@ -90,6 +91,65 @@ prepare_publish_dir() {
     chown -R "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}/images" 2>/dev/null || true
     chown -R "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}/exonet" 2>/dev/null || true
   fi
+
+  ensure_portal_wwwroot
+}
+
+ensure_portal_wwwroot() {
+  local wwwroot="${PUBLISH_DIR}/wwwroot"
+  local html_source=""
+
+  mkdir -p "${wwwroot}"
+
+  if [ -f "${SCRIPT_DIR}/../server/Rava.Api/html/admin.html" ]; then
+    html_source="$(cd "${SCRIPT_DIR}/../server/Rava.Api/html" && pwd)"
+  elif [ -f "/usr/local/lib/rava/html/admin.html" ]; then
+    html_source="/usr/local/lib/rava/html"
+  elif [ -f "${PUBLISH_DIR}/html/admin.html" ]; then
+    html_source="${PUBLISH_DIR}/html"
+  fi
+
+  if [ -n "${html_source}" ] && [ -f "${SCRIPT_DIR}/sync-portal-wwwroot.sh" ]; then
+    if [ ! -f "${wwwroot}/admin.html" ] || [ ! -f "${wwwroot}/moderator.html" ] || [ ! -f "${wwwroot}/js/currency.js" ]; then
+      echo "Syncing missing portal wwwroot files from ${html_source}..."
+      bash "${SCRIPT_DIR}/sync-portal-wwwroot.sh" "${html_source}" "${wwwroot}"
+    fi
+  elif [ ! -f "${wwwroot}/admin.html" ] || [ ! -f "${wwwroot}/moderator.html" ]; then
+    echo "WARN: missing ${wwwroot}/admin.html or moderator.html — run: sudo deploy-rava-portals --static-only" >&2
+  fi
+
+  if [ "$(id -u)" -eq 0 ] && [ -d "${wwwroot}" ]; then
+    chown -R "${SERVICE_USER}:${SERVICE_USER}" "${wwwroot}" 2>/dev/null || true
+    find "${wwwroot}" -type d -exec chmod 755 {} + 2>/dev/null || true
+    find "${wwwroot}" -type f -exec chmod 644 {} + 2>/dev/null || true
+  fi
+}
+
+probe_http() {
+  local label="$1"
+  local url="$2"
+  local attempt code
+
+  for attempt in 1 2 3 4 5; do
+    code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 2 --max-time 5 "${url}" 2>/dev/null || echo "000")"
+    if [ "${code}" = "200" ]; then
+      echo "${label}: OK"
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "${label}: unreachable (HTTP ${code} from ${url})"
+  return 1
+}
+
+show_portal_failure() {
+  local service="$1"
+  show_service_failure "${service}"
+  if command -v ss >/dev/null 2>&1; then
+    echo "Listening sockets on 7000/7050:"
+    ss -tlnp | grep -E ':7000 |:7050 ' || echo "  (none)"
+  fi
 }
 
 echo "Stopping ${API_SERVICE}, ${STATUS_SERVICE}, ${ADMIN_SERVICE}, ${MODERATOR_SERVICE}, and ${DOCS_SERVICE}..."
@@ -131,7 +191,7 @@ systemctl start "${MODERATOR_SERVICE}"
 echo "Starting ${DOCS_SERVICE}..."
 systemctl start "${DOCS_SERVICE}"
 
-sleep 2
+sleep 5
 
 systemctl is-active --quiet "${API_SERVICE}" && echo "${API_SERVICE}: running" || { echo "${API_SERVICE}: FAILED"; show_service_failure "${API_SERVICE}"; }
 systemctl is-active --quiet "${STATUS_SERVICE}" && echo "${STATUS_SERVICE}: running" || { echo "${STATUS_SERVICE}: FAILED"; show_service_failure "${STATUS_SERVICE}"; }
@@ -144,8 +204,10 @@ if command -v curl >/dev/null 2>&1; then
   curl -sf --max-time 15 http://127.0.0.1:5000/api/public/offworld-news >/dev/null \
     && echo "Offworld News API: OK" \
     || echo "Offworld News API: unreachable (deploy latest Rava.Api.dll and restart)"
-  curl -sf http://127.0.0.1:7000/admin.html >/dev/null && echo "Admin portal: OK" || echo "Admin portal: unreachable"
-  curl -sf http://127.0.0.1:7050/moderator.html >/dev/null && echo "Moderator portal: OK" || echo "Moderator portal: unreachable"
+  admin_ok=0
+  moderator_ok=0
+  probe_http "Admin portal" "http://127.0.0.1:7000/admin.html" && admin_ok=1 || show_portal_failure "${ADMIN_SERVICE}"
+  probe_http "Moderator portal" "http://127.0.0.1:7050/moderator.html" && moderator_ok=1 || show_portal_failure "${MODERATOR_SERVICE}"
   curl -sf http://127.0.0.1:9000/ >/dev/null && echo "Docs portal: OK" || echo "Docs portal: unreachable"
 fi
 

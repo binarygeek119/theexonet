@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths:
       - "server/Rava.Api/html/**"
+      - "server/Rava.Api/Services/OffworldNews/**"
+      - "server/Rava.Core/Services/OffworldNews*.cs"
+      - "server/Rava.Core/Configuration/OffworldNewsOptions.cs"
       - "server/Rava.Admin/**"
       - "server/Rava.Moderator/**"
       - "server/Rava.Status/**"
@@ -32,6 +35,7 @@ jobs:
       DEPLOY_STATUS_SERVICE: ${{ vars.DEPLOY_STATUS_SERVICE || secrets.DEPLOY_STATUS_SERVICE || 'rava-status' }}
       DEPLOY_ADMIN_SERVICE: ${{ vars.DEPLOY_ADMIN_SERVICE || secrets.DEPLOY_ADMIN_SERVICE || 'rava-admin' }}
       DEPLOY_MODERATOR_SERVICE: ${{ vars.DEPLOY_MODERATOR_SERVICE || secrets.DEPLOY_MODERATOR_SERVICE || 'rava-moderator' }}
+      DEPLOY_API_SERVICE: ${{ vars.DEPLOY_API_SERVICE || secrets.DEPLOY_API_SERVICE || 'rava-api' }}
 
     steps:
       - name: Checkout
@@ -111,6 +115,13 @@ jobs:
           dotnet-version: 10.0.x
           dotnet-quality: preview
 
+      - name: Publish Rava.Api
+        run: |
+          set -euo pipefail
+          dotnet publish server/Rava.Api/Rava.Api.csproj -c Release -o /tmp/rava-api
+          test -f /tmp/rava-api/Rava.Api.dll
+          test -f /tmp/rava-api/Rava.Core.dll
+
       - name: Publish status, admin, and moderator
         working-directory: server
         run: |
@@ -153,6 +164,35 @@ jobs:
             SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${html_rsync_args[@]}" \
               -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
               server/Rava.Api/html/ \
+              "$target"
+          fi
+
+      - name: Deploy API binaries
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${api_host}"
+          target="${remote}:${DEPLOY_API_PATH}/"
+          api_rsync_args=(
+            -avz
+            --exclude 'appsettings.json'
+            --exclude 'appsettings.Development.json'
+            --exclude 'html/'
+            --exclude 'wwwroot/'
+            --exclude 'data/'
+          )
+          echo "Deploying Rava.Api to ${target}"
+          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+            rsync "${api_rsync_args[@]}" \
+              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              /tmp/rava-api/ \
+              "$target"
+          else
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${api_rsync_args[@]}" \
+              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              /tmp/rava-api/ \
               "$target"
           fi
 
@@ -283,6 +323,7 @@ jobs:
           restart_unit "${DEPLOY_STATUS_SERVICE}"
           restart_unit "${DEPLOY_ADMIN_SERVICE}"
           restart_unit "${DEPLOY_MODERATOR_SERVICE}"
+          restart_unit "${DEPLOY_API_SERVICE}"
 
           if run_remote "command -v curl >/dev/null 2>&1"; then
             run_remote "curl -sf -o /dev/null -w 'status dashboard HTTP %{http_code}\n' http://127.0.0.1:6000/ || true"

@@ -31,6 +31,13 @@ public record EconomyPayload(
     IReadOnlyList<EconomyItemPayload> OrePrices,
     IReadOnlyList<EconomyItemPayload> SupplyPrices);
 
+public record PortalStatusPayload(
+    string InternalUrl,
+    string PublicUrl,
+    bool Reachable,
+    long? ResponseMs,
+    string? Error);
+
 public record DashboardResponse(
     DateTime Utc,
     double MonitorUptimeSeconds,
@@ -46,6 +53,6 @@ public record DashboardResponse(
     long? ApiResponseMs,
     string? ApiError,
     ApiStatusPayload? ApiStatus,
-    bool DocsReachable,
-    long? DocsResponseMs,
-    string? DocsError);
+    PortalStatusPayload DocsPortal,
+    PortalStatusPayload AdminPortal,
+    PortalStatusPayload ModeratorPortal);

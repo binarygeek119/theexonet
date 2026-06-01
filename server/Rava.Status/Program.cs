@@ -17,7 +17,7 @@ builder.Configuration.AddRavaDataJsonFiles(contentRootPath);
 builder.Services.Configure<StatusMonitorOptions>(
     builder.Configuration.GetSection(StatusMonitorOptions.SectionName));
 builder.Services.AddHttpClient("RavaApi");
-builder.Services.AddHttpClient("RavaDocs");
+builder.Services.AddHttpClient("RavaPortal");
 builder.Services.AddSingleton<MonitorRuntimeInfo>();
 
 var app = builder.Build();
@@ -34,8 +34,8 @@ app.MapGet("/api/dashboard", async (
 {
     var monitor = options.Value;
     var apiBaseUrl = monitor.ApiBaseUrl.TrimEnd('/');
-    var client = httpClientFactory.CreateClient("RavaApi");
-    client.Timeout = TimeSpan.FromSeconds(8);
+    var apiClient = httpClientFactory.CreateClient("RavaApi");
+    apiClient.Timeout = TimeSpan.FromSeconds(8);
 
     ApiStatusPayload? apiStatus = null;
     string? apiError = null;
@@ -45,7 +45,7 @@ app.MapGet("/api/dashboard", async (
     try
     {
         var stopwatch = Stopwatch.StartNew();
-        using var response = await client.GetAsync($"{apiBaseUrl}/api/status", cancellationToken);
+        using var response = await apiClient.GetAsync($"{apiBaseUrl}/api/status", cancellationToken);
         stopwatch.Stop();
         apiResponseMs = stopwatch.ElapsedMilliseconds;
         apiReachable = response.IsSuccessStatusCode;
@@ -64,31 +64,27 @@ app.MapGet("/api/dashboard", async (
         apiError = ex.Message;
     }
 
-    var docsInternalUrl = monitor.DocsInternalUrl.TrimEnd('/');
-    var docsClient = httpClientFactory.CreateClient("RavaDocs");
-    docsClient.Timeout = TimeSpan.FromSeconds(8);
+    var portalClient = httpClientFactory.CreateClient("RavaPortal");
+    portalClient.Timeout = TimeSpan.FromSeconds(8);
 
-    string? docsError = null;
-    long? docsResponseMs = null;
-    var docsReachable = false;
-
-    try
-    {
-        var stopwatch = Stopwatch.StartNew();
-        using var response = await docsClient.GetAsync($"{docsInternalUrl}/", cancellationToken);
-        stopwatch.Stop();
-        docsResponseMs = stopwatch.ElapsedMilliseconds;
-        docsReachable = response.IsSuccessStatusCode;
-
-        if (!response.IsSuccessStatusCode)
-        {
-            docsError = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";
-        }
-    }
-    catch (Exception ex)
-    {
-        docsError = ex.Message;
-    }
+    var docsPortal = await ProbePortalAsync(
+        portalClient,
+        monitor.DocsInternalUrl,
+        monitor.DocsPublicUrl,
+        "/",
+        cancellationToken);
+    var adminPortal = await ProbePortalAsync(
+        portalClient,
+        monitor.AdminInternalUrl,
+        monitor.AdminPublicUrl,
+        "/admin.html",
+        cancellationToken);
+    var moderatorPortal = await ProbePortalAsync(
+        portalClient,
+        monitor.ModeratorInternalUrl,
+        monitor.ModeratorPublicUrl,
+        "/moderator.html",
+        cancellationToken);
 
     return Results.Ok(new DashboardResponse(
         DateTime.UtcNow,
@@ -99,15 +95,15 @@ app.MapGet("/api/dashboard", async (
         monitor.GameUrl,
         monitor.ApiPublicUrl,
         monitor.StatusPublicUrl,
-        docsInternalUrl,
-        monitor.DocsPublicUrl,
+        docsPortal.InternalUrl,
+        docsPortal.PublicUrl,
         apiReachable,
         apiResponseMs,
         apiError,
         apiStatus,
-        docsReachable,
-        docsResponseMs,
-        docsError));
+        docsPortal,
+        adminPortal,
+        moderatorPortal));
 });
 
 app.MapGet("/api/economy", async (
@@ -135,3 +131,35 @@ app.MapGet("/api/economy", async (
 
 app.Logger.LogInformation("RAVA status dashboard listening on {Urls}", builder.Configuration["Urls"] ?? "http://0.0.0.0:6000");
 app.Run();
+
+static async Task<PortalStatusPayload> ProbePortalAsync(
+    HttpClient client,
+    string internalUrl,
+    string publicUrl,
+    string path,
+    CancellationToken cancellationToken)
+{
+    internalUrl = internalUrl.TrimEnd('/');
+    publicUrl = publicUrl.TrimEnd('/');
+    var requestUrl = $"{internalUrl}{path}";
+
+    try
+    {
+        var stopwatch = Stopwatch.StartNew();
+        using var response = await client.GetAsync(requestUrl, cancellationToken);
+        stopwatch.Stop();
+
+        return new PortalStatusPayload(
+            internalUrl,
+            publicUrl,
+            response.IsSuccessStatusCode,
+            stopwatch.ElapsedMilliseconds,
+            response.IsSuccessStatusCode
+                ? null
+                : $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}");
+    }
+    catch (Exception ex)
+    {
+        return new PortalStatusPayload(internalUrl, publicUrl, false, null, ex.Message);
+    }
+}

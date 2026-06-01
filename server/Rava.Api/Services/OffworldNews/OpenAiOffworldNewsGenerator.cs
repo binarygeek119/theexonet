@@ -281,22 +281,18 @@ public sealed class OpenAiOffworldNewsGenerator(
 
         using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(options.BaseUrl, "/images/generations"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
-        request.Content = JsonContent.Create(new
-        {
-            model = options.ImageModel,
-            prompt = imagePrompt,
-            size = aspect.ApiSize,
-            response_format = "url",
-            quality = "standard",
-            n = 1,
-        });
+        request.Content = JsonContent.Create(
+            OffworldNewsOpenAiImageRequest.BuildRequestBody(options.ImageModel, imagePrompt, aspect.ApiSize));
 
         using var response = await httpClient.SendAsync(request, ct);
         var payload = await response.Content.ReadAsStringAsync(ct);
         if (!response.IsSuccessStatusCode)
         {
             var error = DescribeApiFailure((int)response.StatusCode, payload);
-            logger.LogWarning("OpenAI image generation failed: {Error}", error);
+            logger.LogWarning(
+                "OpenAI image generation failed for model {ImageModel}: {Error}",
+                options.ImageModel,
+                error);
             return (null, error);
         }
 

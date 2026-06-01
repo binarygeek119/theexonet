@@ -13,6 +13,7 @@ using Rava.Api.Services.OffworldNews;
 using Rava.Core.Configuration;
 using Rava.Core.Interfaces;
 using Rava.Core.Services;
+using Rava.Infrastructure.Hosting;
 using Rava.Infrastructure;
 using Rava.Infrastructure.Data;
 using Rava.Infrastructure.Migrations;
@@ -288,10 +289,10 @@ if (!hateSpeechOptions.Enabled)
 else
 {
     var termsProvider = app.Services.GetRequiredService<HateSpeechTermsProvider>();
-    var hateSpeechPath = Path.Combine(contentRootPath, hateSpeechOptions.TermsFile);
-    var badLanguagePath = Path.Combine(contentRootPath, hateSpeechOptions.BadLanguageFile);
-    var politicalPath = Path.Combine(contentRootPath, hateSpeechOptions.PoliticalTermsFile);
-    var sexualPath = Path.Combine(contentRootPath, hateSpeechOptions.SexualTermsFile);
+    var hateSpeechPath = RavaDataPaths.ResolveFile(contentRootPath, hateSpeechOptions.TermsFile);
+    var badLanguagePath = RavaDataPaths.ResolveFile(contentRootPath, hateSpeechOptions.BadLanguageFile);
+    var politicalPath = RavaDataPaths.ResolveFile(contentRootPath, hateSpeechOptions.PoliticalTermsFile);
+    var sexualPath = RavaDataPaths.ResolveFile(contentRootPath, hateSpeechOptions.SexualTermsFile);
     var (hateSpeechCount, badLanguageCount, politicalCount, sexualCount) = termsProvider.GetTermCounts();
     var termCount = termsProvider.GetTerms().Count;
     app.Logger.LogInformation(
@@ -329,15 +330,16 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
-        Directory.CreateDirectory(Path.Combine(imagesRootPath, ProfileAvatarStorageOptions.RelativeFolder));
-        Directory.CreateDirectory(Path.Combine(imagesRootPath, ProfileBackgroundStorageOptions.RelativeFolder));
+        HostingDirectoryInitializer.Ensure(
+            contentRootPath,
+            webRootPath,
+            imagesRootPath,
+            offworldNewsCacheRoot,
+            app.Logger);
     }
     catch (Exception ex)
     {
-        FailStartup(
-            $"Could not create profile image folders under {imagesRootPath}. " +
-            "Ensure www-data can write under /var/www/data/images/. Run: sudo chown -R www-data:www-data /var/www/data",
-            ex);
+        FailStartup(ex.Message, ex);
     }
 }
 

@@ -203,7 +203,6 @@ public sealed class OpenAiOffworldNewsGenerator(
             model = options.ImageModel,
             prompt = imagePrompt,
             size = "1024x1024",
-            response_format = "url",
         });
 
         using var response = await httpClient.SendAsync(request, ct);

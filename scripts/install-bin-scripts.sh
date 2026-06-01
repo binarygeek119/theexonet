@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Install RAVA helper scripts to /usr/local/bin (files live under /usr/local/lib/rava/scripts).
-# Run on the server as root:
+# Run on the server as root (always use bash — do not rely on ./ if the file has Windows line endings):
 #   sudo bash scripts/install-bin-scripts.sh
 # Re-run after git pull to refresh lib files and symlinks:
 #   sudo install-rava-scripts

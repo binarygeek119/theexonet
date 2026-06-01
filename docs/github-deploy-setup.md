@@ -66,6 +66,8 @@ Valid characters: letters, numbers, underscore `_`. Must start with a letter or 
 | `DEPLOY_API_PATH` | `/var/www/publish` |
 | `DEPLOY_API_SERVICE` | `rava-api` |
 | `DEPLOY_STATUS_SERVICE` | `rava-status` |
+| `DEPLOY_ADMIN_SERVICE` | `rava-admin` |
+| `DEPLOY_MODERATOR_SERVICE` | `rava-moderator` |
 
 **Single-folder setup (recommended):** set both `DEPLOY_WWW_PATH` and `DEPLOY_API_PATH` to `/var/www/publish`. The workflow skips the separate html rsync and deploys game files under `publish/html/`. Point nginx/Apache for the game site at `/var/www/publish/html`.
 
@@ -118,9 +120,18 @@ curl -s http://127.0.0.1:6000/api/dashboard
 
 ## 6. Trigger a deploy
 
-Push to `main` (changes under `server/` or the workflow file), or run **Actions → Build website → Run workflow**.
+**Full stack** (API, status, admin, moderator, docs, game html): push to `main` under `server/` or run **Actions → Build website → Run workflow**. Requires `ENABLE_PRODUCTION_DEPLOY=true` for the **Deploy to production** job.
 
-Watch the **Deploy to production** job in the Actions tab.
+**Fast path** (game html + admin/moderator portals only): push changes under `server/Rava.Api/html/`, `server/Rava.Admin/`, or `server/Rava.Moderator/` — **Actions → Deploy game html and portals** runs automatically. It publishes `Rava.Admin.dll` / `Rava.Moderator.dll`, syncs `wwwroot/` (including `/js/currency.js`), and restarts `rava-admin` and `rava-moderator`.
+
+On the server you can also run:
+
+```bash
+sudo deploy-rava-html          # game html only
+sudo deploy-rava-portals       # admin + moderator publish + restart
+```
+
+Watch the **Deploy to production** or **Sync html and admin/moderator portals** job in the Actions tab.
 
 ## 7. Troubleshooting
 

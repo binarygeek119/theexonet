@@ -32,6 +32,7 @@ for script in \
   install-systemd-units.sh \
   install-portal-units.sh \
   deploy-html.sh \
+  deploy-portals.sh \
   migrate-publish-data-to-var-www.sh \
   sync-publish-data.sh \
   fix-hosting-permissions.sh \
@@ -77,6 +78,7 @@ declare -A bin_links=(
   [install-portal-units.sh]=install-rava-portals
   [install-bin-scripts.sh]=install-rava-scripts
   [deploy-html.sh]=deploy-rava-html
+  [deploy-portals.sh]=deploy-rava-portals
   [sync-publish-data.sh]=sync-rava-data
   [migrate-publish-data-to-var-www.sh]=migrate-rava-data
   [fix-hosting-permissions.sh]=fix-rava-permissions

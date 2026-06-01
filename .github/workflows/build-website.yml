@@ -84,6 +84,11 @@ jobs:
           rsync -a publish-admin/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
           rsync -a publish-moderator/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
           rsync -a publish-docs/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
+          test -f publish/Rava.Admin.dll
+          test -f publish/Rava.Moderator.dll
+          test -f publish/wwwroot/admin.html
+          test -f publish/wwwroot/moderator.html
+          test -f publish/wwwroot/js/currency.js
           mkdir -p data
           cp -f Rava.Api/*.csv data/
           test -f data/credits.csv

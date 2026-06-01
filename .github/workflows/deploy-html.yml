@@ -1,4 +1,4 @@
-name: Deploy game html
+name: Deploy game html and portals
 
 on:
   workflow_dispatch:
@@ -6,7 +6,10 @@ on:
     branches: [main]
     paths:
       - "server/Rava.Api/html/**"
+      - "server/Rava.Admin/**"
+      - "server/Rava.Moderator/**"
       - "scripts/deploy-html.sh"
+      - "scripts/deploy-portals.sh"
       - ".github/workflows/deploy-html.yml"
 
 permissions:
@@ -14,7 +17,7 @@ permissions:
 
 jobs:
   deploy-html:
-    name: Sync html to server
+    name: Sync html and admin/moderator portals
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -23,6 +26,8 @@ jobs:
       DEPLOY_SSH_PORT: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
       DEPLOY_API_PATH: ${{ vars.DEPLOY_API_PATH || secrets.DEPLOY_API_PATH || '/var/www/publish' }}
       DEPLOY_API_HOST: ${{ vars.DEPLOY_API_HOST || secrets.DEPLOY_API_HOST || '' }}
+      DEPLOY_ADMIN_SERVICE: ${{ vars.DEPLOY_ADMIN_SERVICE || secrets.DEPLOY_ADMIN_SERVICE || 'rava-admin' }}
+      DEPLOY_MODERATOR_SERVICE: ${{ vars.DEPLOY_MODERATOR_SERVICE || secrets.DEPLOY_MODERATOR_SERVICE || 'rava-moderator' }}
 
     steps:
       - name: Checkout
@@ -33,6 +38,9 @@ jobs:
           node --check server/Rava.Api/html/js/api.js
           node --check server/Rava.Api/html/js/app.js
           node --check server/Rava.Api/html/js/exonet.js
+          node --check server/Rava.Api/html/js/admin.js
+          node --check server/Rava.Api/html/js/moderator.js
+          node --check server/Rava.Api/html/js/currency.js
 
       - name: Detect deploy auth method
         id: auth
@@ -91,6 +99,23 @@ jobs:
           host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
           ssh-keyscan -T 15 -H -p "$DEPLOY_SSH_PORT" "$host" >> ~/.ssh/known_hosts
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+          dotnet-quality: preview
+
+      - name: Publish admin and moderator portals
+        working-directory: server
+        run: |
+          set -euo pipefail
+          dotnet publish Rava.Admin/Rava.Admin.csproj --configuration Release --output ./publish-admin
+          dotnet publish Rava.Moderator/Rava.Moderator.csproj --configuration Release --output ./publish-moderator
+          test -f publish-admin/Rava.Admin.dll
+          test -f publish-moderator/Rava.Moderator.dll
+          test -f publish-admin/wwwroot/js/currency.js
+          test -f publish-moderator/wwwroot/js/currency.js
+
       - name: Deploy game html
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
@@ -119,4 +144,85 @@ jobs:
               server/Rava.Api/html/ \
               "$target"
           fi
-          echo "Done. Hard-refresh the game site and verify /js/api.js line 1 contains 'RAVA web API client'."
+
+      - name: Deploy admin and moderator portals
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${api_host}"
+          target="${remote}:${DEPLOY_API_PATH}/"
+          portal_rsync_args=(
+            -avz
+            --exclude 'appsettings.json'
+            --exclude 'appsettings.Development.json'
+          )
+          echo "Deploying admin portal to ${target}"
+          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+            rsync "${portal_rsync_args[@]}" \
+              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              server/publish-admin/ \
+              "$target"
+            rsync "${portal_rsync_args[@]}" \
+              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              server/publish-moderator/ \
+              "$target"
+          else
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${portal_rsync_args[@]}" \
+              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              server/publish-admin/ \
+              "$target"
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${portal_rsync_args[@]}" \
+              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              server/publish-moderator/ \
+              "$target"
+          fi
+
+      - name: Restart admin and moderator services
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${api_host}"
+          if [ "$DEPLOY_USER" = "root" ]; then
+            sudo_prefix=""
+          else
+            sudo_prefix="sudo "
+          fi
+
+          run_remote() {
+            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            else
+              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
+                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            fi
+          }
+
+          restart_unit() {
+            local unit="$1"
+            if [ -z "$unit" ]; then
+              return 0
+            fi
+            if ! run_remote "${sudo_prefix}systemctl cat ${unit}.service >/dev/null 2>&1"; then
+              echo "WARNING: ${unit}.service is not installed; skipping restart."
+              return 0
+            fi
+            if run_remote "${sudo_prefix}systemctl restart ${unit}"; then
+              echo "Restarted ${unit}"
+            else
+              echo "WARNING: systemctl restart ${unit} failed (portal files were still synced)." >&2
+            fi
+          }
+
+          restart_unit "${DEPLOY_ADMIN_SERVICE}"
+          restart_unit "${DEPLOY_MODERATOR_SERVICE}"
+
+          if run_remote "command -v curl >/dev/null 2>&1"; then
+            run_remote "curl -sf -o /dev/null -w 'admin currency.js HTTP %{http_code}\n' http://127.0.0.1:7000/js/currency.js || true"
+            run_remote "curl -sf -o /dev/null -w 'moderator currency.js HTTP %{http_code}\n' http://127.0.0.1:7050/js/currency.js || true"
+          fi
+
+          echo "Done. Hard-refresh admin/moderator and verify /js/currency.js returns 200."

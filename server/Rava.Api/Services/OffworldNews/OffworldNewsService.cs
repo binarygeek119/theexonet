@@ -368,17 +368,29 @@ public sealed class OffworldNewsService(
         await gate.WaitAsync(ct);
         try
         {
+            EnsureCacheDirectories(date);
             DeleteEditionImages(date);
 
             var generator = new OpenAiOffworldNewsGenerator(
                 _options,
                 httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
                 logger);
-            var edition = await generator.RegenerateImagesAsync(existing, GetCacheRoot(), ct);
+            var (edition, imageSummary) = await generator.RegenerateImagesAsync(existing, GetCacheRoot(), ct);
             edition = EnsureStoryImages(edition);
             TrySaveEdition(edition);
 
-            logger.LogInformation("Admin regenerated Offworld News images for {Date}", date);
+            var illustrated = CountIllustratedStories(edition);
+            logger.LogInformation(
+                "Admin regenerated Offworld News images for {Date}: {Succeeded}/{Attempted} illustrated",
+                date,
+                imageSummary.Succeeded,
+                imageSummary.Attempted);
+
+            if (illustrated == 0 && imageSummary.Attempted > 0)
+            {
+                return (null, imageSummary.DescribeFailure());
+            }
+
             return (edition, null);
         }
         catch (Exception ex)
@@ -399,13 +411,29 @@ public sealed class OffworldNewsService(
 
     public static AdminOffworldNewsRegenerateResponse ToRegenerateResponse(
         OffworldNewsEditionDto edition,
-        string message) =>
-        new(
+        string message,
+        OffworldNewsImageGenerationSummary? imageSummary = null)
+    {
+        var illustrated = CountIllustratedStories(edition);
+        var attempts = imageSummary?.Attempted ?? illustrated;
+        var error = imageSummary is { Succeeded: 0, Attempted: > 0 }
+            ? imageSummary.DescribeFailure()
+            : null;
+
+        if (illustrated == 0 && string.IsNullOrWhiteSpace(error))
+        {
+            error = "No AI images were saved. Check OffworldNews settings and API logs.";
+        }
+
+        return new AdminOffworldNewsRegenerateResponse(
             message,
             edition.EditionDate,
             edition.Source,
             edition.Stories.Count,
-            CountIllustratedStories(edition));
+            illustrated,
+            attempts,
+            error);
+    }
 
     private void DeleteEditionImages(DateOnly date)
     {

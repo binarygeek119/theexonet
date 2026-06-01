@@ -24,9 +24,9 @@ public sealed class OpenAiOffworldNewsGenerator(
     {
         var storyCount = Math.Clamp(options.StoriesPerDay, 1, 10);
         var drafts = await GenerateStoriesAsync(editionDate, storyCount, companyContext, ct);
-        drafts = await ApplyImagesToDraftsAsync(drafts, editionDate, cacheRoot, ct);
+        var (updatedDrafts, _) = await ApplyImagesToDraftsAsync(drafts, editionDate, cacheRoot, ct);
 
-        var stories = drafts.Select(draft => draft.Story).ToList();
+        var stories = updatedDrafts.Select(draft => draft.Story).ToList();
         return new OffworldNewsEditionDto(
             editionDate,
             DateTime.UtcNow,
@@ -34,7 +34,7 @@ public sealed class OpenAiOffworldNewsGenerator(
             stories);
     }
 
-    public async Task<OffworldNewsEditionDto> RegenerateImagesAsync(
+    public async Task<(OffworldNewsEditionDto Edition, OffworldNewsImageGenerationSummary Images)> RegenerateImagesAsync(
         OffworldNewsEditionDto edition,
         string cacheRoot,
         CancellationToken ct)
@@ -49,16 +49,18 @@ public sealed class OpenAiOffworldNewsGenerator(
                 null))
             .ToList();
 
-        drafts = await ApplyImagesToDraftsAsync(drafts, edition.EditionDate, cacheRoot, ct);
+        var (updatedDrafts, summary) = await ApplyImagesToDraftsAsync(drafts, edition.EditionDate, cacheRoot, ct);
 
-        return edition with
+        var result = edition with
         {
             GeneratedAt = DateTime.UtcNow,
-            Stories = drafts.Select(draft => draft.Story).ToList(),
+            Stories = updatedDrafts.Select(draft => draft.Story).ToList(),
         };
+
+        return (result, summary);
     }
 
-    private async Task<List<StoryDraft>> ApplyImagesToDraftsAsync(
+    private async Task<(List<StoryDraft> Drafts, OffworldNewsImageGenerationSummary Summary)> ApplyImagesToDraftsAsync(
         List<StoryDraft> drafts,
         DateOnly editionDate,
         string cacheRoot,
@@ -68,13 +70,18 @@ public sealed class OpenAiOffworldNewsGenerator(
             ? drafts.Count
             : Math.Clamp(options.MaxImagesPerDay, 1, drafts.Count);
 
+        var attempted = 0;
+        var succeeded = 0;
+        string? lastError = null;
+
         for (var index = 0; index < drafts.Count && index < imageCap; index++)
         {
             var draft = drafts[index];
             var story = draft.Story;
+            attempted++;
             try
             {
-                var imagePath = await GenerateAndStoreImageAsync(
+                var (imagePath, error) = await GenerateAndStoreImageAsync(
                     story,
                     draft.ImagePrompt,
                     editionDate,
@@ -83,15 +90,19 @@ public sealed class OpenAiOffworldNewsGenerator(
                     ct);
                 if (imagePath is not null)
                 {
+                    succeeded++;
                     drafts[index] = draft with
                     {
                         Story = story with { ImageUrl = imagePath.Path, ImageAspect = imagePath.AspectKey },
                     };
                     continue;
                 }
+
+                lastError = error ?? lastError;
             }
             catch (Exception ex)
             {
+                lastError = ex.Message;
                 logger.LogWarning(
                     ex,
                     "Offworld News image generation failed for story {StoryId} on {Date}",
@@ -121,7 +132,7 @@ public sealed class OpenAiOffworldNewsGenerator(
             };
         }
 
-        return drafts;
+        return (drafts, new OffworldNewsImageGenerationSummary(attempted, succeeded, lastError));
     }
 
     private sealed record StoryDraft(OffworldNewsStoryDto Story, string? ImagePrompt);
@@ -253,7 +264,7 @@ public sealed class OpenAiOffworldNewsGenerator(
 
     private sealed record GeneratedImageResult(string Path, string AspectKey);
 
-    private async Task<GeneratedImageResult?> GenerateAndStoreImageAsync(
+    private async Task<(GeneratedImageResult? Result, string? Error)> GenerateAndStoreImageAsync(
         OffworldNewsStoryDto story,
         string? aiImagePrompt,
         DateOnly editionDate,
@@ -263,6 +274,10 @@ public sealed class OpenAiOffworldNewsGenerator(
     {
         var aspect = OffworldNewsImageAspectCatalog.Pick(editionDate, story.Id, storyIndex);
         var imagePrompt = OffworldNewsImagePromptBuilder.Build(story, aiImagePrompt, aspect.CompositionHint);
+        if (imagePrompt.Length > 3900)
+        {
+            imagePrompt = imagePrompt[..3900];
+        }
 
         using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(options.BaseUrl, "/images/generations"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
@@ -271,24 +286,55 @@ public sealed class OpenAiOffworldNewsGenerator(
             model = options.ImageModel,
             prompt = imagePrompt,
             size = aspect.ApiSize,
+            response_format = "url",
+            quality = "standard",
+            n = 1,
         });
 
         using var response = await httpClient.SendAsync(request, ct);
         var payload = await response.Content.ReadAsStringAsync(ct);
         if (!response.IsSuccessStatusCode)
         {
-            logger.LogWarning(
-                "OpenAI image generation failed ({Status}): {Body}",
-                (int)response.StatusCode,
-                payload);
-            return null;
+            var error = DescribeApiFailure((int)response.StatusCode, payload);
+            logger.LogWarning("OpenAI image generation failed: {Error}", error);
+            return (null, error);
         }
 
         var parsed = JsonSerializer.Deserialize<ImageGenerationResponse>(payload, SerializerOptions);
-        var remoteUrl = parsed?.Data?.FirstOrDefault()?.Url;
-        if (string.IsNullOrWhiteSpace(remoteUrl))
+        var imageData = parsed?.Data?.FirstOrDefault();
+        byte[]? imageBytes = null;
+
+        if (!string.IsNullOrWhiteSpace(imageData?.B64Json))
         {
-            return null;
+            try
+            {
+                imageBytes = Convert.FromBase64String(imageData.B64Json);
+            }
+            catch (FormatException ex)
+            {
+                var error = $"OpenAI returned invalid base64 image data: {ex.Message}";
+                logger.LogWarning(error);
+                return (null, error);
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(imageData?.Url))
+        {
+            try
+            {
+                imageBytes = await httpClient.GetByteArrayAsync(imageData.Url, ct);
+            }
+            catch (Exception ex)
+            {
+                var error = $"Failed to download generated image: {ex.Message}";
+                logger.LogWarning(ex, error);
+                return (null, error);
+            }
+        }
+        else
+        {
+            var error = DescribeApiFailure(200, payload);
+            logger.LogWarning("OpenAI image generation returned no image payload: {Error}", error);
+            return (null, error);
         }
 
         var imageDir = Path.Combine(cacheRoot, "images", editionDate.ToString("yyyy-MM-dd"));
@@ -296,12 +342,51 @@ public sealed class OpenAiOffworldNewsGenerator(
         var fileName = $"{SanitizeFileName(story.Id)}.jpg";
         var filePath = Path.Combine(imageDir, fileName);
 
-        var imageBytes = await httpClient.GetByteArrayAsync(remoteUrl, ct);
-        await OffworldNewsImageEncoder.SaveAsJpegAsync(imageBytes, filePath, ct);
+        try
+        {
+            await OffworldNewsImageEncoder.SaveAsJpegAsync(imageBytes, filePath, ct);
+        }
+        catch (Exception ex)
+        {
+            var error = $"Failed to save image to {filePath}: {ex.Message}";
+            logger.LogWarning(ex, error);
+            return (null, error);
+        }
 
-        return new GeneratedImageResult(
+        if (!File.Exists(filePath))
+        {
+            return (null, $"Image file was not written to {filePath}");
+        }
+
+        return (new GeneratedImageResult(
             $"/exonet/offworld-news/images/{editionDate:yyyy-MM-dd}/{fileName}",
-            aspect.Key);
+            aspect.Key), null);
+    }
+
+    private static string DescribeApiFailure(int status, string payload)
+    {
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<OpenAiErrorResponse>(payload, SerializerOptions);
+            if (!string.IsNullOrWhiteSpace(parsed?.Error?.Message))
+            {
+                return $"OpenAI HTTP {status}: {parsed.Error.Message.Trim()}";
+            }
+        }
+        catch (JsonException)
+        {
+            // fall through
+        }
+
+        var trimmed = payload.Trim();
+        if (trimmed.Length > 240)
+        {
+            trimmed = trimmed[..240] + "…";
+        }
+
+        return string.IsNullOrWhiteSpace(trimmed)
+            ? $"OpenAI HTTP {status} with empty response body."
+            : $"OpenAI HTTP {status}: {trimmed}";
     }
 
     private static string CombineUrl(string baseUrl, string path)
@@ -369,5 +454,18 @@ public sealed class OpenAiOffworldNewsGenerator(
     private sealed class ImageData
     {
         public string? Url { get; set; }
+
+        [JsonPropertyName("b64_json")]
+        public string? B64Json { get; set; }
+    }
+
+    private sealed class OpenAiErrorResponse
+    {
+        public OpenAiErrorBody? Error { get; set; }
+    }
+
+    private sealed class OpenAiErrorBody
+    {
+        public string? Message { get; set; }
     }
 }

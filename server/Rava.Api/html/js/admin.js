@@ -792,7 +792,14 @@ async function regenerateOffworldNewsEdition() {
     await loadOffworldNewsSummary();
     setStatus(
       els.offworldNewsStatus,
-      `${result.message} ${result.storyCount} stories, ${result.illustratedStoryCount} AI images.`,
+      [
+        result.message,
+        `${result.storyCount} stories, ${result.illustratedStoryCount} AI images.`,
+        result.imageGenerationError,
+      ]
+        .filter(Boolean)
+        .join(" "),
+      Boolean(result.imageGenerationError),
     );
   } catch (error) {
     setStatus(els.offworldNewsStatus, error.message, true);
@@ -815,7 +822,10 @@ async function regenerateOffworldNewsImages() {
     await loadOffworldNewsSummary();
     setStatus(
       els.offworldNewsStatus,
-      `${result.message} ${result.illustratedStoryCount} AI images.`,
+      result.imageGenerationError
+        ? result.imageGenerationError
+        : `${result.message} ${result.illustratedStoryCount} AI images.`,
+      Boolean(result.imageGenerationError),
     );
   } catch (error) {
     setStatus(els.offworldNewsStatus, error.message, true);

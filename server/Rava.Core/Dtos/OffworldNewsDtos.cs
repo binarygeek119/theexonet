@@ -32,4 +32,6 @@ public record AdminOffworldNewsRegenerateResponse(
     DateOnly EditionDate,
     string Source,
     int StoryCount,
-    int IllustratedStoryCount);
+    int IllustratedStoryCount,
+    int ImageAttempts = 0,
+    string? ImageGenerationError = null);

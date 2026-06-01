@@ -23,6 +23,7 @@ public class AdminController(
     GameCreditsConfigService gameCreditsConfigService,
     SpecialEventService specialEventService,
     OffworldNewsService offworldNewsService,
+    OffworldNewsReporterPortraitJobService offworldNewsReporterPortraitJob,
     OffworldNewsReporterRosterAdminService offworldNewsReporterRoster,
     OffworldNewsAdminSettingsStore offworldNewsAdminSettings,
     IEmailService emailService,
@@ -78,22 +79,20 @@ public class AdminController(
     }
 
     [HttpPost("offworld-news/regenerate-reporter-portraits")]
-    public async Task<ActionResult<AdminOffworldNewsReporterPortraitsResponse>> RegenerateOffworldNewsReporterPortraits(
-        CancellationToken ct)
+    public ActionResult<AdminOffworldNewsReporterPortraitJobDto> RegenerateOffworldNewsReporterPortraits()
     {
-        var (summary, error) = await offworldNewsService.RegenerateReporterPortraitsAsync(ct: ct);
-        if (error is not null)
+        var (started, error) = offworldNewsReporterPortraitJob.TryStart(slugs: null);
+        if (!started)
         {
             return BadRequest(new { message = error });
         }
 
-        return Ok(new AdminOffworldNewsReporterPortraitsResponse(
-            summary!.Describe(),
-            summary.ReporterCount,
-            summary.Attempted,
-            summary.Succeeded,
-            summary.Error));
+        return Accepted(offworldNewsReporterPortraitJob.GetStatus());
     }
+
+    [HttpGet("offworld-news/reporter-portraits-job")]
+    public ActionResult<AdminOffworldNewsReporterPortraitJobDto> GetOffworldNewsReporterPortraitJob() =>
+        Ok(offworldNewsReporterPortraitJob.GetStatus());
 
     [HttpGet("offworld-news/reporters")]
     public ActionResult<AdminOffworldNewsReportersPageDto> GetOffworldNewsReporters() =>
@@ -115,9 +114,8 @@ public class AdminController(
     }
 
     [HttpPost("offworld-news/reporters/{slug}/regenerate-portraits")]
-    public async Task<ActionResult<AdminOffworldNewsReporterPortraitsResponse>> RegenerateOffworldNewsReporterPortraits(
-        string slug,
-        CancellationToken ct)
+    public ActionResult<AdminOffworldNewsReporterPortraitJobDto> RegenerateOffworldNewsReporterPortraits(
+        string slug)
     {
         if (string.IsNullOrWhiteSpace(slug)
             || slug.Equals("undefined", StringComparison.OrdinalIgnoreCase))
@@ -125,18 +123,13 @@ public class AdminController(
             return BadRequest(new { message = "Reporter slug is required." });
         }
 
-        var (summary, error) = await offworldNewsService.RegenerateReporterPortraitsAsync([slug.Trim()], ct);
-        if (error is not null)
+        var (started, error) = offworldNewsReporterPortraitJob.TryStart([slug.Trim()]);
+        if (!started)
         {
             return BadRequest(new { message = error });
         }
 
-        return Ok(new AdminOffworldNewsReporterPortraitsResponse(
-            summary!.Describe(),
-            summary.ReporterCount,
-            summary.Attempted,
-            summary.Succeeded,
-            summary.Error));
+        return Accepted(offworldNewsReporterPortraitJob.GetStatus());
     }
 
     [HttpGet("offworld-news/settings")]

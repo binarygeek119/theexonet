@@ -70,11 +70,23 @@ export class RavaApi {
       headers.Authorization = `Bearer ${this.token}`;
     }
 
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      method,
-      headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    let response;
+    try {
+      response = await fetch(`${this.baseUrl}${path}`, {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+    } catch (error) {
+      const base = this.baseUrl || window.location.origin;
+      const message =
+        error?.message === "Failed to fetch"
+          ? `Could not reach the API at ${base}. The request may have timed out, or the API may be unreachable.`
+          : error?.message || "Network error.";
+      const err = new Error(message);
+      err.cause = error;
+      throw err;
+    }
 
     if (!response.ok) {
       let message = formatHttpError(response, path);
@@ -565,6 +577,10 @@ export class RavaApi {
       method: "POST",
       body: {},
     });
+  }
+
+  adminGetOffworldNewsReporterPortraitJob() {
+    return this.request("/api/admin/offworld-news/reporter-portraits-job");
   }
 
   adminRegenerateOneOffworldNewsReporterPortraits(slug) {

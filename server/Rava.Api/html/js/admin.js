@@ -1,4 +1,4 @@
-import { RavaApi } from "./api.js?v=20260602-onn-portraits";
+import { RavaApi } from "./api.js?v=20260602-portrait-job";
 import { API_BASE_URL } from "./config.js";
 import { initApiStatusMonitor } from "./api-status.js";
 import { initStaffMessaging } from "./staff-messages.js";
@@ -1064,6 +1064,44 @@ async function saveOnnReporter(form) {
   }
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForReporterPortraitJob(onProgress) {
+  for (;;) {
+    const job = await api.adminGetOffworldNewsReporterPortraitJob();
+    const status = String(pickJson(job, "status") ?? "").toLowerCase();
+    if (status === "running") {
+      const saved = pickJson(job, "imagesSaved") ?? 0;
+      const attempts = pickJson(job, "imageAttempts") ?? 0;
+      const message = pickJson(job, "message") ?? "Regenerating reporter portraits…";
+      onProgress?.(`${message} (${saved}/${attempts} images)`);
+      await sleep(3000);
+      continue;
+    }
+
+    return job;
+  }
+}
+
+function formatReporterPortraitJobStatus(job) {
+  const status = String(pickJson(job, "status") ?? "").toLowerCase();
+  const message = pickJson(job, "message") ?? "";
+  const error = pickJson(job, "imageGenerationError");
+  const saved = pickJson(job, "imagesSaved") ?? 0;
+  const attempts = pickJson(job, "imageAttempts") ?? 0;
+
+  if (status === "failed") {
+    return { text: message || "Portrait regeneration failed.", isError: true };
+  }
+
+  return {
+    text: error ? `${message} ${error}` : `${message} (${saved}/${attempts} images).`,
+    isError: Boolean(error),
+  };
+}
+
 async function regenerateOnnReporterPortraits(form) {
   const statusEl = form.querySelector(".admin-onn-reporter-form-status");
   const slug = readOnnSlugFromForm(form);
@@ -1077,19 +1115,15 @@ async function regenerateOnnReporterPortraits(form) {
     return;
   }
 
-  setStatus(statusEl, "Regenerating portraits…");
+  setStatus(statusEl, "Starting portrait regeneration…");
   form.querySelectorAll("button").forEach((button) => {
     button.disabled = true;
   });
   try {
-    const result = await api.adminRegenerateOneOffworldNewsReporterPortraits(slug);
-    setStatus(
-      statusEl,
-      result.imageGenerationError
-        ? `${result.message} ${result.imageGenerationError}`
-        : `${result.message} (${result.imagesSaved}/${result.imageAttempts} images).`,
-      Boolean(result.imageGenerationError),
-    );
+    await api.adminRegenerateOneOffworldNewsReporterPortraits(slug);
+    const job = await waitForReporterPortraitJob((message) => setStatus(statusEl, message));
+    const result = formatReporterPortraitJobStatus(job);
+    setStatus(statusEl, result.text, result.isError);
   } catch (error) {
     setStatus(statusEl, error.message, true);
   } finally {
@@ -1134,17 +1168,13 @@ async function regenerateOffworldNewsReporterPortraits() {
     return;
   }
 
-  setStatus(els.offworldNewsStatus, "Regenerating reporter portraits…");
+  setStatus(els.offworldNewsStatus, "Starting reporter portrait regeneration…");
   setOffworldNewsButtonsDisabled(true);
   try {
-    const result = await api.adminRegenerateAllOffworldNewsReporterPortraits();
-    setStatus(
-      els.offworldNewsStatus,
-      result.imageGenerationError
-        ? `${result.message} ${result.imageGenerationError}`
-        : `${result.message} (${result.imagesSaved}/${result.imageAttempts} images).`,
-      Boolean(result.imageGenerationError),
-    );
+    await api.adminRegenerateAllOffworldNewsReporterPortraits();
+    const job = await waitForReporterPortraitJob((message) => setStatus(els.offworldNewsStatus, message));
+    const result = formatReporterPortraitJobStatus(job);
+    setStatus(els.offworldNewsStatus, result.text, result.isError);
   } catch (error) {
     setStatus(els.offworldNewsStatus, error.message, true);
   } finally {

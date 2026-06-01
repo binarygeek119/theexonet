@@ -126,6 +126,7 @@ builder.Services.AddHttpClient(OpenAiOffworldNewsGenerator.HttpClientName, clien
     client.Timeout = TimeSpan.FromMinutes(3);
 });
 builder.Services.AddSingleton<OffworldNewsService>();
+builder.Services.AddSingleton<OffworldNewsReporterPortraitJobService>();
 builder.Services.AddSingleton<OffworldNewsAdminSettingsStore>();
 builder.Services.AddScoped<OffworldNewsReporterRosterAdminService>();
 builder.Services.AddHostedService<OffworldNewsSchedulerService>();

@@ -78,3 +78,13 @@ public record AdminUpdateOffworldNewsReporterRequest(
     string Specialties);
 
 public record AdminUpdateOffworldNewsSettingsRequest(int ReporterPoolSize);
+
+public record AdminOffworldNewsReporterPortraitJobDto(
+    string Status,
+    string? Message,
+    int ReporterCount,
+    int ImageAttempts,
+    int ImagesSaved,
+    string? ImageGenerationError,
+    DateTime? StartedUtc,
+    DateTime? CompletedUtc);

@@ -335,6 +335,21 @@ export class RavaApi {
 
     if (!response.ok) {
       let message = formatHttpError(response, "/api/player/profile/avatar");
+      try {
+        const error = await response.json();
+        if (error?.message) {
+          message = error.message;
+        }
+      } catch {
+        // ignore parse errors
+      }
+      throw new Error(message);
+    }
+
+    return response.json();
+  }
+
+  async uploadProfileBackground(file) {
     const form = new FormData();
     form.append("file", file);
 
@@ -351,6 +366,21 @@ export class RavaApi {
 
     if (!response.ok) {
       let message = formatHttpError(response, "/api/player/profile/background");
+      try {
+        const error = await response.json();
+        if (error?.message) {
+          message = error.message;
+        }
+      } catch {
+        // ignore parse errors
+      }
+      throw new Error(message);
+    }
+
+    return response.json();
+  }
+
+  removeProfileBackground() {
     return this.request("/api/player/profile/background", {
       method: "DELETE",
     });

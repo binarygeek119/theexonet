@@ -53,6 +53,18 @@ dotnet --list-runtimes
 
    You should see `Microsoft.AspNetCore.App 10.0.x` in the list. If the package is unavailable on your distro, use the [install script](https://learn.microsoft.com/dotnet/core/install/linux-scripted-manual#scripted-install) with `--runtime aspnetcore --channel 10.0`.
 
+   **Optional — .NET SDK 10** (only for manual `sudo deploy-rava-portals` / `deploy-rava-status` on the server; GitHub Actions deploy does not need this):
+
+```bash
+wget -q https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh
+chmod +x /tmp/dotnet-install.sh
+/tmp/dotnet-install.sh --channel 10.0 --install-dir /usr/share/dotnet
+export PATH="/usr/share/dotnet:$PATH"
+dotnet --list-sdks
+```
+
+   Without the SDK, sync portal static files only: `sudo deploy-rava-portals --static-only` (run from your git checkout after `git pull`).
+
 3. Copy `appsettings.json.example` to `appsettings.json` on the API host (e.g. `/var/www/publish/appsettings.json`) and set production secrets — deploy does **not** ship or overwrite this file.
 
    Required files in `/var/www/publish`:

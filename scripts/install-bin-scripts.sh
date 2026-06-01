@@ -35,6 +35,7 @@ for script in \
   deploy-portals.sh \
   deploy-status.sh \
   resolve-server-dir.sh \
+  dotnet-sdk.sh \
   sync-portal-wwwroot.sh \
   migrate-publish-data-to-var-www.sh \
   sync-publish-data.sh \

@@ -13,5 +13,7 @@ public enum TransactionType
     SpecialEventBonus,
     CompanyNamePurchase,
     CompanyNameSale,
-    CompanyNameReclaim
+    CompanyNameReclaim,
+    TradeAuctionPurchase,
+    TradeAuctionSale
 }

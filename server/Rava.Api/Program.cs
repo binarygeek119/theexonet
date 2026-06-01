@@ -84,6 +84,7 @@ builder.Services.AddSingleton<IGameCreditsConfig>(sp => sp.GetRequiredService<Ga
 builder.Services.AddScoped<SpecialEventService>();
 builder.Services.AddScoped<PlayerProfileUpgrader>();
 builder.Services.AddScoped<CompanyNameService>();
+builder.Services.AddScoped<TradeAuctionService>();
 builder.Services.AddSingleton<IProfileAvatarStorage>(sp =>
     new LocalProfileAvatarStorage(new ProfileAvatarStorageOptions
     {

@@ -16,6 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<FriendshipEntity> Friendships => Set<FriendshipEntity>();
     public DbSet<MineGroupEntity> MineGroups => Set<MineGroupEntity>();
     public DbSet<MarketListingEntity> MarketListings => Set<MarketListingEntity>();
+    public DbSet<TradeAuctionEntity> TradeAuctions => Set<TradeAuctionEntity>();
     public DbSet<CompanyNameLimboEntity> CompanyNameLimbo => Set<CompanyNameLimboEntity>();
     public DbSet<CompanyNameListingEntity> CompanyNameListings => Set<CompanyNameListingEntity>();
     public DbSet<AccountResetEntity> AccountResets => Set<AccountResetEntity>();
@@ -271,6 +272,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .WithMany()
                 .HasForeignKey(l => l.SellerPlayerId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TradeAuctionEntity>(e =>
+        {
+            e.HasIndex(a => a.Status);
+            e.HasIndex(a => a.SellerPlayerId);
+            e.HasIndex(a => a.EndsAt);
+            e.HasOne(a => a.Seller)
+                .WithMany()
+                .HasForeignKey(a => a.SellerPlayerId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(a => a.HighBidder)
+                .WithMany()
+                .HasForeignKey(a => a.HighBidderPlayerId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

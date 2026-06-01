@@ -36,6 +36,8 @@ public record PublicEconomyResponse(
     decimal EmergencyBuybackRate,
     decimal SignUpCredits,
     decimal BirthdayBonusCredits,
+    decimal TradeMarketValue,
+    decimal AuctionFeePercent,
     IReadOnlyList<EconomyItemPriceDto> OrePrices,
     IReadOnlyList<EconomyItemPriceDto> SupplyPrices);
 
@@ -49,6 +51,45 @@ public record TradeItemDto(
     bool IsEmergencySource);
 
 public record TradeItemsResponse(IReadOnlyList<TradeItemDto> Items);
+
+public record TradeMarketInfoResponse(
+    decimal TradeMarketValue,
+    decimal AuctionFeePercent,
+    int MinAuctionDurationMinutes,
+    int MaxAuctionDurationMinutes);
+
+public record CreateTradeAuctionRequest(
+    string Category,
+    string ItemType,
+    decimal Quantity,
+    decimal StartPrice,
+    int DurationMinutes);
+
+public record PlaceTradeAuctionBidRequest(decimal BidAmount);
+
+public record TradeAuctionDto(
+    Guid Id,
+    string SellerUsername,
+    string Category,
+    string ItemType,
+    string DisplayName,
+    decimal Quantity,
+    decimal StartPrice,
+    decimal? CurrentBid,
+    string? HighBidderUsername,
+    int DurationMinutes,
+    DateTime? EndsAt,
+    string Status,
+    bool IsMine,
+    decimal MinimumNextBid,
+    int? SecondsRemaining);
+
+public record TradeAuctionListResponse(
+    decimal TradeMarketValue,
+    decimal AuctionFeePercent,
+    IReadOnlyList<TradeAuctionDto> Auctions);
+
+public record TradeAuctionActionResponse(bool Success, string Message, decimal? NewCredits = null);
 public record AuthResponse(
     string Token,
     Guid PlayerId,

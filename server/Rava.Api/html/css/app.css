@@ -305,6 +305,12 @@ select:focus {
   text-align: left;
 }
 
+.exonet-tab {
+  border-color: rgba(100, 180, 255, 0.35);
+  color: #9fd4ff;
+  background: rgba(20, 40, 70, 0.45);
+}
+
 .game-main {
   display: flex;
   flex: 1;
@@ -502,6 +508,65 @@ body:not(.is-authenticated) .modal {
   gap: 18px;
 }
 
+.auction-panel {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.auction-create-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.auction-create-form label {
+  margin: 0 0 4px;
+}
+
+.auction-list {
+  display: grid;
+  gap: 12px;
+}
+
+.auction-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.auction-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.auction-card-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0 0 10px;
+}
+
+.auction-bid-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.auction-bid-row input {
+  width: 120px;
+}
+
+.trade-market-value {
+  font-weight: 600;
+}
+
 .day-report {
   white-space: pre-wrap;
   background: var(--panel-2);
@@ -658,6 +723,21 @@ body:not(.is-authenticated) .modal {
   margin-bottom: 20px;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border);
+}
+
+.player-message-actions {
+  margin-bottom: 16px;
+}
+
+.player-message-compose-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.player-message-compose-head h3 {
+  margin: 0;
 }
 
 .player-message-compose:last-of-type {

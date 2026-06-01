@@ -104,7 +104,7 @@ namespace Rava.UI
         {
             return source switch
             {
-                "yahoo-us" => "US stocks (CAT, XOM, JNJ, QCOM)",
+                "yahoo-us" => "Earth stocks (CAT, XOM, JNJ, QCOM)",
                 "mock-fallback" => "fallback mock prices",
                 _ => source ?? "market"
             };

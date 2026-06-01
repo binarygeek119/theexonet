@@ -80,6 +80,25 @@ export function initPlayerMessaging({ api, els, setStatus }) {
   let selectedMessageKind = null;
   let composePlayerId = null;
 
+  function hideStaffCompose() {
+    if (els.staffCompose) {
+      els.staffCompose.hidden = true;
+    }
+    if (els.staffToggleBtn) {
+      els.staffToggleBtn.hidden = false;
+    }
+  }
+
+  function showStaffCompose() {
+    if (els.staffCompose) {
+      els.staffCompose.hidden = false;
+    }
+    if (els.staffToggleBtn) {
+      els.staffToggleBtn.hidden = true;
+    }
+    els.staffRecipient?.focus();
+  }
+
   function getMessageKey(message) {
     return `${message.kind}:${message.id}`;
   }
@@ -226,6 +245,7 @@ export function initPlayerMessaging({ api, els, setStatus }) {
   }
 
   async function loadMessages() {
+    hideStaffCompose();
     setStatus(els.messagesStatus, "Loading...");
     const [staffResponse, peerResponse, toStaffResponse, friendsResponse, contactsResponse] =
       await Promise.all([
@@ -331,6 +351,7 @@ export function initPlayerMessaging({ api, els, setStatus }) {
     try {
       const result = await api.sendPlayerStaffMessage(toStaffUsername, body);
       els.staffBody.value = "";
+      hideStaffCompose();
       setStatus(els.messagesStatus, result.statusMessage ?? "Message sent to staff.");
       await loadMessages();
     } catch (error) {
@@ -354,6 +375,18 @@ export function initPlayerMessaging({ api, els, setStatus }) {
   if (els.staffSendBtn) {
     els.staffSendBtn.addEventListener("click", () => {
       sendStaffMessage().catch((error) => setStatus(els.messagesStatus, error.message, true));
+    });
+  }
+
+  if (els.staffToggleBtn) {
+    els.staffToggleBtn.addEventListener("click", () => {
+      showStaffCompose();
+    });
+  }
+
+  if (els.staffCloseBtn) {
+    els.staffCloseBtn.addEventListener("click", () => {
+      hideStaffCompose();
     });
   }
 

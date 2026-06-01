@@ -117,6 +117,7 @@ public class GameWorldEntity
     public int CurrentDay { get; set; } = 1;
     public DateTime LastTickAt { get; set; } = DateTime.UtcNow;
     public int MarketSeed { get; set; } = 42;
+    public decimal TradeMarketValue { get; set; }
 }
 
 // Reserved for future phases
@@ -147,6 +148,26 @@ public class MarketListingEntity
     public string ItemType { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
+}
+
+public class TradeAuctionEntity
+{
+    public Guid Id { get; set; }
+    public Guid SellerPlayerId { get; set; }
+    public ItemCategory Category { get; set; }
+    public string ItemType { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal StartPrice { get; set; }
+    public decimal? CurrentBid { get; set; }
+    public Guid? HighBidderPlayerId { get; set; }
+    public int DurationMinutes { get; set; }
+    public DateTime? EndsAt { get; set; }
+    public string Status { get; set; } = TradeAuctionStatuses.Open;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? CompletedAt { get; set; }
+
+    public PlayerEntity Seller { get; set; } = null!;
+    public PlayerEntity? HighBidder { get; set; }
 }
 
 public class CompanyNameLimboEntity

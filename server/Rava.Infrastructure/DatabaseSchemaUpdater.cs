@@ -313,6 +313,30 @@ public static class DatabaseSchemaUpdater
             CREATE INDEX IF NOT EXISTS "IX_CompanyNameListings_NormalizedName" ON "CompanyNameListings" ("NormalizedName");
             CREATE INDEX IF NOT EXISTS "IX_CompanyNameListings_Status" ON "CompanyNameListings" ("Status");
             CREATE INDEX IF NOT EXISTS "IX_CompanyNameListings_SellerPlayerId" ON "CompanyNameListings" ("SellerPlayerId");
+            ALTER TABLE "GameWorld" ADD COLUMN IF NOT EXISTS "TradeMarketValue" numeric NOT NULL DEFAULT 0;
+            CREATE TABLE IF NOT EXISTS "TradeAuctions" (
+                "Id" uuid NOT NULL,
+                "SellerPlayerId" uuid NOT NULL,
+                "Category" integer NOT NULL,
+                "ItemType" text NOT NULL,
+                "Quantity" numeric NOT NULL,
+                "StartPrice" numeric NOT NULL,
+                "CurrentBid" numeric NULL,
+                "HighBidderPlayerId" uuid NULL,
+                "DurationMinutes" integer NOT NULL,
+                "EndsAt" timestamp with time zone NULL,
+                "Status" text NOT NULL DEFAULT 'open',
+                "CreatedAt" timestamp with time zone NOT NULL DEFAULT NOW(),
+                "CompletedAt" timestamp with time zone NULL,
+                CONSTRAINT "PK_TradeAuctions" PRIMARY KEY ("Id"),
+                CONSTRAINT "FK_TradeAuctions_Players_SellerPlayerId" FOREIGN KEY ("SellerPlayerId")
+                    REFERENCES "Players" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_TradeAuctions_Players_HighBidderPlayerId" FOREIGN KEY ("HighBidderPlayerId")
+                    REFERENCES "Players" ("Id") ON DELETE SET NULL
+            );
+            CREATE INDEX IF NOT EXISTS "IX_TradeAuctions_Status" ON "TradeAuctions" ("Status");
+            CREATE INDEX IF NOT EXISTS "IX_TradeAuctions_SellerPlayerId" ON "TradeAuctions" ("SellerPlayerId");
+            CREATE INDEX IF NOT EXISTS "IX_TradeAuctions_EndsAt" ON "TradeAuctions" ("EndsAt");
             """,
             cancellationToken);
     }

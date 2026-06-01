@@ -10,7 +10,8 @@ namespace Rava.Api.Controllers;
 [Route("api/trade")]
 public class TradeController(
     ITradeItemsCatalog tradeItems,
-    CompanyNameService companyNameService) : ControllerBase
+    CompanyNameService companyNameService,
+    TradeAuctionService tradeAuctionService) : ControllerBase
 {
     [AllowAnonymous]
     [HttpGet("items")]
@@ -28,6 +29,77 @@ public class TradeController(
             .ToList();
 
         return Ok(new TradeItemsResponse(items));
+    }
+
+    [AllowAnonymous]
+    [HttpGet("market-info")]
+    public async Task<ActionResult<TradeMarketInfoResponse>> GetMarketInfo(CancellationToken ct) =>
+        Ok(await tradeAuctionService.GetMarketInfoAsync(ct));
+
+    [AllowAnonymous]
+    [HttpGet("auctions")]
+    public async Task<ActionResult<TradeAuctionListResponse>> GetAuctions(CancellationToken ct)
+    {
+        Guid? viewerId = null;
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            viewerId = User.GetPlayerId();
+        }
+
+        return Ok(await tradeAuctionService.GetActiveAuctionsAsync(viewerId, ct));
+    }
+
+    [Authorize]
+    [HttpPost("auctions")]
+    public async Task<ActionResult<TradeAuctionActionResponse>> CreateAuction(
+        CreateTradeAuctionRequest request,
+        CancellationToken ct)
+    {
+        var (result, error) = await tradeAuctionService.CreateAuctionAsync(User.GetPlayerId(), request, ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(result);
+    }
+
+    [Authorize]
+    [HttpPost("auctions/{auctionId:guid}/bid")]
+    public async Task<ActionResult<TradeAuctionActionResponse>> PlaceBid(
+        Guid auctionId,
+        PlaceTradeAuctionBidRequest request,
+        CancellationToken ct)
+    {
+        var (result, error) = await tradeAuctionService.PlaceBidAsync(
+            User.GetPlayerId(),
+            auctionId,
+            request.BidAmount,
+            ct);
+
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(result);
+    }
+
+    [Authorize]
+    [HttpDelete("auctions/{auctionId:guid}")]
+    public async Task<ActionResult<TradeAuctionActionResponse>> CancelAuction(Guid auctionId, CancellationToken ct)
+    {
+        var (result, error) = await tradeAuctionService.CancelAuctionAsync(
+            User.GetPlayerId(),
+            auctionId,
+            ct);
+
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(result);
     }
 
     [AllowAnonymous]

@@ -11,6 +11,7 @@ using Rava.Core.Interfaces;
 using Rava.Core.Models;
 using Rava.Core.Services;
 using Rava.Infrastructure.Data;
+using Rava.Infrastructure.Services;
 
 namespace Rava.Api.Controllers;
 
@@ -21,7 +22,8 @@ public class StatusController(
     ServerRuntimeInfo runtime,
     IMarketDataProvider marketProvider,
     IMarketItemsCatalog marketItems,
-    IGameCreditsConfig gameCreditsConfig) : ControllerBase
+    IGameCreditsConfig gameCreditsConfig,
+    TradeAuctionService tradeAuctionService) : ControllerBase
 {
     [AllowAnonymous]
     [HttpGet("status")]
@@ -110,6 +112,8 @@ public class StatusController(
             })
             .ToList();
 
+        var marketInfo = await tradeAuctionService.GetMarketInfoAsync(ct);
+
         return Ok(new PublicEconomyResponse(
             DateTime.UtcNow,
             referenceGameDay,
@@ -118,6 +122,8 @@ public class StatusController(
             GameBalance.EmergencyBuybackRate,
             credits.SignUp,
             credits.BirthdayBonus,
+            marketInfo.TradeMarketValue,
+            marketInfo.AuctionFeePercent,
             orePrices,
             supplyPrices));
     }

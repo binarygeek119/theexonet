@@ -199,6 +199,10 @@ export class RavaApi {
     return this.request("/api/market/today");
   }
 
+  getPublicEconomy() {
+    return this.request("/api/status/economy", { auth: false });
+  }
+
   getTradeItems() {
     return this.request("/api/trade/items", { auth: false });
   }
@@ -251,6 +255,34 @@ export class RavaApi {
 
   getCompanyNameListings() {
     return this.request("/api/trade/company-names");
+  }
+
+  getTradeMarketInfo() {
+    return this.request("/api/trade/market-info", { auth: false });
+  }
+
+  getTradeAuctions() {
+    return this.request("/api/trade/auctions");
+  }
+
+  createTradeAuction(category, itemType, quantity, startPrice, durationMinutes) {
+    return this.request("/api/trade/auctions", {
+      method: "POST",
+      body: { category, itemType, quantity, startPrice, durationMinutes },
+    });
+  }
+
+  placeTradeAuctionBid(auctionId, bidAmount) {
+    return this.request(`/api/trade/auctions/${auctionId}/bid`, {
+      method: "POST",
+      body: { bidAmount },
+    });
+  }
+
+  cancelTradeAuction(auctionId) {
+    return this.request(`/api/trade/auctions/${auctionId}`, {
+      method: "DELETE",
+    });
   }
 
   purchaseCompanyName(listingId) {

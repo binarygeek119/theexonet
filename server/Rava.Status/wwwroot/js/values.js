@@ -9,6 +9,8 @@ const els = {
   marketDate: document.getElementById("market-date"),
   marketGameDay: document.getElementById("market-game-day"),
   marketSource: document.getElementById("market-source"),
+  tradeMarketValue: document.getElementById("trade-market-value"),
+  auctionFeePercent: document.getElementById("auction-fee-percent"),
   oreRows: document.getElementById("ore-rows"),
   supplyRows: document.getElementById("supply-rows"),
 };
@@ -82,6 +84,10 @@ function renderEconomy(data) {
   els.marketDate.textContent = data.marketDate || "—";
   els.marketGameDay.textContent = data.referenceGameDay ?? "—";
   els.marketSource.textContent = data.marketSource || "—";
+  els.tradeMarketValue.textContent = formatCredits(data.tradeMarketValue);
+  els.auctionFeePercent.textContent = data.auctionFeePercent != null
+    ? `${data.auctionFeePercent}% of auction sales`
+    : "—";
   renderOreRows(data.orePrices);
   renderSupplyRows(data.supplyPrices);
 }

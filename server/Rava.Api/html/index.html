@@ -7,6 +7,7 @@
   <title>RAVA — Reactive Asteroid Venturing Agency</title>
   <link rel="stylesheet" href="/css/app.css">
   <link rel="stylesheet" href="/css/profile.css">
+  <link rel="stylesheet" href="/css/exonet.css">
 </head>
 <body>
   <div id="login-screen" class="screen">
@@ -95,6 +96,7 @@
       <button id="trade-market-btn" type="button" class="btn tab">Trade Market</button>
       <button id="store-btn" type="button" class="btn tab">Store</button>
       <button id="shipping-btn" type="button" class="btn tab">Shipping</button>
+      <button id="exonet-btn" type="button" class="btn tab exonet-tab">Exonet</button>
       <button id="logout-btn" type="button" class="btn ghost">Logout</button>
     </aside>
 
@@ -148,9 +150,10 @@
         <button type="button" class="btn ghost" data-close-modal>Close</button>
       </div>
       <p id="market-info" class="market-info">Market prices loading...</p>
+      <p id="trade-market-value" class="market-info trade-market-value"></p>
       <div class="shop-columns">
         <section>
-          <h3>Buy Supplies (US Market Linked)</h3>
+          <h3>Buy Supplies (Earth Market Linked)</h3>
           <div id="supply-list" class="shop-list"></div>
         </section>
         <section>
@@ -158,6 +161,28 @@
           <div id="ore-list" class="shop-list"></div>
         </section>
       </div>
+      <section class="auction-panel">
+        <h3>Player Auctions</h3>
+        <p class="market-info">List ore or supplies for auction. The timer starts when the first bid is placed. A market fee applies on completed sales.</p>
+        <form id="auction-create-form" class="auction-create-form">
+          <label for="auction-item">Item</label>
+          <select id="auction-item" required></select>
+          <label for="auction-quantity">Quantity</label>
+          <input id="auction-quantity" type="number" min="0.1" step="0.1" required>
+          <label for="auction-start-price">Start price (Rax)</label>
+          <input id="auction-start-price" type="number" min="1" step="1" required>
+          <label for="auction-duration">Auction length (after first bid)</label>
+          <select id="auction-duration" required>
+            <option value="30">30 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="360">6 hours</option>
+            <option value="1440">24 hours</option>
+          </select>
+          <button id="auction-create-btn" type="submit" class="btn accent">List auction</button>
+        </form>
+        <p id="auction-status" class="market-info"></p>
+        <div id="auction-list" class="auction-list"></div>
+      </section>
     </div>
   </div>
 
@@ -478,8 +503,14 @@
         <button type="button" class="btn ghost" data-close-modal>Close</button>
       </div>
       <p id="messages-status" class="friends-status"></p>
-      <section class="player-message-compose">
-        <h3>Message staff</h3>
+      <div class="player-message-actions">
+        <button id="player-staff-toggle-btn" type="button" class="btn ghost">Message staff</button>
+      </div>
+      <section id="player-staff-compose" class="player-message-compose" hidden>
+        <div class="player-message-compose-head">
+          <h3>Message staff</h3>
+          <button id="player-staff-close-btn" type="button" class="btn ghost">Close</button>
+        </div>
         <label for="player-staff-recipient">To</label>
         <select id="player-staff-recipient">
           <option value="">Select staff member…</option>
@@ -510,6 +541,31 @@
         <div id="player-messages-inbox" class="staff-message-inbox"></div>
         <div id="player-messages-detail" class="staff-message-detail"></div>
       </div>
+    </div>
+  </div>
+
+  <div id="exonet-modal" class="modal exonet-modal" hidden>
+    <div class="exonet-shell">
+      <header class="exonet-chrome">
+        <div class="exonet-brand">◈ EXONET</div>
+        <div class="exonet-nav">
+          <button id="exonet-back" type="button" title="Back">←</button>
+          <button id="exonet-forward" type="button" title="Forward">→</button>
+          <button id="exonet-home" type="button" title="Home">⌂</button>
+        </div>
+        <form id="exonet-url-form" class="exonet-url-bar">
+          <span class="exonet-scheme">exo://</span>
+          <input id="exonet-url-input" type="text" spellcheck="false" autocomplete="off" aria-label="Exonet address">
+          <button type="submit">Go</button>
+        </form>
+        <button id="exonet-close" type="button" class="btn ghost exonet-close">Close</button>
+      </header>
+      <aside class="exonet-sidebar">
+        <h3>Bookmarks</h3>
+        <div id="exonet-bookmarks"></div>
+      </aside>
+      <main id="exonet-content" class="exonet-content"></main>
+      <footer id="exonet-status-bar" class="exonet-status">Interplanetary relay · establishing link…</footer>
     </div>
   </div>
 

@@ -9,6 +9,7 @@ import {
 } from "./currency.js";
 import { initPlayerMessaging } from "./player-messages.js";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
+import { initExonet } from "./exonet.js";
 
 const api = new RavaApi(API_BASE_URL);
 
@@ -86,8 +87,19 @@ const playerMessaging = initPlayerMessaging({
     staffRecipient: document.getElementById("player-staff-recipient"),
     staffBody: document.getElementById("player-staff-body"),
     staffSendBtn: document.getElementById("player-staff-send-btn"),
+    staffCompose: document.getElementById("player-staff-compose"),
+    staffToggleBtn: document.getElementById("player-staff-toggle-btn"),
+    staffCloseBtn: document.getElementById("player-staff-close-btn"),
   },
   setStatus: (_el, message, isError) => setMessagesStatus(message, isError),
+});
+
+const exonet = initExonet({
+  api,
+  getState: () => state,
+  formatRaxHtml,
+  formatRaxPlain,
+  formatMarketSource,
 });
 
 const state = {
@@ -100,6 +112,9 @@ const state = {
   authMode: "login",
   banMessage: "",
   nextDayAtUtc: null,
+  tradeAuctions: [],
+  tradeMarketValue: 0,
+  auctionFeePercent: 5,
 };
 
 let utcClockTimer;
@@ -162,6 +177,8 @@ const els = {
   tradeMarketBtn: document.getElementById("trade-market-btn"),
   storeBtn: document.getElementById("store-btn"),
   shippingBtn: document.getElementById("shipping-btn"),
+  exonetBtn: document.getElementById("exonet-btn"),
+  exonetModal: document.getElementById("exonet-modal"),
   financeModal: document.getElementById("finance-modal"),
   supplyModal: document.getElementById("supply-modal"),
   storeModal: document.getElementById("store-modal"),
@@ -179,6 +196,15 @@ const els = {
   marketInfo: document.getElementById("market-info"),
   supplyList: document.getElementById("supply-list"),
   oreList: document.getElementById("ore-list"),
+  tradeMarketValue: document.getElementById("trade-market-value"),
+  auctionCreateForm: document.getElementById("auction-create-form"),
+  auctionItem: document.getElementById("auction-item"),
+  auctionQuantity: document.getElementById("auction-quantity"),
+  auctionStartPrice: document.getElementById("auction-start-price"),
+  auctionDuration: document.getElementById("auction-duration"),
+  auctionCreateBtn: document.getElementById("auction-create-btn"),
+  auctionStatus: document.getElementById("auction-status"),
+  auctionList: document.getElementById("auction-list"),
   dayReportTitle: document.getElementById("day-report-title"),
   dayReportBody: document.getElementById("day-report-body"),
   closeDayReport: document.getElementById("close-day-report"),
@@ -589,6 +615,7 @@ function closeModals() {
   els.shippingModal.hidden = true;
   els.storeModal.hidden = true;
   els.eventModal.hidden = true;
+  exonet.close();
 }
 
 function openModal(modal) {
@@ -596,6 +623,7 @@ function openModal(modal) {
     return;
   }
 
+  exonet.close();
   modal.hidden = false;
   document.body.appendChild(modal);
 }
@@ -1863,7 +1891,7 @@ function renderFinancePanel() {
 function formatMarketSource(source) {
   switch (source) {
     case "yahoo-us":
-      return "US stocks (CAT, XOM, JNJ, QCOM)";
+      return "Earth stocks (CAT, XOM, JNJ, QCOM)";
     case "mock-fallback":
       return "fallback mock prices";
     default:
@@ -1997,6 +2025,210 @@ function renderSupplyPanel() {
     button.innerHTML = `<strong>Sell ${meta.displayName}</strong><span>${formatRaxHtml(salePrice)}/u · Qty: ${stock.toFixed(1)}</span>`;
     button.addEventListener("click", () => sellOre(type, stock));
     els.oreList.appendChild(button);
+  }
+
+  refreshTradeAuctions().catch((error) => setAuctionStatus(error.message, true));
+}
+
+function setAuctionStatus(message, isError = false) {
+  if (!els.auctionStatus) {
+    return;
+  }
+
+  els.auctionStatus.textContent = message ?? "";
+  els.auctionStatus.classList.toggle("error", Boolean(isError && message));
+  els.auctionStatus.classList.toggle("success", Boolean(!isError && message));
+}
+
+function formatAuctionTime(seconds) {
+  if (seconds == null || Number.isNaN(Number(seconds))) {
+    return "Waiting for first bid";
+  }
+
+  const total = Math.max(0, Number(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${secs}s`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${secs}s`;
+  }
+  return `${secs}s`;
+}
+
+function renderTradeMarketValue() {
+  if (!els.tradeMarketValue) {
+    return;
+  }
+
+  els.tradeMarketValue.innerHTML =
+    `Trade Market value: ${formatRaxHtml(state.tradeMarketValue)} · Auction fee: ${state.auctionFeePercent}% of sale`;
+}
+
+function populateAuctionItemSelect() {
+  if (!els.auctionItem) {
+    return;
+  }
+
+  const mine = state.mine;
+  const options = ['<option value="">Select item…</option>'];
+  for (const item of mine?.inventory ?? []) {
+    const quantity = Number(item.quantity ?? 0);
+    if (quantity <= 0) {
+      continue;
+    }
+
+    const category = item.category;
+    const itemType = item.itemType;
+    const meta = category === "Ore" ? tradeOreTypes[itemType] : tradeSupplyTypes[itemType];
+    if (!meta) {
+      continue;
+    }
+
+    options.push(
+      `<option value="${category}|${itemType}">${meta.displayName} (${quantity.toFixed(1)} in stock)</option>`,
+    );
+  }
+
+  els.auctionItem.innerHTML = options.join("");
+}
+
+function renderAuctionList() {
+  if (!els.auctionList) {
+    return;
+  }
+
+  const auctions = state.tradeAuctions ?? [];
+  if (!auctions.length) {
+    els.auctionList.innerHTML = "<p class='market-info'>No live auctions yet.</p>";
+    return;
+  }
+
+  els.auctionList.innerHTML = "";
+  for (const auction of auctions) {
+    const card = document.createElement("article");
+    card.className = "auction-card";
+
+    const currentBid = auction.currentBid != null ? formatRaxHtml(auction.currentBid) : "No bids yet";
+    const timerText = auction.status === "active"
+      ? `Ends in ${formatAuctionTime(auction.secondsRemaining)}`
+      : `Runs ${auction.durationMinutes} min after first bid`;
+
+    card.innerHTML = `
+      <div class="auction-card-head">
+        <strong>${auction.displayName} × ${Number(auction.quantity).toFixed(1)}</strong>
+        <span class="market-info">${auction.status}</span>
+      </div>
+      <p class="auction-card-meta">
+        Seller: ${auction.sellerUsername} · Start ${formatRaxHtml(auction.startPrice)} · Current ${currentBid}
+        ${auction.highBidderUsername ? ` · High bidder: ${auction.highBidderUsername}` : ""}
+        · ${timerText}
+      </p>`;
+
+    if (auction.isMine && auction.status === "open") {
+      const cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.className = "btn ghost";
+      cancelBtn.textContent = "Cancel listing";
+      cancelBtn.addEventListener("click", () => {
+        cancelAuctionListing(auction.id).catch((error) => setAuctionStatus(error.message, true));
+      });
+      card.appendChild(cancelBtn);
+    } else if (!auction.isMine) {
+      const bidRow = document.createElement("div");
+      bidRow.className = "auction-bid-row";
+      const bidInput = document.createElement("input");
+      bidInput.type = "number";
+      bidInput.min = String(auction.minimumNextBid);
+      bidInput.step = "1";
+      bidInput.value = String(Math.ceil(Number(auction.minimumNextBid)));
+      bidInput.setAttribute("aria-label", `Bid on ${auction.displayName}`);
+      const bidBtn = document.createElement("button");
+      bidBtn.type = "button";
+      bidBtn.className = "btn primary";
+      bidBtn.textContent = "Place bid";
+      bidBtn.addEventListener("click", () => {
+        placeAuctionBid(auction.id, bidInput.value).catch((error) => setAuctionStatus(error.message, true));
+      });
+      bidRow.appendChild(bidInput);
+      bidRow.appendChild(bidBtn);
+      card.appendChild(bidRow);
+    }
+
+    els.auctionList.appendChild(card);
+  }
+}
+
+async function refreshTradeAuctions() {
+  const data = await api.getTradeAuctions();
+  state.tradeAuctions = data.auctions ?? [];
+  state.tradeMarketValue = Number(data.tradeMarketValue ?? 0);
+  state.auctionFeePercent = Number(data.auctionFeePercent ?? 5);
+  renderTradeMarketValue();
+  populateAuctionItemSelect();
+  renderAuctionList();
+}
+
+async function createAuctionFromForm(event) {
+  event.preventDefault();
+  const selection = els.auctionItem.value;
+  if (!selection) {
+    setAuctionStatus("Select an item to auction.", true);
+    return;
+  }
+
+  const [category, itemType] = selection.split("|");
+  const quantity = Number(els.auctionQuantity.value);
+  const startPrice = Number(els.auctionStartPrice.value);
+  const durationMinutes = Number(els.auctionDuration.value);
+
+  els.auctionCreateBtn.disabled = true;
+  setAuctionStatus("Listing auction…");
+  try {
+    const result = await api.createTradeAuction(category, itemType, quantity, startPrice, durationMinutes);
+    setAuctionStatus(result.message ?? "Auction listed.", false);
+    els.auctionCreateForm.reset();
+    await refreshAll();
+    await refreshTradeAuctions();
+  } catch (error) {
+    setAuctionStatus(error.message, true);
+  } finally {
+    els.auctionCreateBtn.disabled = false;
+  }
+}
+
+async function placeAuctionBid(auctionId, bidAmount) {
+  const amount = Number(bidAmount);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    setAuctionStatus("Enter a valid bid amount.", true);
+    return;
+  }
+
+  setAuctionStatus("Placing bid…");
+  try {
+    const result = await api.placeTradeAuctionBid(auctionId, amount);
+    setAuctionStatus(result.message ?? "Bid placed.", false);
+    if (result.newCredits != null && state.mine) {
+      state.mine.credits = result.newCredits;
+      setRaxHtml(els.credits, result.newCredits);
+    }
+    await refreshTradeAuctions();
+  } catch (error) {
+    setAuctionStatus(error.message, true);
+  }
+}
+
+async function cancelAuctionListing(auctionId) {
+  setAuctionStatus("Cancelling auction…");
+  try {
+    const result = await api.cancelTradeAuction(auctionId);
+    setAuctionStatus(result.message ?? "Auction cancelled.", false);
+    await refreshAll();
+    await refreshTradeAuctions();
+  } catch (error) {
+    setAuctionStatus(error.message, true);
   }
 }
 
@@ -2582,6 +2814,9 @@ els.tradeMarketBtn.addEventListener("click", () => {
   openModal(els.supplyModal);
   renderSupplyPanel();
 });
+els.auctionCreateForm?.addEventListener("submit", (event) => {
+  createAuctionFromForm(event).catch((error) => setAuctionStatus(error.message, true));
+});
 els.storeBtn.addEventListener("click", () => {
   els.financeModal.hidden = true;
   hideProfileScreens();
@@ -2601,6 +2836,19 @@ els.shippingBtn.addEventListener("click", () => {
   els.storeModal.hidden = true;
   openModal(els.shippingModal);
   renderShippingPanel();
+});
+els.exonetBtn.addEventListener("click", () => {
+  els.financeModal.hidden = true;
+  els.supplyModal.hidden = true;
+  els.dayModal.hidden = true;
+  hideProfileScreens();
+  els.friendsModal.hidden = true;
+  els.messagesModal.hidden = true;
+  els.shippingModal.hidden = true;
+  els.storeModal.hidden = true;
+  els.eventModal.hidden = true;
+  document.body.appendChild(els.exonetModal);
+  exonet.open("home");
 });
 els.emergencyBtn.addEventListener("click", emergencySell);
 els.closeDayReport.addEventListener("click", () => {

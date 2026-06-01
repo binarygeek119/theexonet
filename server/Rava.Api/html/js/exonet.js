@@ -778,19 +778,6 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
 
   function bindOffworldNewsStoryLinks(root) {
     root.querySelectorAll("[data-news-story]").forEach((element) => {
-      const openStory = () => navigate(`sites/offworld-news/${element.dataset.newsStory}`);
-      element.addEventListener("click", openStory);
-      element.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          openStory();
-        }
-      });
-    });
-  }
-
-  function bindOffworldNewsStoryLinks(root) {
-    root.querySelectorAll("[data-news-story]").forEach((element) => {
       const storyId = element.dataset.newsStory;
       const archiveDate = element.dataset.newsDate || "";
       const openStory = () => navigate(offworldNewsStoryPath(storyId, archiveDate));

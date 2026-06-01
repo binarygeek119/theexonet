@@ -13,7 +13,6 @@ using Rava.Api.Services.OffworldNews;
 using Rava.Core.Configuration;
 using Rava.Core.Interfaces;
 using Rava.Core.Services;
-using Rava.Infrastructure.Hosting;
 using Rava.Infrastructure;
 using Rava.Infrastructure.Data;
 using Rava.Infrastructure.Migrations;
@@ -337,19 +336,6 @@ using (var scope = app.Services.CreateScope())
             ex);
     }
 
-    try
-    {
-        HostingDirectoryInitializer.Ensure(
-            contentRootPath,
-            webRootPath,
-            imagesRootPath,
-            offworldNewsCacheRoot,
-            app.Logger);
-    }
-    catch (Exception ex)
-    {
-        FailStartup(ex.Message, ex);
-    }
 }
 
 if (app.Environment.IsDevelopment())

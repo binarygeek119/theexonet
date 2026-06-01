@@ -33,6 +33,7 @@ for script in \
   deploy-html.sh \
   migrate-publish-data-to-var-www.sh \
   sync-publish-data.sh \
+  fix-hosting-permissions.sh \
   install-bin-scripts.sh; do
   if [ ! -f "${SRC_DIR}/${script}" ]; then
     echo "Missing ${SRC_DIR}/${script}" >&2
@@ -65,6 +66,7 @@ declare -A bin_links=(
   [deploy-html.sh]=deploy-rava-html
   [sync-publish-data.sh]=sync-rava-data
   [migrate-publish-data-to-var-www.sh]=migrate-rava-data
+  [fix-hosting-permissions.sh]=fix-rava-permissions
 )
 
 for src in "${!bin_links[@]}"; do

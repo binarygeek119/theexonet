@@ -183,10 +183,44 @@ public sealed class OffworldNewsService(
     private OffworldNewsEditionDto EnsureStoryImages(OffworldNewsEditionDto edition)
     {
         var stories = edition.Stories
-            .Select(story => string.IsNullOrWhiteSpace(story.ImageUrl)
+            .Select(story => SanitizeStoryImage(story))
+            .ToList();
+
+        return edition with { Stories = stories };
+    }
+
+    private OffworldNewsStoryDto SanitizeStoryImage(OffworldNewsStoryDto story)
+    {
+        if (string.IsNullOrWhiteSpace(story.ImageUrl))
+        {
+            return story with
+            {
+                ImageUrl = OffworldNewsTemplateGenerator.PlaceholderImageForCategory(story.Category),
+                ImageAspect = null,
+            };
+        }
+
+        if (OffworldNewsImagePaths.IsGeneratedImageUrl(story.ImageUrl)
+            && !OffworldNewsImagePaths.GeneratedImageExists(GetCacheRoot(), story.ImageUrl))
+        {
+            return story with
+            {
+                ImageUrl = OffworldNewsTemplateGenerator.PlaceholderImageForCategory(story.Category),
+                ImageAspect = null,
+            };
+        }
+
+        return story;
+    }
+
+    private OffworldNewsEditionDto ResetGeneratedImagesToPlaceholders(OffworldNewsEditionDto edition)
+    {
+        var stories = edition.Stories
+            .Select(story => OffworldNewsImagePaths.IsGeneratedImageUrl(story.ImageUrl)
                 ? story with
                 {
                     ImageUrl = OffworldNewsTemplateGenerator.PlaceholderImageForCategory(story.Category),
+                    ImageAspect = null,
                 }
                 : story)
             .ToList();
@@ -330,6 +364,12 @@ public sealed class OffworldNewsService(
             BackgroundUpgradeQueued.TryRemove(date, out _);
             DeleteEditionImages(date);
 
+            var stale = TryLoadEdition(date);
+            if (stale is not null)
+            {
+                TrySaveEdition(ResetGeneratedImagesToPlaceholders(stale));
+            }
+
             var edition = await GenerateAndStoreEditionAsync(date, ct);
             logger.LogInformation("Admin regenerated Offworld News edition for {Date}", date);
             return (edition, null);
@@ -370,6 +410,9 @@ public sealed class OffworldNewsService(
         {
             EnsureCacheDirectories(date);
             DeleteEditionImages(date);
+
+            existing = ResetGeneratedImagesToPlaceholders(existing);
+            TrySaveEdition(existing);
 
             var generator = new OpenAiOffworldNewsGenerator(
                 _options,

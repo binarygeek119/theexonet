@@ -355,7 +355,7 @@ public sealed class OpenAiOffworldNewsGenerator(
         }
 
         return (new GeneratedImageResult(
-            $"/exonet/offworld-news/images/{editionDate:yyyy-MM-dd}/{fileName}",
+            $"{OffworldNewsImagePaths.PublicImagesPrefix}{editionDate:yyyy-MM-dd}/{fileName}",
             aspect.Key), null);
     }
 

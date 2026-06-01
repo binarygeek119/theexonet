@@ -1,4 +1,5 @@
 import { renderSocialLinksHtml } from "./profile-social.js?v=20260529-login";
+import { API_BASE_URL } from "./config.js";
 
 const BOOKMARKS = [
   { slug: "home", title: "Exonet Portal", subtitle: "Start here" },
@@ -709,16 +710,33 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     return `${plain.slice(0, maxLength).trim()}…`;
   }
 
+  function resolveOffworldNewsImageUrl(imageUrl) {
+    if (!imageUrl) {
+      return "";
+    }
+
+    if (/^https?:\/\//i.test(imageUrl)) {
+      return imageUrl;
+    }
+
+    if (imageUrl.startsWith("/exonet/offworld-news/images/") && API_BASE_URL) {
+      return `${API_BASE_URL}${imageUrl}`;
+    }
+
+    return imageUrl;
+  }
+
   function renderNewsImage(imageUrl, className = "exonet-news-thumb", aspect = "") {
     if (!imageUrl) {
       return "";
     }
 
+    const resolvedUrl = resolveOffworldNewsImageUrl(imageUrl);
     const aspectClass = aspect ? ` aspect-${aspect}` : "";
 
     return `
       <div class="exonet-news-image-wrap${aspectClass}">
-        <img class="${className}" src="${escapeHtml(imageUrl)}" alt="">
+        <img class="${className}" src="${escapeHtml(resolvedUrl)}" alt="">
       </div>`;
   }
 

@@ -8,6 +8,7 @@ public record OffworldNewsStoryDto(
     string Category,
     string Location,
     string Author,
+    string AuthorSlug,
     DateTime PublishedAt,
     string? CompanyName,
     string? ImageUrl,

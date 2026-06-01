@@ -60,6 +60,7 @@ public class OffworldNewsImagePromptBuilderTests
             "Markets",
             "Ceres Relay",
             "ONN Wire Desk",
+            "mira-solano",
             DateTime.UtcNow,
             "Ferroxite Mining Co",
             null);

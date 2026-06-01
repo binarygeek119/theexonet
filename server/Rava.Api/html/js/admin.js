@@ -63,6 +63,9 @@ const els = {
   offworldNewsStatus: document.getElementById("admin-offworld-news-status"),
   offworldNewsRegenEditionBtn: document.getElementById("admin-offworld-news-regen-edition-btn"),
   offworldNewsRegenImagesBtn: document.getElementById("admin-offworld-news-regen-images-btn"),
+  offworldNewsRegenReporterPortraitsBtn: document.getElementById(
+    "admin-offworld-news-regen-reporter-portraits-btn",
+  ),
   playerSearch: document.getElementById("admin-player-search"),
   playerSearchBtn: document.getElementById("admin-player-search-btn"),
   playersStatus: document.getElementById("admin-players-status"),
@@ -785,8 +788,7 @@ async function regenerateOffworldNewsEdition() {
   }
 
   setStatus(els.offworldNewsStatus, "Regenerating stories and images…");
-  els.offworldNewsRegenEditionBtn.disabled = true;
-  els.offworldNewsRegenImagesBtn.disabled = true;
+  setOffworldNewsButtonsDisabled(true);
   try {
     const result = await api.adminRegenerateOffworldNewsEdition();
     await loadOffworldNewsSummary();
@@ -804,8 +806,40 @@ async function regenerateOffworldNewsEdition() {
   } catch (error) {
     setStatus(els.offworldNewsStatus, error.message, true);
   } finally {
-    els.offworldNewsRegenEditionBtn.disabled = false;
-    els.offworldNewsRegenImagesBtn.disabled = false;
+    setOffworldNewsButtonsDisabled(false);
+  }
+}
+
+function setOffworldNewsButtonsDisabled(disabled) {
+  els.offworldNewsRegenEditionBtn.disabled = disabled;
+  els.offworldNewsRegenImagesBtn.disabled = disabled;
+  els.offworldNewsRegenReporterPortraitsBtn.disabled = disabled;
+}
+
+async function regenerateOffworldNewsReporterPortraits() {
+  if (
+    !window.confirm(
+      "Regenerate AI portrait and banner JPEGs for all 15 ONN reporters? This uses OffworldNews.ApiKey and may take several minutes.",
+    )
+  ) {
+    return;
+  }
+
+  setStatus(els.offworldNewsStatus, "Regenerating reporter portraits…");
+  setOffworldNewsButtonsDisabled(true);
+  try {
+    const result = await api.adminRegenerateOffworldNewsReporterPortraits();
+    setStatus(
+      els.offworldNewsStatus,
+      result.imageGenerationError
+        ? `${result.message} ${result.imageGenerationError}`
+        : `${result.message} (${result.imagesSaved}/${result.imageAttempts} images).`,
+      Boolean(result.imageGenerationError),
+    );
+  } catch (error) {
+    setStatus(els.offworldNewsStatus, error.message, true);
+  } finally {
+    setOffworldNewsButtonsDisabled(false);
   }
 }
 
@@ -815,8 +849,7 @@ async function regenerateOffworldNewsImages() {
   }
 
   setStatus(els.offworldNewsStatus, "Regenerating images…");
-  els.offworldNewsRegenEditionBtn.disabled = true;
-  els.offworldNewsRegenImagesBtn.disabled = true;
+  setOffworldNewsButtonsDisabled(true);
   try {
     const result = await api.adminRegenerateOffworldNewsImages();
     await loadOffworldNewsSummary();
@@ -830,8 +863,7 @@ async function regenerateOffworldNewsImages() {
   } catch (error) {
     setStatus(els.offworldNewsStatus, error.message, true);
   } finally {
-    els.offworldNewsRegenEditionBtn.disabled = false;
-    els.offworldNewsRegenImagesBtn.disabled = false;
+    setOffworldNewsButtonsDisabled(false);
   }
 }
 
@@ -1507,6 +1539,12 @@ els.offworldNewsRegenEditionBtn.addEventListener("click", () => {
 
 els.offworldNewsRegenImagesBtn.addEventListener("click", () => {
   regenerateOffworldNewsImages().catch((error) => setStatus(els.offworldNewsStatus, error.message, true));
+});
+
+els.offworldNewsRegenReporterPortraitsBtn.addEventListener("click", () => {
+  regenerateOffworldNewsReporterPortraits().catch((error) =>
+    setStatus(els.offworldNewsStatus, error.message, true),
+  );
 });
 
 els.messageLogSearchBtn.addEventListener("click", () => {

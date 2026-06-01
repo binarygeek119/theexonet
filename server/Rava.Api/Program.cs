@@ -22,6 +22,11 @@ var contentRootPath = Path.GetFullPath(AppContext.BaseDirectory);
 var webRootPath = Path.Combine(contentRootPath, "html");
 Directory.CreateDirectory(webRootPath);
 
+foreach (var updatedSettingsPath in AppSettingsTemplateMerger.ApplyMissingKeys(contentRootPath))
+{
+    Console.WriteLine($"App settings: added missing keys from template -> {updatedSettingsPath}");
+}
+
 void FailStartup(string message, Exception? ex = null)
 {
     Console.Error.WriteLine("RAVA API startup failed.");
@@ -57,7 +62,9 @@ var hostingPaths = new RavaHostingPaths
     DataRoot = dataRootPath,
     ImagesRoot = imagesRootPath,
     OffworldNewsCacheRoot = offworldNewsCacheRoot,
+    WebRoot = webRootPath,
 };
+OffworldNewsReporterCatalog.Configure(contentRootPath, offworldNewsOptionsForPaths.ReportersFile);
 builder.Services.AddSingleton(hostingPaths);
 
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));

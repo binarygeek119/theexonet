@@ -74,6 +74,24 @@ public class AdminController(
             "Today's Offworld News images were regenerated."));
     }
 
+    [HttpPost("offworld-news/regenerate-reporter-portraits")]
+    public async Task<ActionResult<AdminOffworldNewsReporterPortraitsResponse>> RegenerateOffworldNewsReporterPortraits(
+        CancellationToken ct)
+    {
+        var (summary, error) = await offworldNewsService.RegenerateReporterPortraitsAsync(ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(new AdminOffworldNewsReporterPortraitsResponse(
+            summary!.Describe(),
+            summary.ReporterCount,
+            summary.Attempted,
+            summary.Succeeded,
+            summary.Error));
+    }
+
     [HttpGet("players")]
     public async Task<ActionResult<AdminPlayersResponse>> Players(
         [FromQuery] string? search,

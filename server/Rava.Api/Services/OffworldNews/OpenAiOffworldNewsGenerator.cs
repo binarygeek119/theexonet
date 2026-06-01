@@ -148,6 +148,8 @@ public sealed class OpenAiOffworldNewsGenerator(
         var struggling = companyContext?.StrugglingCompanies ?? [];
         var risingList = rising.Count > 0 ? string.Join(", ", rising) : "none available";
         var strugglingList = struggling.Count > 0 ? string.Join(", ", struggling) : "none available";
+        var assignedReporters = OffworldNewsReporterCatalog.PickReportersForEdition(editionDate, storyCount);
+        var reporterAssignments = OffworldNewsReporterCatalog.BuildWritingAssignmentBlock(assignedReporters);
 
         var prompt = $$"""
             You write satirical but believable sci-fi news for "Offworld News Network" (ONN), covering the RAVA game universe:
@@ -157,6 +159,7 @@ public sealed class OpenAiOffworldNewsGenerator(
             - Supplies: Drill Bits, Fuel Cells, Life Support, Comm Modules (linked to live US stock symbols in-game)
             - Features: Trade Market auctions, company name trading, Exonet browser, Miner Profiles leaderboard, emergency buy back at 50% refinery value, UTC game days, shipping routes to NPC refineries
             - Tone: mix of Bloomberg wire + frontier tabloid; no real-world politics; no hate; family-friendly
+            - Never mention artificial intelligence, AI, language models, ChatGPT, or automated/machine-written news in headlines, dek, or body
 
             Story topics MUST vary across the edition and include several of:
             - Belt stock/supply markets and ore prices
@@ -171,6 +174,9 @@ public sealed class OpenAiOffworldNewsGenerator(
             You may headline these exact company names when appropriate. Also invent believable fake company names.
 
             Generate exactly {{storyCount}} unique news stories for edition date {{editionDate:yyyy-MM-dd}}.
+            Each story is written by a specific ONN correspondent. Match headline, dek, and body to that reporter's voice — voices must feel distinct in the same edition:
+            {{reporterAssignments}}
+
             Each body must be at least 2 full paragraphs (can be 3-4) separated by \\n\\n with concrete game details.
             For each story, imagePrompt must describe ONE specific visual scene from that story (people, equipment, location, action).
             imagePrompt must match the headline/body — never a generic asteroid wallpaper. No text or logos in the scene.
@@ -184,7 +190,6 @@ public sealed class OpenAiOffworldNewsGenerator(
                   "body": "paragraphs separated by \\n\\n",
                   "category": "Markets|Mining|Corporate|Shipping|Politics|Exonet",
                   "location": "fictional belt or outer-planet location",
-                  "author": "reporter name",
                   "companyName": "featured mining company or syndicate in the story",
                   "imagePrompt": "1-2 sentences describing the exact illustration scene for this story only"
                 }
@@ -201,7 +206,12 @@ public sealed class OpenAiOffworldNewsGenerator(
             response_format = new { type = "json_object" },
             messages = new object[]
             {
-                new { role = "system", content = "You are a sci-fi newsroom editor. Output valid JSON only." },
+                new
+                {
+                    role = "system",
+                    content =
+                        "You are a sci-fi newsroom editor. Each story must sound like its assigned correspondent. Output valid JSON only.",
+                },
                 new { role = "user", content = prompt },
             },
         });
@@ -235,6 +245,9 @@ public sealed class OpenAiOffworldNewsGenerator(
         {
             var item = parsed.Stories[index];
             var category = item.Category ?? "Markets";
+            var reporter = index < assignedReporters.Count
+                ? assignedReporters[index]
+                : OffworldNewsReporterCatalog.PickForStory(editionDate, index);
             var story = new OffworldNewsStoryDto(
                 string.IsNullOrWhiteSpace(item.Id) ? $"story-{index + 1}" : item.Id,
                 item.Headline ?? $"Story {index + 1}",
@@ -242,7 +255,8 @@ public sealed class OpenAiOffworldNewsGenerator(
                 item.Body ?? string.Empty,
                 category,
                 item.Location ?? "Ceres Relay",
-                item.Author ?? "ONN Wire Desk",
+                reporter.DisplayName,
+                reporter.Slug,
                 publishedBase.AddHours(index * 2.5),
                 item.CompanyName,
                 OffworldNewsTemplateGenerator.PlaceholderImageForCategory(category));

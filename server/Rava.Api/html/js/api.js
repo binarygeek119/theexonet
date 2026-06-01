@@ -234,6 +234,19 @@ export class RavaApi {
     return this.request("/api/public/offworld-news/archives", { auth: false });
   }
 
+  getOffworldNewsReporters(query) {
+    const params = query ? `?q=${encodeURIComponent(query)}` : "";
+    return this.request(`/api/public/offworld-news/reporters${params}`, { auth: false });
+  }
+
+  getOffworldNewsReporter(slug, storyLimit = 15) {
+    const params = storyLimit !== 15 ? `?storyLimit=${storyLimit}` : "";
+    return this.request(
+      `/api/public/offworld-news/reporters/${encodeURIComponent(slug)}${params}`,
+      { auth: false },
+    );
+  }
+
   getTradeItems() {
     return this.request("/api/trade/items", { auth: false });
   }
@@ -542,6 +555,13 @@ export class RavaApi {
 
   adminRegenerateOffworldNewsImages() {
     return this.request("/api/admin/offworld-news/regenerate-images", {
+      method: "POST",
+      body: {},
+    });
+  }
+
+  adminRegenerateOffworldNewsReporterPortraits() {
+    return this.request("/api/admin/offworld-news/regenerate-reporter-portraits", {
       method: "POST",
       body: {},
     });

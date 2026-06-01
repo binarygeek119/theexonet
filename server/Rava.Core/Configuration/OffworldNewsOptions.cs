@@ -23,4 +23,7 @@ public class OffworldNewsOptions
 
     /// <summary>Relative to the Exonet root (data/exonet or html/exonet). Stores generated editions and images.</summary>
     public string CacheDirectory { get; set; } = "offworld-news";
+
+    /// <summary>Reporter personalities and writing voices (opens in Excel or Google Sheets).</summary>
+    public string ReportersFile { get; set; } = "offworld-news-reporters.csv";
 }

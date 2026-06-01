@@ -1,0 +1,19 @@
+---
+description: Keep appsettings templates in sync when adding new configuration options
+globs:
+  - server/**/*.cs
+  - server/**/appsettings*.json*
+---
+
+# App settings templates
+
+When you add or rename configuration bound to `IOptions<T>` (new properties on options classes, new sections):
+
+1. Add the key and a sensible default to `server/Rava.Api/appsettings.production.example.json` (source of truth for new keys).
+2. Do **not** change existing values in production `appsettings.json` on the server — deploy never overwrites that file.
+3. At API startup, `AppSettingsTemplateMerger` copies **only missing** keys from `appsettings.production.example.json` into:
+   - `appsettings.json` (publish folder and `/var/www/data` when configured)
+   - `appsettings.json.example` (local dev template)
+4. Optional: mention new sections in `docs/deploy.md` if operators must configure them manually.
+
+Never remove or rewrite existing keys in live or example files when adding features — add missing structure only.

@@ -35,4 +35,24 @@ public class OffworldNewsController(OffworldNewsService offworldNewsService) : C
     {
         return Ok(offworldNewsService.ListArchives());
     }
+
+    [AllowAnonymous]
+    [HttpGet("reporters")]
+    public ActionResult<OffworldNewsReportersDto> ListReporters([FromQuery] string? q, [FromQuery] int limit = 20)
+    {
+        if (string.IsNullOrWhiteSpace(q))
+        {
+            return Ok(offworldNewsService.ListReporters());
+        }
+
+        return Ok(new OffworldNewsReportersDto(offworldNewsService.SearchReporters(q, limit)));
+    }
+
+    [AllowAnonymous]
+    [HttpGet("reporters/{slug}")]
+    public ActionResult<OffworldNewsReporterDetailDto> GetReporter(string slug, [FromQuery] int storyLimit = 15)
+    {
+        var detail = offworldNewsService.GetReporterDetail(slug, storyLimit);
+        return detail is null ? NotFound(new { message = "Reporter not found." }) : Ok(detail);
+    }
 }

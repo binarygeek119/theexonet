@@ -29,16 +29,6 @@ public static partial class OffworldNewsTemplateGenerator
         "Callisto Outer Rim",
     ];
 
-    private static readonly string[] Authors =
-    [
-        "Mira Solano",
-        "Jonah Kest",
-        "ONN Wire Desk",
-        "Relay Correspondent",
-        "Frontier Bureau",
-        "Aster Belt Political Desk",
-    ];
-
     private static readonly string[] FakeCompanyNames =
     [
         "VoidCorp Holdings",
@@ -78,7 +68,12 @@ public static partial class OffworldNewsTemplateGenerator
             var location = Pick(random, Locations);
             var headline = string.Format(template.Headline, companyName, topic, actor, location);
             var dek = string.Format(template.Dek, companyName, topic, actor, location);
+            var reporter = OffworldNewsReporterCatalog.PickForStory(editionDate, index);
             var body = string.Format(template.Body, companyName, actor, detail, location);
+            if (!string.IsNullOrWhiteSpace(reporter.StoryKicker))
+            {
+                body = $"{body}\n\n{reporter.StoryKicker}";
+            }
 
             stories.Add(new OffworldNewsStoryDto(
                 $"{Slugify(headline)}-{index + 1}",
@@ -87,7 +82,8 @@ public static partial class OffworldNewsTemplateGenerator
                 body,
                 category,
                 location,
-                Pick(random, Authors),
+                reporter.DisplayName,
+                reporter.Slug,
                 publishedBase.AddHours(index * 2.5),
                 companyName,
                 PlaceholderImageForCategory(category)));

@@ -101,6 +101,118 @@ public sealed class OffworldNewsService(
         return new OffworldNewsArchivesDto(entries);
     }
 
+    public OffworldNewsReportersDto ListReporters() =>
+        new(OffworldNewsReporterCatalog.All.Select(OffworldNewsReporterCatalog.ToDto).ToList());
+
+    public IReadOnlyList<OffworldNewsReporterDto> SearchReporters(string query, int limit = 20) =>
+        OffworldNewsReporterCatalog.Search(query, limit).Select(OffworldNewsReporterCatalog.ToDto).ToList();
+
+    public OffworldNewsReporterDetailDto? GetReporterDetail(string slug, int storyLimit = 15)
+    {
+        var reporter = OffworldNewsReporterCatalog.TryGetBySlug(slug);
+        if (reporter is null)
+        {
+            return null;
+        }
+
+        var stories = ListStoriesByReporter(reporter.DisplayName, storyLimit);
+        return new OffworldNewsReporterDetailDto(OffworldNewsReporterCatalog.ToDto(reporter), stories);
+    }
+
+    public async Task<(OffworldNewsReporterPortraitGenerationSummary? Summary, string? Error)> RegenerateReporterPortraitsAsync(
+        CancellationToken ct = default)
+    {
+        if (!_options.Enabled)
+        {
+            return (null, "Offworld News is disabled in configuration.");
+        }
+
+        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            return (null, "OffworldNews.ApiKey is not configured.");
+        }
+
+        var generator = new OffworldNewsReporterPortraitGenerator(
+            _options,
+            httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
+            hostingPaths.OffworldNewsReportersAssetsRoot,
+            logger);
+
+        var summary = await generator.GenerateAllAsync(ct: ct);
+        return summary.Succeeded == 0
+            ? (summary, summary.Error ?? "No reporter portraits were generated.")
+            : (summary, null);
+    }
+
+    private IReadOnlyList<OffworldNewsReporterStoryRefDto> ListStoriesByReporter(string displayName, int limit)
+    {
+        limit = Math.Clamp(limit, 1, 50);
+        var matches = new List<OffworldNewsReporterStoryRefDto>();
+        var editionsDir = Path.Combine(GetCacheRoot(), "editions");
+        if (!Directory.Exists(editionsDir))
+        {
+            return matches;
+        }
+
+        foreach (var path in Directory.EnumerateFiles(editionsDir, "*.json").OrderByDescending(File.GetLastWriteTimeUtc))
+        {
+            if (matches.Count >= limit)
+            {
+                break;
+            }
+
+            var fileName = Path.GetFileNameWithoutExtension(path);
+            if (!DateOnly.TryParse(fileName, out var editionDate))
+            {
+                continue;
+            }
+
+            OffworldNewsEditionDto? edition;
+            try
+            {
+                edition = JsonSerializer.Deserialize<OffworldNewsEditionDto>(File.ReadAllText(path), JsonOptions);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to read Offworld News edition for reporter index {Date}", editionDate);
+                continue;
+            }
+
+            if (edition is null)
+            {
+                continue;
+            }
+
+            var isArchive = editionDate < UtcGameClock.Today;
+            foreach (var story in edition.Stories)
+            {
+                if (!string.Equals(story.Author, displayName, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                matches.Add(new OffworldNewsReporterStoryRefDto(
+                    editionDate,
+                    story.Id,
+                    story.Headline,
+                    story.Category,
+                    story.PublishedAt,
+                    isArchive));
+
+                if (matches.Count >= limit)
+                {
+                    break;
+                }
+            }
+        }
+
+        return matches
+            .OrderByDescending(story => story.EditionDate)
+            .ThenByDescending(story => story.PublishedAt)
+            .Take(limit)
+            .ToList();
+    }
+
     /// <summary>
     /// Creates today's edition on startup, or a fresh edition after UTC midnight when <paramref name="forceRegenerate"/> is true.
     /// </summary>

@@ -10,4 +10,9 @@ public sealed class RavaHostingPaths
     public required string ImagesRoot { get; init; }
 
     public required string OffworldNewsCacheRoot { get; init; }
+
+    public required string WebRoot { get; init; }
+
+    public string OffworldNewsReportersAssetsRoot =>
+        Path.Combine(WebRoot, "exonet", "offworld-news", "reporters");
 }

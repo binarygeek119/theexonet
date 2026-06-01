@@ -34,6 +34,7 @@ public static class OpenAiStatusProbe
                     null,
                     null,
                     [],
+                    [],
                     $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}");
             }
 
@@ -48,16 +49,21 @@ public static class OpenAiStatusProbe
                     null,
                     null,
                     [],
+                    [],
                     "Status page returned an unexpected payload.");
             }
 
-            var degradedComponents = (parsed.Components ?? [])
-                .Where(component =>
-                    !string.Equals(component.Status, "operational", StringComparison.OrdinalIgnoreCase))
+            var allComponents = (parsed.Components ?? [])
                 .Select(component => new OpenAiComponentStatusPayload(
                     component.Name ?? "Unknown",
                     FormatComponentStatus(component.Status)))
-                .Take(8)
+                .OrderBy(component => component.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var degradedComponents = allComponents
+                .Where(component =>
+                    !string.Equals(component.Status, "operational", StringComparison.OrdinalIgnoreCase))
+                .Take(12)
                 .ToList();
 
             return new OpenAiStatusPayload(
@@ -68,6 +74,7 @@ public static class OpenAiStatusProbe
                 parsed.Status.Indicator,
                 parsed.Status.Description,
                 degradedComponents,
+                allComponents,
                 null);
         }
         catch (Exception ex)
@@ -79,6 +86,7 @@ public static class OpenAiStatusProbe
                 null,
                 null,
                 null,
+                [],
                 [],
                 ex.Message);
         }

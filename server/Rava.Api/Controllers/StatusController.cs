@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Rava.Api.Services;
 using Rava.Api.Services.OpenAi;
-using Rava.Core.Configuration;
 using Rava.Core.Constants;
 using Rava.Core.Dtos;
 using Rava.Core.Enums;
@@ -25,9 +23,7 @@ public class StatusController(
     IMarketItemsCatalog marketItems,
     IGameCreditsConfig gameCreditsConfig,
     TradeAuctionService tradeAuctionService,
-    OpenAiUsageTracker openAiUsageTracker,
-    OpenAiBillingProbe openAiBillingProbe,
-    IOptions<OffworldNewsOptions> offworldNewsOptions) : ControllerBase
+    OpenAiStatusDetailService openAiStatusDetailService) : ControllerBase
 {
     [AllowAnonymous]
     [HttpGet("status")]
@@ -67,23 +63,8 @@ public class StatusController(
 
     [AllowAnonymous]
     [HttpGet("status/openai")]
-    public async Task<ActionResult<PublicOpenAiUsageResponse>> GetOpenAiUsage(CancellationToken ct)
-    {
-        var usage = openAiUsageTracker.GetSnapshot();
-        var billing = await openAiBillingProbe.GetCreditsAsync(ct);
-        var apiKeyConfigured = !string.IsNullOrWhiteSpace(offworldNewsOptions.Value.ApiKey);
-
-        return Ok(new PublicOpenAiUsageResponse(
-            DateTime.UtcNow,
-            apiKeyConfigured,
-            usage.TotalRequests,
-            usage.RequestsToday,
-            usage.RequestsByCategory,
-            usage.LastRequestUtc,
-            billing.CreditsRemainingUsd,
-            billing.CreditsGrantedUsd,
-            billing.Note));
-    }
+    public async Task<ActionResult<PublicOpenAiStatusDetailResponse>> GetOpenAiStatus(CancellationToken ct) =>
+        Ok(await openAiStatusDetailService.BuildAsync(ct));
 
     [AllowAnonymous]
     [HttpGet("status/economy")]

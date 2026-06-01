@@ -1,3 +1,5 @@
+using Rava.Core.Dtos;
+
 namespace Rava.Status;
 
 public record ApiStatusPayload(
@@ -48,7 +50,16 @@ public record OpenAiStatusPayload(
     string? Indicator,
     string? Description,
     IReadOnlyList<OpenAiComponentStatusPayload> DegradedComponents,
+    IReadOnlyList<OpenAiComponentStatusPayload> AllComponents,
     string? Error);
+
+public record OpenAiPageResponse(
+    DateTime Utc,
+    string GameUrl,
+    string ApiPublicUrl,
+    OpenAiStatusPayload Platform,
+    PublicOpenAiStatusDetailResponse? Rava,
+    string? RavaError);
 
 public record OpenAiUsagePayload(
     DateTime Utc,
@@ -62,17 +73,6 @@ public record OpenAiUsagePayload(
     string? CreditsNote,
     bool Reachable,
     string? Error);
-
-public record OpenAiUsageApiPayload(
-    DateTime Utc,
-    bool ApiKeyConfigured,
-    long TotalRequests,
-    long RequestsToday,
-    IReadOnlyDictionary<string, long> RequestsByCategory,
-    DateTime? LastRequestUtc,
-    decimal? CreditsRemainingUsd,
-    decimal? CreditsGrantedUsd,
-    string? CreditsNote);
 
 public record DashboardResponse(
     DateTime Utc,

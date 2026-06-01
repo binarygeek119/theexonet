@@ -102,6 +102,44 @@ public sealed class OffworldNewsService(
         return new OffworldNewsArchivesDto(entries);
     }
 
+    public PublicOpenAiExonetSnapshotDto GetPublicAiSnapshot(
+        int reporterPoolSize,
+        int activeReporterPool,
+        AdminOffworldNewsReporterPortraitJobDto portraitJob)
+    {
+        var today = UtcGameClock.Today;
+        var edition = TryLoadEdition(today);
+        var editionsDir = Path.Combine(GetCacheRoot(), "editions");
+        var archiveCount = 0;
+        if (Directory.Exists(editionsDir))
+        {
+            archiveCount = Directory.EnumerateFiles(editionsDir, "*.json").Count();
+        }
+
+        int? illustrated = null;
+        if (edition?.Stories is { Count: > 0 })
+        {
+            illustrated = edition.Stories.Count(story =>
+                !string.IsNullOrWhiteSpace(story.ImageUrl)
+                && story.ImageUrl.Contains("/images/", StringComparison.OrdinalIgnoreCase));
+        }
+
+        return new PublicOpenAiExonetSnapshotDto(
+            _options.Enabled,
+            edition is not null ? today : (DateOnly?)null,
+            edition?.Source,
+            edition?.Stories?.Count,
+            illustrated,
+            reporterPoolSize,
+            activeReporterPool,
+            OffworldNewsReporterCatalog.All.Count,
+            archiveCount,
+            portraitJob.Status ?? "idle",
+            portraitJob.Message,
+            portraitJob.ImagesSaved,
+            portraitJob.ImageAttempts);
+    }
+
     public OffworldNewsReportersDto ListReporters() =>
         new(OffworldNewsReporterCatalog.All.Select(MapReporterDto).ToList());
 

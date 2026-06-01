@@ -167,6 +167,7 @@ builder.Services.AddScoped<PublicProfileService>();
 builder.Services.AddScoped<ReporterFriendshipService>();
 builder.Services.AddSingleton<OpenAiUsageTracker>();
 builder.Services.AddSingleton<OpenAiBillingProbe>();
+builder.Services.AddSingleton<OpenAiStatusDetailService>();
 builder.Services.AddTransient<OpenAiUsageLoggingHandler>();
 builder.Services.AddHttpClient(OpenAiOffworldNewsGenerator.HttpClientName, client =>
     {

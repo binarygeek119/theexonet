@@ -31,6 +31,58 @@ public record PublicOpenAiUsageResponse(
     decimal? CreditsGrantedUsd,
     string? CreditsNote);
 
+public record PublicOpenAiGameFeatureDto(
+    string Id,
+    string Title,
+    string Description,
+    string RequestCategory,
+    bool Enabled,
+    string? ModelOrEndpoint);
+
+public record PublicOpenAiExonetSnapshotDto(
+    bool OffworldNewsEnabled,
+    DateOnly? TodayEditionDate,
+    string? TodayEditionSource,
+    int? TodayStoryCount,
+    int? TodayIllustratedStories,
+    int ReporterPoolSize,
+    int ActiveReporterPool,
+    int TotalReporters,
+    int ArchivedEditionCount,
+    string PortraitJobStatus,
+    string? PortraitJobMessage,
+    int PortraitJobImagesSaved,
+    int PortraitJobImageAttempts);
+
+public record PublicOpenAiConfigurationDto(
+    bool OffworldNewsEnabled,
+    bool CompanyLogoEnabled,
+    bool ApiKeyConfigured,
+    string? ApiKeyHint,
+    string BaseUrl,
+    string TextModel,
+    string ImageModel,
+    int StoriesPerDay,
+    int MaxImagesPerDay,
+    bool CompanyLogoUsesDedicatedKey,
+    string CompanyLogoImageModel,
+    int CompanyLogoSecondsBetweenGenerations,
+    string CompanyLogoBaseUrl);
+
+public record PublicOpenAiStatusDetailResponse(
+    DateTime Utc,
+    bool ApiKeyConfigured,
+    long TotalRequests,
+    long RequestsToday,
+    IReadOnlyDictionary<string, long> RequestsByCategory,
+    DateTime? LastRequestUtc,
+    decimal? CreditsRemainingUsd,
+    decimal? CreditsGrantedUsd,
+    string? CreditsNote,
+    PublicOpenAiConfigurationDto Configuration,
+    IReadOnlyList<PublicOpenAiGameFeatureDto> GameFeatures,
+    PublicOpenAiExonetSnapshotDto Exonet);
+
 public record EconomyItemPriceDto(
     string ItemType,
     string Category,

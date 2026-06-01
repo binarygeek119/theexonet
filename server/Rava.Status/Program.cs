@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Rava.Core.Configuration;
+using Rava.Core.Dtos;
 using Rava.Status;
 
 var contentRootPath = Path.GetFullPath(AppContext.BaseDirectory);
@@ -108,7 +109,7 @@ app.MapGet("/api/dashboard", async (
 
         if (usageResponse.IsSuccessStatusCode)
         {
-            var usage = await usageResponse.Content.ReadFromJsonAsync<OpenAiUsageApiPayload>(cancellationToken);
+            var usage = await usageResponse.Content.ReadFromJsonAsync<PublicOpenAiStatusDetailResponse>(cancellationToken);
             if (usage is not null)
             {
                 openAiUsage = new OpenAiUsagePayload(
@@ -177,6 +178,52 @@ app.MapGet("/api/dashboard", async (
         moderatorPortal,
         openAiStatus,
         openAiUsage));
+});
+
+app.MapGet("/api/openai", async (
+    IHttpClientFactory httpClientFactory,
+    IOptions<StatusMonitorOptions> options,
+    CancellationToken cancellationToken) =>
+{
+    var monitor = options.Value;
+    var apiBaseUrl = monitor.ApiBaseUrl.TrimEnd('/');
+    var apiClient = httpClientFactory.CreateClient("RavaApi");
+    apiClient.Timeout = TimeSpan.FromSeconds(12);
+
+    PublicOpenAiStatusDetailResponse? rava = null;
+    string? ravaError = null;
+    try
+    {
+        using var response = await apiClient.GetAsync($"{apiBaseUrl}/api/status/openai", cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            rava = await response.Content.ReadFromJsonAsync<PublicOpenAiStatusDetailResponse>(cancellationToken);
+        }
+        else
+        {
+            ravaError = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";
+        }
+    }
+    catch (Exception ex)
+    {
+        ravaError = ex.Message;
+    }
+
+    var openAiClient = httpClientFactory.CreateClient("OpenAiStatus");
+    openAiClient.Timeout = TimeSpan.FromSeconds(10);
+    var platform = await OpenAiStatusProbe.FetchAsync(
+        openAiClient,
+        monitor.OpenAiStatusSummaryUrl,
+        monitor.OpenAiStatusPageUrl,
+        cancellationToken);
+
+    return Results.Ok(new OpenAiPageResponse(
+        DateTime.UtcNow,
+        monitor.GameUrl,
+        monitor.ApiPublicUrl,
+        platform,
+        rava,
+        ravaError));
 });
 
 app.MapGet("/api/economy", async (

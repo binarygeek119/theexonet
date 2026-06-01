@@ -39,6 +39,12 @@ public class OffworldNewsReporterCatalogTests
     }
 
     [Fact]
+    public void Resolve_matches_underscore_slug_variants()
+    {
+        Assert.NotNull(OffworldNewsReporterCatalog.Resolve("mira_solano"));
+    }
+
+    [Fact]
     public void SlugifyDisplayName_matches_exonet_byline_rules()
     {
         Assert.Equal("mira-solano", OffworldNewsReporterCatalog.SlugifyDisplayName("Mira Solano"));

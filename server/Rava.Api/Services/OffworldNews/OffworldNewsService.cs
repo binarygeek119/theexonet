@@ -307,8 +307,8 @@ public sealed class OffworldNewsService(
 
     private static OffworldNewsStoryDto EnrichStoryAuthor(OffworldNewsStoryDto story)
     {
-        var reporter = OffworldNewsReporterCatalog.Resolve(story.AuthorSlug)
-            ?? OffworldNewsReporterCatalog.Resolve(story.Author);
+        var reporter = OffworldNewsReporterCatalog.Resolve(story.Author)
+            ?? OffworldNewsReporterCatalog.Resolve(story.AuthorSlug);
         if (reporter is null)
         {
             return story;

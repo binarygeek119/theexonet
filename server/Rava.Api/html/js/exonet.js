@@ -571,9 +571,9 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       ? `<img class="exonet-profile-avatar" src="${escapeHtml(resolveExonetAssetUrl(profile.profileImageUrl))}" alt="">`
       : `<div class="exonet-profile-initials">${escapeHtml(profileInitials(profile.username))}</div>`;
 
-    if (profile.isReporter) {
-      const profileSlug = profile.reporterSlug || username;
-      const onnPath = profile.onnProfilePath || offworldNewsReporterPath(profileSlug);
+    if (pickField(profile, "isReporter")) {
+      const profileSlug = pickField(profile, "reporterSlug") || username;
+      const onnPath = pickField(profile, "onnProfilePath") || offworldNewsReporterPath(profileSlug);
       content.innerHTML = `
         ${pageHeader(`${profile.username} · ONN`, `profile/${profileSlug}`)}
         <div class="exonet-panel exonet-profile-card exonet-profile-card-reporter">
@@ -736,6 +736,19 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     return { view: "story", storyId: parts.join("/") };
   }
 
+  function pickField(item, key) {
+    if (item == null) {
+      return undefined;
+    }
+
+    if (item[key] !== undefined && item[key] !== null) {
+      return item[key];
+    }
+
+    const pascalKey = key.charAt(0).toUpperCase() + key.slice(1);
+    return item[pascalKey];
+  }
+
   function offworldNewsReporterSlug(authorName) {
     return String(authorName ?? "")
       .trim()
@@ -749,17 +762,50 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
   }
 
   function resolveReporterSlug(authorName, authorSlug) {
+    const name = String(authorName ?? "").trim();
+    if (name) {
+      return offworldNewsReporterSlug(name);
+    }
+
     const slugCandidate = String(authorSlug ?? "").trim();
     if (slugCandidate && !/\s/.test(slugCandidate)) {
-      return slugCandidate.toLowerCase();
+      return slugCandidate.toLowerCase().replace(/_/g, "-").replace(/\.+/g, (dots) => (dots.length > 0 ? "-" : ""));
     }
 
-    const name = String(authorName ?? slugCandidate).trim();
-    if (!name) {
-      return "mira-solano";
+    if (slugCandidate) {
+      return offworldNewsReporterSlug(slugCandidate);
     }
 
-    return offworldNewsReporterSlug(name);
+    return "mira-solano";
+  }
+
+  async function fetchOffworldNewsReporterDetail(reporterSlug) {
+    const normalized = decodeURIComponent(String(reporterSlug ?? "")).trim();
+    const candidates = [];
+    const add = (value) => {
+      const entry = String(value ?? "").trim();
+      if (entry && !candidates.includes(entry)) {
+        candidates.push(entry);
+      }
+    };
+
+    add(normalized);
+    add(offworldNewsReporterSlug(normalized));
+    add(normalized.replace(/\./g, "-").replace(/_/g, "-"));
+
+    let lastError = null;
+    for (const candidate of candidates) {
+      try {
+        return await api.getOffworldNewsReporter(candidate);
+      } catch (error) {
+        lastError = error;
+        if (error?.status !== 404) {
+          throw error;
+        }
+      }
+    }
+
+    throw lastError ?? new Error("Reporter not found.");
   }
 
   function renderNewsByline(authorName, authorSlug) {
@@ -854,18 +900,32 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
   }
 
   function renderOnnReporterCard(reporter) {
-    const avatarUrl = resolveExonetAssetUrl(reporter.avatarUrl);
-    const backgroundUrl = resolveExonetAssetUrl(reporter.backgroundUrl);
+    const slug = String(pickField(reporter, "slug") ?? "").trim();
+    if (!slug) {
+      return "";
+    }
+
+    const avatarUrl = resolveExonetAssetUrl(pickField(reporter, "avatarUrl"));
+    const backgroundUrl = resolveExonetAssetUrl(pickField(reporter, "backgroundUrl"));
+    const displayName = pickField(reporter, "displayName") ?? "ONN correspondent";
+    const title = pickField(reporter, "title") ?? "";
+    const beat = pickField(reporter, "beat") ?? "";
+    const bureau = pickField(reporter, "bureau") ?? "";
+    const teaser =
+      pickField(reporter, "onnBio") ??
+      pickField(reporter, "directoryBio") ??
+      pickField(reporter, "directoryTeaser") ??
+      "";
 
     return `
-      <button type="button" class="exonet-reporter-directory-card" data-news-reporter="${escapeHtml(reporter.slug)}">
+      <button type="button" class="exonet-reporter-directory-card" data-news-reporter="${escapeHtml(slug)}">
         <div class="exonet-reporter-directory-banner" style="background-image:url('${escapeHtml(backgroundUrl)}')"></div>
         <div class="exonet-reporter-directory-body">
-          <img class="exonet-reporter-directory-avatar" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(reporter.displayName)}">
-          <strong>${escapeHtml(reporter.displayName)}</strong>
-          <span class="exonet-muted">${escapeHtml(reporter.title)}</span>
-          <span class="exonet-muted">${escapeHtml(reporter.beat)} · ${escapeHtml(reporter.bureau)}</span>
-          <span class="exonet-news-reporter-teaser">${escapeHtml(reporter.onnBio ?? reporter.directoryBio ?? reporter.directoryTeaser ?? "")}</span>
+          <img class="exonet-reporter-directory-avatar" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(displayName)}">
+          <strong>${escapeHtml(displayName)}</strong>
+          <span class="exonet-muted">${escapeHtml(title)}</span>
+          <span class="exonet-muted">${escapeHtml(beat)} · ${escapeHtml(bureau)}</span>
+          <span class="exonet-news-reporter-teaser">${escapeHtml(teaser)}</span>
           <span class="exonet-news-read-more">View profile →</span>
         </div>
       </button>`;
@@ -921,7 +981,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
           <h3 class="exonet-news-headline">${escapeHtml(story.headline)}</h3>
           <p class="exonet-news-dek">${escapeHtml(story.dek ?? "")}</p>
           ${teaser ? `<p class="exonet-news-teaser">${escapeHtml(teaser)}</p>` : ""}
-          ${renderNewsByline(story.author, story.authorSlug)}
+          ${renderNewsByline(pickField(story, "author"), pickField(story, "authorSlug"))}
           <span class="exonet-news-read-more">Read full story →</span>
         </div>
       </article>`;
@@ -978,7 +1038,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
 
   async function renderOffworldNewsReporters() {
     const roster = await api.getOffworldNewsReporters();
-    const reporters = roster.reporters ?? [];
+    const reporters = pickField(roster, "reporters") ?? [];
 
     content.innerHTML = `
       ${pageHeader("Reporter Directory", "sites/offworld-news/reporters")}
@@ -1013,9 +1073,12 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       resultsHost.innerHTML = `<p class="exonet-muted">Searching roster…</p>`;
       try {
         const response = await api.getOffworldNewsReporters(query);
-        const results = response.reporters ?? [];
+        const results = pickField(response, "reporters") ?? [];
         if (results.length === 1) {
-          navigate(offworldNewsReporterPath(results[0].slug));
+          const slug = pickField(results[0], "slug");
+          if (slug) {
+            navigate(offworldNewsReporterPath(slug));
+          }
           return;
         }
         if (results.length === 0) {
@@ -1066,15 +1129,27 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     const pageSlug = offworldNewsReporterPath(reporterSlug);
 
     try {
-      const detail = await api.getOffworldNewsReporter(reporterSlug);
-      const reporter = detail.reporter;
-      const stories = detail.recentStories ?? [];
-      const specialties = (reporter.specialties ?? [])
+      const detail = await fetchOffworldNewsReporterDetail(reporterSlug);
+      const reporter = pickField(detail, "reporter");
+      if (!reporter) {
+        throw new Error("Reporter payload was incomplete.");
+      }
+
+      const resolvedSlug = String(pickField(reporter, "slug") ?? reporterSlug).trim();
+      const stories = pickField(detail, "recentStories") ?? [];
+      const specialties = (pickField(reporter, "specialties") ?? [])
         .map((item) => `<span class="exonet-news-reporter-tag">${escapeHtml(item)}</span>`)
         .join("");
 
+      const displayName = pickField(reporter, "displayName") ?? "ONN correspondent";
+      const personality = pickField(reporter, "personality") ?? "";
+      const title = pickField(reporter, "title") ?? "";
+      const beat = pickField(reporter, "beat") ?? "";
+      const bureau = pickField(reporter, "bureau") ?? "";
+      const bio = pickField(reporter, "onnBio") ?? pickField(reporter, "directoryBio") ?? "";
+
       content.innerHTML = `
-        ${pageHeader(reporter.displayName, pageSlug)}
+        ${pageHeader(displayName, pageSlug)}
         <div class="exonet-news-site">
           ${renderOffworldNewsMasthead("Reporter Directory", "", null, { showArchivesButton: true, showReportersButton: false })}
           <button type="button" class="exonet-news-back btn ghost" data-news-reporters-list>← Reporter Directory</button>
@@ -1082,15 +1157,15 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
             <button type="button" class="btn primary" data-open-miner-profile>View miner profile →</button>
           </div>
           <section class="exonet-news-reporter-profile">
-            <div class="exonet-news-reporter-banner" style="background-image:url('${escapeHtml(resolveExonetAssetUrl(reporter.backgroundUrl))}')"></div>
+            <div class="exonet-news-reporter-banner" style="background-image:url('${escapeHtml(resolveExonetAssetUrl(pickField(reporter, "backgroundUrl")))}')"></div>
             <div class="exonet-news-reporter-main">
-              <img class="exonet-news-reporter-avatar" src="${escapeHtml(resolveExonetAssetUrl(reporter.avatarUrl))}" alt="${escapeHtml(reporter.displayName)}">
+              <img class="exonet-news-reporter-avatar" src="${escapeHtml(resolveExonetAssetUrl(pickField(reporter, "avatarUrl")))}" alt="${escapeHtml(displayName)}">
               <div class="exonet-news-reporter-copy">
-                <h2 class="exonet-news-reporter-name">${escapeHtml(reporter.displayName)}</h2>
-                <p class="exonet-news-reporter-personality">${escapeHtml(reporter.personality ?? "")}</p>
-                <p class="exonet-news-reporter-title">${escapeHtml(reporter.title)}</p>
-                <p class="exonet-news-reporter-meta">${escapeHtml(reporter.beat)} desk · ${escapeHtml(reporter.bureau)}</p>
-                <p class="exonet-news-reporter-bio">${escapeHtml(reporter.onnBio ?? reporter.directoryBio ?? "")}</p>
+                <h2 class="exonet-news-reporter-name">${escapeHtml(displayName)}</h2>
+                <p class="exonet-news-reporter-personality">${escapeHtml(personality)}</p>
+                <p class="exonet-news-reporter-title">${escapeHtml(title)}</p>
+                <p class="exonet-news-reporter-meta">${escapeHtml(beat)} desk · ${escapeHtml(bureau)}</p>
+                <p class="exonet-news-reporter-bio">${escapeHtml(bio)}</p>
                 ${specialties ? `<div class="exonet-news-reporter-tags">${specialties}</div>` : ""}
               </div>
             </div>
@@ -1101,14 +1176,16 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
               ? `<p class="exonet-muted">No archived stories filed under this byline yet.</p>`
               : stories
                   .map((story) => {
-                    const storyPath = story.isArchive
-                      ? offworldNewsStoryPath(story.storyId, story.editionDate)
-                      : offworldNewsStoryPath(story.storyId);
+                    const storyId = pickField(story, "storyId");
+                    const editionDate = pickField(story, "editionDate");
+                    const storyPath = pickField(story, "isArchive")
+                      ? offworldNewsStoryPath(storyId, editionDate)
+                      : offworldNewsStoryPath(storyId);
                     return `
               <button type="button" class="exonet-news-archive-row" data-news-story-link="${escapeHtml(storyPath)}">
-                <span class="exonet-news-archive-date">${escapeHtml(formatNewsEditionDate(story.editionDate))}</span>
-                <span class="exonet-news-archive-meta">${escapeHtml(story.category ?? "News")}</span>
-                <span class="exonet-news-archive-headline">${escapeHtml(story.headline)}</span>
+                <span class="exonet-news-archive-date">${escapeHtml(formatNewsEditionDate(editionDate))}</span>
+                <span class="exonet-news-archive-meta">${escapeHtml(pickField(story, "category") ?? "News")}</span>
+                <span class="exonet-news-archive-headline">${escapeHtml(pickField(story, "headline") ?? "")}</span>
                 <span class="exonet-news-read-more">Read story →</span>
               </button>`;
                   })
@@ -1118,16 +1195,20 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
 
       content.querySelector("[data-news-reporters-list]")?.addEventListener("click", () => navigate("sites/offworld-news/reporters"));
       content.querySelector("[data-open-miner-profile]")?.addEventListener("click", () => {
-        navigate(`profile/${reporterSlug}`);
+        navigate(`profile/${resolvedSlug}`);
       });
       bindOffworldNewsArchivesButton(content);
       content.querySelectorAll("[data-news-story-link]").forEach((button) => {
         button.addEventListener("click", () => navigate(button.dataset.newsStoryLink));
       });
-    } catch {
+    } catch (error) {
+      const message =
+        error?.status === 404 || /not found/i.test(String(error?.message ?? ""))
+          ? "Reporter not found on the ONN roster."
+          : String(error?.message ?? "Could not load this reporter profile.");
       content.innerHTML = `
         ${pageHeader("Offworld News Network", pageSlug)}
-        <div class="exonet-panel"><p class="exonet-muted">Reporter not found on the ONN roster.</p></div>
+        <div class="exonet-panel"><p class="exonet-muted">${escapeHtml(message)}</p></div>
         <button type="button" class="btn ghost" data-news-reporters-list>← Reporter Directory</button>`;
       content.querySelector("[data-news-reporters-list]")?.addEventListener("click", () => navigate("sites/offworld-news/reporters"));
     }
@@ -1181,7 +1262,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
             </div>
             <h2 class="exonet-news-article-title">${escapeHtml(story.headline)}</h2>
             <p class="exonet-news-dek">${escapeHtml(story.dek ?? "")}</p>
-            ${renderNewsByline(story.author, story.authorSlug)}
+            ${renderNewsByline(pickField(story, "author"), pickField(story, "authorSlug"))}
             <div class="exonet-news-article-body">
               ${renderNewsParagraphs(story.body)}
             </div>

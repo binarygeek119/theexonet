@@ -133,6 +133,13 @@ public static class OffworldNewsReporterCatalog
             return bySlug;
         }
 
+        var underscored = key.Replace('_', '-');
+        bySlug = TryGetBySlug(underscored);
+        if (bySlug is not null)
+        {
+            return bySlug;
+        }
+
         return TryGetBySlug(SlugifyDisplayName(key));
     }
 

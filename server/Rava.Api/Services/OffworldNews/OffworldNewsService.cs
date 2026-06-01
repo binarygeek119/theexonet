@@ -314,4 +314,117 @@ public sealed class OffworldNewsService(
         Directory.CreateDirectory(Path.Combine(root, "editions"));
         Directory.CreateDirectory(Path.Combine(root, "images", date.ToString("yyyy-MM-dd")));
     }
+
+    public async Task<(OffworldNewsEditionDto? Edition, string? Error)> RegenerateTodayEditionAsync(CancellationToken ct = default)
+    {
+        if (!_options.Enabled)
+        {
+            return (null, "Offworld News is disabled in configuration.");
+        }
+
+        var date = UtcGameClock.Today;
+        var gate = GenerationLocks.GetOrAdd(date, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try
+        {
+            BackgroundUpgradeQueued.TryRemove(date, out _);
+            DeleteEditionImages(date);
+
+            var edition = await GenerateAndStoreEditionAsync(date, ct);
+            logger.LogInformation("Admin regenerated Offworld News edition for {Date}", date);
+            return (edition, null);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Admin Offworld News edition regeneration failed for {Date}", date);
+            return (null, "Edition regeneration failed. Check API logs for details.");
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    public async Task<(OffworldNewsEditionDto? Edition, string? Error)> RegenerateTodayImagesAsync(CancellationToken ct = default)
+    {
+        if (!_options.Enabled)
+        {
+            return (null, "Offworld News is disabled in configuration.");
+        }
+
+        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            return (null, "OffworldNews.ApiKey is not configured; AI images are unavailable.");
+        }
+
+        var date = UtcGameClock.Today;
+        var existing = TryLoadEdition(date);
+        if (existing is null || existing.Stories.Count == 0)
+        {
+            return (null, "No edition found for today. Regenerate stories first.");
+        }
+
+        var gate = GenerationLocks.GetOrAdd(date, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try
+        {
+            DeleteEditionImages(date);
+
+            var generator = new OpenAiOffworldNewsGenerator(
+                _options,
+                httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
+                logger);
+            var edition = await generator.RegenerateImagesAsync(existing, GetCacheRoot(), ct);
+            edition = EnsureStoryImages(edition);
+            TrySaveEdition(edition);
+
+            logger.LogInformation("Admin regenerated Offworld News images for {Date}", date);
+            return (edition, null);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Admin Offworld News image regeneration failed for {Date}", date);
+            return (null, "Image regeneration failed. Check API logs for details.");
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private static int CountIllustratedStories(OffworldNewsEditionDto edition) =>
+        edition.Stories.Count(story =>
+            !string.IsNullOrWhiteSpace(story.ImageUrl)
+            && story.ImageUrl.Contains("/images/", StringComparison.OrdinalIgnoreCase));
+
+    public static AdminOffworldNewsRegenerateResponse ToRegenerateResponse(
+        OffworldNewsEditionDto edition,
+        string message) =>
+        new(
+            message,
+            edition.EditionDate,
+            edition.Source,
+            edition.Stories.Count,
+            CountIllustratedStories(edition));
+
+    private void DeleteEditionImages(DateOnly date)
+    {
+        var imageDir = Path.Combine(GetCacheRoot(), "images", date.ToString("yyyy-MM-dd"));
+        if (!Directory.Exists(imageDir))
+        {
+            return;
+        }
+
+        foreach (var path in Directory.EnumerateFiles(imageDir))
+        {
+            try
+            {
+                File.Delete(path);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to delete Offworld News image {Path}", path);
+            }
+        }
+    }
 }

@@ -709,13 +709,15 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     return `${plain.slice(0, maxLength).trim()}…`;
   }
 
-  function renderNewsImage(imageUrl, className = "exonet-news-thumb") {
+  function renderNewsImage(imageUrl, className = "exonet-news-thumb", aspect = "") {
     if (!imageUrl) {
       return "";
     }
 
+    const aspectClass = aspect ? ` aspect-${aspect}` : "";
+
     return `
-      <div class="exonet-news-image-wrap">
+      <div class="exonet-news-image-wrap${aspectClass}">
         <img class="${className}" src="${escapeHtml(imageUrl)}" alt="">
       </div>`;
   }
@@ -739,7 +741,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
 
   function renderOffworldNewsStoryCard(story, featured = false, archiveDate = "") {
     const imageClass = featured ? "exonet-news-thumb featured" : "exonet-news-thumb";
-    const imageHtml = renderNewsImage(story.imageUrl, imageClass);
+    const imageHtml = renderNewsImage(story.imageUrl, imageClass, story.imageAspect);
     const teaser = newsTeaser(story.body);
     const dateAttr = archiveDate ? ` data-news-date="${escapeHtml(archiveDate)}"` : "";
 
@@ -863,7 +865,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
           ${renderOffworldNewsMasthead(formatNewsEditionDate(edition.editionDate ?? archiveDate), "", null, { showArchivesButton: !archiveDate })}
           <button type="button" class="exonet-news-back btn ghost" data-news-back>← ${escapeHtml(backLabel)}</button>
           <article class="exonet-news-article">
-            ${renderNewsImage(story.imageUrl, "exonet-news-hero")}
+            ${renderNewsImage(story.imageUrl, "exonet-news-hero", story.imageAspect)}
             <div class="exonet-news-meta">
               <span class="exonet-news-category">${escapeHtml(story.category ?? "News")}</span>
               ${renderNewsCompany(story.companyName)}

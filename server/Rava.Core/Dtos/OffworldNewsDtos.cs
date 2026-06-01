@@ -10,7 +10,8 @@ public record OffworldNewsStoryDto(
     string Author,
     DateTime PublishedAt,
     string? CompanyName,
-    string? ImageUrl);
+    string? ImageUrl,
+    string? ImageAspect = null);
 
 public record OffworldNewsEditionDto(
     DateOnly EditionDate,
@@ -25,3 +26,10 @@ public record OffworldNewsArchiveEntryDto(
 
 public record OffworldNewsArchivesDto(
     IReadOnlyList<OffworldNewsArchiveEntryDto> Editions);
+
+public record AdminOffworldNewsRegenerateResponse(
+    string Message,
+    DateOnly EditionDate,
+    string Source,
+    int StoryCount,
+    int IllustratedStoryCount);

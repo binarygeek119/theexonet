@@ -533,6 +533,20 @@ export class RavaApi {
     });
   }
 
+  adminRegenerateOffworldNewsEdition() {
+    return this.request("/api/admin/offworld-news/regenerate-edition", {
+      method: "POST",
+      body: {},
+    });
+  }
+
+  adminRegenerateOffworldNewsImages() {
+    return this.request("/api/admin/offworld-news/regenerate-images", {
+      method: "POST",
+      body: {},
+    });
+  }
+
   moderatorAccess() {
     return this.request("/api/moderator/access");
   }

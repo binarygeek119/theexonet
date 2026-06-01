@@ -59,6 +59,10 @@ const els = {
   eventCancelBtn: document.getElementById("admin-event-cancel-btn"),
   eventFormStatus: document.getElementById("admin-event-form-status"),
   stats: document.getElementById("admin-stats"),
+  offworldNewsSummary: document.getElementById("admin-offworld-news-summary"),
+  offworldNewsStatus: document.getElementById("admin-offworld-news-status"),
+  offworldNewsRegenEditionBtn: document.getElementById("admin-offworld-news-regen-edition-btn"),
+  offworldNewsRegenImagesBtn: document.getElementById("admin-offworld-news-regen-images-btn"),
   playerSearch: document.getElementById("admin-player-search"),
   playerSearchBtn: document.getElementById("admin-player-search-btn"),
   playersStatus: document.getElementById("admin-players-status"),
@@ -744,6 +748,81 @@ function renderCreditsTable(players) {
 async function loadDashboard() {
   state.dashboard = await api.adminDashboard();
   renderStats(state.dashboard);
+  await loadOffworldNewsSummary();
+}
+
+function countOffworldNewsAiImages(stories) {
+  return (stories ?? []).filter((story) => String(story.imageUrl ?? "").includes("/images/")).length;
+}
+
+function renderOffworldNewsSummary(edition) {
+  if (!edition) {
+    els.offworldNewsSummary.textContent = "No edition loaded for today.";
+    return;
+  }
+
+  const storyCount = edition.stories?.length ?? 0;
+  const imageCount = countOffworldNewsAiImages(edition.stories);
+  const source = edition.source ?? "unknown";
+  const headline = edition.stories?.[0]?.headline;
+  const lead = headline ? ` Lead: “${headline}”.` : "";
+  els.offworldNewsSummary.textContent =
+    `Today (${edition.editionDate}): ${storyCount} stories, ${imageCount} AI images, source ${source}.${lead}`;
+}
+
+async function loadOffworldNewsSummary() {
+  try {
+    const edition = await api.getOffworldNews();
+    renderOffworldNewsSummary(edition);
+  } catch {
+    els.offworldNewsSummary.textContent = "Could not load today's Offworld News edition.";
+  }
+}
+
+async function regenerateOffworldNewsEdition() {
+  if (!window.confirm("Regenerate today's Offworld News stories and images? This may take several minutes.")) {
+    return;
+  }
+
+  setStatus(els.offworldNewsStatus, "Regenerating stories and images…");
+  els.offworldNewsRegenEditionBtn.disabled = true;
+  els.offworldNewsRegenImagesBtn.disabled = true;
+  try {
+    const result = await api.adminRegenerateOffworldNewsEdition();
+    await loadOffworldNewsSummary();
+    setStatus(
+      els.offworldNewsStatus,
+      `${result.message} ${result.storyCount} stories, ${result.illustratedStoryCount} AI images.`,
+    );
+  } catch (error) {
+    setStatus(els.offworldNewsStatus, error.message, true);
+  } finally {
+    els.offworldNewsRegenEditionBtn.disabled = false;
+    els.offworldNewsRegenImagesBtn.disabled = false;
+  }
+}
+
+async function regenerateOffworldNewsImages() {
+  if (!window.confirm("Regenerate AI images for today's stories? Headlines and article text will stay the same.")) {
+    return;
+  }
+
+  setStatus(els.offworldNewsStatus, "Regenerating images…");
+  els.offworldNewsRegenEditionBtn.disabled = true;
+  els.offworldNewsRegenImagesBtn.disabled = true;
+  try {
+    const result = await api.adminRegenerateOffworldNewsImages();
+    await loadOffworldNewsSummary();
+    setStatus(
+      els.offworldNewsStatus,
+      `${result.message} ${result.illustratedStoryCount} AI images.`,
+    );
+  } catch (error) {
+    setStatus(els.offworldNewsStatus, error.message, true);
+  } finally {
+    els.offworldNewsRegenEditionBtn.disabled = false;
+    els.offworldNewsRegenImagesBtn.disabled = false;
+  }
 }
 
 async function loadPlayers() {
@@ -1410,6 +1489,14 @@ els.creditsBody.addEventListener("keydown", async (event) => {
 
 els.appealsRefreshBtn.addEventListener("click", () => {
   loadAppealsPage().catch((error) => setStatus(els.appealsStatus, error.message, true));
+});
+
+els.offworldNewsRegenEditionBtn.addEventListener("click", () => {
+  regenerateOffworldNewsEdition().catch((error) => setStatus(els.offworldNewsStatus, error.message, true));
+});
+
+els.offworldNewsRegenImagesBtn.addEventListener("click", () => {
+  regenerateOffworldNewsImages().catch((error) => setStatus(els.offworldNewsStatus, error.message, true));
 });
 
 els.messageLogSearchBtn.addEventListener("click", () => {

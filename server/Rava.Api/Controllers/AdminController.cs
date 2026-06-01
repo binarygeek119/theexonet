@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Rava.Api.Services;
+using Rava.Api.Services.OffworldNews;
 using Rava.Core.Configuration;
 using Rava.Core.Constants;
 using Rava.Core.Dtos;
@@ -20,6 +21,7 @@ public class AdminController(
     MessageModerationService messageModerationService,
     GameCreditsConfigService gameCreditsConfigService,
     SpecialEventService specialEventService,
+    OffworldNewsService offworldNewsService,
     IEmailService emailService,
     IOptions<EmailOptions> emailOptions,
     IOptions<AdminOptions> adminOptions,
@@ -42,6 +44,34 @@ public class AdminController(
     public async Task<ActionResult<AdminDashboardResponse>> Dashboard(CancellationToken ct)
     {
         return Ok(await adminService.GetDashboardAsync(ct));
+    }
+
+    [HttpPost("offworld-news/regenerate-edition")]
+    public async Task<ActionResult<AdminOffworldNewsRegenerateResponse>> RegenerateOffworldNewsEdition(CancellationToken ct)
+    {
+        var (edition, error) = await offworldNewsService.RegenerateTodayEditionAsync(ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(OffworldNewsService.ToRegenerateResponse(
+            edition!,
+            "Today's Offworld News stories and images were regenerated."));
+    }
+
+    [HttpPost("offworld-news/regenerate-images")]
+    public async Task<ActionResult<AdminOffworldNewsRegenerateResponse>> RegenerateOffworldNewsImages(CancellationToken ct)
+    {
+        var (edition, error) = await offworldNewsService.RegenerateTodayImagesAsync(ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(OffworldNewsService.ToRegenerateResponse(
+            edition!,
+            "Today's Offworld News images were regenerated."));
     }
 
     [HttpGet("players")]

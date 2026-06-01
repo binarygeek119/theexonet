@@ -23,18 +23,70 @@ public sealed class OpenAiOffworldNewsGenerator(
         CancellationToken ct)
     {
         var storyCount = Math.Clamp(options.StoriesPerDay, 1, 10);
-        var stories = await GenerateStoriesAsync(editionDate, storyCount, companyContext, ct);
-        var imageCap = options.MaxImagesPerDay <= 0 ? storyCount : Math.Clamp(options.MaxImagesPerDay, 1, storyCount);
+        var drafts = await GenerateStoriesAsync(editionDate, storyCount, companyContext, ct);
+        drafts = await ApplyImagesToDraftsAsync(drafts, editionDate, cacheRoot, ct);
 
-        for (var index = 0; index < stories.Count && index < imageCap; index++)
+        var stories = drafts.Select(draft => draft.Story).ToList();
+        return new OffworldNewsEditionDto(
+            editionDate,
+            DateTime.UtcNow,
+            "openai",
+            stories);
+    }
+
+    public async Task<OffworldNewsEditionDto> RegenerateImagesAsync(
+        OffworldNewsEditionDto edition,
+        string cacheRoot,
+        CancellationToken ct)
+    {
+        var drafts = edition.Stories
+            .Select(story => new StoryDraft(
+                story with
+                {
+                    ImageUrl = OffworldNewsTemplateGenerator.PlaceholderImageForCategory(story.Category),
+                    ImageAspect = null,
+                },
+                null))
+            .ToList();
+
+        drafts = await ApplyImagesToDraftsAsync(drafts, edition.EditionDate, cacheRoot, ct);
+
+        return edition with
         {
-            var story = stories[index];
+            GeneratedAt = DateTime.UtcNow,
+            Stories = drafts.Select(draft => draft.Story).ToList(),
+        };
+    }
+
+    private async Task<List<StoryDraft>> ApplyImagesToDraftsAsync(
+        List<StoryDraft> drafts,
+        DateOnly editionDate,
+        string cacheRoot,
+        CancellationToken ct)
+    {
+        var imageCap = options.MaxImagesPerDay <= 0
+            ? drafts.Count
+            : Math.Clamp(options.MaxImagesPerDay, 1, drafts.Count);
+
+        for (var index = 0; index < drafts.Count && index < imageCap; index++)
+        {
+            var draft = drafts[index];
+            var story = draft.Story;
             try
             {
-                var imagePath = await GenerateAndStoreImageAsync(story, editionDate, cacheRoot, ct);
+                var imagePath = await GenerateAndStoreImageAsync(
+                    story,
+                    draft.ImagePrompt,
+                    editionDate,
+                    index,
+                    cacheRoot,
+                    ct);
                 if (imagePath is not null)
                 {
-                    stories[index] = story with { ImageUrl = imagePath };
+                    drafts[index] = draft with
+                    {
+                        Story = story with { ImageUrl = imagePath.Path, ImageAspect = imagePath.AspectKey },
+                    };
                     continue;
                 }
             }
@@ -47,29 +99,34 @@ public sealed class OpenAiOffworldNewsGenerator(
                     editionDate);
             }
 
-            stories[index] = story with
+            drafts[index] = draft with
             {
-                ImageUrl = story.ImageUrl ?? OffworldNewsTemplateGenerator.PlaceholderImageForCategory(story.Category),
+                Story = story with
+                {
+                    ImageUrl = story.ImageUrl ?? OffworldNewsTemplateGenerator.PlaceholderImageForCategory(story.Category),
+                },
             };
         }
 
-        for (var index = imageCap; index < stories.Count; index++)
+        for (var index = imageCap; index < drafts.Count; index++)
         {
-            var story = stories[index];
-            stories[index] = story with
+            var draft = drafts[index];
+            var story = draft.Story;
+            drafts[index] = draft with
             {
-                ImageUrl = story.ImageUrl ?? OffworldNewsTemplateGenerator.PlaceholderImageForCategory(story.Category),
+                Story = story with
+                {
+                    ImageUrl = story.ImageUrl ?? OffworldNewsTemplateGenerator.PlaceholderImageForCategory(story.Category),
+                },
             };
         }
 
-        return new OffworldNewsEditionDto(
-            editionDate,
-            DateTime.UtcNow,
-            "openai",
-            stories);
+        return drafts;
     }
 
-    private async Task<List<OffworldNewsStoryDto>> GenerateStoriesAsync(
+    private sealed record StoryDraft(OffworldNewsStoryDto Story, string? ImagePrompt);
+
+    private async Task<List<StoryDraft>> GenerateStoriesAsync(
         DateOnly editionDate,
         int storyCount,
         OffworldNewsCompanyContext? companyContext,
@@ -104,6 +161,8 @@ public sealed class OpenAiOffworldNewsGenerator(
 
             Generate exactly {{storyCount}} unique news stories for edition date {{editionDate:yyyy-MM-dd}}.
             Each body must be at least 2 full paragraphs (can be 3-4) separated by \\n\\n with concrete game details.
+            For each story, imagePrompt must describe ONE specific visual scene from that story (people, equipment, location, action).
+            imagePrompt must match the headline/body — never a generic asteroid wallpaper. No text or logos in the scene.
             Return JSON only with this shape:
             {
               "stories": [
@@ -115,7 +174,8 @@ public sealed class OpenAiOffworldNewsGenerator(
                   "category": "Markets|Mining|Corporate|Shipping|Politics|Exonet",
                   "location": "fictional belt or outer-planet location",
                   "author": "reporter name",
-                  "companyName": "featured mining company or syndicate in the story"
+                  "companyName": "featured mining company or syndicate in the story",
+                  "imagePrompt": "1-2 sentences describing the exact illustration scene for this story only"
                 }
               ]
             }
@@ -143,28 +203,28 @@ public sealed class OpenAiOffworldNewsGenerator(
                 "OpenAI story generation failed ({Status}): {Body}",
                 (int)response.StatusCode,
                 payload);
-            return OffworldNewsTemplateGenerator.Generate(editionDate, storyCount, companyContext).Stories.ToList();
+            return ToStoryDrafts(OffworldNewsTemplateGenerator.Generate(editionDate, storyCount, companyContext).Stories);
         }
 
         var completion = JsonSerializer.Deserialize<ChatCompletionResponse>(payload, SerializerOptions);
         var content = completion?.Choices?.FirstOrDefault()?.Message?.Content;
         if (string.IsNullOrWhiteSpace(content))
         {
-            return OffworldNewsTemplateGenerator.Generate(editionDate, storyCount, companyContext).Stories.ToList();
+            return ToStoryDrafts(OffworldNewsTemplateGenerator.Generate(editionDate, storyCount, companyContext).Stories);
         }
 
         var parsed = JsonSerializer.Deserialize<GeneratedStoriesPayload>(content, SerializerOptions);
         if (parsed?.Stories is null || parsed.Stories.Count == 0)
         {
-            return OffworldNewsTemplateGenerator.Generate(editionDate, storyCount, companyContext).Stories.ToList();
+            return ToStoryDrafts(OffworldNewsTemplateGenerator.Generate(editionDate, storyCount, companyContext).Stories);
         }
 
-        var stories = new List<OffworldNewsStoryDto>();
+        var drafts = new List<StoryDraft>();
         for (var index = 0; index < Math.Min(storyCount, parsed.Stories.Count); index++)
         {
             var item = parsed.Stories[index];
             var category = item.Category ?? "Markets";
-            stories.Add(new OffworldNewsStoryDto(
+            var story = new OffworldNewsStoryDto(
                 string.IsNullOrWhiteSpace(item.Id) ? $"story-{index + 1}" : item.Id,
                 item.Headline ?? $"Story {index + 1}",
                 item.Dek ?? string.Empty,
@@ -174,27 +234,35 @@ public sealed class OpenAiOffworldNewsGenerator(
                 item.Author ?? "ONN Wire Desk",
                 publishedBase.AddHours(index * 2.5),
                 item.CompanyName,
-                OffworldNewsTemplateGenerator.PlaceholderImageForCategory(category)));
+                OffworldNewsTemplateGenerator.PlaceholderImageForCategory(category));
+            drafts.Add(new StoryDraft(story, item.ImagePrompt));
         }
 
-        while (stories.Count < storyCount)
+        while (drafts.Count < storyCount)
         {
-            stories.AddRange(
-                OffworldNewsTemplateGenerator.Generate(editionDate, storyCount - stories.Count, companyContext).Stories);
+            drafts.AddRange(
+                ToStoryDrafts(
+                    OffworldNewsTemplateGenerator.Generate(editionDate, storyCount - drafts.Count, companyContext).Stories));
         }
 
-        return stories.Take(storyCount).ToList();
+        return drafts.Take(storyCount).ToList();
     }
 
-    private async Task<string?> GenerateAndStoreImageAsync(
+    private static List<StoryDraft> ToStoryDrafts(IEnumerable<OffworldNewsStoryDto> stories) =>
+        stories.Select(story => new StoryDraft(story, null)).ToList();
+
+    private sealed record GeneratedImageResult(string Path, string AspectKey);
+
+    private async Task<GeneratedImageResult?> GenerateAndStoreImageAsync(
         OffworldNewsStoryDto story,
+        string? aiImagePrompt,
         DateOnly editionDate,
+        int storyIndex,
         string cacheRoot,
         CancellationToken ct)
     {
-        var companyHint = string.IsNullOrWhiteSpace(story.CompanyName) ? string.Empty : $" Company: {story.CompanyName}.";
-        var imagePrompt =
-            $"Editorial sci-fi news photo illustration for asteroid mining economy. No text, no logos, no words. Scene inspired by: {story.Headline}. {story.Dek}.{companyHint} Outer space industrial, cinematic, cool blue color grading and cyan atmospheric tint.";
+        var aspect = OffworldNewsImageAspectCatalog.Pick(editionDate, story.Id, storyIndex);
+        var imagePrompt = OffworldNewsImagePromptBuilder.Build(story, aiImagePrompt, aspect.CompositionHint);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(options.BaseUrl, "/images/generations"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
@@ -202,7 +270,7 @@ public sealed class OpenAiOffworldNewsGenerator(
         {
             model = options.ImageModel,
             prompt = imagePrompt,
-            size = "1024x1024",
+            size = aspect.ApiSize,
         });
 
         using var response = await httpClient.SendAsync(request, ct);
@@ -231,7 +299,9 @@ public sealed class OpenAiOffworldNewsGenerator(
         var imageBytes = await httpClient.GetByteArrayAsync(remoteUrl, ct);
         await OffworldNewsImageEncoder.SaveAsJpegAsync(imageBytes, filePath, ct);
 
-        return $"/exonet/offworld-news/images/{editionDate:yyyy-MM-dd}/{fileName}";
+        return new GeneratedImageResult(
+            $"/exonet/offworld-news/images/{editionDate:yyyy-MM-dd}/{fileName}",
+            aspect.Key);
     }
 
     private static string CombineUrl(string baseUrl, string path)
@@ -288,6 +358,7 @@ public sealed class OpenAiOffworldNewsGenerator(
         public string? Location { get; set; }
         public string? Author { get; set; }
         public string? CompanyName { get; set; }
+        public string? ImagePrompt { get; set; }
     }
 
     private sealed class ImageGenerationResponse

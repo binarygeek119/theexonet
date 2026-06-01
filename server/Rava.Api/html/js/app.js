@@ -13,6 +13,12 @@ import { initExonet } from "./exonet.js?v=20260602-onn-profile-portraits";
 
 const api = new RavaApi(API_BASE_URL);
 
+const PROFILE_AVATAR_PRESETS = [
+  { id: "female", label: "Female" },
+  { id: "male", label: "Male" },
+  { id: "neutral", label: "Neutral" },
+];
+
 function formatRaxLabelLine(label, value) {
   return `${label}: ${formatRaxHtml(value)}`;
 }
@@ -259,6 +265,9 @@ const els = {
   profilePhotoChooseBtn: document.getElementById("profile-photo-choose-btn"),
   profilePhotoBtn: document.getElementById("profile-photo-btn"),
   profilePhotoStatus: document.getElementById("profile-photo-status"),
+  profileAvatarPresetSection: document.getElementById("profile-avatar-preset-section"),
+  profileAvatarPresetGrid: document.getElementById("profile-avatar-preset-grid"),
+  profileAvatarPresetStatus: document.getElementById("profile-avatar-preset-status"),
   profileBanner: document.getElementById("profile-banner"),
   profileBackgroundPreview: document.getElementById("profile-background-preview"),
   profileBackgroundInput: document.getElementById("profile-background-input"),
@@ -268,7 +277,10 @@ const els = {
   profileBackgroundStatus: document.getElementById("profile-background-status"),
   profileMoodInput: document.getElementById("profile-mood-input"),
   profileCompanyNameInput: document.getElementById("profile-company-name-input"),
+  profileCompanyColumn: document.getElementById("profile-company-column"),
+  profileCompanyLogoSlot: document.getElementById("profile-company-logo-slot"),
   profileCompanyLogo: document.getElementById("profile-company-logo"),
+  profileCompanyLogoPlaceholder: document.getElementById("profile-company-logo-placeholder"),
   profileCompanyLogoPreview: document.getElementById("profile-company-logo-preview"),
   profileCompanyLogoInput: document.getElementById("profile-company-logo-input"),
   profileCompanyLogoChooseBtn: document.getElementById("profile-company-logo-choose-btn"),
@@ -769,23 +781,55 @@ function renderProfileEditAvatar(profile) {
   );
 }
 
-function renderCompanyLogoOnElement(profile, imgEl) {
+function companyLogoInitials(companyName) {
+  return profileInitials(companyName);
+}
+
+function renderCompanyLogoOnElement(profile, imgEl, { slotEl = null, placeholderEl = null } = {}) {
   if (!imgEl) {
     return;
   }
 
-  const imageUrl = resolveProfileAssetUrl(profile?.companyLogoUrl);
-  if (imageUrl) {
-    imgEl.src = imageUrl;
-    imgEl.hidden = false;
-  } else {
+  const companyName = profile?.mineName?.trim() || "Company";
+  if (placeholderEl) {
+    placeholderEl.textContent = companyLogoInitials(companyName);
+  }
+
+  if (profile?.isReporter) {
     imgEl.removeAttribute("src");
     imgEl.hidden = true;
+    imgEl.onerror = null;
+    slotEl?.classList.remove("has-logo");
+    return;
   }
+
+  const imageUrl = resolveProfileAssetUrl(profile?.companyLogoUrl);
+  if (!imageUrl) {
+    imgEl.removeAttribute("src");
+    imgEl.hidden = true;
+    imgEl.onerror = null;
+    slotEl?.classList.remove("has-logo");
+    return;
+  }
+
+  imgEl.alt = companyName;
+  imgEl.onerror = () => {
+    imgEl.removeAttribute("src");
+    imgEl.hidden = true;
+    imgEl.onerror = null;
+    slotEl?.classList.remove("has-logo");
+  };
+  imgEl.src = imageUrl;
+  imgEl.hidden = false;
+  slotEl?.classList.add("has-logo");
 }
 
 function renderProfileCompanyLogo(profile) {
-  renderCompanyLogoOnElement(profile, els.profileCompanyLogo);
+  setHidden(els.profileCompanyColumn, Boolean(profile?.isReporter));
+  renderCompanyLogoOnElement(profile, els.profileCompanyLogo, {
+    slotEl: els.profileCompanyLogoSlot,
+    placeholderEl: els.profileCompanyLogoPlaceholder,
+  });
   renderCompanyLogoOnElement(profile, els.profileCompanyLogoPreview);
   updateCompanyLogoGenerationUi(profile);
 }
@@ -914,6 +958,91 @@ async function enqueueCompanyLogoGeneration() {
   }
 }
 
+function profileEditFormPayload() {
+  return {
+    mood: els.profileMoodInput?.value.trim() ?? "",
+    aboutMe: els.profileAboutInput?.value ?? "",
+    music: els.profileMusicInput?.value.trim() ?? "",
+    interests: els.profileInterestsInput?.value ?? "",
+    discord: els.profileDiscordInput?.value.trim() ?? "",
+    bluesky: els.profileBlueskyInput?.value.trim() ?? "",
+    twitter: els.profileTwitterInput?.value.trim() ?? "",
+    youtube: els.profileYoutubeInput?.value.trim() ?? "",
+    facebook: els.profileFacebookInput?.value.trim() ?? "",
+    profileAvatarPreset: state.profile?.profileAvatarPreset ?? "neutral",
+  };
+}
+
+function renderProfileAvatarPresets(profile) {
+  if (!els.profileAvatarPresetGrid || !els.profileAvatarPresetSection) {
+    return;
+  }
+
+  const hasCustom = Boolean(profile?.hasCustomProfilePhoto);
+  const selected = profile?.profileAvatarPreset || "neutral";
+  setHidden(els.profileAvatarPresetSection, Boolean(profile?.isReporter));
+
+  els.profileAvatarPresetGrid.innerHTML = PROFILE_AVATAR_PRESETS.map((preset) => {
+    const assetUrl = resolveProfileAssetUrl(`/images/profile-defaults/${preset.id}.svg`);
+    const isSelected = preset.id === selected;
+    return `
+      <button
+        type="button"
+        class="profile-avatar-preset-option${isSelected ? " is-selected" : ""}"
+        data-avatar-preset="${preset.id}"
+        aria-pressed="${isSelected ? "true" : "false"}"
+        ${hasCustom ? "disabled" : ""}
+      >
+        <img class="profile-avatar-preset-thumb" src="${assetUrl}" alt="">
+        <span class="profile-avatar-preset-label">${preset.label}</span>
+      </button>`;
+  }).join("");
+
+  els.profileAvatarPresetGrid.querySelectorAll("[data-avatar-preset]").forEach((button) => {
+    button.addEventListener("click", () => {
+      selectProfileAvatarPreset(button.dataset.avatarPreset).catch((error) => {
+        if (els.profileAvatarPresetStatus) {
+          els.profileAvatarPresetStatus.textContent = error.message;
+          els.profileAvatarPresetStatus.classList.add("error");
+        }
+      });
+    });
+  });
+
+  if (els.profileAvatarPresetStatus && !hasCustom) {
+    els.profileAvatarPresetStatus.textContent = "";
+    els.profileAvatarPresetStatus.classList.remove("error", "success");
+  } else if (els.profileAvatarPresetStatus && hasCustom) {
+    els.profileAvatarPresetStatus.textContent =
+      "Your uploaded photo is shown. Default silhouettes apply when you have not uploaded a custom photo.";
+    els.profileAvatarPresetStatus.classList.remove("error", "success");
+  }
+}
+
+async function selectProfileAvatarPreset(preset) {
+  if (!state.profile?.isOwner || state.profile?.hasCustomProfilePhoto) {
+    return;
+  }
+
+  if (els.profileAvatarPresetStatus) {
+    els.profileAvatarPresetStatus.textContent = "Saving…";
+    els.profileAvatarPresetStatus.classList.remove("error", "success");
+  }
+
+  const profile = await api.updateProfile({
+    ...profileEditFormPayload(),
+    profileAvatarPreset: preset,
+  });
+  state.profile = profile;
+  renderProfile(profile);
+  renderProfileEditAvatar(profile);
+  renderProfileAvatarPresets(profile);
+  if (els.profileAvatarPresetStatus) {
+    els.profileAvatarPresetStatus.textContent = "Default photo updated.";
+    els.profileAvatarPresetStatus.classList.add("success");
+  }
+}
+
 function populateProfileEditForm(profile) {
   if (els.profileEditNumber) {
     els.profileEditNumber.textContent = profile.profileNumber || "---";
@@ -960,6 +1089,7 @@ function populateProfileEditForm(profile) {
     els.profilePhotoStatus.textContent = "";
     els.profilePhotoStatus.classList.remove("error", "success");
   }
+  renderProfileAvatarPresets(profile);
   if (els.profilePhotoBtn) {
     els.profilePhotoBtn.disabled = true;
   }
@@ -1318,10 +1448,12 @@ async function uploadProfilePhoto() {
 
   try {
     const profile = await api.uploadProfileAvatar(file);
+    state.profile = profile;
     els.profilePhotoInput.value = "";
     renderProfile(profile);
     if (!els.profileEditModal?.hidden) {
       renderProfileEditAvatar(profile);
+      renderProfileAvatarPresets(profile);
     }
     els.profilePhotoStatus.textContent = "Profile photo updated.";
     els.profilePhotoStatus.classList.add("success");
@@ -1820,6 +1952,7 @@ async function saveProfile() {
 
   try {
     const profile = await api.updateProfile({
+      ...profileEditFormPayload(),
       mood: els.profileMoodInput.value.trim(),
       aboutMe: els.profileAboutInput.value,
       music: els.profileMusicInput.value.trim(),
@@ -1829,6 +1962,7 @@ async function saveProfile() {
       twitter: els.profileTwitterInput.value.trim(),
       youtube: els.profileYoutubeInput.value.trim(),
       facebook: els.profileFacebookInput.value.trim(),
+      profileAvatarPreset: state.profile?.profileAvatarPreset ?? "neutral",
     });
     renderProfile(profile);
     renderProfileEditAvatar(profile);

@@ -120,9 +120,10 @@
 
 .profile-banner {
   display: grid;
-  grid-template-columns: 120px 1fr;
+  grid-template-columns: 120px minmax(0, 1fr) 120px;
   gap: 16px;
   padding: 16px;
+  align-items: start;
   border-bottom: 2px dashed rgba(0, 51, 153, 0.35);
   position: relative;
   background-color: #e8f0ff;
@@ -143,8 +144,9 @@
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0.62) 0%,
+    rgba(255, 255, 255, 0.38) 45%,
     rgba(255, 255, 255, 0.38) 55%,
-    rgba(255, 255, 255, 0.18) 100%
+    rgba(255, 255, 255, 0.62) 100%
   );
   pointer-events: none;
 }
@@ -223,18 +225,82 @@
   display: none;
 }
 
-.profile-company-name-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+.profile-mine-name-label {
+  display: block;
+  line-height: 1.35;
+}
+
+.profile-company-column {
+  width: 120px;
+  flex-shrink: 0;
+  justify-self: end;
+}
+
+.profile-company-logo-slot {
+  width: 120px;
+  height: 120px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 3px solid #003399;
+  background: rgba(255, 255, 255, 0.92);
+  box-sizing: border-box;
+}
+
+.theme-neon .profile-company-logo-slot {
+  border-color: #ff00ff;
+  background: rgba(18, 0, 31, 0.85);
+}
+
+.theme-midnight .profile-company-logo-slot {
+  border-color: #4466aa;
+  background: rgba(11, 16, 32, 0.9);
+}
+
+.theme-solar .profile-company-logo-slot {
+  border-color: #cc6600;
+  background: rgba(255, 248, 231, 0.92);
 }
 
 .profile-company-logo {
-  width: 40px;
-  height: 40px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  flex-shrink: 0;
+  object-position: center;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.profile-company-logo-placeholder {
+  position: relative;
+  z-index: 1;
+  font-size: 1.35rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #003399;
+  text-align: center;
+  padding: 8px;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.theme-neon .profile-company-logo-placeholder {
+  color: #ff66ff;
+}
+
+.theme-midnight .profile-company-logo-placeholder {
+  color: #aaccff;
+}
+
+.theme-solar .profile-company-logo-placeholder {
+  color: #994400;
+}
+
+.profile-company-logo-slot.has-logo .profile-company-logo-placeholder {
+  display: none;
 }
 
 .profile-company-logo-preview {
@@ -271,6 +337,76 @@
   line-height: 1.3;
   text-align: center;
   word-break: break-word;
+}
+
+.profile-avatar-preset-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(0, 51, 153, 0.25);
+}
+
+.profile-avatar-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.profile-avatar-preset-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 2px solid rgba(0, 51, 153, 0.25);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: center;
+}
+
+.profile-avatar-preset-option:hover {
+  border-color: rgba(0, 51, 153, 0.55);
+}
+
+.profile-avatar-preset-option.is-selected {
+  border-color: #003399;
+  box-shadow: 0 0 0 2px rgba(0, 51, 153, 0.15);
+}
+
+.profile-avatar-preset-option:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.profile-avatar-preset-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(0, 51, 153, 0.2);
+}
+
+.profile-avatar-preset-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #003399;
+}
+
+.theme-neon .profile-avatar-preset-label {
+  color: #ff66ff;
+}
+
+.theme-midnight .profile-avatar-preset-label {
+  color: #aaccff;
+}
+
+.theme-solar .profile-avatar-preset-label {
+  color: #994400;
 }
 
 .profile-photo-row {
@@ -765,6 +901,11 @@
     grid-template-columns: 1fr;
     justify-items: center;
     text-align: center;
+  }
+
+  .profile-avatar-column,
+  .profile-company-column {
+    justify-self: center;
   }
 
   .profile-avatar-column {

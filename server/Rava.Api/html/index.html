@@ -269,6 +269,12 @@
           <p id="profile-number" class="profile-number">---</p>
           <p id="profile-member-since" class="profile-member-since">Member since ---</p>
         </div>
+        <div id="profile-company-column" class="profile-company-column">
+          <div id="profile-company-logo-slot" class="profile-company-logo-slot">
+            <img id="profile-company-logo" class="profile-company-logo" alt="" hidden>
+            <span id="profile-company-logo-placeholder" class="profile-company-logo-placeholder" aria-hidden="true"></span>
+          </div>
+        </div>
       </div>
 
       <div class="profile-body">
@@ -305,10 +311,7 @@
                 <dt>Signed up</dt>
                 <dd id="profile-sidebar-member-since">---</dd>
                 <dt>Company Name</dt>
-                <dd class="profile-company-name-cell">
-                  <img id="profile-company-logo" class="profile-company-logo" alt="" hidden>
-                  <span id="profile-mine-name">---</span>
-                </dd>
+                <dd id="profile-mine-name" class="profile-mine-name-label">---</dd>
                 <dt>Game Day</dt>
                 <dd id="profile-game-day">---</dd>
                 <dt>Rax</dt>
@@ -369,6 +372,12 @@
                 <button id="profile-photo-btn" type="button" class="btn ghost profile-photo-btn" disabled>Upload</button>
                 <p id="profile-photo-status" class="profile-save-status"></p>
               </div>
+            </div>
+            <div id="profile-avatar-preset-section" class="profile-avatar-preset-section">
+              <p class="profile-number-label">Default profile photo</p>
+              <p class="profile-number-hint">Choose a silhouette until you upload your own photo. These defaults are used whenever you have no custom upload.</p>
+              <div id="profile-avatar-preset-grid" class="profile-avatar-preset-grid" role="radiogroup" aria-label="Default profile photo style"></div>
+              <p id="profile-avatar-preset-status" class="profile-save-status"></p>
             </div>
           </div>
         </section>
@@ -586,6 +595,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260602-reporter-portraits"></script>
+<script type="module" src="/js/app.js?v=20260602-profile-avatar-presets"></script>
 </body>
 </html>

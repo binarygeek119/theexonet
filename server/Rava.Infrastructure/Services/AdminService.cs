@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rava.Core.Constants;
 using Rava.Core.Dtos;
 using Rava.Core.Enums;
 using Rava.Core.Interfaces;
@@ -131,7 +132,10 @@ public class AdminService(
             player.Username,
             player.Email,
             player.ProfileNumber,
-            FormatProfileImageUrl(player.ProfileImageUrl, player.ProfileImageRevision),
+            ProfileAvatarPresets.ResolveDisplayUrl(
+                player.ProfileImageUrl,
+                player.ProfileImageRevision,
+                player.ProfileAvatarPreset),
             player.ProfileMood,
             player.ProfileAboutMe,
             player.ProfileMusic,

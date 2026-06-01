@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Default female profile silhouette">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3d2858"/>
+      <stop offset="100%" stop-color="#120a1f"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#c98bff" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="#c98bff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" fill="url(#bg)"/>
+  <ellipse cx="128" cy="210" rx="88" ry="26" fill="#000" opacity="0.28"/>
+  <ellipse cx="128" cy="120" rx="72" ry="84" fill="url(#glow)"/>
+  <path fill="#0a0e18" d="M128 46c-20 0-36 17-36 38 0 12 5 23 14 31-16 9-26 25-26 45v10c0 6 5 10 12 10h80c7 0 12-4 12-10v-10c0-20-10-36-26-45 9-8 14-19 14-31 0-21-16-38-36-38zm0 16c11 0 20 9 20 20s-9 20-20 20-20-9-20-20 9-20 20-20z"/>
+  <path fill="#1a2438" opacity="0.55" d="M98 124c12 12 28 18 30 18s18-6 30-18c6 14 10 28 10 42v8H88v-8c0-14 4-28 10-42z"/>
+</svg>

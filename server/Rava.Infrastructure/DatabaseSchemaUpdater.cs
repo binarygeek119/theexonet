@@ -41,6 +41,7 @@ public static class DatabaseSchemaUpdater
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileNumber" text NOT NULL DEFAULT '';
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileImageUrl" text NOT NULL DEFAULT '';
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileImageRevision" integer NOT NULL DEFAULT 0;
+            ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileAvatarPreset" text NOT NULL DEFAULT 'neutral';
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileBackgroundUrl" text NOT NULL DEFAULT '';
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileBackgroundRevision" integer NOT NULL DEFAULT 0;
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "Birthday" date;

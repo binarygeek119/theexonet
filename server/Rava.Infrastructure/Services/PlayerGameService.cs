@@ -606,6 +606,12 @@ public class PlayerGameService(
             return (null, error);
         }
 
+        var presetError = ProfileValidator.ValidateAvatarPreset(request.ProfileAvatarPreset);
+        if (presetError is not null)
+        {
+            return (null, presetError);
+        }
+
         var player = await db.Players.FirstOrDefaultAsync(p => p.Id == playerId, ct);
         if (player is null)
         {
@@ -623,6 +629,11 @@ public class PlayerGameService(
         player.ProfileTwitter = request.Twitter?.Trim() ?? string.Empty;
         player.ProfileYoutube = request.Youtube?.Trim() ?? string.Empty;
         player.ProfileFacebook = request.Facebook?.Trim() ?? string.Empty;
+        if (request.ProfileAvatarPreset is not null)
+        {
+            player.ProfileAvatarPreset = ProfileAvatarPresets.Normalize(request.ProfileAvatarPreset);
+        }
+
         await profileUpgrader.EnsurePlayerUpgradedAsync(player, ct);
         await ResolveActiveProfileFlagsAsync(playerId, ct);
         await db.SaveChangesAsync(ct);
@@ -1010,7 +1021,10 @@ public class PlayerGameService(
             player.Id,
             player.Username,
             player.ProfileNumber,
-            FormatProfileImageUrl(player.ProfileImageUrl, player.ProfileImageRevision),
+            ProfileAvatarPresets.ResolveDisplayUrl(
+                player.ProfileImageUrl,
+                player.ProfileImageRevision,
+                player.ProfileAvatarPreset),
             FormatProfileImageUrl(player.ProfileBackgroundUrl, player.ProfileBackgroundRevision),
             FormatProfileImageUrl(mine?.CompanyLogoUrl ?? string.Empty, mine?.CompanyLogoRevision ?? 0),
             player.ProfileMood,
@@ -1039,7 +1053,9 @@ public class PlayerGameService(
             companyNameListingPrice,
             CompanyLogoGenerationStatus: logoGeneration.Status,
             CompanyLogoGenerationMessage: logoGeneration.Message,
-            CompanyLogoAiEnabled: companyLogoQueueService.IsAiEnabled);
+            CompanyLogoAiEnabled: companyLogoQueueService.IsAiEnabled,
+            ProfileAvatarPreset: ProfileAvatarPresets.Normalize(player.ProfileAvatarPreset),
+            HasCustomProfilePhoto: ProfileAvatarPresets.HasCustomUpload(player.ProfileImageUrl));
     }
 
     private async Task<CompanyLogoGenerationStatusDto> ResolveCompanyLogoGenerationAsync(

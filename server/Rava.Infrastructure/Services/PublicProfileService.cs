@@ -398,7 +398,10 @@ public class PublicProfileService(
             mine?.Name ?? "No active mine",
             FormatProfileImageUrl(mine?.CompanyLogoUrl ?? string.Empty, mine?.CompanyLogoRevision ?? 0),
             player.ProfileMood,
-            FormatProfileImageUrl(player.ProfileImageUrl, player.ProfileImageRevision),
+            ProfileAvatarPresets.ResolveDisplayUrl(
+                player.ProfileImageUrl,
+                player.ProfileImageRevision,
+                player.ProfileAvatarPreset),
             player.CurrentGameDay,
             mine?.Workers.Count ?? 0,
             mine?.Zones.Count ?? 0,
@@ -414,7 +417,10 @@ public class PublicProfileService(
             player.ProfileNumber,
             mine?.Name ?? "No active mine",
             FormatProfileImageUrl(mine?.CompanyLogoUrl ?? string.Empty, mine?.CompanyLogoRevision ?? 0),
-            FormatProfileImageUrl(player.ProfileImageUrl, player.ProfileImageRevision),
+            ProfileAvatarPresets.ResolveDisplayUrl(
+                player.ProfileImageUrl,
+                player.ProfileImageRevision,
+                player.ProfileAvatarPreset),
             player.ProfileMood,
             player.ProfileAboutMe,
             player.ProfileInterests,

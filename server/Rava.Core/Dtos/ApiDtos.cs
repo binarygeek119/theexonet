@@ -225,7 +225,9 @@ public record PlayerProfileResponse(
     string OnnProfilePath = "",
     string CompanyLogoGenerationStatus = "none",
     string CompanyLogoGenerationMessage = "",
-    bool CompanyLogoAiEnabled = false);
+    bool CompanyLogoAiEnabled = false,
+    string ProfileAvatarPreset = ProfileAvatarPresets.DefaultPreset,
+    bool HasCustomProfilePhoto = false);
 
 public record UpdateCompanyNameRequest(string CompanyName);
 
@@ -317,7 +319,8 @@ public record UpdatePlayerProfileRequest(
     string Bluesky,
     string Twitter,
     string Youtube,
-    string Facebook);
+    string Facebook,
+    string? ProfileAvatarPreset = null);
 
 public record FriendSummaryDto(
     Guid FriendshipId,

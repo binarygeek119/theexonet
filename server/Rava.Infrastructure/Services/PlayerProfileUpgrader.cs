@@ -84,6 +84,13 @@ public class PlayerProfileUpgrader(AppDbContext db)
             changed = true;
         }
 
+        var normalizedPreset = ProfileAvatarPresets.Normalize(player.ProfileAvatarPreset);
+        if (!string.Equals(player.ProfileAvatarPreset, normalizedPreset, StringComparison.Ordinal))
+        {
+            player.ProfileAvatarPreset = normalizedPreset;
+            changed = true;
+        }
+
         if (player.LastProcessedUtcDate == default)
         {
             player.LastProcessedUtcDate = DateOnly.FromDateTime(

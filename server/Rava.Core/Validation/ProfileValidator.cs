@@ -1,3 +1,5 @@
+using Rava.Core.Constants;
+
 namespace Rava.Core.Validation;
 
 public static class ProfileValidator
@@ -67,4 +69,16 @@ public static class ProfileValidator
 
     public static string NormalizeTheme(string theme) =>
         AllowedThemes.Contains(theme.Trim()) ? theme.Trim().ToLowerInvariant() : "classic";
+
+    public static string? ValidateAvatarPreset(string? preset)
+    {
+        if (preset is null || string.IsNullOrWhiteSpace(preset))
+        {
+            return null;
+        }
+
+        return ProfileAvatarPresets.All.Contains(preset.Trim(), StringComparer.OrdinalIgnoreCase)
+            ? null
+            : "Profile photo style must be male, female, or neutral.";
+    }
 }

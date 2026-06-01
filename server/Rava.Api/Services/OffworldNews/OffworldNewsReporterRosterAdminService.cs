@@ -137,7 +137,9 @@ public sealed class OffworldNewsReporterRosterAdminService(
             reporter.OnnBio,
             reporter.StoryKicker,
             reporter.Specialties,
-            inStoryPool);
+            inStoryPool,
+            OffworldNewsReporterPaths.AvatarUrl(reporter.Slug),
+            OffworldNewsReporterPaths.BackgroundUrl(reporter.Slug));
 
     private static IReadOnlyList<string> ParseSpecialties(string? specialties) =>
         string.IsNullOrWhiteSpace(specialties)

@@ -193,6 +193,7 @@ public record PlayerProfileResponse(
     string ProfileNumber,
     string ProfileImageUrl,
     string ProfileBackgroundUrl,
+    string CompanyLogoUrl,
     string Mood,
     string AboutMe,
     string Music,
@@ -221,7 +222,10 @@ public record PlayerProfileResponse(
     decimal CompanyNameReclaimFee = 0,
     bool IsReporter = false,
     string ReporterSlug = "",
-    string OnnProfilePath = "");
+    string OnnProfilePath = "",
+    string CompanyLogoGenerationStatus = "none",
+    string CompanyLogoGenerationMessage = "",
+    bool CompanyLogoAiEnabled = false);
 
 public record UpdateCompanyNameRequest(string CompanyName);
 
@@ -250,6 +254,7 @@ public record PublicProfileSummaryDto(
     string Username,
     string ProfileNumber,
     string CompanyName,
+    string CompanyLogoUrl,
     string Mood,
     string ProfileImageUrl,
     int CurrentGameDay,
@@ -264,6 +269,7 @@ public record PublicProfileDetailDto(
     string Username,
     string ProfileNumber,
     string CompanyName,
+    string CompanyLogoUrl,
     string ProfileImageUrl,
     string Mood,
     string AboutMe,

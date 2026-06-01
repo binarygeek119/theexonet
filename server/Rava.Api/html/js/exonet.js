@@ -608,7 +608,8 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
           ${avatarHtml}
           <div>
             <h3>${escapeHtml(profile.username)}</h3>
-            <p class="exonet-muted">${escapeHtml(profile.profileNumber ?? "—")} · ${escapeHtml(profile.companyName ?? "Unknown mine")}</p>
+            <p class="exonet-muted">${escapeHtml(profile.profileNumber ?? "—")}</p>
+            ${renderExonetCompanyLine(profile, "Unknown mine")}
             <p>${escapeHtml(profile.mood || "Ready to mine.")}</p>
           </div>
         </div>
@@ -747,6 +748,25 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
 
     const pascalKey = key.charAt(0).toUpperCase() + key.slice(1);
     return item[pascalKey];
+  }
+
+  function renderExonetCompanyLogo(profile) {
+    const url = pickField(profile, "companyLogoUrl");
+    if (!url) {
+      return "";
+    }
+
+    return `<img class="exonet-company-logo" src="${escapeHtml(resolveExonetAssetUrl(url))}" alt="">`;
+  }
+
+  function renderExonetCompanyLine(profile, fallbackName) {
+    const name = escapeHtml(profile.companyName ?? fallbackName);
+    const logo = renderExonetCompanyLogo(profile);
+    if (!logo) {
+      return `<p class="exonet-muted">${name}</p>`;
+    }
+
+    return `<p class="exonet-company-line exonet-muted">${logo}<span>${name}</span></p>`;
   }
 
   function offworldNewsReporterSlug(authorName) {

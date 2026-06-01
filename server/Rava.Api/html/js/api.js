@@ -416,6 +416,48 @@ export class RavaApi {
     });
   }
 
+  enqueueCompanyLogoGeneration() {
+    return this.request("/api/player/profile/company-logo/generate", {
+      method: "POST",
+      body: {},
+    });
+  }
+
+  getCompanyLogoGeneration() {
+    return this.request("/api/player/profile/company-logo/generation");
+  }
+
+  async uploadCompanyLogo(file) {
+    const form = new FormData();
+    form.append("file", file);
+
+    const headers = { Accept: "application/json" };
+    if (this.token) {
+      headers.Authorization = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(`${this.baseUrl}/api/player/profile/company-logo`, {
+      method: "POST",
+      headers,
+      body: form,
+    });
+
+    if (!response.ok) {
+      let message = formatHttpError(response, "/api/player/profile/company-logo");
+      try {
+        const error = await response.json();
+        if (error?.message) {
+          message = error.message;
+        }
+      } catch {
+        // ignore parse errors
+      }
+      throw new Error(message);
+    }
+
+    return response.json();
+  }
+
   getFriends() {
     return this.request("/api/player/friends");
   }
@@ -583,14 +625,15 @@ export class RavaApi {
     return this.request("/api/admin/offworld-news/reporter-portraits-job");
   }
 
-  adminRegenerateOneOffworldNewsReporterPortraits(slug) {
+  adminRegenerateOneOffworldNewsReporterPortraits(slug, assets = "both") {
     const normalized = String(slug ?? "").trim();
     if (!normalized || normalized === "undefined") {
       return Promise.reject(new Error("Reporter slug is missing. Reload the admin page and try again."));
     }
 
+    const params = new URLSearchParams({ assets: assets || "both" });
     return this.request(
-      `/api/admin/offworld-news/reporters/${encodeURIComponent(normalized)}/regenerate-portraits`,
+      `/api/admin/offworld-news/reporters/${encodeURIComponent(normalized)}/regenerate-portraits?${params}`,
       {
         method: "POST",
         body: {},

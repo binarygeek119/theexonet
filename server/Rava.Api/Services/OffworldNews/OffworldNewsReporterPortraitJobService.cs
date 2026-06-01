@@ -9,7 +9,9 @@ public sealed class OffworldNewsReporterPortraitJobService(
     private readonly object _gate = new();
     private JobSnapshot _snapshot = JobSnapshot.Idle();
 
-    public (bool Started, string? Error) TryStart(IReadOnlyList<string>? slugs)
+    public (bool Started, string? Error) TryStart(
+        IReadOnlyList<string>? slugs,
+        ReporterPortraitAssetKind assets = ReporterPortraitAssetKind.Both)
     {
         lock (_gate)
         {
@@ -18,10 +20,10 @@ public sealed class OffworldNewsReporterPortraitJobService(
                 return (false, "Portrait regeneration is already in progress.");
             }
 
-            _snapshot = JobSnapshot.Running(slugs);
+            _snapshot = JobSnapshot.Running(slugs, assets);
         }
 
-        _ = Task.Run(() => RunAsync(slugs));
+        _ = Task.Run(() => RunAsync(slugs, assets));
         return (true, null);
     }
 
@@ -33,11 +35,11 @@ public sealed class OffworldNewsReporterPortraitJobService(
         }
     }
 
-    private async Task RunAsync(IReadOnlyList<string>? slugs)
+    private async Task RunAsync(IReadOnlyList<string>? slugs, ReporterPortraitAssetKind assets)
     {
         try
         {
-            var (summary, error) = await offworldNewsService.RegenerateReporterPortraitsAsync(slugs);
+            var (summary, error) = await offworldNewsService.RegenerateReporterPortraitsAsync(slugs, assets);
             lock (_gate)
             {
                 if (summary is null)
@@ -86,18 +88,14 @@ public sealed class OffworldNewsReporterPortraitJobService(
         public static JobSnapshot Idle() =>
             new(PortraitJobStatus.Idle, null, null, 0, 0, 0, null, null);
 
-        public static JobSnapshot Running(IReadOnlyList<string>? slugs) =>
-            new(
-                PortraitJobStatus.Running,
-                DateTime.UtcNow,
-                null,
-                0,
-                0,
-                0,
-                slugs is { Count: 1 }
-                    ? $"Regenerating portraits for {slugs[0]}…"
-                    : "Regenerating reporter portraits…",
-                null);
+        public static JobSnapshot Running(IReadOnlyList<string>? slugs, ReporterPortraitAssetKind assets)
+        {
+            var assetLabel = ReporterPortraitAssetKindParser.Describe(assets);
+            var message = slugs is { Count: 1 }
+                ? $"Regenerating {assetLabel} for {slugs[0]}…"
+                : $"Regenerating reporter {assetLabel}…";
+            return new(PortraitJobStatus.Running, DateTime.UtcNow, null, 0, 0, 0, message, null);
+        }
 
         public static JobSnapshot Completed(
             OffworldNewsReporterPortraitGenerationSummary summary,

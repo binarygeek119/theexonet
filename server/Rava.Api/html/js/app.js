@@ -268,6 +268,13 @@ const els = {
   profileBackgroundStatus: document.getElementById("profile-background-status"),
   profileMoodInput: document.getElementById("profile-mood-input"),
   profileCompanyNameInput: document.getElementById("profile-company-name-input"),
+  profileCompanyLogo: document.getElementById("profile-company-logo"),
+  profileCompanyLogoPreview: document.getElementById("profile-company-logo-preview"),
+  profileCompanyLogoInput: document.getElementById("profile-company-logo-input"),
+  profileCompanyLogoChooseBtn: document.getElementById("profile-company-logo-choose-btn"),
+  profileCompanyLogoUploadBtn: document.getElementById("profile-company-logo-upload-btn"),
+  profileCompanyLogoGenerateBtn: document.getElementById("profile-company-logo-generate-btn"),
+  profileCompanyLogoStatus: document.getElementById("profile-company-logo-status"),
   profileCompanySaveBtn: document.getElementById("profile-company-save-btn"),
   profileCompanyRegenerateBtn: document.getElementById("profile-company-regenerate-btn"),
   profileCompanyStatus: document.getElementById("profile-company-status"),
@@ -748,6 +755,151 @@ function renderProfileEditAvatar(profile) {
   );
 }
 
+function renderCompanyLogoOnElement(profile, imgEl) {
+  if (!imgEl) {
+    return;
+  }
+
+  const imageUrl = resolveProfileAssetUrl(profile?.companyLogoUrl);
+  if (imageUrl) {
+    imgEl.src = imageUrl;
+    imgEl.hidden = false;
+  } else {
+    imgEl.removeAttribute("src");
+    imgEl.hidden = true;
+  }
+}
+
+function renderProfileCompanyLogo(profile) {
+  renderCompanyLogoOnElement(profile, els.profileCompanyLogo);
+  renderCompanyLogoOnElement(profile, els.profileCompanyLogoPreview);
+  updateCompanyLogoGenerationUi(profile);
+}
+
+function updateCompanyLogoGenerationUi(profile) {
+  if (!els.profileCompanyLogoGenerateBtn) {
+    return;
+  }
+
+  const aiEnabled = Boolean(profile?.companyLogoAiEnabled);
+  const status = (profile?.companyLogoGenerationStatus ?? "none").toLowerCase();
+  const isOwner = Boolean(profile?.isOwner);
+  const isReporter = Boolean(profile?.isReporter);
+  const busy = status === "queued" || status === "processing";
+
+  setHidden(els.profileCompanyLogoGenerateBtn, !aiEnabled || !isOwner || isReporter);
+  if (els.profileCompanyLogoGenerateBtn) {
+    els.profileCompanyLogoGenerateBtn.disabled = busy;
+    els.profileCompanyLogoGenerateBtn.textContent = busy
+      ? (status === "processing" ? "Generating…" : "Queued…")
+      : "Generate AI Logo";
+  }
+
+  if (els.profileCompanyLogoStatus && profile?.companyLogoGenerationMessage && busy) {
+    els.profileCompanyLogoStatus.textContent = profile.companyLogoGenerationMessage;
+    els.profileCompanyLogoStatus.classList.remove("error", "success");
+  }
+}
+
+let companyLogoGenerationPollTimer = null;
+
+function stopCompanyLogoGenerationPoll() {
+  if (companyLogoGenerationPollTimer) {
+    clearInterval(companyLogoGenerationPollTimer);
+    companyLogoGenerationPollTimer = null;
+  }
+}
+
+function syncCompanyLogoGenerationPoll(profile) {
+  const status = (profile?.companyLogoGenerationStatus ?? "none").toLowerCase();
+  const shouldPoll = Boolean(profile?.isOwner) && (status === "queued" || status === "processing");
+
+  if (!shouldPoll) {
+    stopCompanyLogoGenerationPoll();
+    return;
+  }
+
+  if (companyLogoGenerationPollTimer) {
+    return;
+  }
+
+  companyLogoGenerationPollTimer = setInterval(() => {
+    pollCompanyLogoGeneration().catch(() => {
+      stopCompanyLogoGenerationPoll();
+    });
+  }, 4000);
+}
+
+async function pollCompanyLogoGeneration() {
+  const generation = await api.getCompanyLogoGeneration();
+  const status = (generation?.status ?? "none").toLowerCase();
+  if (!state.profile) {
+    stopCompanyLogoGenerationPoll();
+    return;
+  }
+
+  state.profile = {
+    ...state.profile,
+    companyLogoGenerationStatus: status,
+    companyLogoGenerationMessage: generation?.message ?? "",
+  };
+
+  if (status === "queued" || status === "processing") {
+    updateCompanyLogoGenerationUi(state.profile);
+    return;
+  }
+
+  stopCompanyLogoGenerationPoll();
+  const profile = await api.getMyProfile();
+  renderProfile(profile);
+  if (!els.profileEditModal?.hidden) {
+    populateProfileEditForm(profile);
+  }
+
+  if (els.profileCompanyLogoStatus) {
+    if (status === "failed") {
+      els.profileCompanyLogoStatus.textContent = generation?.message || "Logo generation failed.";
+      els.profileCompanyLogoStatus.classList.add("error");
+    } else if (profile.companyLogoUrl) {
+      els.profileCompanyLogoStatus.textContent = "AI company logo ready.";
+      els.profileCompanyLogoStatus.classList.add("success");
+    }
+  }
+}
+
+async function enqueueCompanyLogoGeneration() {
+  if (!els.profileCompanyLogoGenerateBtn) {
+    return;
+  }
+
+  els.profileCompanyLogoGenerateBtn.disabled = true;
+  if (els.profileCompanyLogoStatus) {
+    els.profileCompanyLogoStatus.textContent = "Joining the logo queue…";
+    els.profileCompanyLogoStatus.classList.remove("error", "success");
+  }
+
+  try {
+    const response = await api.enqueueCompanyLogoGeneration();
+    const generation = response?.generation ?? response;
+    state.profile = {
+      ...state.profile,
+      companyLogoGenerationStatus: generation?.status ?? "queued",
+      companyLogoGenerationMessage: response?.message ?? generation?.message ?? "Queued for AI logo generation.",
+    };
+    updateCompanyLogoGenerationUi(state.profile);
+    syncCompanyLogoGenerationPoll(state.profile);
+    if (els.profileCompanyLogoStatus) {
+      els.profileCompanyLogoStatus.textContent = state.profile.companyLogoGenerationMessage;
+    }
+  } catch (error) {
+    if (els.profileCompanyLogoStatus) {
+      els.profileCompanyLogoStatus.textContent = error.message;
+      els.profileCompanyLogoStatus.classList.add("error");
+    }
+    updateCompanyLogoGenerationUi(state.profile);
+  }
+}
+
 function populateProfileEditForm(profile) {
   if (els.profileEditNumber) {
     els.profileEditNumber.textContent = profile.profileNumber || "---";
@@ -815,6 +967,20 @@ function populateProfileEditForm(profile) {
   }
   if (els.profileBackgroundInput) {
     els.profileBackgroundInput.value = "";
+  }
+  renderProfileCompanyLogo(profile);
+  if (els.profileCompanyLogoStatus) {
+    els.profileCompanyLogoStatus.textContent = "";
+    els.profileCompanyLogoStatus.classList.remove("error", "success");
+  }
+  if (els.profileCompanyLogoUploadBtn) {
+    els.profileCompanyLogoUploadBtn.disabled = true;
+  }
+  if (els.profileCompanyLogoChooseBtn) {
+    els.profileCompanyLogoChooseBtn.textContent = "Choose PNG";
+  }
+  if (els.profileCompanyLogoInput) {
+    els.profileCompanyLogoInput.value = "";
   }
   renderProfileBackgroundPreview(profile);
   renderCompanyNameListingControls(profile);
@@ -1059,6 +1225,7 @@ function renderProfile(profile) {
   state.profile = profile;
   applyProfileTheme();
   renderProfileAvatar(profile);
+  renderProfileCompanyLogo(profile);
   applyProfileBannerBackground(els.profileBanner, profile.profileBackgroundUrl);
   const displayName = profile.isReporter ? profile.username : profile.username;
   els.profileUsername.textContent = profile.isReporter ? `${displayName} · ONN` : displayName;
@@ -1106,6 +1273,7 @@ function renderProfile(profile) {
   renderProfileFlagNotice(profile);
   renderProfileFriendPanel(profile);
   renderProfileFriends(profile);
+  syncCompanyLogoGenerationPoll(profile);
 }
 
 function renderProfileFlagNotice(profile) {
@@ -1146,6 +1314,38 @@ async function uploadProfilePhoto() {
   } catch (error) {
     els.profilePhotoStatus.textContent = error.message;
     els.profilePhotoStatus.classList.add("error");
+  }
+}
+
+async function uploadCompanyLogo() {
+  const file = els.profileCompanyLogoInput.files?.[0];
+  if (!file) {
+    els.profileCompanyLogoStatus.textContent = "Choose a transparent PNG first.";
+    els.profileCompanyLogoStatus.classList.add("error");
+    return;
+  }
+
+  if (file.type !== "image/png") {
+    els.profileCompanyLogoStatus.textContent = "Company logo must be a PNG file.";
+    els.profileCompanyLogoStatus.classList.add("error");
+    return;
+  }
+
+  els.profileCompanyLogoStatus.textContent = "Uploading logo...";
+  els.profileCompanyLogoStatus.classList.remove("error", "success");
+
+  try {
+    const profile = await api.uploadCompanyLogo(file);
+    els.profileCompanyLogoInput.value = "";
+    renderProfile(profile);
+    if (!els.profileEditModal?.hidden) {
+      populateProfileEditForm(profile);
+    }
+    els.profileCompanyLogoStatus.textContent = "Company logo updated.";
+    els.profileCompanyLogoStatus.classList.add("success");
+  } catch (error) {
+    els.profileCompanyLogoStatus.textContent = error.message;
+    els.profileCompanyLogoStatus.classList.add("error");
   }
 }
 
@@ -2737,6 +2937,50 @@ els.profilePhotoBtn.addEventListener("click", () => {
   uploadProfilePhoto().catch((error) => {
     els.profilePhotoStatus.textContent = error.message;
     els.profilePhotoStatus.classList.add("error");
+  });
+});
+els.profileCompanyLogoChooseBtn?.addEventListener("click", () => {
+  els.profileCompanyLogoInput.click();
+});
+els.profileCompanyLogoInput?.addEventListener("change", () => {
+  const file = els.profileCompanyLogoInput.files?.[0];
+  if (!file) {
+    els.profileCompanyLogoUploadBtn.disabled = true;
+    els.profileCompanyLogoChooseBtn.textContent = "Choose PNG";
+    renderCompanyLogoOnElement(state.profile, els.profileCompanyLogoPreview);
+    return;
+  }
+
+  if (file.type !== "image/png") {
+    els.profileCompanyLogoUploadBtn.disabled = true;
+    els.profileCompanyLogoStatus.textContent = "Company logo must be a PNG file.";
+    els.profileCompanyLogoStatus.classList.add("error");
+    return;
+  }
+
+  els.profileCompanyLogoUploadBtn.disabled = false;
+  els.profileCompanyLogoChooseBtn.textContent = file.name.length > 14
+    ? `${file.name.slice(0, 11)}…`
+    : file.name;
+
+  const previewUrl = URL.createObjectURL(file);
+  if (els.profileCompanyLogoPreview) {
+    els.profileCompanyLogoPreview.src = previewUrl;
+    els.profileCompanyLogoPreview.hidden = false;
+  }
+});
+els.profileCompanyLogoUploadBtn?.addEventListener("click", () => {
+  uploadCompanyLogo().catch((error) => {
+    els.profileCompanyLogoStatus.textContent = error.message;
+    els.profileCompanyLogoStatus.classList.add("error");
+  });
+});
+els.profileCompanyLogoGenerateBtn?.addEventListener("click", () => {
+  enqueueCompanyLogoGeneration().catch((error) => {
+    if (els.profileCompanyLogoStatus) {
+      els.profileCompanyLogoStatus.textContent = error.message;
+      els.profileCompanyLogoStatus.classList.add("error");
+    }
   });
 });
 els.profileBackgroundChooseBtn?.addEventListener("click", () => {

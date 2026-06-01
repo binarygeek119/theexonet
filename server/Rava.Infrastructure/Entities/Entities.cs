@@ -44,6 +44,9 @@ public class MineEntity
     public int AsteroidSeed { get; set; }
     public MineStatus Status { get; set; } = MineStatus.Active;
     public DateTime PurchasedAt { get; set; } = DateTime.UtcNow;
+    public string CompanyLogoUrl { get; set; } = string.Empty;
+    public int CompanyLogoRevision { get; set; }
+    public bool CompanyLogoIsCustom { get; set; }
 
     public PlayerEntity Player { get; set; } = null!;
     public ICollection<MineZoneEntity> Zones { get; set; } = [];
@@ -400,4 +403,20 @@ public class SpecialEventAnnouncementEntity
 
     public PlayerEntity Player { get; set; } = null!;
     public SpecialEventEntity Event { get; set; } = null!;
+}
+
+public class CompanyLogoQueueEntity
+{
+    public Guid Id { get; set; }
+    public Guid MineId { get; set; }
+    public Guid PlayerId { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty;
+    public string? Error { get; set; }
+    public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+
+    public MineEntity Mine { get; set; } = null!;
+    public PlayerEntity Player { get; set; } = null!;
 }

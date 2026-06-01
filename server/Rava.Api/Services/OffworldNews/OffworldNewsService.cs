@@ -122,6 +122,7 @@ public sealed class OffworldNewsService(
 
     public async Task<(OffworldNewsReporterPortraitGenerationSummary? Summary, string? Error)> RegenerateReporterPortraitsAsync(
         IReadOnlyList<string>? slugs = null,
+        ReporterPortraitAssetKind assets = ReporterPortraitAssetKind.Both,
         CancellationToken ct = default)
     {
         if (!_options.Enabled)
@@ -145,7 +146,7 @@ public sealed class OffworldNewsService(
             hostingPaths.OffworldNewsReportersAssetsRoot,
             logger);
 
-        var summary = await generator.GenerateAllAsync(slugs, ct);
+        var summary = await generator.GenerateAllAsync(slugs, assets, ct);
         return summary.Succeeded == 0
             ? (summary, summary.Error ?? "No reporter portraits were generated.")
             : (summary, null);

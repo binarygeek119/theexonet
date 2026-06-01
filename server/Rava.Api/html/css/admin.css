@@ -75,9 +75,17 @@
 }
 
 .admin-page {
-  display: grid;
+  display: none;
   gap: 24px;
   padding-top: 24px;
+}
+
+.admin-page.admin-page-active {
+  display: grid;
+}
+
+.admin-page[hidden] {
+  display: none !important;
 }
 
 .admin-panel {
@@ -770,6 +778,49 @@
   resize: vertical;
 }
 
+.admin-messages-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 12px;
+}
+
+.admin-messages-filter .btn.active {
+  border-color: rgba(120, 180, 255, 0.55);
+  background: rgba(51, 115, 179, 0.22);
+}
+
+.admin-message-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-message-kind {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-message-kind-staff {
+  background: rgba(120, 180, 255, 0.2);
+  color: #b8d4ff;
+}
+
+.admin-message-kind-player {
+  background: rgba(120, 220, 160, 0.18);
+  color: #b8f0d0;
+}
+
+.admin-message-detail-kind {
+  margin: 0 0 8px;
+}
+
 .staff-message-layout {
   display: grid;
   grid-template-columns: minmax(240px, 320px) 1fr;
@@ -1043,17 +1094,24 @@
   background: rgba(0, 0, 0, 0.15);
 }
 
-.admin-onn-reporter summary {
+.admin-onn-reporter-summary {
   cursor: pointer;
   list-style: none;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  align-items: baseline;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 10px;
 }
 
 .admin-onn-reporter summary::-webkit-details-marker {
   display: none;
+}
+
+.admin-onn-reporter-summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .admin-onn-reporter-meta {
@@ -1061,11 +1119,93 @@
   opacity: 0.8;
 }
 
-.admin-onn-reporter-form {
+.admin-onn-reporter-layout {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) minmax(0, 1fr);
+  gap: 16px 20px;
+  margin-top: 12px;
+  align-items: start;
+}
+
+.admin-onn-reporter-visuals {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-onn-reporter-visuals-caption {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.admin-onn-reporter-banner {
+  position: relative;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.35) center / cover no-repeat;
+  overflow: hidden;
+}
+
+.admin-onn-reporter-banner-compact {
+  width: 88px;
+  max-width: 88px;
+  flex-shrink: 0;
+  aspect-ratio: 16 / 10;
+  border-radius: 8px;
+}
+
+.admin-onn-reporter-avatar {
+  position: absolute;
+  left: 10px;
+  bottom: -12px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  object-fit: cover;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.admin-onn-reporter-avatar-compact {
+  width: 36px;
+  height: 36px;
+  left: 6px;
+  bottom: -8px;
+  border-width: 1px;
+}
+
+.admin-onn-reporter-avatar-placeholder {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+.admin-onn-reporter-fields {
   display: grid;
   gap: 10px;
-  margin-top: 12px;
-  max-width: 720px;
+  min-width: 0;
+}
+
+.admin-onn-reporter-actions {
+  flex-wrap: wrap;
+}
+
+.admin-onn-reporter-form {
+  margin-top: 4px;
+  max-width: 960px;
+}
+
+@media (max-width: 720px) {
+  .admin-onn-reporter-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-onn-reporter-banner {
+    max-width: 100%;
+  }
 }
 
 .admin-onn-reporter-form label {

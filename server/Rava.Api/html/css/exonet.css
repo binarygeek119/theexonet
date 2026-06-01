@@ -370,6 +370,20 @@
   font-weight: 700;
 }
 
+.exonet-company-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+}
+
+.exonet-company-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .exonet-doc-body h1,
 .exonet-doc-body h2,
 .exonet-doc-body h3 {

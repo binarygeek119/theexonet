@@ -115,7 +115,8 @@ public class AdminController(
 
     [HttpPost("offworld-news/reporters/{slug}/regenerate-portraits")]
     public ActionResult<AdminOffworldNewsReporterPortraitJobDto> RegenerateOffworldNewsReporterPortraits(
-        string slug)
+        string slug,
+        [FromQuery] string? assets = "both")
     {
         if (string.IsNullOrWhiteSpace(slug)
             || slug.Equals("undefined", StringComparison.OrdinalIgnoreCase))
@@ -123,7 +124,12 @@ public class AdminController(
             return BadRequest(new { message = "Reporter slug is required." });
         }
 
-        var (started, error) = offworldNewsReporterPortraitJob.TryStart([slug.Trim()]);
+        if (!ReporterPortraitAssetKindParser.TryParse(assets, out var assetKind, out var parseError))
+        {
+            return BadRequest(new { message = parseError });
+        }
+
+        var (started, error) = offworldNewsReporterPortraitJob.TryStart([slug.Trim()], assetKind);
         if (!started)
         {
             return BadRequest(new { message = error });

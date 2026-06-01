@@ -37,6 +37,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SpecialEventProgressEntity> SpecialEventProgress => Set<SpecialEventProgressEntity>();
     public DbSet<SpecialEventAnnouncementEntity> SpecialEventAnnouncements => Set<SpecialEventAnnouncementEntity>();
     public DbSet<DataMigrationEntity> DataMigrations => Set<DataMigrationEntity>();
+    public DbSet<CompanyLogoQueueEntity> CompanyLogoQueue => Set<CompanyLogoQueueEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -51,6 +52,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasOne(m => m.Player)
             .WithMany(p => p.Mines)
             .HasForeignKey(m => m.PlayerId);
+
+        modelBuilder.Entity<CompanyLogoQueueEntity>(e =>
+        {
+            e.HasIndex(q => new { q.MineId, q.Status });
+            e.HasIndex(q => q.RequestedAt);
+            e.HasOne(q => q.Mine)
+                .WithMany()
+                .HasForeignKey(q => q.MineId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(q => q.Player)
+                .WithMany()
+                .HasForeignKey(q => q.PlayerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         modelBuilder.Entity<MineZoneEntity>()
             .HasOne(z => z.Mine)

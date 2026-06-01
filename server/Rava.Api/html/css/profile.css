@@ -223,6 +223,36 @@
   display: none;
 }
 
+.profile-company-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.profile-company-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.profile-company-logo-preview {
+  width: 72px;
+  height: 72px;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.profile-company-logo-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
 .profile-photo-upload {
   display: grid;
   gap: 6px;

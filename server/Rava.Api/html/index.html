@@ -304,8 +304,11 @@
                 <dd id="profile-sidebar-number" class="profile-sidebar-number">---</dd>
                 <dt>Signed up</dt>
                 <dd id="profile-sidebar-member-since">---</dd>
-                <dt>Mine</dt>
-                <dd id="profile-mine-name">---</dd>
+                <dt>Company Name</dt>
+                <dd class="profile-company-name-cell">
+                  <img id="profile-company-logo" class="profile-company-logo" alt="" hidden>
+                  <span id="profile-mine-name">---</span>
+                </dd>
                 <dt>Game Day</dt>
                 <dd id="profile-game-day">---</dd>
                 <dt>Rax</dt>
@@ -396,6 +399,19 @@
               <button id="profile-company-regenerate-btn" type="button" class="btn ghost">Regenerate</button>
             </div>
             <p id="profile-company-status" class="profile-save-status"></p>
+
+            <p class="profile-number-label">Company logo</p>
+            <p class="profile-number-hint">Upload a transparent PNG, or queue an AI emblem from your company name and profile. Missing logos are queued automatically at UTC midnight.</p>
+            <div class="profile-company-logo-row">
+              <img id="profile-company-logo-preview" class="profile-company-logo profile-company-logo-preview" alt="" hidden>
+              <div class="profile-photo-upload">
+                <input id="profile-company-logo-input" type="file" accept="image/png" hidden>
+                <button id="profile-company-logo-choose-btn" type="button" class="btn primary profile-photo-btn">Choose PNG</button>
+                <button id="profile-company-logo-upload-btn" type="button" class="btn ghost profile-photo-btn" disabled>Upload Logo</button>
+                <button id="profile-company-logo-generate-btn" type="button" class="btn ghost profile-photo-btn" hidden>Generate AI Logo</button>
+                <p id="profile-company-logo-status" class="profile-save-status"></p>
+              </div>
+            </div>
 
             <p class="profile-number-label">List for trade</p>
             <p class="profile-number-hint">Offer your current company name in the Store for other players to buy.</p>
@@ -570,6 +586,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260529-login"></script>
+<script type="module" src="/js/app.js?v=20260601-ai-company-logo"></script>
 </body>
 </html>

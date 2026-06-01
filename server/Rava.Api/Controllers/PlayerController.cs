@@ -75,6 +75,55 @@ public class PlayerController(
         return profile is null ? NotFound() : Ok(profile);
     }
 
+    [HttpPost("profile/company-logo")]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<PlayerProfileResponse>> UploadCompanyLogo(IFormFile file, CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { message = "Choose a PNG file to upload." });
+        }
+
+        await using var stream = file.OpenReadStream();
+        var (profile, error) = await gameService.UploadCompanyLogoAsync(
+            User.GetPlayerId(),
+            stream,
+            file.ContentType,
+            ct);
+
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return profile is null ? NotFound() : Ok(profile);
+    }
+
+    [HttpPost("profile/company-logo/generate")]
+    public async Task<ActionResult<CompanyLogoGenerationActionResponse>> EnqueueCompanyLogoGeneration(
+        CancellationToken ct)
+    {
+        var (result, error) = await gameService.EnqueueCompanyLogoGenerationAsync(User.GetPlayerId(), ct);
+        if (result is null)
+        {
+            return NotFound();
+        }
+
+        if (error is not null)
+        {
+            return BadRequest(new { message = error, generation = result.Generation });
+        }
+
+        return Accepted(result);
+    }
+
+    [HttpGet("profile/company-logo/generation")]
+    public async Task<ActionResult<CompanyLogoGenerationStatusDto>> GetCompanyLogoGeneration(CancellationToken ct)
+    {
+        var status = await gameService.GetCompanyLogoGenerationStatusAsync(User.GetPlayerId(), ct);
+        return status is null ? NotFound() : Ok(status);
+    }
+
     [HttpDelete("profile/background")]
     public async Task<ActionResult<PlayerProfileResponse>> RemoveBackground(CancellationToken ct)
     {

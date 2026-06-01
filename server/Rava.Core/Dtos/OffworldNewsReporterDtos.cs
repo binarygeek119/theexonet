@@ -57,7 +57,9 @@ public record AdminOffworldNewsReporterRowDto(
     string OnnBio,
     string StoryKicker,
     IReadOnlyList<string> Specialties,
-    bool InStoryPool);
+    bool InStoryPool,
+    string AvatarUrl,
+    string BackgroundUrl);
 
 public record AdminOffworldNewsSettingsDto(
     int ReporterPoolSize,

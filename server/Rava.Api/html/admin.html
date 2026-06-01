@@ -58,23 +58,32 @@
 
     <nav class="admin-nav" aria-label="Admin sections">
       <button type="button" class="admin-nav-btn active" data-admin-page="dashboard">Dashboard</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="testing">Testing</button>
       <button type="button" class="admin-nav-btn" data-admin-page="players">Players</button>
       <button type="button" class="admin-nav-btn" data-admin-page="appeals">Ban appeals</button>
       <button type="button" class="admin-nav-btn" data-admin-page="messages">
         Messages
         <span id="admin-messages-nav-badge" class="admin-nav-badge" hidden>0</span>
       </button>
-      <button type="button" class="admin-nav-btn" data-admin-page="message-log">Message log</button>
       <button type="button" class="admin-nav-btn" data-admin-page="flagged">
         Flagged
         <span id="admin-flagged-nav-badge" class="admin-nav-badge" hidden>0</span>
       </button>
+      <button type="button" class="admin-nav-btn" data-admin-page="message-log">Message Log</button>
       <button type="button" class="admin-nav-btn" data-admin-page="credits">Rax</button>
       <button type="button" class="admin-nav-btn" data-admin-page="events">Events</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="offworld-news">Offworld News</button>
     </nav>
 
     <main class="admin-main">
-      <section id="admin-page-dashboard" class="admin-page">
+      <section id="admin-page-dashboard" class="admin-page admin-page-active">
+        <section class="admin-panel">
+          <h2>Dashboard</h2>
+          <div id="admin-stats" class="admin-stats"></div>
+        </section>
+      </section>
+
+      <section id="admin-page-testing" class="admin-page" hidden>
         <section class="admin-panel admin-testing-panel">
           <div class="admin-panel-head">
             <div>
@@ -87,43 +96,42 @@
             <span>Enable testing mode</span>
           </label>
           <p id="admin-testing-mode-hint" class="admin-page-desc" hidden>Testing players are marked <span class="admin-testing-badge">TEST</span> in lists.</p>
+          <p id="admin-testing-status" class="status-text"></p>
         </section>
+      </section>
 
-        <section class="admin-panel">
-          <h2>Dashboard</h2>
-          <div id="admin-stats" class="admin-stats"></div>
-        </section>
-
+      <section id="admin-page-offworld-news" class="admin-page" hidden>
         <section class="admin-panel">
           <div class="admin-panel-head">
             <div>
               <h2>Offworld News</h2>
-              <p class="admin-page-desc">Regenerate today's ONN edition on Exonet. Story regeneration replaces headlines and bodies; image regeneration keeps the current stories. Manage reporter personalities, names, and story pool below.</p>
+              <p class="admin-page-desc">Regenerate today's ONN edition on Exonet. Story regeneration replaces headlines and bodies; image regeneration keeps the current stories.</p>
             </div>
           </div>
           <p id="admin-offworld-news-summary" class="admin-page-desc">Loading today's edition…</p>
           <div class="button-row">
             <button id="admin-offworld-news-regen-edition-btn" type="button" class="btn primary">Regenerate today's stories</button>
             <button id="admin-offworld-news-regen-images-btn" type="button" class="btn ghost">Regenerate images only</button>
-            <button id="admin-offworld-news-regen-reporter-portraits-btn" type="button" class="btn ghost">Regenerate reporter portraits</button>
+            <button id="admin-offworld-news-regen-reporter-portraits-btn" type="button" class="btn ghost">Regenerate all reporter portraits</button>
           </div>
           <p id="admin-offworld-news-status" class="status-text"></p>
+        </section>
 
-          <div class="admin-onn-reporters">
-            <h3 class="admin-subheading">Reporter roster</h3>
-            <p id="admin-onn-reporters-path" class="admin-page-desc"></p>
-            <form id="admin-onn-pool-form" class="admin-onn-pool-form">
-              <label>
-                Story pool size
-                <input id="admin-onn-pool-size" type="number" min="0" step="1" value="0">
-              </label>
-              <span class="admin-page-desc">0 = use all reporters in CSV order.</span>
-              <button id="admin-onn-pool-save-btn" type="submit" class="btn ghost">Save pool size</button>
-              <p id="admin-onn-pool-status" class="status-text"></p>
-            </form>
-            <p id="admin-onn-reporters-status" class="status-text"></p>
-            <div id="admin-onn-reporters-list" class="admin-onn-reporters-list"></div>
-          </div>
+        <section class="admin-panel admin-onn-reporters">
+          <h2>Reporter roster</h2>
+          <p class="admin-page-desc">Manage ONN correspondent personalities, names, portraits, and which reporters appear in the daily story pool.</p>
+          <p id="admin-onn-reporters-path" class="admin-page-desc"></p>
+          <form id="admin-onn-pool-form" class="admin-onn-pool-form">
+            <label>
+              Story pool size
+              <input id="admin-onn-pool-size" type="number" min="0" step="1" value="0">
+            </label>
+            <span class="admin-page-desc">0 = use all reporters in CSV order.</span>
+            <button id="admin-onn-pool-save-btn" type="submit" class="btn ghost">Save pool size</button>
+            <p id="admin-onn-pool-status" class="status-text"></p>
+          </form>
+          <p id="admin-onn-reporters-status" class="status-text"></p>
+          <div id="admin-onn-reporters-list" class="admin-onn-reporters-list"></div>
         </section>
       </section>
 
@@ -174,13 +182,15 @@
         <section class="admin-panel">
           <div class="admin-panel-head">
             <div>
-              <h2>Staff messages</h2>
-              <p class="admin-page-desc">Send messages to other admins and moderators.</p>
+              <h2>Messages</h2>
+              <p class="admin-page-desc">Staff ↔ staff and player → staff in one inbox. Each row is labeled <strong>Staff</strong> or <strong>Player</strong> so you know the source. For searchable history across all channels, use the <strong>Message Log</strong> tab.</p>
             </div>
             <button id="admin-messages-refresh-btn" type="button" class="btn primary">Refresh</button>
           </div>
           <p id="admin-messages-status" class="status-text"></p>
 
+          <h3 class="admin-subheading">Send to staff</h3>
+          <p class="admin-page-desc">Compose a message to another admin or moderator.</p>
           <div class="staff-message-compose">
             <label for="admin-messages-recipient">To</label>
             <select id="admin-messages-recipient"></select>
@@ -189,25 +199,30 @@
             <button id="admin-messages-send-btn" type="button" class="btn accent">Send message</button>
           </div>
 
+          <div class="admin-messages-filter" role="group" aria-label="Filter inbox">
+            <button type="button" class="btn ghost active" data-message-filter="all">All</button>
+            <button type="button" class="btn ghost" data-message-filter="staff">Staff only</button>
+            <button type="button" class="btn ghost" data-message-filter="player">Players only</button>
+          </div>
+
           <div class="staff-message-layout">
-            <div id="admin-messages-inbox" class="staff-message-inbox"></div>
-            <div id="admin-messages-detail" class="staff-message-detail"></div>
+            <div id="admin-messages-unified-inbox" class="staff-message-inbox"></div>
+            <div id="admin-messages-unified-detail" class="staff-message-detail"></div>
           </div>
         </section>
+      </section>
 
+      <section id="admin-page-flagged" class="admin-page" hidden>
         <section class="admin-panel">
           <div class="admin-panel-head">
             <div>
-              <h2>Messages from players</h2>
-              <p class="admin-page-desc">Messages sent to you by players.</p>
+              <h2>Flagged messages</h2>
+              <p class="admin-page-desc">Auto-flagged messages for hate speech review. Players are not notified until you decide.</p>
             </div>
-            <button id="admin-player-inbox-refresh-btn" type="button" class="btn primary">Refresh</button>
+            <button id="admin-flagged-refresh-btn" type="button" class="btn primary">Refresh</button>
           </div>
-          <p id="admin-player-inbox-status" class="status-text"></p>
-          <div class="staff-message-layout">
-            <div id="admin-player-inbox" class="staff-message-inbox"></div>
-            <div id="admin-player-inbox-detail" class="staff-message-detail"></div>
-          </div>
+          <p id="admin-flagged-status" class="status-text"></p>
+          <div id="admin-flagged-list" class="admin-flagged-list"></div>
         </section>
       </section>
 
@@ -215,8 +230,8 @@
         <section class="admin-panel">
           <div class="admin-panel-head">
             <div>
-              <h2>Message log</h2>
-              <p class="admin-page-desc">All messages across staff, player, and ban appeal channels.</p>
+              <h2>Message Log</h2>
+              <p class="admin-page-desc">Searchable audit trail for staff, player, peer, and ban appeal messages.</p>
             </div>
             <div class="admin-search-row">
               <input id="admin-message-log-search" type="search" placeholder="Search from, to, or body">
@@ -248,20 +263,6 @@
               <tbody id="admin-message-log-body"></tbody>
             </table>
           </div>
-        </section>
-      </section>
-
-      <section id="admin-page-flagged" class="admin-page" hidden>
-        <section class="admin-panel">
-          <div class="admin-panel-head">
-            <div>
-              <h2>Flagged messages</h2>
-              <p class="admin-page-desc">Auto-flagged messages for hate speech review. Players are not notified until you decide.</p>
-            </div>
-            <button id="admin-flagged-refresh-btn" type="button" class="btn primary">Refresh</button>
-          </div>
-          <p id="admin-flagged-status" class="status-text"></p>
-          <div id="admin-flagged-list" class="admin-flagged-list"></div>
         </section>
       </section>
 
@@ -448,7 +449,7 @@
             <dd id="admin-profile-credits">—</dd>
             <dt>Game day</dt>
             <dd id="admin-profile-game-day">—</dd>
-            <dt>Mine</dt>
+            <dt>Company Name</dt>
             <dd id="admin-profile-mine">—</dd>
             <dt>Workers</dt>
             <dd id="admin-profile-workers">—</dd>
@@ -537,6 +538,6 @@
     </div>
   </div>
 
-  <script type="module" src="/js/admin.js?v=20260602-portrait-job"></script>
+  <script type="module" src="/js/admin.js?v=20260601-tab-visibility"></script>
 </body>
 </html>

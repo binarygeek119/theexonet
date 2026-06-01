@@ -20,6 +20,7 @@ public sealed class OffworldNewsReporterPortraitGenerator(
 
     public async Task<OffworldNewsReporterPortraitGenerationSummary> GenerateAllAsync(
         IReadOnlyList<string>? slugs = null,
+        ReporterPortraitAssetKind assets = ReporterPortraitAssetKind.Both,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(options.ApiKey))
@@ -39,7 +40,7 @@ public sealed class OffworldNewsReporterPortraitGenerator(
             var folder = OffworldNewsReporterPaths.ReporterFolder(reportersAssetsRoot, reporter.Slug);
             Directory.CreateDirectory(folder);
 
-            foreach (var (prompt, filePath, size) in PortraitJobs(reporter))
+            foreach (var (prompt, filePath, size) in PortraitJobs(reporter, assets))
             {
                 attempted++;
                 var (ok, error) = await GenerateAndSaveAsync(prompt, filePath, size, ct);
@@ -81,16 +82,24 @@ public sealed class OffworldNewsReporterPortraitGenerator(
     }
 
     private IEnumerable<(string Prompt, string FilePath, string Size)> PortraitJobs(
-        OffworldNewsReporterProfile reporter)
+        OffworldNewsReporterProfile reporter,
+        ReporterPortraitAssetKind assets)
     {
-        yield return (
-            OffworldNewsReporterPortraitPrompts.BuildAvatarPrompt(reporter),
-            OffworldNewsReporterPaths.AvatarFilePath(reportersAssetsRoot, reporter.Slug),
-            "1024x1024");
-        yield return (
-            OffworldNewsReporterPortraitPrompts.BuildBackgroundPrompt(reporter),
-            OffworldNewsReporterPaths.BackgroundFilePath(reportersAssetsRoot, reporter.Slug),
-            "1792x1024");
+        if (assets is ReporterPortraitAssetKind.Both or ReporterPortraitAssetKind.Avatar)
+        {
+            yield return (
+                OffworldNewsReporterPortraitPrompts.BuildAvatarPrompt(reporter),
+                OffworldNewsReporterPaths.AvatarFilePath(reportersAssetsRoot, reporter.Slug),
+                "1024x1024");
+        }
+
+        if (assets is ReporterPortraitAssetKind.Both or ReporterPortraitAssetKind.Background)
+        {
+            yield return (
+                OffworldNewsReporterPortraitPrompts.BuildBackgroundPrompt(reporter),
+                OffworldNewsReporterPaths.BackgroundFilePath(reportersAssetsRoot, reporter.Slug),
+                "1792x1024");
+        }
     }
 
     private async Task<(bool Ok, string? Error)> GenerateAndSaveAsync(

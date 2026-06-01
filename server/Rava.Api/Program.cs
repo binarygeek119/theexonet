@@ -9,6 +9,7 @@ using Npgsql;
 using Rava.Api.Controllers;
 using Rava.Api.Services;
 using Rava.Api.Services.Market;
+using Rava.Api.Services.CompanyLogo;
 using Rava.Api.Services.OffworldNews;
 using Rava.Core.Configuration;
 using Rava.Core.Interfaces;
@@ -79,6 +80,7 @@ builder.Services.Configure<ModeratorPortalOptions>(builder.Configuration.GetSect
 builder.Services.Configure<AdminPortalOptions>(builder.Configuration.GetSection(AdminPortalOptions.SectionName));
 builder.Services.Configure<HostingOptions>(builder.Configuration.GetSection(HostingOptions.SectionName));
 builder.Services.Configure<OffworldNewsOptions>(builder.Configuration.GetSection(OffworldNewsOptions.SectionName));
+builder.Services.Configure<CompanyLogoOptions>(builder.Configuration.GetSection(CompanyLogoOptions.SectionName));
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -97,6 +99,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<PlayerGameService>();
+builder.Services.AddScoped<CompanyLogoQueueService>();
+builder.Services.AddScoped<ICompanyLogoGenerator, CompanyLogoGenerator>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<PlayerBanService>();
 builder.Services.AddScoped<StaffModerationPolicy>();
@@ -140,6 +144,11 @@ builder.Services.AddSingleton<IProfileBackgroundStorage>(sp =>
     {
         ImagesRootPath = imagesRootPath
     }));
+builder.Services.AddSingleton<ICompanyLogoStorage>(sp =>
+    new LocalCompanyLogoStorage(new CompanyLogoStorageOptions
+    {
+        ImagesRootPath = imagesRootPath
+    }));
 builder.Services.Configure<FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = ProfileBackgroundUploadLimits.MaxBytes;
@@ -158,6 +167,8 @@ builder.Services.AddHttpClient<YahooFinanceMarketDataProvider>(client =>
 builder.Services.AddSingleton<FallbackMarketDataProvider>();
 builder.Services.AddSingleton<IMarketDataProvider>(sp => sp.GetRequiredService<FallbackMarketDataProvider>());
 builder.Services.AddHostedService<MarketMidnightRefreshService>();
+builder.Services.AddHostedService<CompanyLogoMidnightSchedulerService>();
+builder.Services.AddHostedService<CompanyLogoQueueProcessorService>();
 builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddSingleton<ITokenService, JwtTokenService>();
 
@@ -220,13 +231,14 @@ catch (Exception ex)
 app.Services.GetRequiredService<OffworldNewsAdminSettingsStore>().Load();
 
 app.Logger.LogInformation(
-    "Content root: {ContentRoot}. Web root: {WebRoot}. Data root: {DataRoot}. Offworld News cache: {OffworldNewsCache}. Profile uploads: {AvatarPath}. Profile backgrounds: {BackgroundPath}",
+    "Content root: {ContentRoot}. Web root: {WebRoot}. Data root: {DataRoot}. Offworld News cache: {OffworldNewsCache}. Profile uploads: {AvatarPath}. Profile backgrounds: {BackgroundPath}. Company logos: {CompanyLogoPath}",
     contentRootPath,
     webRootPath,
     dataRootPath,
     offworldNewsCacheRoot,
     Path.Combine(imagesRootPath, ProfileAvatarStorageOptions.RelativeFolder),
-    Path.Combine(imagesRootPath, ProfileBackgroundStorageOptions.RelativeFolder));
+    Path.Combine(imagesRootPath, ProfileBackgroundStorageOptions.RelativeFolder),
+    Path.Combine(imagesRootPath, CompanyLogoStorageOptions.RelativeFolder));
 
 try
 {
@@ -393,6 +405,12 @@ if (serveGameUi)
         FileProvider = new PhysicalFileProvider(
             Path.Combine(imagesRootPath, ProfileBackgroundStorageOptions.RelativeFolder)),
         RequestPath = $"/{ProfileBackgroundStorageOptions.PublicUrlPath}"
+    });
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(
+            Path.Combine(imagesRootPath, CompanyLogoStorageOptions.RelativeFolder)),
+        RequestPath = $"/{CompanyLogoStorageOptions.PublicUrlPath}"
     });
     app.UseDefaultFiles();
     app.UseStaticFiles();

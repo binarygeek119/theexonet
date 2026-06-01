@@ -1,9 +1,9 @@
-import { RavaApi } from "./api.js?v=20260602-portrait-job";
+import { RavaApi } from "./api.js?v=20260602-portrait-partial";
 import { API_BASE_URL } from "./config.js";
 import { initApiStatusMonitor } from "./api-status.js";
 import { initStaffMessaging } from "./staff-messages.js";
 import { initStaffPlayerMessaging } from "./staff-player-messages.js";
-import { initStaffPlayerInbox } from "./staff-player-inbox.js";
+import { initAdminMessagesHub } from "./admin-messages-hub.js";
 import { initFlaggedMessages } from "./flagged-messages.js";
 import { renderSocialLinksHtml } from "./profile-social.js";
 import {
@@ -37,6 +37,7 @@ const els = {
   logoutBtn: document.getElementById("admin-logout-btn"),
   navButtons: document.querySelectorAll("[data-admin-page]"),
   pageDashboard: document.getElementById("admin-page-dashboard"),
+  pageTesting: document.getElementById("admin-page-testing"),
   pagePlayers: document.getElementById("admin-page-players"),
   pageAppeals: document.getElementById("admin-page-appeals"),
   pageMessages: document.getElementById("admin-page-messages"),
@@ -44,6 +45,7 @@ const els = {
   pageFlagged: document.getElementById("admin-page-flagged"),
   pageCredits: document.getElementById("admin-page-credits"),
   pageEvents: document.getElementById("admin-page-events"),
+  pageOffworldNews: document.getElementById("admin-page-offworld-news"),
   eventsStatus: document.getElementById("admin-events-status"),
   eventsList: document.getElementById("admin-events-list"),
   eventsNewBtn: document.getElementById("admin-events-new-btn"),
@@ -82,6 +84,7 @@ const els = {
   onnReportersList: document.getElementById("admin-onn-reporters-list"),
   testingModeToggle: document.getElementById("admin-testing-mode-toggle"),
   testingModeHint: document.getElementById("admin-testing-mode-hint"),
+  testingStatus: document.getElementById("admin-testing-status"),
   profileTestingBanner: document.getElementById("admin-profile-testing-banner"),
   playerSearch: document.getElementById("admin-player-search"),
   playerSearchBtn: document.getElementById("admin-player-search-btn"),
@@ -152,8 +155,9 @@ const els = {
   messagesBody: document.getElementById("admin-messages-body"),
   messagesSendBtn: document.getElementById("admin-messages-send-btn"),
   messagesRefreshBtn: document.getElementById("admin-messages-refresh-btn"),
-  messagesInbox: document.getElementById("admin-messages-inbox"),
-  messagesDetail: document.getElementById("admin-messages-detail"),
+  messagesUnifiedInbox: document.getElementById("admin-messages-unified-inbox"),
+  messagesUnifiedDetail: document.getElementById("admin-messages-unified-detail"),
+  messagesFilterButtons: document.querySelectorAll("[data-message-filter]"),
   messagesNavBadge: document.getElementById("admin-messages-nav-badge"),
   messageLogSearch: document.getElementById("admin-message-log-search"),
   messageLogChannel: document.getElementById("admin-message-log-channel"),
@@ -172,6 +176,8 @@ const els = {
   profileWarningHistory: document.getElementById("admin-profile-warning-history"),
 };
 
+let messagesHub;
+
 const staffMessaging = initStaffMessaging({
   api,
   els: {
@@ -180,23 +186,24 @@ const staffMessaging = initStaffMessaging({
     messagesBody: document.getElementById("admin-messages-body"),
     messagesSendBtn: document.getElementById("admin-messages-send-btn"),
     messagesRefreshBtn: document.getElementById("admin-messages-refresh-btn"),
-    messagesInbox: document.getElementById("admin-messages-inbox"),
-    messagesDetail: document.getElementById("admin-messages-detail"),
     messagesNavBadge: document.getElementById("admin-messages-nav-badge"),
   },
   setStatus,
+  skipInboxRender: true,
+  onInboxUpdated: () => messagesHub?.syncDisplay(),
+  onRefresh: () => messagesHub?.refresh(),
 });
 
-const staffPlayerInbox = initStaffPlayerInbox({
+messagesHub = initAdminMessagesHub({
   api,
   els: {
-    status: document.getElementById("admin-player-inbox-status"),
-    refreshBtn: document.getElementById("admin-player-inbox-refresh-btn"),
-    inbox: document.getElementById("admin-player-inbox"),
-    detail: document.getElementById("admin-player-inbox-detail"),
+    status: document.getElementById("admin-messages-status"),
+    inbox: document.getElementById("admin-messages-unified-inbox"),
+    detail: document.getElementById("admin-messages-unified-detail"),
+    filterButtons: document.querySelectorAll("[data-message-filter]"),
   },
   setStatus,
-  onUnreadChange: () => staffMessaging.refreshUnreadBadge(),
+  staffMessaging,
 });
 
 const flaggedMessaging = initFlaggedMessages({
@@ -277,16 +284,18 @@ function prefillLoginUsername() {
   }
 }
 
+const adminPages = () => document.querySelectorAll("#admin-portal-screen .admin-page");
+
 function showPage(page) {
   state.page = page;
-  els.pageDashboard.hidden = page !== "dashboard";
-  els.pagePlayers.hidden = page !== "players";
-  els.pageAppeals.hidden = page !== "appeals";
-  els.pageMessages.hidden = page !== "messages";
-  els.pageMessageLog.hidden = page !== "message-log";
-  els.pageFlagged.hidden = page !== "flagged";
-  els.pageCredits.hidden = page !== "credits";
-  els.pageEvents.hidden = page !== "events";
+  const activeId = `admin-page-${page}`;
+
+  adminPages().forEach((section) => {
+    const isActive = section.id === activeId;
+    section.classList.toggle("admin-page-active", isActive);
+    section.hidden = !isActive;
+  });
+
   els.navButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.adminPage === page);
   });
@@ -365,6 +374,14 @@ function setTestingMode(enabled) {
   state.testingMode = enabled;
   saveTestingModeEnabled(enabled);
   renderTestingModeUi();
+  if (els.testingStatus) {
+    setStatus(
+      els.testingStatus,
+      enabled
+        ? "Testing mode on — dummy players appear on Players and Rax."
+        : "Testing mode off.",
+    );
+  }
   if (state.page === "players") {
     loadPlayers().catch((error) => setStatus(els.playersStatus, error.message, true));
   } else if (state.page === "credits") {
@@ -847,6 +864,21 @@ function renderCreditsTable(players) {
 async function loadDashboard() {
   state.dashboard = await api.adminDashboard();
   renderStats(state.dashboard);
+}
+
+function loadTestingPage() {
+  renderTestingModeUi();
+  if (els.testingStatus) {
+    setStatus(
+      els.testingStatus,
+      state.testingMode
+        ? "Testing mode is enabled."
+        : "Testing mode is disabled.",
+    );
+  }
+}
+
+async function loadOffworldNewsPage() {
   await Promise.all([loadOffworldNewsSummary(), loadOnnReporters()]);
 }
 
@@ -934,6 +966,44 @@ function readOnnSlugFromForm(form) {
   return String(form.dataset.slug ?? "").trim();
 }
 
+function resolveAdminAssetUrl(url) {
+  if (!url) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  if (API_BASE_URL && url.startsWith("/exonet/")) {
+    return `${API_BASE_URL}${url}`;
+  }
+
+  return url;
+}
+
+function onnReporterPortraitHtml(reporter, displayName, { compact = false } = {}) {
+  const avatarUrl = resolveAdminAssetUrl(pickJson(reporter, "avatarUrl"));
+  const backgroundUrl = resolveAdminAssetUrl(pickJson(reporter, "backgroundUrl"));
+  const alt = escapeHtml(displayName || pickJson(reporter, "slug") || "Reporter");
+  const avatarMarkup = avatarUrl
+    ? `<img class="admin-onn-reporter-avatar${compact ? " admin-onn-reporter-avatar-compact" : ""}" src="${escapeHtml(avatarUrl)}" alt="${alt}" loading="lazy">`
+    : `<div class="admin-onn-reporter-avatar admin-onn-reporter-avatar-placeholder${compact ? " admin-onn-reporter-avatar-compact" : ""}" aria-hidden="true"></div>`;
+  const bannerStyle = backgroundUrl ? ` style="background-image:url('${escapeHtml(backgroundUrl)}')"` : "";
+
+  if (compact) {
+    return `<div class="admin-onn-reporter-banner admin-onn-reporter-banner-compact"${bannerStyle}>${avatarMarkup}</div>`;
+  }
+
+  return `
+    <div class="admin-onn-reporter-visuals">
+      <div class="admin-onn-reporter-banner"${bannerStyle}>
+        ${avatarMarkup}
+      </div>
+      <p class="admin-onn-reporter-visuals-caption">Portrait &amp; banner on Exonet</p>
+    </div>`;
+}
+
 function onnReporterField(id, label, value, { textarea = false, hint = "", slugInput = false } = {}) {
   const attrs = slugInput ? ' data-onn-slug type="text"' : ` id="${id}" type="text"`;
   const control = textarea
@@ -960,11 +1030,17 @@ function renderOnnReporters(page) {
       const specialties = (pickJson(reporter, "specialties") ?? []).join("; ");
       const formId = `admin-onn-form-${slug || "reporter"}`;
       return `<details class="admin-onn-reporter">
-        <summary>
-          <strong>${escapeHtml(displayName)}</strong>
-          <span class="admin-onn-reporter-meta">${escapeHtml(slug)} · ${escapeHtml(beat)}${poolTag}</span>
+        <summary class="admin-onn-reporter-summary">
+          ${onnReporterPortraitHtml(reporter, displayName, { compact: true })}
+          <span class="admin-onn-reporter-summary-text">
+            <strong>${escapeHtml(displayName)}</strong>
+            <span class="admin-onn-reporter-meta">${escapeHtml(slug)} · ${escapeHtml(beat)}${poolTag}</span>
+          </span>
         </summary>
         <form id="${formId}" class="admin-onn-reporter-form" data-slug="${escapeHtml(slug)}">
+          <div class="admin-onn-reporter-layout">
+            ${onnReporterPortraitHtml(reporter, displayName)}
+            <div class="admin-onn-reporter-fields">
           ${onnReporterField(`${formId}-slug`, "Slug (URL)", slug, { slugInput: true, hint: "Change only when renaming; updates portrait folder and friend links." })}
           ${onnReporterField(`${formId}-name`, "Display name", displayName)}
           ${onnReporterField(`${formId}-title`, "Title", pickJson(reporter, "title"))}
@@ -976,11 +1052,15 @@ function renderOnnReporters(page) {
           ${onnReporterField(`${formId}-onn-bio`, "ONN bio", pickJson(reporter, "onnBio"), { textarea: true })}
           ${onnReporterField(`${formId}-kicker`, "Story kicker", pickJson(reporter, "storyKicker"), { textarea: true })}
           ${onnReporterField(`${formId}-specialties`, "Specialties", specialties, { hint: "Separate with semicolons (;)." })}
-          <div class="button-row">
+          <div class="button-row admin-onn-reporter-actions">
             <button type="submit" class="btn primary">Save reporter</button>
-            <button type="button" class="btn ghost admin-onn-regen-portrait-btn">Regenerate portraits</button>
+            <button type="button" class="btn ghost admin-onn-regen-portrait-btn" data-onn-assets="avatar">Regenerate portrait</button>
+            <button type="button" class="btn ghost admin-onn-regen-portrait-btn" data-onn-assets="background">Regenerate banner</button>
+            <button type="button" class="btn ghost admin-onn-regen-portrait-btn" data-onn-assets="both">Regenerate both</button>
           </div>
           <p class="status-text admin-onn-reporter-form-status"></p>
+            </div>
+          </div>
         </form>
       </details>`;
     })
@@ -998,11 +1078,23 @@ function renderOnnReporters(page) {
   els.onnReportersList.querySelectorAll(".admin-onn-regen-portrait-btn").forEach((button) => {
     button.addEventListener("click", () => {
       const form = button.closest(".admin-onn-reporter-form");
-      regenerateOnnReporterPortraits(form).catch((error) =>
+      const assets = button.dataset.onnAssets || "both";
+      regenerateOnnReporterPortraits(form, assets).catch((error) =>
         setStatus(form.querySelector(".admin-onn-reporter-form-status"), error.message, true),
       );
     });
   });
+}
+
+function onnPortraitAssetConfirmLabel(assets) {
+  switch (assets) {
+    case "avatar":
+      return "portrait (profile image)";
+    case "background":
+      return "banner (background image)";
+    default:
+      return "portrait and banner";
+  }
 }
 
 function readOnnReporterForm(form) {
@@ -1102,7 +1194,7 @@ function formatReporterPortraitJobStatus(job) {
   };
 }
 
-async function regenerateOnnReporterPortraits(form) {
+async function regenerateOnnReporterPortraits(form, assets = "both") {
   const statusEl = form.querySelector(".admin-onn-reporter-form-status");
   const slug = readOnnSlugFromForm(form);
   const name = form.querySelector(`#${form.id}-name`)?.value.trim() || slug;
@@ -1111,18 +1203,20 @@ async function regenerateOnnReporterPortraits(form) {
     return;
   }
 
-  if (!window.confirm(`Regenerate AI portrait and banner for ${name}? This uses OffworldNews.ApiKey.`)) {
+  const assetLabel = onnPortraitAssetConfirmLabel(assets);
+  if (!window.confirm(`Regenerate AI ${assetLabel} for ${name}? This uses OffworldNews.ApiKey.`)) {
     return;
   }
 
-  setStatus(statusEl, "Starting portrait regeneration…");
+  setStatus(statusEl, "Starting regeneration…");
   form.querySelectorAll("button").forEach((button) => {
     button.disabled = true;
   });
   try {
-    await api.adminRegenerateOneOffworldNewsReporterPortraits(slug);
+    await api.adminRegenerateOneOffworldNewsReporterPortraits(slug, assets);
     const job = await waitForReporterPortraitJob((message) => setStatus(statusEl, message));
     const result = formatReporterPortraitJobStatus(job);
+    await loadOnnReporters();
     setStatus(statusEl, result.text, result.isError);
   } catch (error) {
     setStatus(statusEl, error.message, true);
@@ -1174,6 +1268,7 @@ async function regenerateOffworldNewsReporterPortraits() {
     await api.adminRegenerateAllOffworldNewsReporterPortraits();
     const job = await waitForReporterPortraitJob((message) => setStatus(els.offworldNewsStatus, message));
     const result = formatReporterPortraitJobStatus(job);
+    await loadOnnReporters();
     setStatus(els.offworldNewsStatus, result.text, result.isError);
   } catch (error) {
     setStatus(els.offworldNewsStatus, error.message, true);
@@ -1534,7 +1629,7 @@ async function dismissAppeal(appealId, statusEl) {
 }
 
 async function loadMessagesPage() {
-  await Promise.all([staffMessaging.loadMessages(), staffPlayerInbox.loadMessages()]);
+  await messagesHub.refresh();
 }
 
 const MESSAGE_LOG_CHANNEL_LABELS = {
@@ -1614,12 +1709,24 @@ async function loadPortal() {
     await loadCreditsPage();
   } else if (state.page === "events") {
     await loadEventsPage();
+  } else if (state.page === "offworld-news") {
+    await loadOffworldNewsPage();
+  } else if (state.page === "testing") {
+    loadTestingPage();
   }
 }
 
 async function loadCurrentPage() {
   if (state.page === "dashboard") {
     await loadDashboard();
+    return;
+  }
+  if (state.page === "testing") {
+    loadTestingPage();
+    return;
+  }
+  if (state.page === "offworld-news") {
+    await loadOffworldNewsPage();
     return;
   }
   if (state.page === "players") {
@@ -1794,6 +1901,10 @@ els.navButtons.forEach((button) => {
         setStatus(els.flaggedStatus, error.message, true);
       } else if (state.page === "events") {
         setStatus(els.eventsStatus, error.message, true);
+      } else if (state.page === "offworld-news") {
+        setStatus(els.offworldNewsStatus, error.message, true);
+      } else if (state.page === "testing") {
+        setStatus(els.testingStatus, error.message, true);
       }
     });
   });

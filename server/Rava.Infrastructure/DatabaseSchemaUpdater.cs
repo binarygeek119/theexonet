@@ -349,6 +349,27 @@ public static class DatabaseSchemaUpdater
             CREATE INDEX IF NOT EXISTS "IX_TradeAuctions_Status" ON "TradeAuctions" ("Status");
             CREATE INDEX IF NOT EXISTS "IX_TradeAuctions_SellerPlayerId" ON "TradeAuctions" ("SellerPlayerId");
             CREATE INDEX IF NOT EXISTS "IX_TradeAuctions_EndsAt" ON "TradeAuctions" ("EndsAt");
+            ALTER TABLE "Mines" ADD COLUMN IF NOT EXISTS "CompanyLogoUrl" text NOT NULL DEFAULT '';
+            ALTER TABLE "Mines" ADD COLUMN IF NOT EXISTS "CompanyLogoRevision" integer NOT NULL DEFAULT 0;
+            ALTER TABLE "Mines" ADD COLUMN IF NOT EXISTS "CompanyLogoIsCustom" boolean NOT NULL DEFAULT FALSE;
+            CREATE TABLE IF NOT EXISTS "CompanyLogoQueue" (
+                "Id" uuid NOT NULL,
+                "MineId" uuid NOT NULL,
+                "PlayerId" uuid NOT NULL,
+                "Status" text NOT NULL DEFAULT 'queued',
+                "Source" text NOT NULL DEFAULT 'user',
+                "Error" text NULL,
+                "RequestedAt" timestamp with time zone NOT NULL DEFAULT NOW(),
+                "StartedAt" timestamp with time zone NULL,
+                "CompletedAt" timestamp with time zone NULL,
+                CONSTRAINT "PK_CompanyLogoQueue" PRIMARY KEY ("Id"),
+                CONSTRAINT "FK_CompanyLogoQueue_Mines_MineId" FOREIGN KEY ("MineId")
+                    REFERENCES "Mines" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_CompanyLogoQueue_Players_PlayerId" FOREIGN KEY ("PlayerId")
+                    REFERENCES "Players" ("Id") ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS "IX_CompanyLogoQueue_MineId_Status" ON "CompanyLogoQueue" ("MineId", "Status");
+            CREATE INDEX IF NOT EXISTS "IX_CompanyLogoQueue_RequestedAt" ON "CompanyLogoQueue" ("RequestedAt");
             """,
             cancellationToken);
     }

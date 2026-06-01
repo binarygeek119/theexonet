@@ -26,8 +26,10 @@ public class PlayerGameService(
     IPasswordHasher passwordHasher,
     PlayerProfileUpgrader profileUpgrader,
     CompanyNameService companyNameService,
+    CompanyLogoQueueService companyLogoQueueService,
     IProfileAvatarStorage profileAvatarStorage,
     IProfileBackgroundStorage profileBackgroundStorage,
+    ICompanyLogoStorage companyLogoStorage,
     SpecialEventService specialEventService,
     IGameCreditsConfig gameCreditsConfig,
     ReporterFriendshipService reporterFriendshipService)
@@ -664,6 +666,73 @@ public class PlayerGameService(
         return (await MapProfileAsync(player, playerId, ct), null);
     }
 
+    public async Task<(PlayerProfileResponse? Profile, string? Error)> UploadCompanyLogoAsync(
+        Guid playerId,
+        Stream content,
+        string contentType,
+        CancellationToken ct)
+    {
+        await using var buffered = new MemoryStream();
+        await content.CopyToAsync(buffered, ct);
+        var bytes = buffered.ToArray();
+        var validationError = CompanyLogoValidator.Validate(contentType, bytes);
+        if (validationError is not null)
+        {
+            return (null, validationError);
+        }
+
+        var mine = await db.Mines.FirstOrDefaultAsync(
+            m => m.PlayerId == playerId && m.Status == MineStatus.Active,
+            ct);
+        if (mine is null)
+        {
+            return (null, "You need an active mine before uploading a company logo.");
+        }
+
+        var player = await db.Players.FirstOrDefaultAsync(p => p.Id == playerId, ct);
+        if (player is null)
+        {
+            return (null, null);
+        }
+
+        buffered.Position = 0;
+        mine.CompanyLogoUrl = await companyLogoStorage.SaveAsync(mine.Id, buffered, ct);
+        mine.CompanyLogoRevision++;
+        mine.CompanyLogoIsCustom = true;
+        await companyLogoQueueService.CancelPendingForMineAsync(mine.Id, ct);
+        await ResolveActiveProfileFlagsAsync(playerId, ct);
+        await db.SaveChangesAsync(ct);
+
+        return (await MapProfileAsync(player, playerId, ct), null);
+    }
+
+    public async Task<(CompanyLogoGenerationActionResponse? Result, string? Error)> EnqueueCompanyLogoGenerationAsync(
+        Guid playerId,
+        CancellationToken ct)
+    {
+        var (success, message, status) = await companyLogoQueueService.EnqueueForPlayerAsync(playerId, ct);
+        return (
+            new CompanyLogoGenerationActionResponse(
+                success ? "queued" : "error",
+                message,
+                status),
+            success ? null : message);
+    }
+
+    public async Task<CompanyLogoGenerationStatusDto?> GetCompanyLogoGenerationStatusAsync(
+        Guid playerId,
+        CancellationToken ct)
+    {
+        var mine = await db.Mines.AsNoTracking()
+            .FirstOrDefaultAsync(m => m.PlayerId == playerId && m.Status == MineStatus.Active, ct);
+        if (mine is null)
+        {
+            return null;
+        }
+
+        return await companyLogoQueueService.GetStatusForMineAsync(mine.Id, ct);
+    }
+
     public async Task<(PlayerProfileResponse? Profile, string? Error)> UploadProfileBackgroundAsync(
         Guid playerId,
         Stream content,
@@ -933,12 +1002,15 @@ public class PlayerGameService(
             companyNameListed = companyNameListingId is not null;
         }
 
+        var logoGeneration = await ResolveCompanyLogoGenerationAsync(mine, ct);
+
         return new PlayerProfileResponse(
             player.Id,
             player.Username,
             player.ProfileNumber,
             FormatProfileImageUrl(player.ProfileImageUrl, player.ProfileImageRevision),
             FormatProfileImageUrl(player.ProfileBackgroundUrl, player.ProfileBackgroundRevision),
+            FormatProfileImageUrl(mine?.CompanyLogoUrl ?? string.Empty, mine?.CompanyLogoRevision ?? 0),
             player.ProfileMood,
             player.ProfileAboutMe,
             player.ProfileMusic,
@@ -962,7 +1034,22 @@ public class PlayerGameService(
             mineId,
             companyNameListed,
             companyNameListingId,
-            companyNameListingPrice);
+            companyNameListingPrice,
+            CompanyLogoGenerationStatus: logoGeneration.Status,
+            CompanyLogoGenerationMessage: logoGeneration.Message,
+            CompanyLogoAiEnabled: companyLogoQueueService.IsAiEnabled);
+    }
+
+    private async Task<CompanyLogoGenerationStatusDto> ResolveCompanyLogoGenerationAsync(
+        MineEntity? mine,
+        CancellationToken ct)
+    {
+        if (mine is null)
+        {
+            return new CompanyLogoGenerationStatusDto("none", string.Empty, null, null, null);
+        }
+
+        return await companyLogoQueueService.GetStatusForMineAsync(mine.Id, ct);
     }
 
     private async Task<IReadOnlyList<ProfileFriendDto>> GetProfileFriendsAsync(Guid playerId, CancellationToken ct)

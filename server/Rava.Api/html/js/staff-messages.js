@@ -24,11 +24,22 @@ function memberLabel(member) {
   return `${member.username} (${roles.join(", ")})`;
 }
 
-export function initStaffMessaging({ api, els, setStatus }) {
+export function initStaffMessaging({
+  api,
+  els,
+  setStatus,
+  skipInboxRender = false,
+  onInboxUpdated,
+  onRefresh,
+}) {
   let inboxMessages = [];
   let selectedMessageId = null;
 
   function renderInbox() {
+    if (skipInboxRender || !els.messagesInbox) {
+      return;
+    }
+
     if (!inboxMessages.length) {
       els.messagesInbox.innerHTML = `<p class="admin-empty-note">No messages yet.</p>`;
       els.messagesDetail.innerHTML = `<p class="admin-empty-note">Select a message to read it.</p>`;
@@ -51,6 +62,10 @@ export function initStaffMessaging({ api, els, setStatus }) {
   }
 
   function renderDetail(message) {
+    if (skipInboxRender || !els.messagesDetail) {
+      return;
+    }
+
     if (!message) {
       els.messagesDetail.innerHTML = `<p class="admin-empty-note">Select a message to read it.</p>`;
       return;
@@ -131,8 +146,20 @@ export function initStaffMessaging({ api, els, setStatus }) {
       }
     }
 
-    setStatus(els.messagesStatus, `${inboxMessages.length} message(s)`);
+    if (!skipInboxRender) {
+      setStatus(els.messagesStatus, `${inboxMessages.length} message(s)`);
+    }
     await refreshUnreadBadge();
+    if (onInboxUpdated) {
+      await onInboxUpdated();
+    }
+  }
+
+  function applyStaffMessageUpdate(updated) {
+    inboxMessages = inboxMessages.map((item) => (item.id === updated.id ? updated : item));
+    if (onInboxUpdated) {
+      onInboxUpdated();
+    }
   }
 
   async function sendMessage() {
@@ -167,21 +194,32 @@ export function initStaffMessaging({ api, els, setStatus }) {
     sendMessage().catch((error) => setStatus(els.messagesStatus, error.message, true));
   });
 
-  els.messagesRefreshBtn.addEventListener("click", () => {
-    loadMessages().catch((error) => setStatus(els.messagesStatus, error.message, true));
-  });
+  if (els.messagesRefreshBtn) {
+    els.messagesRefreshBtn.addEventListener("click", () => {
+      const refresh = onRefresh ?? loadMessages;
+      refresh().catch((error) => setStatus(els.messagesStatus, error.message, true));
+    });
+  }
 
-  els.messagesInbox.addEventListener("click", (event) => {
-    const button = event.target.closest(".staff-message-item");
-    if (!button) {
-      return;
-    }
+  if (els.messagesInbox) {
+    els.messagesInbox.addEventListener("click", (event) => {
+      const button = event.target.closest(".staff-message-item");
+      if (!button) {
+        return;
+      }
 
-    const messageId = button.dataset.messageId;
-    if (messageId) {
-      selectMessage(messageId).catch((error) => setStatus(els.messagesStatus, error.message, true));
-    }
-  });
+      const messageId = button.dataset.messageId;
+      if (messageId) {
+        selectMessage(messageId).catch((error) => setStatus(els.messagesStatus, error.message, true));
+      }
+    });
+  }
 
-  return { loadMessages, refreshUnreadBadge };
+  return {
+    loadMessages,
+    refreshUnreadBadge,
+    getStaffInbox: () => inboxMessages,
+    reloadStaffInbox: loadMessages,
+    applyStaffMessageUpdate,
+  };
 }

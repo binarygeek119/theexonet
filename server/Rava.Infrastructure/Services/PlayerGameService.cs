@@ -48,7 +48,9 @@ public class PlayerGameService(
             request.Username,
             request.Email,
             request.Password,
-            request.Birthday);
+            request.Birthday,
+            request.ProfileGender,
+            request.ProfilePreferredPronouns);
         if (validationError is not null)
         {
             return (null, null, validationError);
@@ -66,6 +68,11 @@ public class PlayerGameService(
         var asteroidSeed = Random.Shared.Next(1000, 999999);
         var (mineState, starterInventory) = starterMineGenerator.Generate(playerId, asteroidSeed);
 
+        var profileGender = ProfileGender.Normalize(request.ProfileGender);
+        var profilePreferredPronouns = ProfileGender.RequiresPreferredPronouns(profileGender)
+            ? ProfilePreferredPronouns.Normalize(request.ProfilePreferredPronouns)
+            : string.Empty;
+
         var player = new PlayerEntity
         {
             Id = playerId,
@@ -76,6 +83,8 @@ public class PlayerGameService(
             CurrentGameDay = 1,
             LastProcessedUtcDate = UtcGameClock.Today,
             Birthday = birthday,
+            ProfileGender = profileGender,
+            ProfilePreferredPronouns = profilePreferredPronouns,
             ProfileNumber = await profileUpgrader.CreateUniqueProfileNumberAsync(ct)
         };
 

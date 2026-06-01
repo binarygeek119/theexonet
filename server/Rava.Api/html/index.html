@@ -44,6 +44,33 @@
         </div>
       </div>
 
+      <div id="register-profile-group" class="register-profile-group" hidden>
+        <p class="register-language-hint" data-i18n="auth.languageHint">Choose your interface language at the top of this form.</p>
+
+        <label for="register-gender-input"><span data-i18n="auth.genderRequired">Gender *</span></label>
+        <select id="register-gender-input" aria-describedby="register-gender-hint">
+          <option value="" data-i18n="profile.edit.genderSelect">Select gender…</option>
+          <option value="male" data-i18n="profile.edit.gender.male">Male</option>
+          <option value="female" data-i18n="profile.edit.gender.female">Female</option>
+          <option value="trans-female" data-i18n="profile.edit.gender.transFemale">Trans female</option>
+          <option value="trans-male" data-i18n="profile.edit.gender.transMale">Trans male</option>
+          <option value="non-binary" data-i18n="profile.edit.gender.nonBinary">Non-binary</option>
+          <option value="prefer-not-to-say" data-i18n="profile.edit.gender.preferNot">Prefer not to say</option>
+        </select>
+        <p id="register-gender-hint" class="register-field-hint" data-i18n="profile.edit.genderHint">Used to choose how we address you in game text (he/him, she/her, they/them).</p>
+
+        <div id="register-pronouns-group" hidden>
+          <label for="register-pronouns-input"><span data-i18n="auth.pronounsRequired">Preferred pronouns *</span></label>
+          <select id="register-pronouns-input">
+            <option value="" data-i18n="profile.edit.pronounsSelect">Select pronouns…</option>
+            <option value="he-him" data-i18n="profile.edit.pronouns.he">he/him</option>
+            <option value="she-her" data-i18n="profile.edit.pronouns.she">she/her</option>
+            <option value="they-them" data-i18n="profile.edit.pronouns.they">they/them</option>
+          </select>
+          <p class="register-field-hint" data-i18n="profile.edit.pronounsRequired">Required for non-binary and prefer not to say.</p>
+        </div>
+      </div>
+
       <div id="forgot-group" hidden>
         <label for="forgot-email"><span data-i18n="auth.forgotEmailRequired">Account email *</span></label>
         <input id="forgot-email" type="email" autocomplete="email" data-i18n-placeholder="auth.emailPlaceholder" placeholder="you@example.com">
@@ -670,6 +697,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260602-profile-completion"></script>
+<script type="module" src="/js/app.js?v=20260602-signup-profile"></script>
 </body>
 </html>

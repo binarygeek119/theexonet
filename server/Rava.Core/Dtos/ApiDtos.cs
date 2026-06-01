@@ -3,7 +3,13 @@ using Rava.Core.Models;
 
 namespace Rava.Core.Dtos;
 
-public record RegisterRequest(string Username, string Email, string Password, string Birthday);
+public record RegisterRequest(
+    string Username,
+    string Email,
+    string Password,
+    string Birthday,
+    string ProfileGender = "",
+    string? ProfilePreferredPronouns = null);
 public record LoginRequest(string Username, string Password);
 public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Token, string NewPassword);

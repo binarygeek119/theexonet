@@ -38,6 +38,25 @@ function profileGenderRequiresPronouns(gender) {
   return gender === "non-binary" || gender === "prefer-not-to-say";
 }
 
+function syncRegisterGenderUi() {
+  const gender = els.registerGenderInput?.value ?? "";
+  const needsPronouns = profileGenderRequiresPronouns(gender);
+  setHidden(els.registerPronounsGroup, !needsPronouns);
+  if (els.registerPronounsInput && !needsPronouns) {
+    els.registerPronounsInput.value = "";
+  }
+}
+
+function resetRegisterProfileFields() {
+  if (els.registerGenderInput) {
+    els.registerGenderInput.value = "";
+  }
+  if (els.registerPronounsInput) {
+    els.registerPronounsInput.value = "";
+  }
+  syncRegisterGenderUi();
+}
+
 function capitalizePronoun(word) {
   if (!word) {
     return "";
@@ -162,6 +181,10 @@ const els = {
   email: document.getElementById("email"),
   emailGroup: document.getElementById("email-group"),
   birthdayGroup: document.getElementById("birthday-group"),
+  registerProfileGroup: document.getElementById("register-profile-group"),
+  registerGenderInput: document.getElementById("register-gender-input"),
+  registerPronounsGroup: document.getElementById("register-pronouns-group"),
+  registerPronounsInput: document.getElementById("register-pronouns-input"),
   birthdayMonth: document.getElementById("birthday-month"),
   birthdayDay: document.getElementById("birthday-day"),
   birthdayYear: document.getElementById("birthday-year"),
@@ -420,6 +443,10 @@ function setAuthMode(mode) {
 
   els.emailGroup.hidden = !isRegister;
   els.birthdayGroup.hidden = !isRegister;
+  setHidden(els.registerProfileGroup, !isRegister);
+  if (isRegister) {
+    syncRegisterGenderUi();
+  }
   els.forgotGroup.hidden = !isForgot;
   els.resetGroup.hidden = !isReset;
   els.passwordGroup.hidden = isForgot || isReset || isBanAppeal;
@@ -3060,13 +3087,28 @@ async function authenticate(register) {
     return;
   }
 
+  const profileGender = els.registerGenderInput?.value?.trim() ?? "";
+  const profilePreferredPronouns = els.registerPronounsInput?.value?.trim() ?? "";
+  if (isRegister && !profileGender) {
+    notifyRegisterResult(t("auth.genderRequiredSignup"), "error");
+    els.registerGenderInput?.focus();
+    return;
+  }
+
+  if (isRegister && profileGenderRequiresPronouns(profileGender) && !profilePreferredPronouns) {
+    notifyRegisterResult(t("auth.pronounsRequiredSignup"), "error");
+    els.registerPronounsInput?.focus();
+    return;
+  }
+
   showLoginStatus(isRegister ? t("auth.creatingAccount") : t("auth.connecting"), "info");
   try {
     if (isRegister) {
-      await api.register(username, email, password, birthday);
+      await api.register(username, email, password, birthday, profileGender, profilePreferredPronouns);
       els.password.value = "";
       els.email.value = "";
       resetBirthdayDropdowns();
+      resetRegisterProfileFields();
       const message = t("auth.accountCreated");
       setAuthMode("login");
       notifyRegisterResult(message, "success");
@@ -3304,6 +3346,7 @@ for (const input of [
 els.toggleMode.addEventListener("click", () => {
   setAuthMode(state.authMode === "register" ? "login" : "register");
 });
+els.registerGenderInput?.addEventListener("change", syncRegisterGenderUi);
 els.loginBtn.addEventListener("click", () => authenticate(false));
 els.registerBtn.addEventListener("click", () => authenticate(true));
 els.forgotBtn.addEventListener("click", () => setAuthMode("forgot"));

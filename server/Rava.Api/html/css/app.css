@@ -109,6 +109,23 @@ select:focus {
   width: 100%;
 }
 
+.register-profile-group {
+  margin-top: 0.25rem;
+}
+
+.register-profile-group select {
+  width: 100%;
+  margin-bottom: 0.35rem;
+}
+
+.register-language-hint,
+.register-field-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--muted, #8b9cb3);
+  line-height: 1.4;
+}
+
 .btn {
   border: 0;
   border-radius: 8px;

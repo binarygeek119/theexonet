@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net.Mail;
 using System.Text.RegularExpressions;
+using Rava.Core.Constants;
 
 namespace Rava.Core.Validation;
 
@@ -10,7 +11,13 @@ public static partial class AuthValidator
     private const int MinimumAgeYears = 13;
     private const int MaximumAgeYears = 120;
 
-    public static string? ValidateRegistration(string username, string email, string password, string birthday)
+    public static string? ValidateRegistration(
+        string username,
+        string email,
+        string password,
+        string birthday,
+        string profileGender,
+        string? profilePreferredPronouns)
     {
         var usernameError = ValidateUsername(username);
         if (usernameError is not null)
@@ -30,7 +37,18 @@ public static partial class AuthValidator
             return passwordError;
         }
 
-        return ValidateBirthday(birthday);
+        var birthdayError = ValidateBirthday(birthday);
+        if (birthdayError is not null)
+        {
+            return birthdayError;
+        }
+
+        if (string.IsNullOrEmpty(ProfileGender.Normalize(profileGender)))
+        {
+            return "Gender is required.";
+        }
+
+        return ProfileValidator.ValidateGenderAndPronouns(profileGender, profilePreferredPronouns);
     }
 
     public static string? ValidateBirthday(string birthday)

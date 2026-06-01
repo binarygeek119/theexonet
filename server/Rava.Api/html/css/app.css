@@ -319,6 +319,36 @@ select:focus {
   align-items: center;
 }
 
+.rax-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.rax-icon {
+  width: 1em;
+  height: 1.35em;
+  object-fit: contain;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.rax-amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.rax-name {
+  color: var(--muted);
+  font-size: 0.92em;
+  margin-left: 0.15rem;
+}
+
+.rax-hud-balance .rax-icon {
+  width: 1.1em;
+  height: 1.45em;
+}
+
 .utc-clock {
   color: var(--muted);
   font-size: 0.9rem;

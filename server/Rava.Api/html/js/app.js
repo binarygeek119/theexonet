@@ -1,9 +1,20 @@
 import { RavaApi } from "./api.js";
 import { GRID_SIZE, ORE_TYPES, SUPPLY_TYPES, API_BASE_URL } from "./config.js";
+import {
+  formatRaxHtml,
+  formatRaxPlain,
+  formatRewardAmount,
+  setRaxHtml,
+  RAX_NAME,
+} from "./currency.js";
 import { initPlayerMessaging } from "./player-messages.js";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
 
 const api = new RavaApi(API_BASE_URL);
+
+function formatRaxLabelLine(label, value) {
+  return `${label}: ${formatRaxHtml(value)}`;
+}
 
 let tradeOreTypes = { ...ORE_TYPES };
 let tradeSupplyTypes = { ...SUPPLY_TYPES };
@@ -795,7 +806,7 @@ function renderCompanyNameListingControls(profile) {
 
   if (listed) {
     els.profileCompanyListPrice.value = String(profile.companyNameListingPrice ?? "");
-    els.profileCompanyListStatus.textContent = `Listed in the Store for ${Number(profile.companyNameListingPrice ?? 0).toLocaleString()} credits.`;
+    els.profileCompanyListStatus.textContent = `Listed in the Store for ${formatRaxPlain(profile.companyNameListingPrice ?? 0)}.`;
     els.profileCompanyListStatus.classList.add("success");
   } else {
     els.profileCompanyListStatus.textContent = "";
@@ -868,7 +879,7 @@ async function regenerateCompanyName() {
 async function listCompanyNameForSale() {
   const price = Number(els.profileCompanyListPrice.value);
   if (!Number.isFinite(price) || price < 1) {
-    els.profileCompanyListStatus.textContent = "Enter a listing price of at least 1 credit.";
+    els.profileCompanyListStatus.textContent = `Enter a listing price of at least 1 ${RAX_NAME.toLowerCase()}.`;
     els.profileCompanyListStatus.classList.add("error");
     return;
   }
@@ -938,7 +949,7 @@ async function loadStoreCompanyNames() {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "shop-btn";
-      button.innerHTML = `<strong>${listing.companyName}</strong><span>Seller: ${listing.sellerUsername} · ${Number(listing.price).toLocaleString()} cr</span>`;
+      button.innerHTML = `<strong>${listing.companyName}</strong><span>Seller: ${listing.sellerUsername} · ${formatRaxHtml(listing.price)}</span>`;
       button.addEventListener("click", () => {
         purchaseCompanyNameListing(listing.id).catch((error) => {
           els.storeCompanyNameStatus.textContent = error.message;
@@ -1024,7 +1035,7 @@ function renderProfile(profile) {
   els.profileSocialView.classList.toggle("empty", !hasSocialLinks(profile));
   els.profileMineName.textContent = profile.mineName ?? "---";
   els.profileGameDay.textContent = String(profile.currentGameDay ?? "---");
-  els.profileCredits.textContent = Number(profile.credits ?? 0).toLocaleString();
+  setRaxHtml(els.profileCredits, profile.credits ?? 0);
   els.profileWorkers.textContent = String(profile.workerCount ?? 0);
   els.profileZones.textContent = String(profile.zoneCount ?? 0);
 
@@ -1704,7 +1715,7 @@ function renderHud() {
   }
 
   els.playerName.textContent = api.username ?? "Commander";
-  els.credits.textContent = `Credits: ${Number(mine.credits).toFixed(0)}`;
+  setRaxHtml(els.credits, mine.credits ?? 0);
   els.day.textContent = `Day ${mine.currentGameDay}`;
   updateUtcClockDisplay();
 }
@@ -1825,10 +1836,10 @@ function renderFinancePanel() {
   }
 
   els.financeSummary.innerHTML = [
-    `Credits: ${Number(finances.credits).toFixed(0)}`,
-    `Daily Payroll: ${Number(finances.dailyPayroll).toFixed(0)}`,
-    `Daily Supply Cost: ${Number(finances.dailySupplyCost).toFixed(0)}`,
-    `Est. Daily Income: ${Number(finances.estimatedDailyIncome).toFixed(0)}`,
+    formatRaxLabelLine("Balance", finances.credits),
+    formatRaxLabelLine("Daily Payroll", finances.dailyPayroll),
+    formatRaxLabelLine("Daily Supply Cost", finances.dailySupplyCost),
+    formatRaxLabelLine("Est. Daily Income", finances.estimatedDailyIncome),
     `Runway: ${formatRunway(finances.runwayDays)} days`,
     finances.isSoftlocked ? "<strong class='danger'>SOFTLOCKED — Use emergency buyback!</strong>" : "",
   ]
@@ -1841,7 +1852,10 @@ function renderFinancePanel() {
   for (const tx of (finances.recentTransactions ?? []).slice(0, 8)) {
     const line = document.createElement("div");
     const sign = Number(tx.amount) >= 0 ? "+" : "";
-    line.textContent = `Day ${tx.gameDay}: ${sign}${Number(tx.amount).toFixed(0)} — ${tx.description}`;
+    line.append(`Day ${tx.gameDay}: `);
+    const amountWrap = document.createElement("span");
+    amountWrap.innerHTML = `${sign}${formatRaxHtml(tx.amount)}`;
+    line.append(amountWrap, ` — ${tx.description ?? ""}`);
     els.financeTransactions.appendChild(line);
   }
 }
@@ -1865,7 +1879,7 @@ function formatActiveMarketBonuses(market) {
 
   const parts = [];
   if (Number(bonuses.saleBonusPercent) > 0) {
-    parts.push(`+${Number(bonuses.saleBonusPercent)}% sale credits`);
+    parts.push(`+${Number(bonuses.saleBonusPercent)}% sale ${RAX_NAME.toLowerCase()}`);
   }
   if (Number(bonuses.tradeBonusPercent) > 0) {
     parts.push(`+${Number(bonuses.tradeBonusPercent)}% trade rebate`);
@@ -1897,7 +1911,7 @@ function renderStorePanel() {
     button.type = "button";
     button.className = "shop-btn";
     button.style.borderColor = meta.color;
-    button.innerHTML = `<strong>Buy ${meta.displayName}</strong><span>${price.toFixed(0)} cr · Stock: ${stock.toFixed(0)}</span>`;
+    button.innerHTML = `<strong>Buy ${meta.displayName}</strong><span>${formatRaxHtml(price)} · Stock: ${stock.toFixed(0)}</span>`;
     button.addEventListener("click", () => buySupply(type));
     els.storeSupplyList.appendChild(button);
   }
@@ -1938,7 +1952,7 @@ function renderShippingPanel() {
     button.type = "button";
     button.className = "shop-btn";
     button.style.borderColor = meta.color;
-    button.innerHTML = `<strong>Ship ${meta.displayName}</strong><span>${salePrice.toFixed(0)} cr/u · Qty: ${stock.toFixed(1)}</span>`;
+    button.innerHTML = `<strong>Ship ${meta.displayName}</strong><span>${formatRaxHtml(salePrice)}/u · Qty: ${stock.toFixed(1)}</span>`;
     button.addEventListener("click", () => shipCargo(type, stock));
     els.shippingCargoList.appendChild(button);
   }
@@ -1964,7 +1978,7 @@ function renderSupplyPanel() {
     button.type = "button";
     button.className = "shop-btn";
     button.style.borderColor = meta.color;
-    button.innerHTML = `<strong>${meta.displayName}</strong><span>${price.toFixed(0)} cr · Stock: ${stock.toFixed(0)}</span>`;
+    button.innerHTML = `<strong>${meta.displayName}</strong><span>${formatRaxHtml(price)} · Stock: ${stock.toFixed(0)}</span>`;
     button.addEventListener("click", () => buySupply(type));
     els.supplyList.appendChild(button);
   }
@@ -1980,7 +1994,7 @@ function renderSupplyPanel() {
     button.type = "button";
     button.className = "shop-btn";
     button.style.borderColor = meta.color;
-    button.innerHTML = `<strong>Sell ${meta.displayName}</strong><span>${salePrice.toFixed(0)} cr/u · Qty: ${stock.toFixed(1)}</span>`;
+    button.innerHTML = `<strong>Sell ${meta.displayName}</strong><span>${formatRaxHtml(salePrice)}/u · Qty: ${stock.toFixed(1)}</span>`;
     button.addEventListener("click", () => sellOre(type, stock));
     els.oreList.appendChild(button);
   }
@@ -2003,7 +2017,7 @@ function formatEventRewardLabel(reward) {
   const amount = Number(reward.amount ?? 0);
   const itemType = reward.itemType ?? "";
   if ((reward.category ?? itemType).toLowerCase() === "credits") {
-    return `${amount.toLocaleString()} credits`;
+    return formatRaxPlain(amount);
   }
   const meta = reward.category === "Supply"
     ? supplyMeta(itemType)
@@ -2017,7 +2031,7 @@ function formatAnnouncementReward(reward) {
   const amount = Number(reward.amount ?? 0);
   const itemType = reward.itemType ?? "";
   if (itemType.toLowerCase() === "credits") {
-    return `${amount.toLocaleString()} credits`;
+    return formatRaxPlain(amount);
   }
   const meta = tradeOreTypes[itemType] ?? tradeSupplyTypes[itemType];
   const name = meta?.displayName ?? itemType;

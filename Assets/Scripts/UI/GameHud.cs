@@ -12,6 +12,7 @@ namespace Rava.UI
     {
         private GameSession _session;
         private Text _creditsText;
+        private Image _raxIcon;
         private Text _dayText;
         private Text _utcText;
         private Text _statusText;
@@ -59,9 +60,25 @@ namespace Rava.UI
             statsRect.offsetMin = Vector2.zero;
             statsRect.offsetMax = Vector2.zero;
 
-            _creditsText = UIFactory.CreateText(statsBar.transform, "Credits", "Credits: ---", 18, TextAnchor.MiddleLeft);
+            _raxIcon = CurrencyFormat.CreateIcon(statsBar.transform, 20f);
+            if (_raxIcon != null)
+            {
+                var iconRect = _raxIcon.rectTransform;
+                iconRect.anchorMin = new Vector2(0.02f, 0.15f);
+                iconRect.anchorMax = new Vector2(0.02f, 0.85f);
+                iconRect.pivot = new Vector2(0f, 0.5f);
+                iconRect.anchoredPosition = Vector2.zero;
+                iconRect.sizeDelta = new Vector2(22f, 26f);
+            }
+
+            _creditsText = UIFactory.CreateText(
+                statsBar.transform,
+                "Rax",
+                _raxIcon != null ? "---" : $"{CurrencyFormat.Name}: ---",
+                18,
+                TextAnchor.MiddleLeft);
             var creditsRect = _creditsText.rectTransform;
-            creditsRect.anchorMin = new Vector2(0.02f, 0.1f);
+            creditsRect.anchorMin = new Vector2(_raxIcon != null ? 0.055f : 0.02f, 0.1f);
             creditsRect.anchorMax = new Vector2(0.28f, 0.9f);
             creditsRect.offsetMin = Vector2.zero;
             creditsRect.offsetMax = Vector2.zero;
@@ -159,7 +176,9 @@ namespace Rava.UI
 
         private void RefreshHud(MineDetailResponse mine)
         {
-            _creditsText.text = $"Credits: {mine.credits:F0}";
+            _creditsText.text = _raxIcon != null
+                ? CurrencyFormat.FormatAmountOnly(mine.credits)
+                : CurrencyFormat.FormatLabel(mine.credits);
             _dayText.text = $"Day {mine.currentGameDay}";
 
             if (!string.IsNullOrEmpty(mine.nextDayAtUtc)

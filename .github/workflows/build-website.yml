@@ -396,6 +396,7 @@ jobs:
             ensure_dir "$api_host" "$DEPLOY_API_PATH" "publish"
             ensure_dir "$api_host" "${DEPLOY_API_PATH}/html" "publish html"
             ensure_dir "$api_host" "${DEPLOY_API_PATH}/html/images/profile" "profile uploads"
+            ensure_dir "$api_host" "${DEPLOY_API_PATH}/html/images/profile-backgrounds" "profile background uploads"
             ensure_dir "$api_host" "${DEPLOY_API_PATH}/.aspnet" "aspnet keys"
           else
             ensure_dir "$www_host" "$DEPLOY_WWW_PATH" "www"
@@ -445,11 +446,14 @@ jobs:
             --filter 'P status-runtime.json'
             --filter 'P html/images/profile/'
             --filter 'P html/images/profile/***'
+            --filter 'P html/images/profile-backgrounds/'
+            --filter 'P html/images/profile-backgrounds/***'
             --filter 'P .aspnet/'
             --filter 'P .aspnet/***'
             --exclude 'appsettings.json'
             --exclude 'appsettings.Development.json'
             --exclude 'html/images/profile/'
+            --exclude 'html/images/profile-backgrounds/'
             --exclude 'server-runtime.json'
             --exclude 'status-runtime.json'
           )

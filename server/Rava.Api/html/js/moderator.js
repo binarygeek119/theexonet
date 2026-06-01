@@ -6,6 +6,11 @@ import { initStaffPlayerMessaging } from "./staff-player-messages.js";
 import { initStaffPlayerInbox } from "./staff-player-inbox.js";
 import { initFlaggedMessages } from "./flagged-messages.js";
 import { renderSocialLinksHtml } from "./profile-social.js";
+import {
+  formatRaxHtml,
+  setRaxHtml,
+  RAX_NAME,
+} from "./currency.js";
 
 const api = new RavaApi(API_BASE_URL);
 
@@ -147,10 +152,7 @@ function setStatus(el, message, isError = false) {
 }
 
 function formatCredits(value) {
-  return Number(value ?? 0).toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
+  return formatRaxHtml(value);
 }
 
 function formatDate(value) {
@@ -178,8 +180,8 @@ function renderStats(dashboard) {
     ["Mines", dashboard.mineCount],
     ["Friendships", dashboard.friendshipCount],
     ["Game day", dashboard.currentGameDay],
-    ["Total credits", formatCredits(dashboard.totalCredits)],
-    ["Sign-up credits", formatCredits(dashboard.signUpCredits)],
+    [`Total ${RAX_NAME}`, formatCredits(dashboard.totalCredits)],
+    [`Sign-up ${RAX_NAME}`, formatCredits(dashboard.signUpCredits)],
     ["Birthday bonus", formatCredits(dashboard.birthdayBonus)],
   ];
 
@@ -257,7 +259,7 @@ function renderPlayerProfile(profile) {
   els.profileEmailStat.textContent = profile.email || "—";
   els.profileBirthday.textContent = formatBirthday(profile.birthday);
   els.profileTheme.textContent = profile.theme || "classic";
-  els.profileCredits.textContent = formatCredits(profile.credits);
+  setRaxHtml(els.profileCredits, profile.credits);
   els.profileGameDay.textContent = String(profile.currentGameDay ?? "—");
   els.profileMine.textContent = profile.mineName || "—";
   els.profileWorkers.textContent = String(profile.workerCount ?? 0);

@@ -95,7 +95,7 @@ namespace Rava.UI
         private void Refresh(FinanceResponse finances)
         {
             _summaryText.text =
-                $"Credits: {finances.credits:F0}\n" +
+                $"{CurrencyFormat.FormatLabel(finances.credits)}\n" +
                 $"Daily Payroll: {finances.dailyPayroll:F0}\n" +
                 $"Daily Supply Cost: {finances.dailySupplyCost:F0}\n" +
                 $"Est. Daily Income: {finances.estimatedDailyIncome:F0}\n" +

@@ -164,7 +164,7 @@ namespace Rava.UI
             _statsText.text =
                 $"{profile.username}\n" +
                 $"Mine: {profile.mineName}\n" +
-                $"Day {profile.currentGameDay}  ·  Credits {profile.credits:F0}\n" +
+                $"Day {profile.currentGameDay}  ·  {CurrencyFormat.FormatAmount(profile.credits)}\n" +
                 $"Workers {profile.workerCount}  ·  Zones {profile.zoneCount}";
 
             _moodInput.text = profile.mood ?? string.Empty;

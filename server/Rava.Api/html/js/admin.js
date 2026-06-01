@@ -6,6 +6,13 @@ import { initStaffPlayerMessaging } from "./staff-player-messages.js";
 import { initStaffPlayerInbox } from "./staff-player-inbox.js";
 import { initFlaggedMessages } from "./flagged-messages.js";
 import { renderSocialLinksHtml } from "./profile-social.js";
+import {
+  formatRaxHtml,
+  formatRaxPlain,
+  setRaxHtml,
+  RAX_NAME,
+  formatRewardAmount,
+} from "./currency.js";
 
 const api = new RavaApi(API_BASE_URL);
 
@@ -215,10 +222,7 @@ function setStatus(el, message, isError = false) {
 }
 
 function formatCredits(value) {
-  return Number(value ?? 0).toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
+  return formatRaxHtml(value);
 }
 
 function formatDate(value) {
@@ -269,8 +273,8 @@ function renderStats(dashboard) {
     ["Mines", dashboard.mineCount],
     ["Friendships", dashboard.friendshipCount],
     ["Game day", dashboard.currentGameDay],
-    ["Total credits", formatCredits(dashboard.totalCredits)],
-    ["Sign-up credits", formatCredits(dashboard.signUpCredits)],
+    [`Total ${RAX_NAME}`, formatCredits(dashboard.totalCredits)],
+    [`Sign-up ${RAX_NAME}`, formatCredits(dashboard.signUpCredits)],
     ["Birthday bonus", formatCredits(dashboard.birthdayBonus)],
   ];
 
@@ -348,7 +352,7 @@ function renderAdminProfile(profile) {
   els.profileEmailStat.textContent = profile.email || "—";
   els.profileBirthday.textContent = formatBirthday(profile.birthday);
   els.profileTheme.textContent = profile.theme || "classic";
-  els.profileCredits.textContent = formatCredits(profile.credits);
+  setRaxHtml(els.profileCredits, profile.credits);
   els.profileGameDay.textContent = String(profile.currentGameDay ?? "—");
   els.profileMine.textContent = profile.mineName || "—";
   els.profileWorkers.textContent = String(profile.workerCount ?? 0);
@@ -725,7 +729,7 @@ function renderCreditsTable(players) {
               min="0"
               step="0.01"
               value="${Number(player.credits)}"
-              aria-label="New credits for ${escapeHtml(player.username)}">
+              aria-label="New ${RAX_NAME} balance for ${escapeHtml(player.username)}">
           </td>
           <td>
             <div class="admin-row-actions">
@@ -781,19 +785,14 @@ function toUtcIsoFromLocalInput(value) {
 }
 
 function formatEventReward(reward) {
-  const amount = Number(reward.amount ?? 0);
-  const itemType = reward.itemType ?? "";
-  if (itemType.toLowerCase() === "credits") {
-    return `${amount.toLocaleString()} credits`;
-  }
-  return `${amount.toLocaleString()} ${itemType}`;
+  return formatRewardAmount(reward.itemType ?? "", reward.amount ?? 0);
 }
 
 function addEventRewardRow(itemType = "", amount = "") {
   const row = document.createElement("div");
   row.className = "admin-event-reward-row";
   row.innerHTML = `
-    <input type="text" class="admin-event-reward-item" placeholder="Item type (e.g. Credits)" value="${escapeHtml(itemType)}" required>
+    <input type="text" class="admin-event-reward-item" placeholder="Item type (Credits = ${RAX_NAME})" value="${escapeHtml(itemType)}" required>
     <input type="number" class="admin-event-reward-amount" min="0.01" step="0.1" placeholder="Amount" value="${escapeHtml(amount)}" required>
     <button type="button" class="btn ghost admin-event-reward-remove">Remove</button>
   `;
@@ -970,7 +969,7 @@ async function saveGameCreditsConfig() {
   const companyNameReclaimFee = Number(els.gameCreditsReclaim.value);
 
   if (!Number.isFinite(signUp) || signUp < 0) {
-    setGameCreditsStatus("Enter a valid sign-up credits amount.", true);
+    setGameCreditsStatus(`Enter a valid sign-up ${RAX_NAME.toLowerCase()} amount.`, true);
     return;
   }
 
@@ -1187,20 +1186,20 @@ async function saveCreditsForRow(row, statusEl) {
 
   const credits = Number(input.value);
   if (!Number.isFinite(credits) || credits < 0) {
-    setStatus(statusEl, "Enter a valid non-negative credit amount.", true);
+    setStatus(statusEl, `Enter a valid non-negative ${RAX_NAME.toLowerCase()} amount.`, true);
     return;
   }
 
   button.disabled = true;
-  setStatus(statusEl, "Saving credits…");
+  setStatus(statusEl, `Saving ${RAX_NAME}…`);
   try {
     const updated = await api.adminSetCredits(playerId, credits);
     input.value = Number(updated.credits);
     const currentCell = row.querySelector(".admin-credits-current");
     if (currentCell) {
-      currentCell.textContent = formatCredits(updated.credits);
+      currentCell.innerHTML = formatCredits(updated.credits);
     }
-    setStatus(statusEl, `Updated credits for ${updated.username}.`);
+    setStatus(statusEl, `Updated ${RAX_NAME} for ${updated.username}.`);
     state.dashboard = await api.adminDashboard();
     renderStats(state.dashboard);
   } catch (error) {

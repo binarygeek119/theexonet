@@ -16,6 +16,7 @@ When a build on `main` succeeds, GitHub Actions can deploy automatically:
 ```bash
 sudo mkdir -p /var/www/publish
 sudo mkdir -p /var/www/publish/html/images/profile
+sudo mkdir -p /var/www/publish/html/images/profile-backgrounds
 sudo mkdir -p /var/www/publish/.aspnet
 # Use the same user as User= in your systemd units (www-data is typical with Apache):
 sudo chown -R www-data:www-data /var/www/publish
@@ -53,16 +54,17 @@ dotnet --list-runtimes
 
    **Connection string:** use the same PostgreSQL host, database name, username, and password that work from your dev machine. If Postgres runs on another machine (e.g. `192.168.1.2`), do **not** use `Host=localhost` unless Postgres is installed on the API server itself. The API server must be able to reach the DB host on port 5432.
 
-   **Upload folder permissions** — the API creates `html/images/profile/` at startup. The systemd service user must own (or be able to write to) `/var/www/publish`:
+   **Upload folder permissions** — the API creates `html/images/profile/` and `html/images/profile-backgrounds/` at startup. The systemd service user must own (or be able to write to) `/var/www/publish`:
 
 ```bash
-sudo mkdir -p /var/www/publish/html/images/profile
+sudo mkdir -p /var/www/publish/html/images/profile \
+               /var/www/publish/html/images/profile-backgrounds
 sudo chown -R www-data:www-data /var/www/publish
 ```
 
    Use the same username as `User=` in your systemd units (`www-data`, your login user, or omit `User=` to run as root — not recommended for production).
 
-   The API resolves paths from the folder containing `Rava.Api.dll`. With `WorkingDirectory=/var/www/publish`, uploads are written to **`/var/www/publish/html/images/profile/`** (URL path `/images/profile/...`).
+   The API resolves paths from the folder containing `Rava.Api.dll`. With `WorkingDirectory=/var/www/publish`, uploads are written to **`/var/www/publish/html/images/profile/`** (avatars) and **`/var/www/publish/html/images/profile-backgrounds/`** (banner backgrounds). URL paths are `/images/profile/...` and `/images/profile-backgrounds/...`.
 
 4. Optional: systemd unit for the API — copy from `scripts/systemd/rava-api.service` or create `/etc/systemd/system/rava-api.service`:
 
@@ -402,7 +404,7 @@ Add the matching **public** key to `~/.ssh/authorized_keys` on the server.
 
 ## What deploy does
 
-1. **publish** — `rsync` from the `dotnet publish` artifact to `DEPLOY_API_PATH` (mirrors deletes except protected paths: `appsettings.json`, `html/images/profile/`, `.aspnet/`). The bundle includes an `html/` folder (game UI + avatar uploads path). Deploy never overwrites production secrets in `appsettings.json`.
+1. **publish** — `rsync` from the `dotnet publish` artifact to `DEPLOY_API_PATH` (mirrors deletes except protected paths: `appsettings.json`, `html/images/profile/`, `html/images/profile-backgrounds/`, `.aspnet/`). The bundle includes an `html/` folder (game UI + upload paths). Deploy never overwrites production secrets in `appsettings.json`.
 2. **html** — skipped when `DEPLOY_WWW_PATH` equals `DEPLOY_API_PATH` (or `${DEPLOY_API_PATH}/html`); game files ship inside `publish/html/`. A separate html rsync only runs when www and api paths differ (legacy `/var/www/rava` layout).
 3. **Restart** — runs `sudo systemctl restart` for API, status, admin, moderator, and docs services when configured.
 
@@ -420,11 +422,14 @@ rsync -av --delete \
   --filter 'P status-runtime.json' \
   --filter 'P html/images/profile/' \
   --filter 'P html/images/profile/***' \
+  --filter 'P html/images/profile-backgrounds/' \
+  --filter 'P html/images/profile-backgrounds/***' \
   --filter 'P .aspnet/' \
   --filter 'P .aspnet/***' \
   --exclude 'appsettings.json' \
   --exclude 'appsettings.Development.json' \
   --exclude 'html/images/profile/' \
+  --exclude 'html/images/profile-backgrounds/' \
   --exclude 'server-runtime.json' \
   --exclude 'status-runtime.json' \
   ./publish/ /var/www/publish/

@@ -68,7 +68,7 @@
         Flagged
         <span id="admin-flagged-nav-badge" class="admin-nav-badge" hidden>0</span>
       </button>
-      <button type="button" class="admin-nav-btn" data-admin-page="credits">Credits</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="credits">Rax</button>
       <button type="button" class="admin-nav-btn" data-admin-page="events">Events</button>
     </nav>
 
@@ -96,7 +96,7 @@
                 <tr>
                   <th>Username</th>
                   <th>Email</th>
-                  <th>Credits</th>
+                  <th>Rax</th>
                   <th>Mines</th>
                   <th>Joined</th>
                   <th>Status</th>
@@ -222,20 +222,20 @@
         <section class="admin-panel">
           <div class="admin-panel-head">
             <div>
-              <h2>Game credits</h2>
-              <p class="admin-page-desc">Edit <code>credits.csv</code> — sign-up, birthday bonus, and company name reclaim fee. Opens in Excel or Google Sheets.</p>
+              <h2>Game Rax settings</h2>
+              <p class="admin-page-desc">Edit <code>credits.csv</code> — sign-up Rax, birthday bonus, and company name reclaim fee. Opens in Excel or Google Sheets.</p>
             </div>
           </div>
           <p id="admin-game-credits-path" class="admin-page-desc admin-config-path"></p>
           <form id="admin-game-credits-form" class="admin-config-form">
-            <label for="admin-game-credits-signup">Sign-up credits</label>
+            <label for="admin-game-credits-signup">Sign-up Rax</label>
             <input id="admin-game-credits-signup" type="number" min="0" step="1" required>
             <label for="admin-game-credits-birthday">Birthday bonus</label>
             <input id="admin-game-credits-birthday" type="number" min="0" step="1" required>
             <label for="admin-game-credits-reclaim">Company name reclaim fee</label>
             <input id="admin-game-credits-reclaim" type="number" min="0" step="1" required>
             <div class="admin-config-actions">
-              <button id="admin-game-credits-save-btn" type="submit" class="btn primary">Save credits file</button>
+              <button id="admin-game-credits-save-btn" type="submit" class="btn primary">Save config file</button>
               <button id="admin-game-credits-reset-btn" type="button" class="btn ghost">Reset</button>
             </div>
           </form>
@@ -246,7 +246,7 @@
           <div class="admin-panel-head">
             <div>
               <h2>Player balances</h2>
-              <p class="admin-page-desc">Search players and set individual credit balances.</p>
+              <p class="admin-page-desc">Search players and set individual Rax balances.</p>
             </div>
             <div class="admin-search-row">
               <input id="admin-credits-search" type="search" placeholder="Search username, email, profile #">
@@ -320,17 +320,17 @@
 
             <div class="admin-event-rewards-head">
               <h3>Market bonuses</h3>
-              <p class="admin-page-desc">Extra credits while the event is active. Percentages stack if multiple events overlap.</p>
+              <p class="admin-page-desc">Extra Rax while the event is active. Percentages stack if multiple events overlap.</p>
             </div>
-            <label for="admin-event-sale-bonus">Sale bonus (% extra credits on ore sales)</label>
+            <label for="admin-event-sale-bonus">Sale bonus (% extra Rax on ore sales)</label>
             <input id="admin-event-sale-bonus" type="number" min="0" max="100" step="0.1" value="0">
 
-            <label for="admin-event-trade-bonus">Trade bonus (% credits back on supply purchases)</label>
+            <label for="admin-event-trade-bonus">Trade bonus (% Rax back on supply purchases)</label>
             <input id="admin-event-trade-bonus" type="number" min="0" max="100" step="0.1" value="0">
 
             <div class="admin-event-rewards-head">
               <h3>Challenge rewards</h3>
-              <p class="admin-page-desc">Item type examples: Credits, Ferroxite, DrillBits, FuelCells</p>
+              <p class="admin-page-desc">Item type examples: Credits (= Rax), Ferroxite, DrillBits, FuelCells</p>
             </div>
             <div id="admin-event-rewards" class="admin-event-rewards"></div>
             <button id="admin-event-add-reward-btn" type="button" class="btn ghost">Add reward</button>
@@ -394,7 +394,7 @@
             <dd id="admin-profile-birthday">—</dd>
             <dt>Theme</dt>
             <dd id="admin-profile-theme">—</dd>
-            <dt>Credits</dt>
+            <dt>Rax</dt>
             <dd id="admin-profile-credits">—</dd>
             <dt>Game day</dt>
             <dd id="admin-profile-game-day">—</dd>

@@ -172,10 +172,11 @@ catch (Exception ex)
 }
 
 app.Logger.LogInformation(
-    "Content root: {ContentRoot}. Web root: {WebRoot}. Profile uploads: {UploadPath}",
+    "Content root: {ContentRoot}. Web root: {WebRoot}. Profile uploads: {AvatarPath}. Profile backgrounds: {BackgroundPath}",
     contentRootPath,
     webRootPath,
-    Path.Combine(webRootPath, ProfileAvatarStorageOptions.RelativeFolder));
+    Path.Combine(webRootPath, ProfileAvatarStorageOptions.RelativeFolder),
+    Path.Combine(webRootPath, ProfileBackgroundStorageOptions.RelativeFolder));
 
 try
 {

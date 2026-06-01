@@ -1,0 +1,130 @@
+name: Deploy game html
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "server/Rava.Api/html/**"
+      - "scripts/deploy-html.sh"
+      - ".github/workflows/deploy-html.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-html:
+    name: Sync html to server
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST || secrets.DEPLOY_HOST || 'binarygeek119.duckdns.org' }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER || secrets.DEPLOY_USER || 'root' }}
+      DEPLOY_SSH_PORT: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
+      DEPLOY_API_PATH: ${{ vars.DEPLOY_API_PATH || secrets.DEPLOY_API_PATH || '/var/www/publish' }}
+      DEPLOY_API_HOST: ${{ vars.DEPLOY_API_HOST || secrets.DEPLOY_API_HOST || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate web JavaScript
+        run: |
+          node --check server/Rava.Api/html/js/api.js
+          node --check server/Rava.Api/html/js/app.js
+          node --check server/Rava.Api/html/js/exonet.js
+
+      - name: Detect deploy auth method
+        id: auth
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -n "$DEPLOY_SSH_KEY" ]; then
+            echo "method=key" >> "$GITHUB_OUTPUT"
+          elif [ -n "$DEPLOY_SSH_PASSWORD" ]; then
+            echo "method=password" >> "$GITHUB_OUTPUT"
+          else
+            echo "Configure DEPLOY_SSH_KEY or DEPLOY_SSH_PASSWORD in repository secrets." >&2
+            exit 1
+          fi
+
+      - name: Setup SSH (key)
+        if: steps.auth.outputs.method == 'key'
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Setup SSH (password)
+        if: steps.auth.outputs.method == 'password'
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Normalize deploy settings
+        run: |
+          set -euo pipefail
+          normalize_host() {
+            local h="${1:-}"
+            h="${h#https://}"
+            h="${h#http://}"
+            h="${h%%/*}"
+            h="${h%%:*}"
+            h="$(printf '%s' "$h" | tr -d '[:space:]')"
+            printf '%s' "$h"
+          }
+          host="$(normalize_host "$DEPLOY_HOST")"
+          api_host="$(normalize_host "${DEPLOY_API_HOST:-}")"
+          [ -n "$host" ] || { echo "DEPLOY_HOST is empty." >&2; exit 1; }
+          echo "DEPLOY_HOST=$host" >> "$GITHUB_ENV"
+          echo "DEPLOY_API_HOST=$api_host" >> "$GITHUB_ENV"
+          port="$(printf '%s' "$DEPLOY_SSH_PORT" | tr -d '[:space:]')"
+          echo "DEPLOY_SSH_PORT=$port" >> "$GITHUB_ENV"
+          path="$(printf '%s' "$DEPLOY_API_PATH" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's:/*$::')"
+          [ "$path" = "/var/www" ] && { echo "Use /var/www/publish, not /var/www." >&2; exit 1; }
+          echo "DEPLOY_API_PATH=$path" >> "$GITHUB_ENV"
+
+      - name: Add SSH host key
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          ssh-keyscan -T 15 -H -p "$DEPLOY_SSH_PORT" "$host" >> ~/.ssh/known_hosts
+
+      - name: Deploy game html
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${api_host}"
+          target="${remote}:${DEPLOY_API_PATH}/html/"
+          html_rsync_args=(
+            -avz
+            --filter 'P images/profile/'
+            --filter 'P images/profile/***'
+            --filter 'P images/profile-backgrounds/'
+            --filter 'P images/profile-backgrounds/***'
+            --filter 'P exonet/offworld-news/editions/'
+            --filter 'P exonet/offworld-news/editions/***'
+            --filter 'P exonet/offworld-news/images/'
+            --filter 'P exonet/offworld-news/images/***'
+            --exclude 'uploads/'
+            --exclude 'images/profile/'
+            --exclude 'images/profile-backgrounds/'
+            --exclude 'exonet/offworld-news/editions/'
+            --exclude 'exonet/offworld-news/images/'
+          )
+          echo "Deploying server/Rava.Api/html/ to ${target}"
+          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+            rsync "${html_rsync_args[@]}" \
+              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              server/Rava.Api/html/ \
+              "$target"
+          else
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${html_rsync_args[@]}" \
+              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              server/Rava.Api/html/ \
+              "$target"
+          fi
+          echo "Done. Hard-refresh the game site and verify /js/api.js line 1 contains 'RAVA web API client'."

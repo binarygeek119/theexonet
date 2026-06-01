@@ -14,91 +14,100 @@
   <div id="login-screen" class="screen">
     <div id="auth-toast" class="auth-toast" hidden role="status" aria-live="polite"></div>
     <div class="login-card">
-      <h1>RAVA</h1>
-      <p class="subtitle">Reactive Asteroid Venturing Agency</p>
-      <p class="tagline">Point-and-click asteroid mining</p>
+      <label class="locale-select-label" for="locale-select-login">
+        <span data-i18n="locale.label">Language</span>
+        <select id="locale-select-login" data-locale-select class="locale-select" aria-label="Language"></select>
+      </label>
+      <h1 data-i18n="auth.title">RAVA</h1>
+      <p class="subtitle" data-i18n="auth.subtitle">Reactive Asteroid Venturing Agency</p>
+      <p class="tagline" data-i18n="auth.tagline">Point-and-click asteroid mining</p>
 
       <div id="username-group">
-        <label for="username">Username</label>
-        <input id="username" type="text" autocomplete="username" placeholder="Username">
+        <label for="username" data-i18n="auth.username">Username</label>
+        <input id="username" type="text" autocomplete="username" data-i18n-placeholder="auth.usernamePlaceholder" placeholder="Username">
       </div>
 
       <div id="email-group" hidden>
-        <label for="email">Email <span class="required">*</span></label>
-        <input id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+        <label for="email"><span data-i18n="auth.emailRequired">Email *</span></label>
+        <input id="email" type="email" autocomplete="email" data-i18n-placeholder="auth.emailPlaceholder" placeholder="you@example.com" required>
       </div>
 
       <div id="birthday-group" hidden>
-        <label>Birthday <span class="required">*</span></label>
+        <label><span data-i18n="auth.birthdayRequired">Birthday *</span></label>
         <div class="birthday-selects">
-          <input id="birthday-month" list="birthday-month-options" placeholder="Month" autocomplete="bday-month" aria-label="Birth month">
+          <input id="birthday-month" list="birthday-month-options" data-i18n-placeholder="auth.birthMonthPlaceholder" placeholder="Month" autocomplete="bday-month" data-i18n-aria-label="auth.birthMonth">
           <datalist id="birthday-month-options"></datalist>
-          <input id="birthday-day" list="birthday-day-options" placeholder="Day" autocomplete="bday-day" inputmode="numeric" aria-label="Birth day">
+          <input id="birthday-day" list="birthday-day-options" data-i18n-placeholder="auth.birthDayPlaceholder" placeholder="Day" autocomplete="bday-day" inputmode="numeric" data-i18n-aria-label="auth.birthDay">
           <datalist id="birthday-day-options"></datalist>
-          <input id="birthday-year" list="birthday-year-options" placeholder="Year" autocomplete="bday-year" inputmode="numeric" aria-label="Birth year">
+          <input id="birthday-year" list="birthday-year-options" data-i18n-placeholder="auth.birthYearPlaceholder" placeholder="Year" autocomplete="bday-year" inputmode="numeric" data-i18n-aria-label="auth.birthYear">
           <datalist id="birthday-year-options"></datalist>
         </div>
       </div>
 
       <div id="forgot-group" hidden>
-        <label for="forgot-email">Account email <span class="required">*</span></label>
-        <input id="forgot-email" type="email" autocomplete="email" placeholder="you@example.com">
+        <label for="forgot-email"><span data-i18n="auth.forgotEmailRequired">Account email *</span></label>
+        <input id="forgot-email" type="email" autocomplete="email" data-i18n-placeholder="auth.emailPlaceholder" placeholder="you@example.com">
       </div>
 
       <div id="reset-group" hidden>
-        <label for="reset-token">Reset token</label>
-        <input id="reset-token" type="text" autocomplete="off" placeholder="Paste token from email">
-        <label for="new-password">New password</label>
-        <input id="new-password" type="password" autocomplete="new-password" placeholder="At least 8 characters">
-        <label for="confirm-password">Confirm password</label>
-        <input id="confirm-password" type="password" autocomplete="new-password" placeholder="Repeat new password">
+        <label for="reset-token" data-i18n="auth.resetToken">Reset token</label>
+        <input id="reset-token" type="text" autocomplete="off" data-i18n-placeholder="auth.resetTokenPlaceholder" placeholder="Paste token from email">
+        <label for="new-password" data-i18n="auth.newPassword">New password</label>
+        <input id="new-password" type="password" autocomplete="new-password" data-i18n-placeholder="auth.newPasswordPlaceholder" placeholder="At least 8 characters">
+        <label for="confirm-password" data-i18n="auth.confirmPassword">Confirm password</label>
+        <input id="confirm-password" type="password" autocomplete="new-password" data-i18n-placeholder="auth.confirmPasswordPlaceholder" placeholder="Repeat new password">
       </div>
 
       <div id="password-group">
-        <label for="password">Password</label>
-        <input id="password" type="password" autocomplete="current-password" placeholder="Password">
+        <label for="password" data-i18n="auth.password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" data-i18n-placeholder="auth.passwordPlaceholder" placeholder="Password">
       </div>
 
       <div id="ban-appeal-group" hidden>
         <p id="ban-appeal-notice" class="ban-appeal-notice"></p>
-        <label for="ban-appeal-message">Message to admin</label>
+        <label for="ban-appeal-message" data-i18n="auth.banAppealLabel">Message to admin</label>
         <textarea
           id="ban-appeal-message"
           maxlength="2000"
           rows="4"
+          data-i18n-placeholder="auth.banAppealPlaceholder"
           placeholder="Explain why your ban should be removed..."></textarea>
       </div>
 
       <p id="login-status" class="status-text"></p>
 
       <div class="button-row">
-        <button id="login-btn" type="button" class="btn primary">Login</button>
-        <button id="register-btn" type="button" class="btn success">Create Account</button>
+        <button id="login-btn" type="button" class="btn primary" data-i18n="auth.login">Login</button>
+        <button id="register-btn" type="button" class="btn success" data-i18n="auth.register">Create Account</button>
       </div>
-      <button id="toggle-mode" type="button" class="btn ghost">Switch to Register</button>
-      <button id="forgot-btn" type="button" class="btn ghost linkish">Forgot password?</button>
-      <button id="send-reset-btn" type="button" class="btn primary" hidden>Send reset link</button>
-      <button id="reset-password-btn" type="button" class="btn primary" hidden>Update password</button>
-      <button id="ban-appeal-btn" type="button" class="btn primary" hidden>Send appeal to admin</button>
-      <button id="back-login-btn" type="button" class="btn ghost" hidden>Back to login</button>
+      <button id="toggle-mode" type="button" class="btn ghost" data-i18n="auth.switchToRegister">Switch to Register</button>
+      <button id="forgot-btn" type="button" class="btn ghost linkish" data-i18n="auth.forgotPassword">Forgot password?</button>
+      <button id="send-reset-btn" type="button" class="btn primary" hidden data-i18n="auth.sendReset">Send reset link</button>
+      <button id="reset-password-btn" type="button" class="btn primary" hidden data-i18n="auth.updatePassword">Update password</button>
+      <button id="ban-appeal-btn" type="button" class="btn primary" hidden data-i18n="auth.sendAppeal">Send appeal to admin</button>
+      <button id="back-login-btn" type="button" class="btn ghost" hidden data-i18n="auth.backToLogin">Back to login</button>
     </div>
   </div>
   <p id="game-version" class="game-version" hidden aria-label="Game version"></p>
 
   <div id="game-screen" class="screen" hidden>
     <aside class="game-nav">
-      <button id="profile-btn" type="button" class="btn tab">Profile</button>
-      <button id="finance-btn" type="button" class="btn tab">Finances</button>
-      <button id="friends-btn" type="button" class="btn tab">Friends</button>
+      <label class="locale-select-label game-locale-label" for="locale-select-game">
+        <span data-i18n="locale.label">Language</span>
+        <select id="locale-select-game" data-locale-select class="locale-select" aria-label="Language"></select>
+      </label>
+      <button id="profile-btn" type="button" class="btn tab" data-i18n="nav.profile">Profile</button>
+      <button id="finance-btn" type="button" class="btn tab" data-i18n="nav.finances">Finances</button>
+      <button id="friends-btn" type="button" class="btn tab" data-i18n="nav.friends">Friends</button>
       <button id="messages-btn" type="button" class="btn tab">
-        Messages
+        <span data-i18n="nav.messages">Messages</span>
         <span id="messages-nav-badge" class="nav-badge" hidden>0</span>
       </button>
-      <button id="trade-market-btn" type="button" class="btn tab">Trade Market</button>
-      <button id="store-btn" type="button" class="btn tab">Store</button>
-      <button id="shipping-btn" type="button" class="btn tab">Shipping</button>
-      <button id="exonet-btn" type="button" class="btn tab exonet-tab">Exonet</button>
-      <button id="logout-btn" type="button" class="btn ghost">Logout</button>
+      <button id="trade-market-btn" type="button" class="btn tab" data-i18n="nav.tradeMarket">Trade Market</button>
+      <button id="store-btn" type="button" class="btn tab" data-i18n="nav.store">Store</button>
+      <button id="shipping-btn" type="button" class="btn tab" data-i18n="nav.shipping">Shipping</button>
+      <button id="exonet-btn" type="button" class="btn tab exonet-tab" data-i18n="nav.exonet">Exonet</button>
+      <button id="logout-btn" type="button" class="btn ghost" data-i18n="nav.logout">Logout</button>
     </aside>
 
     <div class="game-main">
@@ -113,14 +122,14 @@
 
     <main class="game-layout">
       <section class="mine-panel">
-        <h2>Asteroid Mine Grid</h2>
+        <h2 data-i18n="mine.gridTitle">Asteroid Mine Grid</h2>
         <div id="mine-grid" class="mine-grid"></div>
       </section>
 
       <aside class="side-panel">
-        <h2>Zone Details</h2>
-        <div id="zone-info" class="zone-info">Select a zone on the grid.</div>
-        <h3>Assign Worker</h3>
+        <h2 data-i18n="mine.zoneDetails">Zone Details</h2>
+        <div id="zone-info" class="zone-info" data-i18n="mine.zoneHint">Select a zone on the grid.</div>
+        <h3 data-i18n="mine.assignWorker">Assign Worker</h3>
         <div id="worker-list" class="worker-list"></div>
       </aside>
     </main>
@@ -133,7 +142,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h2>Finances</h2>
-        <button type="button" class="btn ghost" data-close-modal>Close</button>
+        <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
       <div id="finance-summary" class="summary"></div>
       <h3>Recent Transactions</h3>
@@ -148,7 +157,7 @@
     <div class="modal-card wide">
       <div class="modal-header">
         <h2>Trade Market</h2>
-        <button type="button" class="btn ghost" data-close-modal>Close</button>
+        <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
       <p id="market-info" class="market-info">Market prices loading...</p>
       <p id="trade-market-value" class="market-info trade-market-value"></p>
@@ -191,7 +200,7 @@
     <div class="modal-card wide">
       <div class="modal-header">
         <h2>Store</h2>
-        <button type="button" class="btn ghost" data-close-modal>Close</button>
+        <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
       <p id="store-market-info" class="market-info">Market prices loading...</p>
       <section>
@@ -211,7 +220,7 @@
     <div class="modal-card wide">
       <div class="modal-header">
         <h2>Shipping</h2>
-        <button type="button" class="btn ghost" data-close-modal>Close</button>
+        <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
       <p id="shipping-summary" class="market-info">Load ore cargo and ship it to the NPC refinery.</p>
       <section>
@@ -521,7 +530,7 @@
     <div class="modal-card wide">
       <div class="modal-header">
         <h2>Friends</h2>
-        <button type="button" class="btn ghost" data-close-modal>Close</button>
+        <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
 
       <section class="friends-add">
@@ -554,7 +563,7 @@
     <div class="modal-card wide">
       <div class="modal-header">
         <h2>Messages</h2>
-        <button type="button" class="btn ghost" data-close-modal>Close</button>
+        <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
       <p id="messages-status" class="friends-status"></p>
       <div class="player-message-actions">
@@ -623,6 +632,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260602-profile-gender-pronouns"></script>
+<script type="module" src="/js/app.js?v=20260602-weblate-i18n"></script>
 </body>
 </html>

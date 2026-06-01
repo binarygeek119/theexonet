@@ -9,35 +9,39 @@
 <body>
   <main class="page">
     <header class="hero">
-      <p class="eyebrow">Reactive Asteroid Venturing Agency</p>
-      <h1>Server Status</h1>
+      <label class="locale-select-label" for="locale-select-status">
+        <span data-i18n="locale.label">Language</span>
+        <select id="locale-select-status" data-locale-select class="locale-select" aria-label="Language"></select>
+      </label>
+      <p class="eyebrow" data-i18n="hero.eyebrow">Reactive Asteroid Venturing Agency</p>
+      <h1 data-i18n="hero.title">Server Status</h1>
       <p id="game-version" class="game-version" hidden aria-label="Game version"></p>
-      <p id="last-updated" class="subtle">Loading…</p>
+      <p id="last-updated" class="subtle" data-i18n="hero.loading">Loading…</p>
       <nav class="nav-links" aria-label="Status pages">
-        <a class="nav-link active" href="/">Dashboard</a>
-        <a class="nav-link" href="/values.html">Item values</a>
+        <a class="nav-link active" href="/" data-i18n="nav.dashboard">Dashboard</a>
+        <a class="nav-link" href="/values.html" data-i18n="nav.values">Item values</a>
       </nav>
     </header>
 
     <section class="grid" aria-live="polite">
       <article class="card" id="card-api">
-        <h2>Game API</h2>
-        <p class="status-pill checking" id="api-overall">Checking…</p>
+        <h2 data-i18n="card.api">Game API</h2>
+        <p class="status-pill checking" id="api-overall" data-i18n="card.checking">Checking…</p>
         <dl>
-          <div><dt>Service</dt><dd id="api-service">—</dd></div>
-          <div><dt>Game version</dt><dd id="api-game-version">—</dd></div>
-          <div><dt>Registered players</dt><dd id="api-players">—</dd></div>
-          <div><dt>API uptime</dt><dd id="api-uptime">—</dd></div>
-          <div><dt>API first run</dt><dd id="api-first-run">—</dd></div>
-          <div><dt>Response</dt><dd id="api-response-ms">—</dd></div>
-          <div><dt>Checked</dt><dd id="api-checked">—</dd></div>
-          <div><dt>Endpoint</dt><dd id="api-endpoint">—</dd></div>
-          <div><dt>Error</dt><dd id="api-error">—</dd></div>
+          <div><dt data-i18n="label.service">Service</dt><dd id="api-service">—</dd></div>
+          <div><dt data-i18n="label.gameVersion">Game version</dt><dd id="api-game-version">—</dd></div>
+          <div><dt data-i18n="label.players">Registered players</dt><dd id="api-players">—</dd></div>
+          <div><dt data-i18n="label.uptime">API uptime</dt><dd id="api-uptime">—</dd></div>
+          <div><dt data-i18n="label.firstRun">API first run</dt><dd id="api-first-run">—</dd></div>
+          <div><dt data-i18n="label.response">Response</dt><dd id="api-response-ms">—</dd></div>
+          <div><dt data-i18n="label.checked">Checked</dt><dd id="api-checked">—</dd></div>
+          <div><dt data-i18n="label.endpoint">Endpoint</dt><dd id="api-endpoint">—</dd></div>
+          <div><dt data-i18n="label.error">Error</dt><dd id="api-error">—</dd></div>
         </dl>
       </article>
 
       <article class="card" id="card-database">
-        <h2>PostgreSQL</h2>
+        <h2 data-i18n="card.database">PostgreSQL</h2>
         <p class="status-pill checking" id="db-overall">Checking…</p>
         <dl>
           <div><dt>Connection</dt><dd id="db-connection">—</dd></div>

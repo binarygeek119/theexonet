@@ -13,6 +13,7 @@ import {
   RAX_NAME,
   formatRewardAmount,
 } from "./currency.js";
+import { initI18n, applyTranslations, wireLocaleSelectors } from "./i18n.js";
 import {
   getDummyPlayerProfile,
   isDummyPlayerId,
@@ -2105,7 +2106,15 @@ if (els.testingModeToggle) {
   });
 }
 
-renderTestingModeUi();
-showPage("dashboard");
-initApiStatusMonitor(api);
-tryRestoreSession();
+async function startAdminPortal() {
+  await initI18n({ namespaces: ["admin"] });
+  applyTranslations(document);
+  wireLocaleSelectors();
+  document.addEventListener("rava:localechange", () => applyTranslations(document));
+  renderTestingModeUi();
+  showPage("dashboard");
+  initApiStatusMonitor(api);
+  tryRestoreSession();
+}
+
+startAdminPortal().catch((error) => console.error("[admin] startup failed", error));

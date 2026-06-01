@@ -1,5 +1,6 @@
 import { RavaApi } from "./api.js";
 import { API_BASE_URL } from "./config.js";
+import { initI18n, applyTranslations, wireLocaleSelectors } from "./i18n.js";
 import { initApiStatusMonitor } from "./api-status.js";
 import { initStaffMessaging } from "./staff-messages.js";
 import { initStaffPlayerMessaging } from "./staff-player-messages.js";
@@ -790,5 +791,13 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-initApiStatusMonitor(api);
-tryRestoreSession();
+async function startModeratorPortal() {
+  await initI18n({ namespaces: ["moderator"] });
+  applyTranslations(document);
+  wireLocaleSelectors();
+  document.addEventListener("rava:localechange", () => applyTranslations(document));
+  initApiStatusMonitor(api);
+  tryRestoreSession();
+}
+
+startModeratorPortal().catch((error) => console.error("[moderator] startup failed", error));

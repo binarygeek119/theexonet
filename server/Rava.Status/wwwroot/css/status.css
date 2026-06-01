@@ -36,6 +36,24 @@ body {
   margin-bottom: 1.75rem;
 }
 
+.locale-select-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+
+.locale-select {
+  max-width: 14rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  color: var(--text);
+}
+
 .eyebrow {
   margin: 0 0 0.35rem;
   color: var(--accent);

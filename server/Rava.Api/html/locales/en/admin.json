@@ -1,0 +1,17 @@
+{
+  "meta.pageTitle": "RAVA Admin",
+  "locale.label": "Language",
+  "auth.title": "RAVA Admin",
+  "auth.subtitle": "Operations portal",
+  "auth.checkingApi": "Checking API…",
+  "auth.username": "Username",
+  "auth.usernamePlaceholder": "Admin username",
+  "auth.password": "Password",
+  "auth.passwordPlaceholder": "Password",
+  "auth.signIn": "Sign in",
+  "auth.backToGame": "Back to game",
+  "denied.title": "Access denied",
+  "denied.subtitle": "Your account is not configured as an admin.",
+  "denied.signOut": "Sign out",
+  "portal.signOut": "Sign out"
+}

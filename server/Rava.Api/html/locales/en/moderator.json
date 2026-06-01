@@ -1,0 +1,17 @@
+{
+  "meta.pageTitle": "RAVA Moderator",
+  "locale.label": "Language",
+  "auth.title": "RAVA Moderator",
+  "auth.subtitle": "Community oversight portal",
+  "auth.checkingApi": "Checking API…",
+  "auth.username": "Username",
+  "auth.usernamePlaceholder": "Moderator username",
+  "auth.password": "Password",
+  "auth.passwordPlaceholder": "Password",
+  "auth.signIn": "Sign in",
+  "auth.backToGame": "Back to game",
+  "denied.title": "Access denied",
+  "denied.subtitle": "Your account is not configured as a moderator.",
+  "denied.signOut": "Sign out",
+  "portal.signOut": "Sign out"
+}

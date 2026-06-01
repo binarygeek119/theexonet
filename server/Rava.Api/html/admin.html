@@ -12,29 +12,33 @@
 <body>
   <div id="admin-login-screen" class="screen">
     <div class="login-card admin-login-card">
-      <h1>RAVA Admin</h1>
-      <p class="subtitle">Operations portal</p>
-      <p id="api-status" class="api-status checking" aria-live="polite">Checking API…</p>
+      <label class="locale-select-label" for="locale-select-admin">
+        <span data-i18n="locale.label">Language</span>
+        <select id="locale-select-admin" data-locale-select class="locale-select" aria-label="Language"></select>
+      </label>
+      <h1 data-i18n="auth.title">RAVA Admin</h1>
+      <p class="subtitle" data-i18n="auth.subtitle">Operations portal</p>
+      <p id="api-status" class="api-status checking" aria-live="polite" data-i18n="auth.checkingApi">Checking API…</p>
 
-      <label for="admin-username">Username</label>
-      <input id="admin-username" type="text" autocomplete="username" placeholder="Admin username">
+      <label for="admin-username" data-i18n="auth.username">Username</label>
+      <input id="admin-username" type="text" autocomplete="username" data-i18n-placeholder="auth.usernamePlaceholder" placeholder="Admin username">
 
-      <label for="admin-password">Password</label>
-      <input id="admin-password" type="password" autocomplete="current-password" placeholder="Password">
+      <label for="admin-password" data-i18n="auth.password">Password</label>
+      <input id="admin-password" type="password" autocomplete="current-password" data-i18n-placeholder="auth.passwordPlaceholder" placeholder="Password">
 
       <p id="admin-login-status" class="status-text"></p>
 
       <div class="button-row">
-        <button id="admin-login-btn" type="button" class="btn primary">Sign in</button>
+        <button id="admin-login-btn" type="button" class="btn primary" data-i18n="auth.signIn">Sign in</button>
       </div>
-      <a class="admin-back-link" href="https://rava.binarygeek119.duckdns.org/">Back to game</a>
+      <a class="admin-back-link" href="https://rava.binarygeek119.duckdns.org/" data-i18n="auth.backToGame">Back to game</a>
     </div>
   </div>
 
   <div id="admin-denied-screen" class="screen" hidden>
     <div class="login-card admin-login-card">
-      <h1>Access denied</h1>
-      <p class="subtitle">Your account is not configured as an admin.</p>
+      <h1 data-i18n="denied.title">Access denied</h1>
+      <p class="subtitle" data-i18n="denied.subtitle">Your account is not configured as an admin.</p>
       <p id="admin-denied-user" class="status-text"></p>
       <div class="button-row">
         <button id="admin-denied-logout-btn" type="button" class="btn ghost">Sign out</button>

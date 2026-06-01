@@ -1,0 +1,22 @@
+{
+  "meta.pageTitle": "RAVA — Server Status",
+  "locale.label": "Language",
+  "hero.eyebrow": "Reactive Asteroid Venturing Agency",
+  "hero.title": "Server Status",
+  "hero.loading": "Loading…",
+  "nav.dashboard": "Dashboard",
+  "nav.values": "Item values",
+  "card.api": "Game API",
+  "card.database": "PostgreSQL",
+  "card.checking": "Checking…",
+  "label.service": "Service",
+  "label.gameVersion": "Game version",
+  "label.players": "Registered players",
+  "label.uptime": "API uptime",
+  "label.firstRun": "API first run",
+  "label.response": "Response",
+  "label.checked": "Checked",
+  "label.endpoint": "Endpoint",
+  "label.error": "Error",
+  "footer.lastUpdated": "Last updated {time}"
+}

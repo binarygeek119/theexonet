@@ -10,6 +10,7 @@ import {
 import { initPlayerMessaging } from "./player-messages.js";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
 import { initExonet } from "./exonet.js?v=20260602-onn-profile-portraits";
+import { initI18n, applyTranslations, wireLocaleSelectors, t } from "./i18n.js";
 
 const api = new RavaApi(API_BASE_URL);
 
@@ -422,19 +423,19 @@ function setAuthMode(mode) {
   els.backLoginBtn.hidden = !isForgot && !isReset && !isBanAppeal;
 
   if (isRegister) {
-    els.toggleMode.textContent = "Switch to Login";
+    els.toggleMode.textContent = t("auth.switchToLogin");
     ensureBirthdayDropdownsReady();
-    showLoginStatus("Email and birthday are required to create an account.", "info");
+    showLoginStatus(t("auth.hint.register"), "info");
   } else if (isForgot) {
-    showLoginStatus("Enter the email on your account. We'll send a reset link.", "info");
+    showLoginStatus(t("auth.hint.forgot"), "info");
   } else if (isReset) {
-    showLoginStatus("Choose a new password (at least 8 characters).", "info");
+    showLoginStatus(t("auth.hint.reset"), "info");
   } else if (isBanAppeal) {
     els.banAppealNotice.textContent = state.banMessage;
     els.banAppealMessage.value = "";
-    showLoginStatus("Send a message to the admin team requesting ban removal.", "info");
+    showLoginStatus(t("auth.hint.banAppeal"), "info");
   } else {
-    els.toggleMode.textContent = "Switch to Register";
+    els.toggleMode.textContent = t("auth.switchToRegister");
     showLoginStatus("");
   }
 }
@@ -3402,18 +3403,33 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-setAuthMode("login");
-initBirthdayDropdowns();
-initGameVersionTag();
-showScreen("login");
-els.mineGrid.style.setProperty("--grid-size", GRID_SIZE);
+async function startApp() {
+  await initI18n({ namespaces: ["game"] });
+  applyTranslations(document);
+  wireLocaleSelectors();
 
-const resetTokenFromUrl = new URLSearchParams(window.location.search).get("reset");
-loadTradeItems().finally(() => {
-  if (resetTokenFromUrl) {
-    els.resetToken.value = resetTokenFromUrl;
-    setAuthMode("reset");
-  } else {
-    tryAutoLogin();
-  }
+  document.addEventListener("rava:localechange", () => {
+    applyTranslations(document);
+    setAuthMode(state.authMode);
+  });
+
+  setAuthMode("login");
+  initBirthdayDropdowns();
+  initGameVersionTag();
+  showScreen("login");
+  els.mineGrid.style.setProperty("--grid-size", GRID_SIZE);
+
+  const resetTokenFromUrl = new URLSearchParams(window.location.search).get("reset");
+  loadTradeItems().finally(() => {
+    if (resetTokenFromUrl) {
+      els.resetToken.value = resetTokenFromUrl;
+      setAuthMode("reset");
+    } else {
+      tryAutoLogin();
+    }
+  });
+}
+
+startApp().catch((error) => {
+  console.error("[rava] startup failed", error);
 });

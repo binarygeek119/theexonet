@@ -820,3 +820,33 @@ body:not(.is-authenticated) .modal {
     width: auto;
   }
 }
+
+.locale-select-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.login-card .locale-select-label {
+  margin-bottom: 14px;
+}
+
+.game-locale-label {
+  width: 100%;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.locale-select {
+  width: 100%;
+  max-width: 14rem;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+}

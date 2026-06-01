@@ -1,3 +1,4 @@
+// Exonet / Offworld News is English-only and excluded from Weblate (AI-generated articles).
 import { renderSocialLinksHtml } from "./profile-social.js?v=20260529-login";
 import { API_BASE_URL, readMetaApiBase } from "./config.js";
 

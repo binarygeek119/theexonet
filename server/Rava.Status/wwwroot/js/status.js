@@ -1,3 +1,5 @@
+import { initI18n, applyTranslations, wireLocaleSelectors, t } from "./i18n.js";
+
 const POLL_MS = 10000;
 
 const els = {
@@ -181,7 +183,9 @@ function renderPortalCard(portal, {
 }
 
 function renderDashboard(data) {
-  els.lastUpdated.textContent = `Last updated ${new Date().toLocaleString()}`;
+  els.lastUpdated.textContent = t("footer.lastUpdated", {
+    time: new Date().toLocaleString(),
+  });
   els.apiEndpoint.textContent = data.apiBaseUrl;
   els.apiResponseMs.textContent = data.apiResponseMs != null ? `${data.apiResponseMs} ms` : "—";
   els.apiChecked.textContent = formatUtc(data.utc);
@@ -296,5 +300,13 @@ async function refresh() {
   }
 }
 
-refresh();
-window.setInterval(refresh, POLL_MS);
+async function startStatusDashboard() {
+  await initI18n({ namespaces: ["status"] });
+  applyTranslations(document);
+  wireLocaleSelectors();
+  document.addEventListener("rava:localechange", () => applyTranslations(document));
+  refresh();
+  window.setInterval(refresh, POLL_MS);
+}
+
+startStatusDashboard().catch((error) => console.error("[status] startup failed", error));

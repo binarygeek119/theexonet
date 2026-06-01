@@ -13,29 +13,33 @@
 <body>
   <div id="mod-login-screen" class="screen">
     <div class="login-card admin-login-card mod-login-card">
-      <h1>RAVA Moderator</h1>
-      <p class="subtitle">Community oversight portal</p>
-      <p id="api-status" class="api-status checking" aria-live="polite">Checking API…</p>
+      <label class="locale-select-label" for="locale-select-moderator">
+        <span data-i18n="locale.label">Language</span>
+        <select id="locale-select-moderator" data-locale-select class="locale-select" aria-label="Language"></select>
+      </label>
+      <h1 data-i18n="auth.title">RAVA Moderator</h1>
+      <p class="subtitle" data-i18n="auth.subtitle">Community oversight portal</p>
+      <p id="api-status" class="api-status checking" aria-live="polite" data-i18n="auth.checkingApi">Checking API…</p>
 
-      <label for="mod-username">Username</label>
-      <input id="mod-username" type="text" autocomplete="username" placeholder="Moderator username">
+      <label for="mod-username" data-i18n="auth.username">Username</label>
+      <input id="mod-username" type="text" autocomplete="username" data-i18n-placeholder="auth.usernamePlaceholder" placeholder="Moderator username">
 
-      <label for="mod-password">Password</label>
-      <input id="mod-password" type="password" autocomplete="current-password" placeholder="Password">
+      <label for="mod-password" data-i18n="auth.password">Password</label>
+      <input id="mod-password" type="password" autocomplete="current-password" data-i18n-placeholder="auth.passwordPlaceholder" placeholder="Password">
 
       <p id="mod-login-status" class="status-text"></p>
 
       <div class="button-row">
-        <button id="mod-login-btn" type="button" class="btn accent mod-primary-btn">Sign in</button>
+        <button id="mod-login-btn" type="button" class="btn accent mod-primary-btn" data-i18n="auth.signIn">Sign in</button>
       </div>
-      <a class="admin-back-link" href="https://rava.binarygeek119.duckdns.org/">Back to game</a>
+      <a class="admin-back-link" href="https://rava.binarygeek119.duckdns.org/" data-i18n="auth.backToGame">Back to game</a>
     </div>
   </div>
 
   <div id="mod-denied-screen" class="screen" hidden>
     <div class="login-card admin-login-card mod-login-card">
-      <h1>Access denied</h1>
-      <p class="subtitle">Your account is not configured as a moderator.</p>
+      <h1 data-i18n="denied.title">Access denied</h1>
+      <p class="subtitle" data-i18n="denied.subtitle">Your account is not configured as a moderator.</p>
       <p id="mod-denied-user" class="status-text"></p>
       <div class="button-row">
         <button id="mod-denied-logout-btn" type="button" class="btn ghost">Sign out</button>

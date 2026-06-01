@@ -81,4 +81,28 @@ public static class ProfileValidator
             ? null
             : "Profile photo style must be male, female, or neutral.";
     }
+
+    public static string? ValidateGenderAndPronouns(string? gender, string? preferredPronouns)
+    {
+        if (!ProfileGender.IsValid(gender))
+        {
+            return "Gender must be male, female, trans-female, trans-male, non-binary, or prefer not to say.";
+        }
+
+        if (!ProfilePreferredPronouns.IsValid(preferredPronouns))
+        {
+            return "Preferred pronouns must be he/him, she/her, or they/them.";
+        }
+
+        var normalizedGender = ProfileGender.Normalize(gender);
+        var normalizedPreferred = ProfilePreferredPronouns.Normalize(preferredPronouns);
+
+        if (ProfileGender.RequiresPreferredPronouns(normalizedGender) &&
+            string.IsNullOrEmpty(normalizedPreferred))
+        {
+            return "Choose preferred pronouns for this gender selection.";
+        }
+
+        return null;
+    }
 }

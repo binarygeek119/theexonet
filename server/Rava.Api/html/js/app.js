@@ -19,6 +19,26 @@ const PROFILE_AVATAR_PRESETS = [
   { id: "neutral", label: "Neutral" },
 ];
 
+const PROFILE_GENDER_LABELS = {
+  male: "Male",
+  female: "Female",
+  "trans-female": "Trans female",
+  "trans-male": "Trans male",
+  "non-binary": "Non-binary",
+  "prefer-not-to-say": "Prefer not to say",
+};
+
+function profileGenderRequiresPronouns(gender) {
+  return gender === "non-binary" || gender === "prefer-not-to-say";
+}
+
+function capitalizePronoun(word) {
+  if (!word) {
+    return "";
+  }
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
 function formatRaxLabelLine(label, value) {
   return `${label}: ${formatRaxHtml(value)}`;
 }
@@ -275,6 +295,13 @@ const els = {
   profileBackgroundUploadBtn: document.getElementById("profile-background-upload-btn"),
   profileBackgroundRemoveBtn: document.getElementById("profile-background-remove-btn"),
   profileBackgroundStatus: document.getElementById("profile-background-status"),
+  profileGenderInput: document.getElementById("profile-gender-input"),
+  profilePreferredPronounsSection: document.getElementById("profile-preferred-pronouns-section"),
+  profilePreferredPronounsInput: document.getElementById("profile-preferred-pronouns-input"),
+  profileGenderLabel: document.getElementById("profile-gender-label"),
+  profileGenderDisplay: document.getElementById("profile-gender-display"),
+  profilePronounsDisplay: document.getElementById("profile-pronouns-display"),
+  profilePronounsHint: document.getElementById("profile-pronouns-hint"),
   profileMoodInput: document.getElementById("profile-mood-input"),
   profileCompanyNameInput: document.getElementById("profile-company-name-input"),
   profileCompanyColumn: document.getElementById("profile-company-column"),
@@ -959,6 +986,11 @@ async function enqueueCompanyLogoGeneration() {
 }
 
 function profileEditFormPayload() {
+  const gender = els.profileGenderInput?.value ?? "";
+  const preferredPronouns = profileGenderRequiresPronouns(gender)
+    ? (els.profilePreferredPronounsInput?.value ?? "")
+    : "";
+
   return {
     mood: els.profileMoodInput?.value.trim() ?? "",
     aboutMe: els.profileAboutInput?.value ?? "",
@@ -970,7 +1002,59 @@ function profileEditFormPayload() {
     youtube: els.profileYoutubeInput?.value.trim() ?? "",
     facebook: els.profileFacebookInput?.value.trim() ?? "",
     profileAvatarPreset: state.profile?.profileAvatarPreset ?? "neutral",
+    profileGender: gender,
+    profilePreferredPronouns: preferredPronouns,
   };
+}
+
+function syncProfileGenderPronounsUi() {
+  const gender = els.profileGenderInput?.value ?? "";
+  const needsPronouns = profileGenderRequiresPronouns(gender);
+  setHidden(els.profilePreferredPronounsSection, !needsPronouns);
+  if (els.profilePreferredPronounsInput && !needsPronouns) {
+    els.profilePreferredPronounsInput.value = "";
+  }
+}
+
+function renderProfileGenderPronouns(profile) {
+  if (profile?.isReporter) {
+    setHidden(els.profileGenderLabel, true);
+    setHidden(els.profileGenderDisplay, true);
+    if (els.profilePronounsDisplay) {
+      els.profilePronounsDisplay.textContent = "—";
+    }
+    setHidden(els.profilePronounsHint, true);
+    return;
+  }
+
+  const label = profile?.pronounLabel || "they/them";
+  if (els.profilePronounsDisplay) {
+    els.profilePronounsDisplay.textContent = label;
+  }
+
+  const showGender = Boolean(profile?.isOwner && profile?.profileGender);
+  setHidden(els.profileGenderLabel, !showGender);
+  setHidden(els.profileGenderDisplay, !showGender);
+  if (showGender && els.profileGenderDisplay) {
+    els.profileGenderDisplay.textContent =
+      PROFILE_GENDER_LABELS[profile.profileGender] ?? profile.profileGender;
+  }
+
+  if (els.profilePronounsHint) {
+    const obj = profile?.pronounObject || "them";
+    const pos = profile?.pronounPossessive || "their";
+    if (profile?.isOwner) {
+      els.profilePronounsHint.textContent =
+        `We address you as ${obj} and use ${pos} in game text (for example, "${capitalizePronoun(pos)} mine").`;
+      setHidden(els.profilePronounsHint, false);
+    } else if (!profile?.isOwner && profile?.profileGender) {
+      els.profilePronounsHint.textContent =
+        `Address ${profile.username} as ${obj} (${label}).`;
+      setHidden(els.profilePronounsHint, false);
+    } else {
+      setHidden(els.profilePronounsHint, true);
+    }
+  }
 }
 
 function renderProfileAvatarPresets(profile) {
@@ -1050,6 +1134,13 @@ function populateProfileEditForm(profile) {
   if (els.profileCompanyNameInput) {
     els.profileCompanyNameInput.value = profile.mineName ?? "";
   }
+  if (els.profileGenderInput) {
+    els.profileGenderInput.value = profile.profileGender ?? "";
+  }
+  if (els.profilePreferredPronounsInput) {
+    els.profilePreferredPronounsInput.value = profile.profilePreferredPronouns ?? "";
+  }
+  syncProfileGenderPronounsUi();
   if (els.profileMoodInput) {
     els.profileMoodInput.value = profile.mood ?? "";
   }
@@ -1414,6 +1505,7 @@ function renderProfile(profile) {
     renderProfileEditAvatar(profile);
   }
 
+  renderProfileGenderPronouns(profile);
   renderProfileFlagNotice(profile);
   renderProfileFriendPanel(profile);
   renderProfileFriends(profile);
@@ -1560,12 +1652,14 @@ function renderProfileFriendPanel(profile) {
   setHidden(els.profileRemoveFriendBtn, !["pending_outgoing", "pending_incoming", "accepted"].includes(status));
 
   switch (status) {
-    case "accepted":
+    case "accepted": {
+      const obj = profile.pronounObject || "them";
       els.profileFriendStatus.textContent = profile.isReporter
         ? `${profile.username} is on your friends list.`
-        : `${profile.username} is your friend.`;
+        : `${profile.username} is your friend. Message ${obj} from the Messages tab.`;
       els.profileRemoveFriendBtn.textContent = "Remove Friend";
       break;
+    }
     case "pending_outgoing":
       els.profileFriendStatus.textContent = "Friend request sent.";
       els.profileRemoveFriendBtn.textContent = "Cancel Request";
@@ -1897,6 +1991,7 @@ function openProfileEdit() {
   }
 
   populateProfileEditForm(profile);
+  syncProfileGenderPronounsUi();
   renderProfileEditAvatar(profile);
   renderProfileFlagNotice(profile);
   applyProfileTheme();
@@ -1950,9 +2045,21 @@ async function saveProfile() {
   els.profileSaveStatus.textContent = "Saving...";
   els.profileSaveStatus.classList.remove("error", "success");
 
+  const payload = profileEditFormPayload();
+  if (
+    profileGenderRequiresPronouns(payload.profileGender) &&
+    !payload.profilePreferredPronouns
+  ) {
+    els.profileSaveStatus.textContent = "Choose preferred pronouns for your gender selection.";
+    els.profileSaveStatus.classList.add("error");
+    syncProfileGenderPronounsUi();
+    els.profilePreferredPronounsInput?.focus();
+    return;
+  }
+
   try {
     const profile = await api.updateProfile({
-      ...profileEditFormPayload(),
+      ...payload,
       mood: els.profileMoodInput.value.trim(),
       aboutMe: els.profileAboutInput.value,
       music: els.profileMusicInput.value.trim(),
@@ -3041,6 +3148,7 @@ els.profileSaveBtn?.addEventListener("click", () => {
     els.profileSaveStatus.classList.add("error");
   });
 });
+els.profileGenderInput?.addEventListener("change", syncProfileGenderPronounsUi);
 els.profileCompanySaveBtn?.addEventListener("click", () => {
   saveCompanyName().catch((error) => {
     els.profileCompanyStatus.textContent = error.message;

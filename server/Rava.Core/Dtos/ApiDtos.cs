@@ -227,7 +227,14 @@ public record PlayerProfileResponse(
     string CompanyLogoGenerationMessage = "",
     bool CompanyLogoAiEnabled = false,
     string ProfileAvatarPreset = ProfileAvatarPresets.DefaultPreset,
-    bool HasCustomProfilePhoto = false);
+    bool HasCustomProfilePhoto = false,
+    string ProfileGender = "",
+    string ProfilePreferredPronouns = "",
+    string PronounSubject = "they",
+    string PronounObject = "them",
+    string PronounPossessive = "their",
+    string PronounLabel = "they/them",
+    bool RequiresPreferredPronouns = false);
 
 public record UpdateCompanyNameRequest(string CompanyName);
 
@@ -289,7 +296,11 @@ public record PublicProfileDetailDto(
     decimal CompanyValue,
     bool IsReporter = false,
     string ReporterSlug = "",
-    string OnnProfilePath = "");
+    string OnnProfilePath = "",
+    string PronounSubject = "they",
+    string PronounObject = "them",
+    string PronounPossessive = "their",
+    string PronounLabel = "they/them");
 
 public record PublicProfileSearchResponse(
     string Query,
@@ -320,7 +331,9 @@ public record UpdatePlayerProfileRequest(
     string Twitter,
     string Youtube,
     string Facebook,
-    string? ProfileAvatarPreset = null);
+    string? ProfileAvatarPreset = null,
+    string? ProfileGender = null,
+    string? ProfilePreferredPronouns = null);
 
 public record FriendSummaryDto(
     Guid FriendshipId,

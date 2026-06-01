@@ -612,6 +612,14 @@ public class PlayerGameService(
             return (null, presetError);
         }
 
+        var genderError = ProfileValidator.ValidateGenderAndPronouns(
+            request.ProfileGender,
+            request.ProfilePreferredPronouns);
+        if (genderError is not null)
+        {
+            return (null, genderError);
+        }
+
         var player = await db.Players.FirstOrDefaultAsync(p => p.Id == playerId, ct);
         if (player is null)
         {
@@ -632,6 +640,26 @@ public class PlayerGameService(
         if (request.ProfileAvatarPreset is not null)
         {
             player.ProfileAvatarPreset = ProfileAvatarPresets.Normalize(request.ProfileAvatarPreset);
+        }
+
+        if (request.ProfileGender is not null)
+        {
+            player.ProfileGender = ProfileGender.Normalize(request.ProfileGender);
+            if (ProfileGender.RequiresPreferredPronouns(player.ProfileGender))
+            {
+                player.ProfilePreferredPronouns = ProfilePreferredPronouns.Normalize(
+                    request.ProfilePreferredPronouns);
+            }
+            else
+            {
+                player.ProfilePreferredPronouns = string.Empty;
+            }
+        }
+        else if (request.ProfilePreferredPronouns is not null &&
+                 ProfileGender.RequiresPreferredPronouns(player.ProfileGender))
+        {
+            player.ProfilePreferredPronouns = ProfilePreferredPronouns.Normalize(
+                request.ProfilePreferredPronouns);
         }
 
         await profileUpgrader.EnsurePlayerUpgradedAsync(player, ct);
@@ -1016,6 +1044,7 @@ public class PlayerGameService(
         }
 
         var logoGeneration = await ResolveCompanyLogoGenerationAsync(mine, ct);
+        var pronouns = MapPronouns(player);
 
         return new PlayerProfileResponse(
             player.Id,
@@ -1055,8 +1084,18 @@ public class PlayerGameService(
             CompanyLogoGenerationMessage: logoGeneration.Message,
             CompanyLogoAiEnabled: companyLogoQueueService.IsAiEnabled,
             ProfileAvatarPreset: ProfileAvatarPresets.Normalize(player.ProfileAvatarPreset),
-            HasCustomProfilePhoto: ProfileAvatarPresets.HasCustomUpload(player.ProfileImageUrl));
+            HasCustomProfilePhoto: ProfileAvatarPresets.HasCustomUpload(player.ProfileImageUrl),
+            ProfileGender: player.ProfileGender,
+            ProfilePreferredPronouns: player.ProfilePreferredPronouns,
+            PronounSubject: pronouns.Subject,
+            PronounObject: pronouns.Object,
+            PronounPossessive: pronouns.Possessive,
+            PronounLabel: pronouns.Label,
+            RequiresPreferredPronouns: ProfileGender.RequiresPreferredPronouns(player.ProfileGender));
     }
+
+    private static ProfilePronounSet MapPronouns(PlayerEntity player) =>
+        ProfilePronouns.Resolve(player.ProfileGender, player.ProfilePreferredPronouns);
 
     private async Task<CompanyLogoGenerationStatusDto> ResolveCompanyLogoGenerationAsync(
         MineEntity? mine,

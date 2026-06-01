@@ -434,7 +434,14 @@ public class PublicProfileService(
             player.CurrentGameDay,
             mine?.Workers.Count ?? 0,
             mine?.Zones.Count ?? 0,
-            companyValue);
+            companyValue,
+            PronounSubject: MapPronouns(player).Subject,
+            PronounObject: MapPronouns(player).Object,
+            PronounPossessive: MapPronouns(player).Possessive,
+            PronounLabel: MapPronouns(player).Label);
+
+    private static ProfilePronounSet MapPronouns(PlayerEntity player) =>
+        ProfilePronouns.Resolve(player.ProfileGender, player.ProfilePreferredPronouns);
 
     private static string FormatProfileImageUrl(string url, int revision)
     {

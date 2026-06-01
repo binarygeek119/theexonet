@@ -91,6 +91,25 @@ public class PlayerProfileUpgrader(AppDbContext db)
             changed = true;
         }
 
+        var normalizedGender = ProfileGender.Normalize(player.ProfileGender);
+        if (!string.Equals(player.ProfileGender, normalizedGender, StringComparison.Ordinal))
+        {
+            player.ProfileGender = normalizedGender;
+            changed = true;
+        }
+
+        var normalizedPreferred = ProfilePreferredPronouns.Normalize(player.ProfilePreferredPronouns);
+        if (!ProfileGender.RequiresPreferredPronouns(player.ProfileGender))
+        {
+            normalizedPreferred = string.Empty;
+        }
+
+        if (!string.Equals(player.ProfilePreferredPronouns, normalizedPreferred, StringComparison.Ordinal))
+        {
+            player.ProfilePreferredPronouns = normalizedPreferred;
+            changed = true;
+        }
+
         if (player.LastProcessedUtcDate == default)
         {
             player.LastProcessedUtcDate = DateOnly.FromDateTime(

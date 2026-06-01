@@ -268,6 +268,7 @@
           <p id="profile-mood-display" class="profile-mood-display">Ready to mine.</p>
           <p id="profile-number" class="profile-number">---</p>
           <p id="profile-member-since" class="profile-member-since">Member since ---</p>
+          <p id="profile-pronouns-hint" class="profile-pronouns-hint" hidden></p>
         </div>
         <div id="profile-company-column" class="profile-company-column">
           <div id="profile-company-logo-slot" class="profile-company-logo-slot">
@@ -310,6 +311,10 @@
                 <dd id="profile-sidebar-number" class="profile-sidebar-number">---</dd>
                 <dt>Signed up</dt>
                 <dd id="profile-sidebar-member-since">---</dd>
+                <dt id="profile-gender-label" hidden>Gender</dt>
+                <dd id="profile-gender-display" hidden>—</dd>
+                <dt>Pronouns</dt>
+                <dd id="profile-pronouns-display">—</dd>
                 <dt>Company Name</dt>
                 <dd id="profile-mine-name" class="profile-mine-name-label">---</dd>
                 <dt>Game Day</dt>
@@ -439,6 +444,29 @@
             <p class="profile-number-label">Your profile number</p>
             <p id="profile-edit-number" class="profile-edit-number">---</p>
             <p class="profile-number-hint">Share this so others can add you as a friend.</p>
+
+            <label for="profile-gender-input">Gender</label>
+            <select id="profile-gender-input" aria-describedby="profile-gender-hint">
+              <option value="">Select gender…</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="trans-female">Trans female</option>
+              <option value="trans-male">Trans male</option>
+              <option value="non-binary">Non-binary</option>
+              <option value="prefer-not-to-say">Prefer not to say</option>
+            </select>
+            <p id="profile-gender-hint" class="profile-number-hint">Used to choose how we address you in game text (he/him, she/her, they/them).</p>
+
+            <div id="profile-preferred-pronouns-section" class="profile-preferred-pronouns-section" hidden>
+              <label for="profile-preferred-pronouns-input">Preferred pronouns</label>
+              <select id="profile-preferred-pronouns-input">
+                <option value="">Select pronouns…</option>
+                <option value="he-him">he/him</option>
+                <option value="she-her">she/her</option>
+                <option value="they-them">they/them</option>
+              </select>
+              <p class="profile-number-hint">Required for non-binary and prefer not to say.</p>
+            </div>
 
             <label for="profile-mood-input">Mood</label>
             <input id="profile-mood-input" type="text" maxlength="120" placeholder="What's your mood today?">
@@ -595,6 +623,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260602-profile-avatar-presets"></script>
+<script type="module" src="/js/app.js?v=20260602-profile-gender-pronouns"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 import { RavaApi } from "./api.js";
-import { GRID_SIZE, ORE_TYPES, SUPPLY_TYPES, API_BASE_URL } from "./config.js";
+import { GRID_SIZE, ORE_TYPES, SUPPLY_TYPES, API_BASE_URL, readMetaApiBase } from "./config.js";
 import {
   formatRaxHtml,
   formatRaxPlain,
@@ -687,8 +687,9 @@ function resolveProfileAssetUrl(url) {
     return url;
   }
 
-  if (url.startsWith("/") && API_BASE_URL) {
-    return `${API_BASE_URL}${url}`;
+  const apiBase = (API_BASE_URL || readMetaApiBase()).replace(/\/$/, "");
+  if (url.startsWith("/") && apiBase) {
+    return `${apiBase}${url}`;
   }
 
   return url;
@@ -718,23 +719,36 @@ function renderProfileBackgroundPreview(profile) {
   setHidden(els.profileBackgroundRemoveBtn, !profile?.profileBackgroundUrl);
 }
 
+function clearProfileAvatarPhoto(imgEl, initialsEl, avatarEl) {
+  if (!imgEl || !initialsEl || !avatarEl) {
+    return;
+  }
+
+  imgEl.removeAttribute("src");
+  imgEl.hidden = true;
+  imgEl.onerror = null;
+  avatarEl.classList.remove("has-photo");
+}
+
 function renderAvatarOnElements(profile, imgEl, initialsEl, avatarEl) {
   if (!imgEl || !initialsEl || !avatarEl) {
     return;
   }
 
+  initialsEl.textContent = profileInitials(profile.username);
+
   const imageUrl = resolveProfileAssetUrl(profile.profileImageUrl);
-  if (imageUrl) {
-    imgEl.src = imageUrl;
-    imgEl.hidden = false;
-    avatarEl.classList.add("has-photo");
-  } else {
-    imgEl.removeAttribute("src");
-    imgEl.hidden = true;
-    avatarEl.classList.remove("has-photo");
+  if (!imageUrl) {
+    clearProfileAvatarPhoto(imgEl, initialsEl, avatarEl);
+    return;
   }
 
-  initialsEl.textContent = profileInitials(profile.username);
+  imgEl.onerror = () => {
+    clearProfileAvatarPhoto(imgEl, initialsEl, avatarEl);
+  };
+  imgEl.src = imageUrl;
+  imgEl.hidden = false;
+  avatarEl.classList.add("has-photo");
 }
 
 function renderProfileAvatar(profile) {

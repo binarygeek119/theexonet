@@ -25,7 +25,7 @@ public static class OffworldNewsReporterProfileMapper
 
         return new PlayerProfileResponse(
             Guid.Empty,
-            OffworldNewsReporterSocial.UsernameFor(reporter),
+            reporter.DisplayName,
             OffworldNewsReporterSocial.ProfileNumberFor(reporter.Slug),
             ResolveAvatarUrl(reporter.Slug, reporterAssetRoots),
             ResolveBackgroundUrl(reporter.Slug, reporterAssetRoots),

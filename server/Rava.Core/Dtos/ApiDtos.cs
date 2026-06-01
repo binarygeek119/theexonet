@@ -20,6 +20,17 @@ public record ApiStatusResponse(
     DateTime? ServerFirstRunUtc = null,
     string GameVersion = "");
 
+public record PublicOpenAiUsageResponse(
+    DateTime Utc,
+    bool ApiKeyConfigured,
+    long TotalRequests,
+    long RequestsToday,
+    IReadOnlyDictionary<string, long> RequestsByCategory,
+    DateTime? LastRequestUtc,
+    decimal? CreditsRemainingUsd,
+    decimal? CreditsGrantedUsd,
+    string? CreditsNote);
+
 public record EconomyItemPriceDto(
     string ItemType,
     string Category,

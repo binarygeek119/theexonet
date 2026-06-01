@@ -18,5 +18,9 @@
   "label.checked": "Checked",
   "label.endpoint": "Endpoint",
   "label.error": "Error",
-  "footer.lastUpdated": "Last updated {time}"
+  "footer.lastUpdated": "Last updated {time}",
+  "openai.creditsRemaining": "Prepaid credits remaining",
+  "openai.creditsGranted": "Prepaid credits granted",
+  "openai.requestsTotal": "Total API requests",
+  "openai.requestsToday": "Requests today (UTC)"
 }

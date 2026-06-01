@@ -6,6 +6,7 @@ using Rava.Core.Configuration;
 using Rava.Core.Interfaces;
 using Rava.Core.Services;
 using Rava.Core.Validation;
+using Rava.Api.Services.OpenAi;
 using Rava.Api.Services.OffworldNews;
 
 namespace Rava.Api.Services.CompanyLogo;
@@ -59,6 +60,7 @@ public sealed class CompanyLogoGenerator(
 
         var httpClient = httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName);
         using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(baseUrl, "/images/generations"));
+        OpenAiUsageLoggingHandler.SetCategory(request, OpenAiUsageCategories.CompanyLogo);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         request.Content = JsonContent.Create(CompanyLogoOpenAiImageRequest.BuildRequestBody(imageModel, prompt));
 

@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Rava.Api.Services.OpenAi;
 using Rava.Core.Configuration;
 using Rava.Core.Dtos;
 using Rava.Core.Services;
@@ -198,6 +199,7 @@ public sealed class OpenAiOffworldNewsGenerator(
             """;
 
         using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(options.BaseUrl, "/chat/completions"));
+        OpenAiUsageLoggingHandler.SetCategory(request, OpenAiUsageCategories.StoryGeneration);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
         request.Content = JsonContent.Create(new
         {
@@ -294,6 +296,7 @@ public sealed class OpenAiOffworldNewsGenerator(
         }
 
         using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(options.BaseUrl, "/images/generations"));
+        OpenAiUsageLoggingHandler.SetCategory(request, OpenAiUsageCategories.ImageGeneration);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
         request.Content = JsonContent.Create(
             OffworldNewsOpenAiImageRequest.BuildRequestBody(options.ImageModel, imagePrompt, aspect.ApiSize));

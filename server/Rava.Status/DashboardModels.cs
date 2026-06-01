@@ -50,6 +50,30 @@ public record OpenAiStatusPayload(
     IReadOnlyList<OpenAiComponentStatusPayload> DegradedComponents,
     string? Error);
 
+public record OpenAiUsagePayload(
+    DateTime Utc,
+    bool ApiKeyConfigured,
+    long TotalRequests,
+    long RequestsToday,
+    IReadOnlyDictionary<string, long> RequestsByCategory,
+    DateTime? LastRequestUtc,
+    decimal? CreditsRemainingUsd,
+    decimal? CreditsGrantedUsd,
+    string? CreditsNote,
+    bool Reachable,
+    string? Error);
+
+public record OpenAiUsageApiPayload(
+    DateTime Utc,
+    bool ApiKeyConfigured,
+    long TotalRequests,
+    long RequestsToday,
+    IReadOnlyDictionary<string, long> RequestsByCategory,
+    DateTime? LastRequestUtc,
+    decimal? CreditsRemainingUsd,
+    decimal? CreditsGrantedUsd,
+    string? CreditsNote);
+
 public record DashboardResponse(
     DateTime Utc,
     double MonitorUptimeSeconds,
@@ -68,4 +92,5 @@ public record DashboardResponse(
     PortalStatusPayload DocsPortal,
     PortalStatusPayload AdminPortal,
     PortalStatusPayload ModeratorPortal,
-    OpenAiStatusPayload OpenAi);
+    OpenAiStatusPayload OpenAi,
+    OpenAiUsagePayload? OpenAiUsage);

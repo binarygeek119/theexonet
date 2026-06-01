@@ -101,6 +101,62 @@ app.MapGet("/api/dashboard", async (
         monitor.OpenAiStatusPageUrl,
         cancellationToken);
 
+    OpenAiUsagePayload? openAiUsage = null;
+    try
+    {
+        using var usageResponse = await apiClient.GetAsync($"{apiBaseUrl}/api/status/openai", cancellationToken);
+
+        if (usageResponse.IsSuccessStatusCode)
+        {
+            var usage = await usageResponse.Content.ReadFromJsonAsync<OpenAiUsageApiPayload>(cancellationToken);
+            if (usage is not null)
+            {
+                openAiUsage = new OpenAiUsagePayload(
+                    usage.Utc,
+                    usage.ApiKeyConfigured,
+                    usage.TotalRequests,
+                    usage.RequestsToday,
+                    usage.RequestsByCategory,
+                    usage.LastRequestUtc,
+                    usage.CreditsRemainingUsd,
+                    usage.CreditsGrantedUsd,
+                    usage.CreditsNote,
+                    true,
+                    null);
+            }
+        }
+        else
+        {
+            openAiUsage = new OpenAiUsagePayload(
+                DateTime.UtcNow,
+                false,
+                0,
+                0,
+                new Dictionary<string, long>(),
+                null,
+                null,
+                null,
+                null,
+                false,
+                $"HTTP {(int)usageResponse.StatusCode} {usageResponse.ReasonPhrase}");
+        }
+    }
+    catch (Exception ex)
+    {
+        openAiUsage = new OpenAiUsagePayload(
+            DateTime.UtcNow,
+            false,
+            0,
+            0,
+            new Dictionary<string, long>(),
+            null,
+            null,
+            null,
+            null,
+            false,
+            ex.Message);
+    }
+
     return Results.Ok(new DashboardResponse(
         DateTime.UtcNow,
         runtime.UptimeSeconds,
@@ -119,7 +175,8 @@ app.MapGet("/api/dashboard", async (
         docsPortal,
         adminPortal,
         moderatorPortal,
-        openAiStatus));
+        openAiStatus,
+        openAiUsage));
 });
 
 app.MapGet("/api/economy", async (

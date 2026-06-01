@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Rava.Api.Services.OpenAi;
 using Rava.Core.Configuration;
 using Rava.Core.Services;
 
@@ -114,6 +115,7 @@ public sealed class OffworldNewsReporterPortraitGenerator(
         }
 
         using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(options.BaseUrl, "/images/generations"));
+        OpenAiUsageLoggingHandler.SetCategory(request, OpenAiUsageCategories.ReporterPortrait);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
         request.Content = JsonContent.Create(
             OffworldNewsOpenAiImageRequest.BuildRequestBody(options.ImageModel, prompt, size));

@@ -43,6 +43,15 @@ const els = {
   openaiChecked: document.getElementById("openai-checked"),
   openaiStatusPage: document.getElementById("openai-status-page"),
   openaiComponents: document.getElementById("openai-components"),
+  openaiApiKey: document.getElementById("openai-api-key"),
+  openaiCreditsRemaining: document.getElementById("openai-credits-remaining"),
+  openaiCreditsGranted: document.getElementById("openai-credits-granted"),
+  openaiCreditsNote: document.getElementById("openai-credits-note"),
+  openaiRequestsTotal: document.getElementById("openai-requests-total"),
+  openaiRequestsToday: document.getElementById("openai-requests-today"),
+  openaiLastRequest: document.getElementById("openai-last-request"),
+  openaiRequestsByType: document.getElementById("openai-requests-by-type"),
+  openaiUsageError: document.getElementById("openai-usage-error"),
   openaiError: document.getElementById("openai-error"),
   monitorUptime: document.getElementById("monitor-uptime"),
   monitorFirstRun: document.getElementById("monitor-first-run"),
@@ -121,6 +130,59 @@ function openAiIndicatorTone(indicator) {
   }
 
   return "checking";
+}
+
+function formatUsd(value) {
+  if (value == null || Number.isNaN(value)) {
+    return "—";
+  }
+
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatOpenAiRequestsByCategory(byCategory) {
+  if (!byCategory || typeof byCategory !== "object") {
+    return "—";
+  }
+
+  const entries = Object.entries(byCategory).filter(([, count]) => count > 0);
+  if (entries.length === 0) {
+    return "None yet";
+  }
+
+  return entries
+    .sort((a, b) => b[1] - a[1])
+    .map(([key, count]) => `${key.replaceAll("_", " ")}: ${formatCount(count)}`)
+    .join("; ");
+}
+
+function renderOpenAiUsage(usage) {
+  if (!usage?.reachable) {
+    els.openaiApiKey.textContent = "—";
+    els.openaiCreditsRemaining.textContent = "—";
+    els.openaiCreditsGranted.textContent = "—";
+    els.openaiCreditsNote.textContent = "—";
+    els.openaiRequestsTotal.textContent = "—";
+    els.openaiRequestsToday.textContent = "—";
+    els.openaiLastRequest.textContent = "—";
+    els.openaiRequestsByType.textContent = "—";
+    els.openaiUsageError.textContent = usage?.error || "Could not load usage from API";
+    return;
+  }
+
+  els.openaiUsageError.textContent = "—";
+  els.openaiApiKey.textContent = usage.apiKeyConfigured ? "Yes" : "No";
+  els.openaiCreditsRemaining.textContent = formatUsd(usage.creditsRemainingUsd);
+  els.openaiCreditsGranted.textContent = formatUsd(usage.creditsGrantedUsd);
+  els.openaiCreditsNote.textContent = usage.creditsNote || "—";
+  els.openaiRequestsTotal.textContent = formatCount(usage.totalRequests);
+  els.openaiRequestsToday.textContent = formatCount(usage.requestsToday);
+  els.openaiLastRequest.textContent = formatUtc(usage.lastRequestUtc);
+  els.openaiRequestsByType.textContent = formatOpenAiRequestsByCategory(usage.requestsByCategory);
 }
 
 function formatOpenAiComponents(components) {
@@ -227,6 +289,7 @@ function renderDashboard(data) {
   }, data.utc);
 
   renderOpenAiCard(data.openAi, data.utc);
+  renderOpenAiUsage(data.openAiUsage);
 
   els.monitorUptime.textContent = formatDuration(data.monitorUptimeSeconds);
   els.monitorFirstRun.textContent = formatUtc(data.monitorFirstRunUtc);
@@ -294,6 +357,7 @@ async function refresh() {
     setPill(els.adminOverall, "Unknown", "offline");
     setPill(els.moderatorOverall, "Unknown", "offline");
     setPill(els.openaiOverall, "Unknown", "offline");
+    renderOpenAiUsage(null);
     setGameVersion(null);
     els.apiError.textContent = error.message;
     els.lastUpdated.textContent = "Failed to load dashboard data";

@@ -10,6 +10,7 @@ using Rava.Api.Controllers;
 using Rava.Api.Services;
 using Rava.Api.Services.Market;
 using Rava.Api.Services.CompanyLogo;
+using Rava.Api.Services.OpenAi;
 using Rava.Api.Services.OffworldNews;
 using Rava.Core.Configuration;
 using Rava.Core.Interfaces;
@@ -164,10 +165,14 @@ builder.Services.AddScoped<CompanyNameService>();
 builder.Services.AddScoped<TradeAuctionService>();
 builder.Services.AddScoped<PublicProfileService>();
 builder.Services.AddScoped<ReporterFriendshipService>();
+builder.Services.AddSingleton<OpenAiUsageTracker>();
+builder.Services.AddSingleton<OpenAiBillingProbe>();
+builder.Services.AddTransient<OpenAiUsageLoggingHandler>();
 builder.Services.AddHttpClient(OpenAiOffworldNewsGenerator.HttpClientName, client =>
-{
-    client.Timeout = TimeSpan.FromMinutes(3);
-});
+    {
+        client.Timeout = TimeSpan.FromMinutes(3);
+    })
+    .AddHttpMessageHandler<OpenAiUsageLoggingHandler>();
 builder.Services.AddSingleton<OffworldNewsService>();
 builder.Services.AddSingleton<OffworldNewsReporterPortraitJobService>();
 builder.Services.AddSingleton<OffworldNewsAdminSettingsStore>();
@@ -268,6 +273,7 @@ catch (Exception ex)
 }
 
 app.Services.GetRequiredService<OffworldNewsAdminSettingsStore>().Load();
+app.Services.GetRequiredService<OpenAiUsageTracker>().Load();
 
 app.Logger.LogInformation(
     "Content root: {ContentRoot}. Web root: {WebRoot}. Data root: {DataRoot}. Offworld News cache: {OffworldNewsCache}. Profile uploads: {AvatarPath}. Profile backgrounds: {BackgroundPath}. Company logos: {CompanyLogoPath}",

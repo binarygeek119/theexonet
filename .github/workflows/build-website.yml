@@ -92,6 +92,7 @@ jobs:
           test -f publish/wwwroot/admin.html
           test -f publish/wwwroot/moderator.html
           test -f publish/wwwroot/js/currency.js
+          bash ../scripts/sync-portal-wwwroot.sh Rava.Api/html publish/wwwroot
           mkdir -p data
           cp -f Rava.Api/*.csv data/
           test -f data/credits.csv
@@ -505,6 +506,29 @@ jobs:
             SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${api_rsync_args[@]}" \
               -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
               publish/ \
+              "$target"
+          fi
+
+      - name: Ensure portal wwwroot on server
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${api_host}"
+          target="${remote}:${DEPLOY_API_PATH}/wwwroot/"
+          staging="$(mktemp -d)"
+          bash scripts/sync-portal-wwwroot.sh server/Rava.Api/html "$staging"
+          echo "Deploying portal wwwroot assets to ${target}"
+          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+            rsync -avz \
+              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              "${staging}/" \
+              "$target"
+          else
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -avz \
+              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              "${staging}/" \
               "$target"
           fi
 

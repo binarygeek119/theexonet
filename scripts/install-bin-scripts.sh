@@ -34,6 +34,7 @@ for script in \
   deploy-html.sh \
   deploy-portals.sh \
   deploy-status.sh \
+  sync-portal-wwwroot.sh \
   migrate-publish-data-to-var-www.sh \
   sync-publish-data.sh \
   fix-hosting-permissions.sh \

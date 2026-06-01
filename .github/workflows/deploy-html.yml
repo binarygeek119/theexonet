@@ -12,6 +12,7 @@ on:
       - "scripts/deploy-html.sh"
       - "scripts/deploy-portals.sh"
       - "scripts/deploy-status.sh"
+      - "scripts/sync-portal-wwwroot.sh"
       - ".github/workflows/deploy-html.yml"
 
 permissions:
@@ -123,6 +124,8 @@ jobs:
           test -f publish-moderator/Rava.Moderator.dll
           test -f publish-admin/wwwroot/js/currency.js
           test -f publish-moderator/wwwroot/js/currency.js
+          bash ../scripts/sync-portal-wwwroot.sh Rava.Api/html publish-admin/wwwroot
+          bash ../scripts/sync-portal-wwwroot.sh Rava.Api/html publish-moderator/wwwroot
 
       - name: Deploy game html
         env:
@@ -197,6 +200,29 @@ jobs:
               "$target"
           fi
 
+      - name: Deploy portal wwwroot assets from checkout
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${api_host}"
+          target="${remote}:${DEPLOY_API_PATH}/wwwroot/"
+          staging="$(mktemp -d)"
+          bash scripts/sync-portal-wwwroot.sh server/Rava.Api/html "$staging"
+          echo "Deploying portal wwwroot assets to ${target}"
+          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+            rsync -avz \
+              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              "${staging}/" \
+              "$target"
+          else
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -avz \
+              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              "${staging}/" \
+              "$target"
+          fi
+
       - name: Restart status, admin, and moderator services
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
@@ -242,7 +268,40 @@ jobs:
           if run_remote "command -v curl >/dev/null 2>&1"; then
             run_remote "curl -sf -o /dev/null -w 'status dashboard HTTP %{http_code}\n' http://127.0.0.1:6000/ || true"
             run_remote "curl -sf -o /dev/null -w 'admin currency.js HTTP %{http_code}\n' http://127.0.0.1:7000/js/currency.js || true"
+            run_remote "curl -sf -o /dev/null -w 'admin currency.svg HTTP %{http_code}\n' http://127.0.0.1:7000/images/currency.svg || true"
             run_remote "curl -sf -o /dev/null -w 'moderator currency.js HTTP %{http_code}\n' http://127.0.0.1:7050/js/currency.js || true"
           fi
 
           echo "Done. Hard-refresh status/admin/moderator sites after deploy."
+
+      - name: Verify portal assets on server
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${api_host}"
+
+          run_remote() {
+            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            else
+              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
+                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            fi
+          }
+
+          verify_url() {
+            local label="$1"
+            local url="$2"
+            if ! run_remote "curl -sf -o /dev/null '${url}'"; then
+              echo "ERROR: ${label} missing at ${url}" >&2
+              run_remote "ls -la '${DEPLOY_API_PATH}/wwwroot/js/currency.js' '${DEPLOY_API_PATH}/wwwroot/images/currency.svg' 2>&1 || true"
+              exit 1
+            fi
+            echo "${label}: OK"
+          }
+
+          verify_url "Admin currency.js" "http://127.0.0.1:7000/js/currency.js"
+          verify_url "Admin currency.svg" "http://127.0.0.1:7000/images/currency.svg"
+          verify_url "Moderator currency.js" "http://127.0.0.1:7050/js/currency.js"

@@ -8,7 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="html/**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Exclude="html/images/profile/**" />
+    <!-- WebRoot=html already publishes static files; explicit html/** duplicated locale JSON (NETSDK1022). -->
+    <Content Remove="html/images/profile/**" />
     <Content Include="html/images/profile/.gitkeep" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 

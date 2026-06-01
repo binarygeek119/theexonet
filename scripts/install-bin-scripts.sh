@@ -10,6 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 SRC_DIR="${1:-$SCRIPT_DIR}"
 LIB_DIR="${RAVA_LIB_DIR:-/usr/local/lib/rava/scripts}"
 TEMPLATE_DIR="${RAVA_TEMPLATE_DATA_DIR:-/usr/local/lib/rava/data}"
+HTML_TEMPLATE_DIR="${RAVA_HTML_TEMPLATE_DIR:-/usr/local/lib/rava/html}"
 BIN_DIR="/usr/local/bin"
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -54,6 +55,18 @@ if [ -d "${REPO_API_DIR}" ]; then
     fi
   done
   echo "Installed CSV template files to ${TEMPLATE_DIR}"
+
+  if [ -d "${REPO_API_DIR}/html" ]; then
+    mkdir -p "${HTML_TEMPLATE_DIR}"
+    rsync -a --delete \
+      --exclude 'uploads/' \
+      --exclude 'images/profile/' \
+      --exclude 'images/profile-backgrounds/' \
+      --exclude 'exonet/offworld-news/editions/' \
+      --exclude 'exonet/offworld-news/images/' \
+      "${REPO_API_DIR}/html/" "${HTML_TEMPLATE_DIR}/"
+    echo "Installed html template to ${HTML_TEMPLATE_DIR}"
+  fi
 fi
 
 declare -A bin_links=(

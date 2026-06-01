@@ -336,6 +336,7 @@ const els = {
   profileBackgroundUploadBtn: document.getElementById("profile-background-upload-btn"),
   profileBackgroundRemoveBtn: document.getElementById("profile-background-remove-btn"),
   profileBackgroundStatus: document.getElementById("profile-background-status"),
+  profileLocaleInput: document.getElementById("profile-locale-input"),
   profileGenderInput: document.getElementById("profile-gender-input"),
   profilePreferredPronounsSection: document.getElementById("profile-preferred-pronouns-section"),
   profilePreferredPronounsInput: document.getElementById("profile-preferred-pronouns-input"),
@@ -1074,7 +1075,11 @@ function profileUpdatePayloadFromState(overrides = {}) {
     profileAvatarPreset: profile.profileAvatarPreset ?? "neutral",
     profileGender: gender,
     profilePreferredPronouns: preferredPronouns,
-    profileLocale: profile.profileLocale ?? "",
+    profileLocale:
+      overrides.profileLocale ??
+      els.profileLocaleInput?.value ??
+      profile.profileLocale ??
+      getLocale(),
     ...overrides,
   };
 }
@@ -1374,6 +1379,10 @@ function populateProfileEditForm(profile) {
   }
   if (els.profileCompanyNameInput) {
     els.profileCompanyNameInput.value = profile.mineName ?? "";
+  }
+  if (els.profileLocaleInput) {
+    wireLocaleSelector(els.profileLocaleInput);
+    els.profileLocaleInput.value = profile.profileLocale || getLocale();
   }
   if (els.profileGenderInput) {
     els.profileGenderInput.value = profile.profileGender ?? "";
@@ -2311,6 +2320,14 @@ async function saveProfile() {
     return;
   }
 
+  const nextLocale = els.profileLocaleInput?.value?.trim() ?? payload.profileLocale;
+  if (!nextLocale) {
+    els.profileSaveStatus.textContent = t("profile.completion.localeRequired");
+    els.profileSaveStatus.classList.add("error");
+    els.profileLocaleInput?.focus();
+    return;
+  }
+
   try {
     const profile = await api.updateProfile({
       ...payload,
@@ -2324,7 +2341,13 @@ async function saveProfile() {
       youtube: els.profileYoutubeInput.value.trim(),
       facebook: els.profileFacebookInput.value.trim(),
       profileAvatarPreset: state.profile?.profileAvatarPreset ?? "neutral",
+      profileLocale: nextLocale,
     });
+    state.profile = profile;
+    if (getLocale() !== nextLocale) {
+      await setLocale(nextLocale);
+      applyTranslations(document);
+    }
     renderProfile(profile);
     renderProfileEditAvatar(profile);
     els.profileSaveStatus.textContent = t("profile.saved");

@@ -230,6 +230,7 @@
   "profile.edit.numberHint": "Share this so others can add you as a friend.",
   "profile.edit.gender": "Gender",
   "profile.edit.genderHint": "Used to choose how we address you in game text (he/him, she/her, they/them).",
+  "profile.edit.languageHint": "Interface language for menus and game text on this device.",
   "profile.edit.genderSelect": "Select gender…",
   "profile.edit.gender.male": "Male",
   "profile.edit.gender.female": "Female",

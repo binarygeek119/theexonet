@@ -480,6 +480,12 @@
             <p id="profile-edit-number" class="profile-edit-number">---</p>
             <p class="profile-number-hint" data-i18n="profile.edit.numberHint">Share this so others can add you as a friend.</p>
 
+            <label class="locale-select-label locale-select-label--auth" for="profile-locale-input">
+              <span data-i18n="locale.label">Language</span>
+            </label>
+            <select id="profile-locale-input" data-locale-select class="locale-select" aria-label="Language"></select>
+            <p class="profile-number-hint" data-i18n="profile.edit.languageHint">Interface language for menus and game text on this device.</p>
+
             <label for="profile-gender-input" data-i18n="profile.edit.gender">Gender</label>
             <select id="profile-gender-input" aria-describedby="profile-gender-hint">
               <option value="" data-i18n="profile.edit.genderSelect">Select gender…</option>
@@ -703,6 +709,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260602-profile-locale"></script>
+<script type="module" src="/js/app.js?v=20260602-profile-edit-locale"></script>
 </body>
 </html>

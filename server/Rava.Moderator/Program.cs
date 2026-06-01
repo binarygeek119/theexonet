@@ -1,3 +1,4 @@
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Rava.Core.Configuration;
 
@@ -22,11 +23,20 @@ try
         ? new ModeratorPortalOptions().PublicUrl.TrimEnd('/')
         : portal.PublicUrl.TrimEnd('/');
 
+    var webRootPath = Path.Combine(contentRootPath, "wwwroot");
+    var webRoot = Directory.Exists(webRootPath)
+        ? new PhysicalFileProvider(webRootPath)
+        : app.Environment.WebRootFileProvider;
+
     app.UseDefaultFiles(new DefaultFilesOptions
     {
+        FileProvider = webRoot,
         DefaultFileNames = ["moderator.html", "index.html"]
     });
-    app.UseStaticFiles();
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = webRoot
+    });
 
     app.MapGet("/moderator", () => Results.Redirect("/moderator.html"));
 

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Rava.Core.Configuration;
 
@@ -22,11 +23,22 @@ try
         ? new AdminPortalOptions().PublicUrl.TrimEnd('/')
         : portal.PublicUrl.TrimEnd('/');
 
+    // Serve every file under publish/wwwroot from disk so deploy rsync works without
+    // rebuilding the static web assets manifest baked into Rava.Admin.dll.
+    var webRootPath = Path.Combine(contentRootPath, "wwwroot");
+    var webRoot = Directory.Exists(webRootPath)
+        ? new PhysicalFileProvider(webRootPath)
+        : app.Environment.WebRootFileProvider;
+
     app.UseDefaultFiles(new DefaultFilesOptions
     {
+        FileProvider = webRoot,
         DefaultFileNames = ["admin.html", "index.html"]
     });
-    app.UseStaticFiles();
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = webRoot
+    });
 
     app.MapGet("/admin", () => Results.Redirect("/admin.html"));
 

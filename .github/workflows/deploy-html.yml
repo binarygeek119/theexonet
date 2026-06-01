@@ -223,6 +223,25 @@ jobs:
               "$target"
           fi
 
+      - name: Fix portal wwwroot ownership
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${api_host}"
+          if [ "$DEPLOY_USER" = "root" ]; then
+            chown_cmd="chown -R www-data:www-data '${DEPLOY_API_PATH}/wwwroot'"
+          else
+            chown_cmd="sudo chown -R www-data:www-data '${DEPLOY_API_PATH}/wwwroot'"
+          fi
+          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+            ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$chown_cmd"
+          else
+            SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
+              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$chown_cmd"
+          fi
+
       - name: Restart status, admin, and moderator services
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
@@ -291,17 +310,39 @@ jobs:
             fi
           }
 
-          verify_url() {
+          verify_file() {
             local label="$1"
-            local url="$2"
-            if ! run_remote "curl -sf -o /dev/null '${url}'"; then
-              echo "ERROR: ${label} missing at ${url}" >&2
-              run_remote "ls -la '${DEPLOY_API_PATH}/wwwroot/js/currency.js' '${DEPLOY_API_PATH}/wwwroot/images/currency.svg' 2>&1 || true"
+            local path="$2"
+            if ! run_remote "test -f '${path}'"; then
+              echo "ERROR: ${label} missing at ${path}" >&2
+              run_remote "ls -la '${DEPLOY_API_PATH}/wwwroot/js' '${DEPLOY_API_PATH}/wwwroot/images' 2>&1 || true"
               exit 1
             fi
-            echo "${label}: OK"
+            echo "${label}: on disk"
           }
 
-          verify_url "Admin currency.js" "http://127.0.0.1:7000/js/currency.js"
-          verify_url "Admin currency.svg" "http://127.0.0.1:7000/images/currency.svg"
-          verify_url "Moderator currency.js" "http://127.0.0.1:7050/js/currency.js"
+          verify_file "Admin currency.js" "${DEPLOY_API_PATH}/wwwroot/js/currency.js"
+          verify_file "Admin currency.svg" "${DEPLOY_API_PATH}/wwwroot/images/currency.svg"
+
+          verify_http() {
+            local label="$1"
+            local url="$2"
+            local attempt=1
+            while [ "$attempt" -le 12 ]; do
+              if run_remote "curl -sf -o /dev/null '${url}'"; then
+                echo "${label}: HTTP OK"
+                return 0
+              fi
+              echo "${label}: waiting for service (attempt ${attempt}/12)..."
+              sleep 5
+              attempt=$((attempt + 1))
+            done
+            echo "ERROR: ${label} not served at ${url}" >&2
+            run_remote "systemctl is-active ${DEPLOY_ADMIN_SERVICE} ${DEPLOY_MODERATOR_SERVICE} 2>&1 || true"
+            run_remote "journalctl -u ${DEPLOY_ADMIN_SERVICE} -n 20 --no-pager 2>&1 || true"
+            exit 1
+          }
+
+          verify_http "Admin currency.js" "http://127.0.0.1:7000/js/currency.js"
+          verify_http "Admin currency.svg" "http://127.0.0.1:7000/images/currency.svg"
+          verify_http "Moderator currency.js" "http://127.0.0.1:7050/js/currency.js"

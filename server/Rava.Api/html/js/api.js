@@ -76,7 +76,7 @@ export class RavaApi {
     });
 
     if (!response.ok) {
-      let message = formatHttpError(response);
+      let message = formatHttpError(response, path);
       let code = null;
       try {
         const error = await response.json();
@@ -140,7 +140,7 @@ export class RavaApi {
     });
 
     if (!response.ok) {
-      throw new Error(formatHttpError(response));
+      throw new Error(formatHttpError(response, "/api/status"));
     }
 
     return response.json();
@@ -308,22 +308,7 @@ export class RavaApi {
     });
 
     if (!response.ok) {
-      let message = formatHttpError(response);
-      try {
-        const error = await response.json();
-        if (error?.message) {
-          message = error.message;
-        }
-      } catch {
-        // ignore parse errors
-      }
-      throw new Error(message);
-    }
-
-    return response.json();
-  }
-
-  async uploadProfileBackground(file) {
+      let message = formatHttpError(response, "/api/player/profile/avatar");
     const form = new FormData();
     form.append("file", file);
 
@@ -339,26 +324,7 @@ export class RavaApi {
     });
 
     if (!response.ok) {
-      let message = formatHttpError(response);
-      try {
-        const error = await response.json();
-        if (error?.message) {
-          message = error.message;
-        } else if (error?.detail) {
-          message = error.detail;
-        } else if (error?.title) {
-          message = error.title;
-        }
-      } catch {
-        // ignore parse errors
-      }
-      throw new Error(message);
-    }
-
-    return response.json();
-  }
-
-  removeProfileBackground() {
+      let message = formatHttpError(response, "/api/player/profile/background");
     return this.request("/api/player/profile/background", {
       method: "DELETE",
     });
@@ -667,7 +633,7 @@ export class RavaApi {
   }
 }
 
-function formatHttpError(response) {
+function formatHttpError(response, path = "") {
   if (response.status === 401) {
     return "Invalid username or password, or session expired.";
   }
@@ -677,7 +643,8 @@ function formatHttpError(response) {
   }
 
   if (response.status === 404) {
-    return "That API feature is not on the server yet. Redeploy Rava.Api, restart the service, then hard-refresh this page.";
+    const route = path ? ` (${path})` : "";
+    return `That API route is not on the server yet${route}. Redeploy Rava.Api, restart the service, then hard-refresh this page.`;
   }
 
   if (response.status === 405) {

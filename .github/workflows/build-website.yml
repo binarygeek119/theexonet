@@ -469,43 +469,6 @@ jobs:
               "$target"
           fi
 
-      - name: Install helper scripts
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${host}"
-          if [ "$DEPLOY_USER" = "root" ]; then
-            sudo_prefix=""
-          else
-            sudo_prefix="sudo "
-          fi
-
-          run_remote() {
-            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            else
-              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            fi
-          }
-
-          staging="/tmp/rava-scripts-install"
-          echo "Syncing scripts/ to ${remote}:${staging}"
-          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            rsync -az --delete scripts/ \
-              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              "${remote}:${staging}/"
-          else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -az --delete scripts/ \
-              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              "${remote}:${staging}/"
-          fi
-
-          run_remote "${sudo_prefix}bash ${staging}/install-bin-scripts.sh ${staging}"
-          echo "Installed /usr/local/bin/restart-rava and related helpers."
-
       - name: Restart services
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
@@ -564,3 +527,41 @@ jobs:
             restart_unit "${DEPLOY_MODERATOR_SERVICE}"
             restart_unit "${DEPLOY_DOCS_SERVICE}"
           fi
+
+      - name: Install helper scripts
+        continue-on-error: true
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${host}"
+          if [ "$DEPLOY_USER" = "root" ]; then
+            sudo_prefix=""
+          else
+            sudo_prefix="sudo "
+          fi
+
+          run_remote() {
+            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            else
+              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
+                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            fi
+          }
+
+          staging="/tmp/rava-scripts-install"
+          echo "Syncing scripts/ to ${remote}:${staging}"
+          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+            rsync -az --delete scripts/ \
+              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              "${remote}:${staging}/"
+          else
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -az --delete scripts/ \
+              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              "${remote}:${staging}/"
+          fi
+
+          run_remote "${sudo_prefix}bash ${staging}/install-bin-scripts.sh ${staging}"
+          echo "Installed /usr/local/bin/restart-rava and related helpers."

@@ -15,19 +15,24 @@ import { initI18n, applyTranslations, wireLocaleSelectors, t } from "./i18n.js";
 const api = new RavaApi(API_BASE_URL);
 
 const PROFILE_AVATAR_PRESETS = [
-  { id: "female", label: "Female" },
-  { id: "male", label: "Male" },
-  { id: "neutral", label: "Neutral" },
+  { id: "female", labelKey: "avatar.preset.female" },
+  { id: "male", labelKey: "avatar.preset.male" },
+  { id: "neutral", labelKey: "avatar.preset.neutral" },
 ];
 
-const PROFILE_GENDER_LABELS = {
-  male: "Male",
-  female: "Female",
-  "trans-female": "Trans female",
-  "trans-male": "Trans male",
-  "non-binary": "Non-binary",
-  "prefer-not-to-say": "Prefer not to say",
+const PROFILE_GENDER_LABEL_KEYS = {
+  male: "profile.edit.gender.male",
+  female: "profile.edit.gender.female",
+  "trans-female": "profile.edit.gender.transFemale",
+  "trans-male": "profile.edit.gender.transMale",
+  "non-binary": "profile.edit.gender.nonBinary",
+  "prefer-not-to-say": "profile.edit.gender.preferNot",
 };
+
+function genderLabel(gender) {
+  const key = PROFILE_GENDER_LABEL_KEYS[gender];
+  return key ? t(key) : gender;
+}
 
 function profileGenderRequiresPronouns(gender) {
   return gender === "non-binary" || gender === "prefer-not-to-say";
@@ -877,8 +882,8 @@ function updateCompanyLogoGenerationUi(profile) {
   if (els.profileCompanyLogoGenerateBtn) {
     els.profileCompanyLogoGenerateBtn.disabled = busy;
     els.profileCompanyLogoGenerateBtn.textContent = busy
-      ? (status === "processing" ? "Generating…" : "Queued…")
-      : "Generate AI Logo";
+      ? (status === "processing" ? t("profile.logoGenerating") : t("profile.logoQueued"))
+      : t("profile.edit.generateLogo");
   }
 
   if (els.profileCompanyLogoStatus && profile?.companyLogoGenerationMessage && busy) {
@@ -944,10 +949,10 @@ async function pollCompanyLogoGeneration() {
 
   if (els.profileCompanyLogoStatus) {
     if (status === "failed") {
-      els.profileCompanyLogoStatus.textContent = generation?.message || "Logo generation failed.";
+      els.profileCompanyLogoStatus.textContent = generation?.message || t("profile.logoFailed");
       els.profileCompanyLogoStatus.classList.add("error");
     } else if (profile.companyLogoUrl) {
-      els.profileCompanyLogoStatus.textContent = "AI company logo ready.";
+      els.profileCompanyLogoStatus.textContent = t("profile.logoReady");
       els.profileCompanyLogoStatus.classList.add("success");
     }
   }
@@ -960,7 +965,7 @@ async function enqueueCompanyLogoGeneration() {
 
   els.profileCompanyLogoGenerateBtn.disabled = true;
   if (els.profileCompanyLogoStatus) {
-    els.profileCompanyLogoStatus.textContent = "Joining the logo queue…";
+    els.profileCompanyLogoStatus.textContent = t("profile.logoJoinQueue");
     els.profileCompanyLogoStatus.classList.remove("error", "success");
   }
 
@@ -1037,20 +1042,25 @@ function renderProfileGenderPronouns(profile) {
   setHidden(els.profileGenderLabel, !showGender);
   setHidden(els.profileGenderDisplay, !showGender);
   if (showGender && els.profileGenderDisplay) {
-    els.profileGenderDisplay.textContent =
-      PROFILE_GENDER_LABELS[profile.profileGender] ?? profile.profileGender;
+    els.profileGenderDisplay.textContent = genderLabel(profile.profileGender);
   }
 
   if (els.profilePronounsHint) {
     const obj = profile?.pronounObject || "them";
     const pos = profile?.pronounPossessive || "their";
     if (profile?.isOwner) {
-      els.profilePronounsHint.textContent =
-        `We address you as ${obj} and use ${pos} in game text (for example, "${capitalizePronoun(pos)} mine").`;
+      els.profilePronounsHint.textContent = t("profile.pronounsHintOwner", {
+        object: obj,
+        possessive: pos,
+        possessiveCap: capitalizePronoun(pos),
+      });
       setHidden(els.profilePronounsHint, false);
     } else if (!profile?.isOwner && profile?.profileGender) {
-      els.profilePronounsHint.textContent =
-        `Address ${profile.username} as ${obj} (${label}).`;
+      els.profilePronounsHint.textContent = t("profile.pronounsHintViewer", {
+        name: profile.username,
+        object: obj,
+        label,
+      });
       setHidden(els.profilePronounsHint, false);
     } else {
       setHidden(els.profilePronounsHint, true);
@@ -1079,7 +1089,7 @@ function renderProfileAvatarPresets(profile) {
         ${hasCustom ? "disabled" : ""}
       >
         <img class="profile-avatar-preset-thumb" src="${assetUrl}" alt="">
-        <span class="profile-avatar-preset-label">${preset.label}</span>
+        <span class="profile-avatar-preset-label">${t(preset.labelKey)}</span>
       </button>`;
   }).join("");
 
@@ -1098,8 +1108,7 @@ function renderProfileAvatarPresets(profile) {
     els.profileAvatarPresetStatus.textContent = "";
     els.profileAvatarPresetStatus.classList.remove("error", "success");
   } else if (els.profileAvatarPresetStatus && hasCustom) {
-    els.profileAvatarPresetStatus.textContent =
-      "Your uploaded photo is shown. Default silhouettes apply when you have not uploaded a custom photo.";
+    els.profileAvatarPresetStatus.textContent = t("profile.avatarCustomShown");
     els.profileAvatarPresetStatus.classList.remove("error", "success");
   }
 }
@@ -1110,7 +1119,7 @@ async function selectProfileAvatarPreset(preset) {
   }
 
   if (els.profileAvatarPresetStatus) {
-    els.profileAvatarPresetStatus.textContent = "Saving…";
+    els.profileAvatarPresetStatus.textContent = t("profile.avatarSaving");
     els.profileAvatarPresetStatus.classList.remove("error", "success");
   }
 
@@ -1123,7 +1132,7 @@ async function selectProfileAvatarPreset(preset) {
   renderProfileEditAvatar(profile);
   renderProfileAvatarPresets(profile);
   if (els.profileAvatarPresetStatus) {
-    els.profileAvatarPresetStatus.textContent = "Default photo updated.";
+    els.profileAvatarPresetStatus.textContent = t("profile.avatarUpdated");
     els.profileAvatarPresetStatus.classList.add("success");
   }
 }
@@ -1186,7 +1195,7 @@ function populateProfileEditForm(profile) {
     els.profilePhotoBtn.disabled = true;
   }
   if (els.profilePhotoChooseBtn) {
-    els.profilePhotoChooseBtn.textContent = "Choose Photo";
+    els.profilePhotoChooseBtn.textContent = t("profile.edit.choosePhoto");
   }
   if (els.profilePhotoInput) {
     els.profilePhotoInput.value = "";
@@ -1199,7 +1208,7 @@ function populateProfileEditForm(profile) {
     els.profileBackgroundUploadBtn.disabled = true;
   }
   if (els.profileBackgroundChooseBtn) {
-    els.profileBackgroundChooseBtn.textContent = "Choose Image";
+    els.profileBackgroundChooseBtn.textContent = t("profile.edit.chooseImage");
   }
   if (els.profileBackgroundInput) {
     els.profileBackgroundInput.value = "";
@@ -1213,7 +1222,7 @@ function populateProfileEditForm(profile) {
     els.profileCompanyLogoUploadBtn.disabled = true;
   }
   if (els.profileCompanyLogoChooseBtn) {
-    els.profileCompanyLogoChooseBtn.textContent = "Choose PNG";
+    els.profileCompanyLogoChooseBtn.textContent = t("profile.edit.choosePng");
   }
   if (els.profileCompanyLogoInput) {
     els.profileCompanyLogoInput.value = "";
@@ -1237,7 +1246,9 @@ function renderCompanyNameListingControls(profile) {
 
   if (listed) {
     els.profileCompanyListPrice.value = String(profile.companyNameListingPrice ?? "");
-    els.profileCompanyListStatus.textContent = `Listed in the Store for ${formatRaxPlain(profile.companyNameListingPrice ?? 0)}.`;
+    els.profileCompanyListStatus.textContent = t("profile.companyListListed", {
+      price: formatRaxPlain(profile.companyNameListingPrice ?? 0),
+    });
     els.profileCompanyListStatus.classList.add("success");
   } else {
     els.profileCompanyListStatus.textContent = "";
@@ -1275,12 +1286,12 @@ function applyCompanyNameUpdate(result) {
 async function saveCompanyName() {
   const companyName = els.profileCompanyNameInput.value.trim();
   if (!companyName) {
-    els.profileCompanyStatus.textContent = "Enter a company name.";
+    els.profileCompanyStatus.textContent = t("profile.companyNameRequired");
     els.profileCompanyStatus.classList.add("error");
     return;
   }
 
-  els.profileCompanyStatus.textContent = "Saving company name...";
+  els.profileCompanyStatus.textContent = t("profile.companyNameSaving");
   els.profileCompanyStatus.classList.remove("error", "success");
   try {
     const result = await api.updateCompanyName(companyName);
@@ -1294,7 +1305,7 @@ async function saveCompanyName() {
 }
 
 async function regenerateCompanyName() {
-  els.profileCompanyStatus.textContent = "Generating a new name...";
+  els.profileCompanyStatus.textContent = t("profile.companyNameGenerating");
   els.profileCompanyStatus.classList.remove("error", "success");
   try {
     const result = await api.regenerateCompanyName();
@@ -1310,12 +1321,14 @@ async function regenerateCompanyName() {
 async function listCompanyNameForSale() {
   const price = Number(els.profileCompanyListPrice.value);
   if (!Number.isFinite(price) || price < 1) {
-    els.profileCompanyListStatus.textContent = `Enter a listing price of at least 1 ${RAX_NAME.toLowerCase()}.`;
+    els.profileCompanyListStatus.textContent = t("profile.companyListNeedPrice", {
+      rax: RAX_NAME.toLowerCase(),
+    });
     els.profileCompanyListStatus.classList.add("error");
     return;
   }
 
-  els.profileCompanyListStatus.textContent = "Listing company name...";
+  els.profileCompanyListStatus.textContent = t("profile.companyListListing");
   els.profileCompanyListStatus.classList.remove("error", "success");
   try {
     const result = await api.listCompanyName(price);
@@ -1334,7 +1347,7 @@ async function cancelCompanyNameListing() {
     return;
   }
 
-  els.profileCompanyListStatus.textContent = "Cancelling listing...";
+  els.profileCompanyListStatus.textContent = t("profile.companyListCancelling");
   els.profileCompanyListStatus.classList.remove("error", "success");
   try {
     const result = await api.cancelCompanyNameListing(listingId);
@@ -1348,7 +1361,7 @@ async function cancelCompanyNameListing() {
 }
 
 async function purchaseCompanyNameListing(listingId) {
-  els.storeCompanyNameStatus.textContent = "Purchasing company name...";
+  els.storeCompanyNameStatus.textContent = t("market.storePurchasing");
   try {
     const result = await api.purchaseCompanyName(listingId);
     els.storeCompanyNameStatus.textContent = result.message;
@@ -1372,7 +1385,7 @@ async function loadStoreCompanyNames() {
     const response = await api.getCompanyNameListings();
     const listings = response.listings ?? [];
     if (listings.length === 0) {
-      els.storeCompanyNameList.innerHTML = "<p class='market-info'>No company names listed right now.</p>";
+      els.storeCompanyNameList.innerHTML = `<p class='market-info'>${t("market.storeEmpty")}</p>`;
       return;
     }
 
@@ -1389,14 +1402,14 @@ async function loadStoreCompanyNames() {
       els.storeCompanyNameList.appendChild(button);
     }
   } catch (error) {
-    els.storeCompanyNameList.innerHTML = "<p class='market-info'>Unable to load company name listings.</p>";
+    els.storeCompanyNameList.innerHTML = `<p class='market-info'>${t("market.storeLoadFailed")}</p>`;
     els.storeCompanyNameStatus.textContent = error.message;
   }
 }
 
 function formatPublicStatus(status) {
   const text = (status ?? "").trim();
-  return text || "No public status yet.";
+  return text || t("profile.noPublicStatus");
 }
 
 function renderProfileFriends(profile) {
@@ -1410,8 +1423,8 @@ function renderProfileFriends(profile) {
 
   if (friends.length === 0) {
     els.profileFriendsList.textContent = profile.isOwner
-      ? "No friends yet. Add someone from Customize Profile or the Friends menu."
-      : "No friends to show yet.";
+      ? t("profile.friendsEmptyOwner")
+      : t("profile.friendsEmptyGuest");
     return;
   }
 
@@ -1425,7 +1438,9 @@ function renderProfileFriends(profile) {
     const name = document.createElement("button");
     name.type = "button";
     name.className = "profile-friend-name";
-    name.textContent = friend.isReporter ? `${friend.username} · ONN` : friend.username;
+    name.textContent = friend.isReporter
+      ? `${friend.username}${t("profile.reporterSuffix")}`
+      : friend.username;
     name.addEventListener("click", () => openProfile(profileOpenKey(friend)));
 
     const number = document.createElement("span");
@@ -1437,12 +1452,12 @@ function renderProfileFriends(profile) {
     const status = document.createElement("p");
     status.className = "profile-friend-status";
     status.textContent = friend.isReporter
-      ? "ONN correspondent"
+      ? t("profile.friendOnnCorrespondent")
       : formatPublicStatus(friend.publicStatus);
 
     const mood = document.createElement("p");
     mood.className = "profile-friend-mood";
-    mood.textContent = friend.mood || (friend.isReporter ? "On assignment." : "Ready to mine.");
+    mood.textContent = friend.mood || (friend.isReporter ? t("profile.moodReporter") : t("profile.moodDefault"));
 
     item.append(head, status, mood);
     els.profileFriendsList.appendChild(item);
@@ -1464,19 +1479,22 @@ function renderProfile(profile) {
   renderProfileCompanyLogo(profile);
   applyProfileBannerBackground(els.profileBanner, profile.profileBackgroundUrl);
   const displayName = profile.isReporter ? profile.username : profile.username;
-  els.profileUsername.textContent = profile.isReporter ? `${displayName} · ONN` : displayName;
-  els.profileMoodDisplay.textContent = profile.mood || (profile.isReporter ? "On assignment." : "Ready to mine.");
+  els.profileUsername.textContent = profile.isReporter
+    ? `${displayName}${t("profile.reporterSuffix")}`
+    : displayName;
+  els.profileMoodDisplay.textContent =
+    profile.mood || (profile.isReporter ? t("profile.moodReporter") : t("profile.moodDefault"));
   els.profileNumber.textContent = profile.profileNumber || "---";
   els.profileSidebarNumber.textContent = profile.profileNumber || "---";
   const signedUp = formatProfileDate(profile.memberSince);
-  els.profileMemberSince.textContent = `Member since ${signedUp}`;
+  els.profileMemberSince.textContent = t("profile.memberSince", { date: signedUp });
   els.profileSidebarMemberSince.textContent = signedUp;
-  setProfileText(els.profileAboutView, profile.aboutMe, "No bio yet.");
-  setProfileText(els.profileInterestsView, profile.interests, "Nothing listed yet.");
-  setProfileText(els.profileMusicView, profile.music, "Silence in the void.");
+  setProfileText(els.profileAboutView, profile.aboutMe, t("profile.aboutEmpty"));
+  setProfileText(els.profileInterestsView, profile.interests, t("profile.interestsEmpty"));
+  setProfileText(els.profileMusicView, profile.music, t("profile.musicEmpty"));
   if (profile.isReporter) {
     const onnPath = profile.onnProfilePath || `sites/offworld-news/reporters/${profile.reporterSlug}`;
-    els.profileSocialView.innerHTML = `<p class="profile-reporter-links"><button type="button" class="btn ghost profile-reporter-link" data-open-onn-bureau>Open ONN bureau profile →</button></p>`;
+    els.profileSocialView.innerHTML = `<p class="profile-reporter-links"><button type="button" class="btn ghost profile-reporter-link" data-open-onn-bureau>${t("profile.openOnn")}</button></p>`;
     els.profileSocialView.classList.remove("empty");
     els.profileSocialView.querySelector("[data-open-onn-bureau]")?.addEventListener("click", () => {
       exonet.open(onnPath);
@@ -1486,7 +1504,7 @@ function renderProfile(profile) {
     els.profileSocialView.classList.toggle("empty", !hasSocialLinks(profile));
   }
   if (profile.isReporter) {
-    els.profileMineName.textContent = profile.mineName ?? "Offworld News Network";
+    els.profileMineName.textContent = profile.mineName ?? t("profile.reporterNetwork");
     els.profileGameDay.textContent = "—";
     setRaxHtml(els.profileCredits, 0);
     els.profileWorkers.textContent = "—";
@@ -1531,12 +1549,12 @@ function renderProfileFlagNotice(profile) {
 async function uploadProfilePhoto() {
   const file = els.profilePhotoInput.files?.[0];
   if (!file) {
-    els.profilePhotoStatus.textContent = "Choose a JPEG, PNG, WebP, or GIF image first.";
+    els.profilePhotoStatus.textContent = t("profile.photoChooseFirst");
     els.profilePhotoStatus.classList.add("error");
     return;
   }
 
-  els.profilePhotoStatus.textContent = "Uploading photo...";
+  els.profilePhotoStatus.textContent = t("profile.photoUploading");
   els.profilePhotoStatus.classList.remove("error", "success");
 
   try {
@@ -1548,7 +1566,7 @@ async function uploadProfilePhoto() {
       renderProfileEditAvatar(profile);
       renderProfileAvatarPresets(profile);
     }
-    els.profilePhotoStatus.textContent = "Profile photo updated.";
+    els.profilePhotoStatus.textContent = t("profile.photoUpdated");
     els.profilePhotoStatus.classList.add("success");
   } catch (error) {
     els.profilePhotoStatus.textContent = error.message;
@@ -1559,18 +1577,18 @@ async function uploadProfilePhoto() {
 async function uploadCompanyLogo() {
   const file = els.profileCompanyLogoInput.files?.[0];
   if (!file) {
-    els.profileCompanyLogoStatus.textContent = "Choose a transparent PNG first.";
+    els.profileCompanyLogoStatus.textContent = t("profile.logoChoosePng");
     els.profileCompanyLogoStatus.classList.add("error");
     return;
   }
 
   if (file.type !== "image/png") {
-    els.profileCompanyLogoStatus.textContent = "Company logo must be a PNG file.";
+    els.profileCompanyLogoStatus.textContent = t("profile.logoPngOnly");
     els.profileCompanyLogoStatus.classList.add("error");
     return;
   }
 
-  els.profileCompanyLogoStatus.textContent = "Uploading logo...";
+  els.profileCompanyLogoStatus.textContent = t("profile.logoUploading");
   els.profileCompanyLogoStatus.classList.remove("error", "success");
 
   try {
@@ -1580,7 +1598,7 @@ async function uploadCompanyLogo() {
     if (!els.profileEditModal?.hidden) {
       populateProfileEditForm(profile);
     }
-    els.profileCompanyLogoStatus.textContent = "Company logo updated.";
+    els.profileCompanyLogoStatus.textContent = t("profile.logoUpdated");
     els.profileCompanyLogoStatus.classList.add("success");
   } catch (error) {
     els.profileCompanyLogoStatus.textContent = error.message;
@@ -1591,12 +1609,12 @@ async function uploadCompanyLogo() {
 async function uploadProfileBackground() {
   const file = els.profileBackgroundInput.files?.[0];
   if (!file) {
-    els.profileBackgroundStatus.textContent = "Choose a JPEG, PNG, WebP, or GIF image first.";
+    els.profileBackgroundStatus.textContent = t("profile.bannerChooseFirst");
     els.profileBackgroundStatus.classList.add("error");
     return;
   }
 
-  els.profileBackgroundStatus.textContent = "Uploading banner...";
+  els.profileBackgroundStatus.textContent = t("profile.bannerUploading");
   els.profileBackgroundStatus.classList.remove("error", "success");
 
   try {
@@ -1606,7 +1624,7 @@ async function uploadProfileBackground() {
     if (!els.profileEditModal?.hidden) {
       populateProfileEditForm(profile);
     }
-    els.profileBackgroundStatus.textContent = "Profile banner updated.";
+    els.profileBackgroundStatus.textContent = t("profile.bannerUpdated");
     els.profileBackgroundStatus.classList.add("success");
   } catch (error) {
     els.profileBackgroundStatus.textContent = error.message;
@@ -1615,7 +1633,7 @@ async function uploadProfileBackground() {
 }
 
 async function removeProfileBackground() {
-  els.profileBackgroundStatus.textContent = "Removing banner...";
+  els.profileBackgroundStatus.textContent = t("profile.bannerRemoving");
   els.profileBackgroundStatus.classList.remove("error", "success");
 
   try {
@@ -1624,7 +1642,7 @@ async function removeProfileBackground() {
     if (!els.profileEditModal?.hidden) {
       populateProfileEditForm(profile);
     }
-    els.profileBackgroundStatus.textContent = "Profile banner removed.";
+    els.profileBackgroundStatus.textContent = t("profile.bannerRemoved");
     els.profileBackgroundStatus.classList.add("success");
   } catch (error) {
     els.profileBackgroundStatus.textContent = error.message;
@@ -1656,22 +1674,22 @@ function renderProfileFriendPanel(profile) {
     case "accepted": {
       const obj = profile.pronounObject || "them";
       els.profileFriendStatus.textContent = profile.isReporter
-        ? `${profile.username} is on your friends list.`
-        : `${profile.username} is your friend. Message ${obj} from the Messages tab.`;
-      els.profileRemoveFriendBtn.textContent = "Remove Friend";
+        ? t("profile.friendReporter", { name: profile.username })
+        : t("profile.friendAccepted", { name: profile.username, object: obj });
+      els.profileRemoveFriendBtn.textContent = t("profile.removeFriend");
       break;
     }
     case "pending_outgoing":
-      els.profileFriendStatus.textContent = "Friend request sent.";
-      els.profileRemoveFriendBtn.textContent = "Cancel Request";
+      els.profileFriendStatus.textContent = t("profile.requestSent");
+      els.profileRemoveFriendBtn.textContent = t("profile.cancelRequest");
       break;
     case "pending_incoming":
-      els.profileFriendStatus.textContent = `${profile.username} wants to be friends.`;
-      els.profileRemoveFriendBtn.textContent = "Decline";
+      els.profileFriendStatus.textContent = t("profile.requestIncoming", { name: profile.username });
+      els.profileRemoveFriendBtn.textContent = t("profile.decline");
       break;
     default:
-      els.profileFriendStatus.textContent = "Not friends yet.";
-      els.profileRemoveFriendBtn.textContent = "Remove";
+      els.profileFriendStatus.textContent = t("profile.notFriends");
+      els.profileRemoveFriendBtn.textContent = t("profile.remove");
       break;
   }
 }
@@ -1687,7 +1705,7 @@ async function openMessagesModal(toPlayerId = null) {
   els.messagesModal.hidden = false;
   openModal(els.messagesModal);
   playerMessaging.openToPlayer(toPlayerId);
-  setMessagesStatus("Loading...");
+  setMessagesStatus(t("messages.loading"));
   try {
     await playerMessaging.loadMessages();
   } catch (error) {
@@ -1740,7 +1758,7 @@ function createFriendItem(
       const messageBtn = document.createElement("button");
       messageBtn.type = "button";
       messageBtn.className = "btn primary";
-      messageBtn.textContent = "Message";
+      messageBtn.textContent = t("friend.message");
       messageBtn.addEventListener("click", () => {
         openMessagesModal(friend.playerId).catch((error) => setFriendsStatus(error.message, true));
       });
@@ -1751,7 +1769,7 @@ function createFriendItem(
       const acceptBtn = document.createElement("button");
       acceptBtn.type = "button";
       acceptBtn.className = "btn success";
-      acceptBtn.textContent = "Accept";
+      acceptBtn.textContent = t("friend.accept");
       acceptBtn.addEventListener("click", () => {
         acceptFriendRequest(friend.friendshipId).catch((error) => setFriendsStatus(error.message, true));
       });
@@ -1790,7 +1808,11 @@ function renderFriendsPanel() {
   } else {
     for (const friend of friends.friends) {
       els.friendsList.appendChild(
-        createFriendItem(friend, { showRemove: true, showMessage: true, removeLabel: "Remove Friend" }),
+        createFriendItem(friend, {
+          showRemove: true,
+          showMessage: true,
+          removeLabel: t("profile.removeFriend"),
+        }),
       );
     }
   }
@@ -1831,7 +1853,7 @@ async function openFriendsModal() {
   els.messagesModal.hidden = true;
   els.friendsModal.hidden = false;
   openModal(els.friendsModal);
-  setFriendsStatus("Loading friends...");
+  setFriendsStatus(t("friends.loading"));
   try {
     await loadFriends();
     setFriendsStatus("");
@@ -1843,11 +1865,11 @@ async function openFriendsModal() {
 async function submitAddFriend(profileNumber) {
   const value = profileNumber.trim();
   if (!value) {
-    setFriendsStatus("Enter a profile number like !K7R-8842-9F3A.", true);
+    setFriendsStatus(t("friends.invalidNumber"), true);
     return;
   }
 
-  setFriendsStatus("Sending request...");
+  setFriendsStatus(t("friends.sending"));
   try {
     const result = await api.addFriend(value);
     els.addFriendNumber.value = "";
@@ -1863,12 +1885,12 @@ async function submitAddFriend(profileNumber) {
 async function submitProfileAddFriend() {
   const value = els.profileAddFriendNumber.value.trim();
   if (!value) {
-    els.profileAddFriendStatus.textContent = "Enter a profile number like !K7R-8842-9F3A.";
+    els.profileAddFriendStatus.textContent = t("friends.invalidNumber");
     els.profileAddFriendStatus.classList.add("error");
     return;
   }
 
-  els.profileAddFriendStatus.textContent = "Sending request...";
+  els.profileAddFriendStatus.textContent = t("friends.sending");
   els.profileAddFriendStatus.classList.remove("error", "success");
   try {
     const result = await api.addFriend(value);
@@ -1922,7 +1944,7 @@ async function profileAddFriend() {
     return;
   }
 
-  els.profileFriendActionStatus.textContent = "Sending request...";
+  els.profileFriendActionStatus.textContent = t("friend.sendingRequest");
   els.profileFriendActionStatus.classList.remove("error", "success");
   try {
     const result = await api.addFriend(profile.profileNumber);
@@ -1945,7 +1967,7 @@ async function profileAcceptFriend() {
     return;
   }
 
-  els.profileFriendActionStatus.textContent = "Accepting...";
+  els.profileFriendActionStatus.textContent = t("friend.accepting");
   els.profileFriendActionStatus.classList.remove("error", "success");
   try {
     const result = await api.acceptFriend(friendshipId);
@@ -1968,7 +1990,7 @@ async function profileRemoveFriend() {
     return;
   }
 
-  els.profileFriendActionStatus.textContent = "Updating...";
+  els.profileFriendActionStatus.textContent = t("friend.updating");
   els.profileFriendActionStatus.classList.remove("error", "success");
   try {
     const result = await api.removeFriend(friendshipId);
@@ -2043,7 +2065,7 @@ async function openProfile(username) {
 }
 
 async function saveProfile() {
-  els.profileSaveStatus.textContent = "Saving...";
+  els.profileSaveStatus.textContent = t("profile.saving");
   els.profileSaveStatus.classList.remove("error", "success");
 
   const payload = profileEditFormPayload();
@@ -2051,7 +2073,7 @@ async function saveProfile() {
     profileGenderRequiresPronouns(payload.profileGender) &&
     !payload.profilePreferredPronouns
   ) {
-    els.profileSaveStatus.textContent = "Choose preferred pronouns for your gender selection.";
+    els.profileSaveStatus.textContent = t("profile.savePronounsRequired");
     els.profileSaveStatus.classList.add("error");
     syncProfileGenderPronounsUi();
     els.profilePreferredPronounsInput?.focus();
@@ -2074,7 +2096,7 @@ async function saveProfile() {
     });
     renderProfile(profile);
     renderProfileEditAvatar(profile);
-    els.profileSaveStatus.textContent = "Profile saved!";
+    els.profileSaveStatus.textContent = t("profile.saved");
     els.profileSaveStatus.classList.add("success");
   } catch (error) {
     els.profileSaveStatus.textContent = error.message;
@@ -2151,7 +2173,7 @@ async function tryAutoLogin() {
     const session = await api.getSession();
     api.applySession(session);
     if (!api.mineId) {
-      throw new Error("Session incomplete. Sign in again.");
+      throw new Error(t("auth.sessionIncomplete"));
     }
 
     showScreen("game");
@@ -2195,13 +2217,13 @@ function formatUtcCountdown(nextDayAtUtc) {
 function updateUtcClockDisplay() {
   const mine = state.mine;
   if (!mine) {
-    els.utcClock.textContent = "UTC ---";
+    els.utcClock.textContent = t("game.utcEmpty");
     return;
   }
 
   const utcDate = mine.utcDate ?? new Date().toISOString().slice(0, 10);
   const countdown = formatUtcCountdown(state.nextDayAtUtc ?? mine.nextDayAtUtc);
-  els.utcClock.textContent = `UTC ${utcDate} · next day in ${countdown}`;
+  els.utcClock.textContent = t("game.utcNextDay", { date: utcDate, countdown });
 }
 
 function startUtcTimers() {
@@ -2232,7 +2254,7 @@ function renderHud() {
     return;
   }
 
-  els.playerName.textContent = api.username ?? "Commander";
+  els.playerName.textContent = api.username ?? t("game.commander");
   setRaxHtml(els.credits, mine.credits ?? 0);
   els.day.textContent = `Day ${mine.currentGameDay}`;
   updateUtcClockDisplay();
@@ -2293,7 +2315,7 @@ function renderZonePanel() {
   els.workerList.innerHTML = "";
 
   if (!zone) {
-    els.zoneInfo.textContent = "Select a zone on the grid.";
+    els.zoneInfo.textContent = t("game.zoneSelectHint");
     return;
   }
 
@@ -2303,7 +2325,7 @@ function renderZonePanel() {
     `Ore: ${meta.displayName}`,
     `Richness: ${Number(zone.richness).toFixed(2)}`,
     `Depleted: ${Number(zone.depletedPct).toFixed(0)}%`,
-    zone.isSalvageZone ? "Emergency salvage zone — always mineable." : "",
+    zone.isSalvageZone ? t("game.salvageZone") : "",
   ]
     .filter(Boolean)
     .join("<br>");
@@ -2331,7 +2353,7 @@ function renderZonePanel() {
 }
 
 async function toggleWorker(worker, zoneId) {
-  showStatus("Updating worker assignment...");
+  showStatus(t("game.updatingWorker"));
   try {
     let response;
     if (worker.assignedZoneId === zoneId) {
@@ -2355,9 +2377,9 @@ function renderFinancePanel() {
 
   els.financeSummary.innerHTML = [
     formatRaxLabelLine("Balance", finances.credits),
-    formatRaxLabelLine("Daily Payroll", finances.dailyPayroll),
-    formatRaxLabelLine("Daily Supply Cost", finances.dailySupplyCost),
-    formatRaxLabelLine("Est. Daily Income", finances.estimatedDailyIncome),
+    formatRaxLabelLine(t("finance.payroll"), finances.dailyPayroll),
+    formatRaxLabelLine(t("finance.supplyCost"), finances.dailySupplyCost),
+    formatRaxLabelLine(t("finance.estIncome"), finances.estimatedDailyIncome),
     `Runway: ${formatRunway(finances.runwayDays)} days`,
     finances.isSoftlocked ? "<strong class='danger'>SOFTLOCKED — Use emergency buyback!</strong>" : "",
   ]
@@ -2381,7 +2403,7 @@ function renderFinancePanel() {
 function formatMarketSource(source) {
   switch (source) {
     case "yahoo-us":
-      return "Earth stocks (CAT, XOM, JNJ, QCOM)";
+      return t("market.earthStocks");
     case "mock-fallback":
       return "fallback mock prices";
     default:
@@ -2418,7 +2440,7 @@ function renderStorePanel() {
   const market = state.market;
   els.storeMarketInfo.textContent = market
     ? `Game Day ${market.gameDay} · ${formatMarketSource(market.source)} · refreshes UTC midnight${formatActiveMarketBonuses(market)}`
-    : "Market prices loading...";
+    : t("market.loading");
 
   els.storeSupplyList.innerHTML = "";
   for (const [type, meta] of Object.entries(tradeSupplyTypes)) {
@@ -2485,7 +2507,7 @@ function renderSupplyPanel() {
   const mine = state.mine;
   els.marketInfo.textContent = market
     ? `Game Day ${market.gameDay} · ${formatMarketSource(market.source)} · refreshes UTC midnight${formatActiveMarketBonuses(market)}`
-    : "Market prices loading...";
+    : t("market.loading");
 
   els.supplyList.innerHTML = "";
   for (const [type, meta] of Object.entries(tradeSupplyTypes)) {
@@ -2532,7 +2554,7 @@ function setAuctionStatus(message, isError = false) {
 
 function formatAuctionTime(seconds) {
   if (seconds == null || Number.isNaN(Number(seconds))) {
-    return "Waiting for first bid";
+    return t("auction.waitingFirstBid");
   }
 
   const total = Math.max(0, Number(seconds));
@@ -2592,7 +2614,7 @@ function renderAuctionList() {
 
   const auctions = state.tradeAuctions ?? [];
   if (!auctions.length) {
-    els.auctionList.innerHTML = "<p class='market-info'>No live auctions yet.</p>";
+    els.auctionList.innerHTML = `<p class='market-info'>${t("auction.noLive")}</p>`;
     return;
   }
 
@@ -2601,7 +2623,8 @@ function renderAuctionList() {
     const card = document.createElement("article");
     card.className = "auction-card";
 
-    const currentBid = auction.currentBid != null ? formatRaxHtml(auction.currentBid) : "No bids yet";
+    const currentBid =
+      auction.currentBid != null ? formatRaxHtml(auction.currentBid) : t("auction.noBids");
     const timerText = auction.status === "active"
       ? `Ends in ${formatAuctionTime(auction.secondsRemaining)}`
       : `Runs ${auction.durationMinutes} min after first bid`;
@@ -2621,7 +2644,7 @@ function renderAuctionList() {
       const cancelBtn = document.createElement("button");
       cancelBtn.type = "button";
       cancelBtn.className = "btn ghost";
-      cancelBtn.textContent = "Cancel listing";
+      cancelBtn.textContent = t("auction.cancelListing");
       cancelBtn.addEventListener("click", () => {
         cancelAuctionListing(auction.id).catch((error) => setAuctionStatus(error.message, true));
       });
@@ -2638,7 +2661,7 @@ function renderAuctionList() {
       const bidBtn = document.createElement("button");
       bidBtn.type = "button";
       bidBtn.className = "btn primary";
-      bidBtn.textContent = "Place bid";
+      bidBtn.textContent = t("auction.placeBid");
       bidBtn.addEventListener("click", () => {
         placeAuctionBid(auction.id, bidInput.value).catch((error) => setAuctionStatus(error.message, true));
       });
@@ -2665,7 +2688,7 @@ async function createAuctionFromForm(event) {
   event.preventDefault();
   const selection = els.auctionItem.value;
   if (!selection) {
-    setAuctionStatus("Select an item to auction.", true);
+    setAuctionStatus(t("auction.selectItem"), true);
     return;
   }
 
@@ -2675,7 +2698,7 @@ async function createAuctionFromForm(event) {
   const durationMinutes = Number(els.auctionDuration.value);
 
   els.auctionCreateBtn.disabled = true;
-  setAuctionStatus("Listing auction…");
+  setAuctionStatus(t("auction.listing"));
   try {
     const result = await api.createTradeAuction(category, itemType, quantity, startPrice, durationMinutes);
     setAuctionStatus(result.message ?? "Auction listed.", false);
@@ -2692,11 +2715,11 @@ async function createAuctionFromForm(event) {
 async function placeAuctionBid(auctionId, bidAmount) {
   const amount = Number(bidAmount);
   if (!Number.isFinite(amount) || amount <= 0) {
-    setAuctionStatus("Enter a valid bid amount.", true);
+    setAuctionStatus(t("auction.bidInvalid"), true);
     return;
   }
 
-  setAuctionStatus("Placing bid…");
+  setAuctionStatus(t("auction.bidding"));
   try {
     const result = await api.placeTradeAuctionBid(auctionId, amount);
     setAuctionStatus(result.message ?? "Bid placed.", false);
@@ -2711,7 +2734,7 @@ async function placeAuctionBid(auctionId, bidAmount) {
 }
 
 async function cancelAuctionListing(auctionId) {
-  setAuctionStatus("Cancelling auction…");
+  setAuctionStatus(t("auction.cancelling"));
   try {
     const result = await api.cancelTradeAuction(auctionId);
     setAuctionStatus(result.message ?? "Auction cancelled.", false);
@@ -2723,7 +2746,7 @@ async function cancelAuctionListing(auctionId) {
 }
 
 function showDayReport(result) {
-  els.dayReportTitle.textContent = `Day ${result.newGameDay} Report`;
+  els.dayReportTitle.textContent = t("game.dayReportTitle", { day: result.newGameDay });
   const lines = [...(result.messages ?? [])];
   if (result.oreExtracted?.length) {
     const extracted = result.oreExtracted
@@ -2731,7 +2754,7 @@ function showDayReport(result) {
       .join(", ");
     lines.push("", `Extracted: ${extracted}`);
   }
-  els.dayReportBody.textContent = lines.join("\n") || "Day complete.";
+  els.dayReportBody.textContent = lines.join("\n") || t("game.dayComplete");
   openModal(els.dayModal);
 }
 
@@ -2773,7 +2796,7 @@ function showNextEventModal() {
 
   const item = eventModalQueue[0];
   const isWin = item.type === "completion";
-  els.eventModalTitle.textContent = item.title || "Special Event";
+  els.eventModalTitle.textContent = item.title || t("event.title");
   els.eventModalMessage.textContent = item.message || "";
   els.eventModalChallenge.hidden = isWin;
   if (!isWin) {
@@ -2787,12 +2810,12 @@ function showNextEventModal() {
     els.eventModalChallenge.textContent = parts.join(" · ");
     els.eventModalChallenge.hidden = parts.length === 0;
   }
-  els.eventModalRewardsHeading.textContent = isWin ? "You won" : "Possible rewards";
+  els.eventModalRewardsHeading.textContent = isWin ? t("event.youWon") : t("event.possibleRewards");
   const rewards = item.rewards ?? [];
   els.eventModalRewards.innerHTML = rewards.length
     ? rewards.map((reward) => `<li>${isWin ? formatEventRewardLabel(reward) : formatAnnouncementReward(reward)}</li>`).join("")
-    : `<li>${isWin ? "Rewards added to your account." : "Complete the challenge to earn rewards."}</li>`;
-  els.eventModalClose.textContent = isWin ? "Claim prize" : "Got it";
+    : `<li>${isWin ? t("event.rewardsWon") : t("event.rewardsChallenge")}</li>`;
+  els.eventModalClose.textContent = isWin ? t("event.claimPrize") : t("event.gotIt");
   openModal(els.eventModal);
 }
 
@@ -2847,7 +2870,7 @@ async function authenticate(register) {
   const birthday = getBirthdayValue();
 
   if (!username || !password) {
-    const message = "Username and password are required.";
+    const message = t("auth.usernamePasswordRequired");
     if (isRegister) {
       notifyRegisterResult(message, "error");
     } else {
@@ -2857,33 +2880,33 @@ async function authenticate(register) {
   }
 
   if (isRegister && !email) {
-    notifyRegisterResult("Email is required to sign up.", "error");
+    notifyRegisterResult(t("auth.emailRequiredSignup"), "error");
     return;
   }
 
   if (isRegister && !isValidEmail(email)) {
-    notifyRegisterResult("Enter a valid email address.", "error");
+    notifyRegisterResult(t("auth.emailInvalid"), "error");
     return;
   }
 
   if (isRegister && !birthday) {
-    notifyRegisterResult("Birthday is required to sign up.", "error");
+    notifyRegisterResult(t("auth.birthdayRequiredSignup"), "error");
     return;
   }
 
   if (isRegister && password.length < 8) {
-    notifyRegisterResult("Password must be at least 8 characters.", "error");
+    notifyRegisterResult(t("auth.passwordMinLength"), "error");
     return;
   }
 
-  showLoginStatus(isRegister ? "Creating account..." : "Connecting...", "info");
+  showLoginStatus(isRegister ? t("auth.creatingAccount") : t("auth.connecting"), "info");
   try {
     if (isRegister) {
       await api.register(username, email, password, birthday);
       els.password.value = "";
       els.email.value = "";
       resetBirthdayDropdowns();
-      const message = "Account created successfully. Log in with your username and password.";
+      const message = t("auth.accountCreated");
       setAuthMode("login");
       notifyRegisterResult(message, "success");
       return;
@@ -2918,16 +2941,16 @@ async function submitBanAppeal() {
   const message = els.banAppealMessage.value.trim();
 
   if (!username || !password) {
-    showLoginStatus("Username and password are required.", "error");
+    showLoginStatus(t("auth.usernamePasswordRequired"), "error");
     return;
   }
 
   if (!message) {
-    showLoginStatus("Enter a message explaining why your ban should be removed.", "error");
+    showLoginStatus(t("auth.appealMessageRequired"), "error");
     return;
   }
 
-  showLoginStatus("Sending appeal...", "info");
+  showLoginStatus(t("auth.sendingAppeal"), "info");
   try {
     const result = await api.submitBanAppeal(username, password, message);
     els.banAppealMessage.value = "";
@@ -2942,16 +2965,16 @@ async function submitBanAppeal() {
 async function sendPasswordReset() {
   const email = els.forgotEmail.value.trim();
   if (!email) {
-    showLoginStatus("Email is required.", "error");
+    showLoginStatus(t("auth.emailRequiredReset"), "error");
     return;
   }
 
   if (!isValidEmail(email)) {
-    showLoginStatus("Enter a valid email address.", "error");
+    showLoginStatus(t("auth.emailInvalid"), "error");
     return;
   }
 
-  showLoginStatus("Sending reset link...");
+  showLoginStatus(t("auth.sendingReset"));
   try {
     const result = await api.forgotPassword(email);
     showLoginStatus(result.message);
@@ -2966,21 +2989,21 @@ async function submitPasswordReset() {
   const confirmPassword = els.confirmPassword.value;
 
   if (!token || !newPassword) {
-    showLoginStatus("Reset token and new password are required.", "error");
+    showLoginStatus(t("auth.resetRequired"), "error");
     return;
   }
 
   if (newPassword.length < 8) {
-    showLoginStatus("Password must be at least 8 characters.", "error");
+    showLoginStatus(t("auth.passwordMinLength"), "error");
     return;
   }
 
   if (newPassword !== confirmPassword) {
-    showLoginStatus("Passwords do not match.", "error");
+    showLoginStatus(t("auth.passwordsMismatch"), "error");
     return;
   }
 
-  showLoginStatus("Updating password...");
+  showLoginStatus(t("auth.updatingPassword"));
   try {
     const result = await api.resetPassword(token, newPassword);
     showLoginStatus(result.message);
@@ -3181,7 +3204,7 @@ els.profilePhotoInput.addEventListener("change", () => {
   const file = els.profilePhotoInput.files?.[0];
   if (!file) {
     els.profilePhotoBtn.disabled = true;
-    els.profilePhotoChooseBtn.textContent = "Choose Photo";
+    els.profilePhotoChooseBtn.textContent = t("profile.edit.choosePhoto");
     return;
   }
 
@@ -3203,14 +3226,14 @@ els.profileCompanyLogoInput?.addEventListener("change", () => {
   const file = els.profileCompanyLogoInput.files?.[0];
   if (!file) {
     els.profileCompanyLogoUploadBtn.disabled = true;
-    els.profileCompanyLogoChooseBtn.textContent = "Choose PNG";
+    els.profileCompanyLogoChooseBtn.textContent = t("profile.edit.choosePng");
     renderCompanyLogoOnElement(state.profile, els.profileCompanyLogoPreview);
     return;
   }
 
   if (file.type !== "image/png") {
     els.profileCompanyLogoUploadBtn.disabled = true;
-    els.profileCompanyLogoStatus.textContent = "Company logo must be a PNG file.";
+    els.profileCompanyLogoStatus.textContent = t("profile.logoPngOnly");
     els.profileCompanyLogoStatus.classList.add("error");
     return;
   }
@@ -3247,7 +3270,7 @@ els.profileBackgroundInput?.addEventListener("change", () => {
   const file = els.profileBackgroundInput.files?.[0];
   if (!file) {
     els.profileBackgroundUploadBtn.disabled = true;
-    els.profileBackgroundChooseBtn.textContent = "Choose Image";
+    els.profileBackgroundChooseBtn.textContent = t("profile.edit.chooseImage");
     applyProfileBannerBackground(els.profileBackgroundPreview, state.profile?.profileBackgroundUrl);
     return;
   }
@@ -3411,6 +3434,19 @@ async function startApp() {
   document.addEventListener("rava:localechange", () => {
     applyTranslations(document);
     setAuthMode(state.authMode);
+    if (state.profile) {
+      renderProfile(state.profile);
+      if (!els.profileEditModal?.hidden) {
+        populateProfileEditForm(state.profile);
+        renderProfileAvatarPresets(state.profile);
+      }
+    }
+    if (state.mine && !els.supplyModal.hidden) {
+      renderSupplyPanel();
+    }
+    if (state.mine && !els.storeModal.hidden) {
+      renderStorePanel();
+    }
   });
 
   setAuthMode("login");

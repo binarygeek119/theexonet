@@ -141,13 +141,13 @@
   <div id="finance-modal" class="modal" hidden>
     <div class="modal-card">
       <div class="modal-header">
-        <h2>Finances</h2>
+        <h2 data-i18n="finance.title">Finances</h2>
         <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
       <div id="finance-summary" class="summary"></div>
-      <h3>Recent Transactions</h3>
+      <h3 data-i18n="finance.recentTransactions">Recent Transactions</h3>
       <div id="finance-transactions" class="transaction-list"></div>
-      <button id="emergency-btn" type="button" class="btn danger" hidden>
+      <button id="emergency-btn" type="button" class="btn danger" hidden data-i18n="finance.emergencyBuyback">
         Emergency Ore Buyback (50%)
       </button>
     </div>
@@ -156,39 +156,39 @@
   <div id="supply-modal" class="modal" hidden>
     <div class="modal-card wide">
       <div class="modal-header">
-        <h2>Trade Market</h2>
+        <h2 data-i18n="trade.title">Trade Market</h2>
         <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
-      <p id="market-info" class="market-info">Market prices loading...</p>
+      <p id="market-info" class="market-info" data-i18n="trade.loading">Market prices loading...</p>
       <p id="trade-market-value" class="market-info trade-market-value"></p>
       <div class="shop-columns">
         <section>
-          <h3>Buy Supplies (Earth Market Linked)</h3>
+          <h3 data-i18n="trade.buySupplies">Buy Supplies (Earth Market Linked)</h3>
           <div id="supply-list" class="shop-list"></div>
         </section>
         <section>
-          <h3>Sell Ore (NPC Refinery)</h3>
+          <h3 data-i18n="trade.sellOre">Sell Ore (NPC Refinery)</h3>
           <div id="ore-list" class="shop-list"></div>
         </section>
       </div>
       <section class="auction-panel">
-        <h3>Player Auctions</h3>
-        <p class="market-info">List ore or supplies for auction. The timer starts when the first bid is placed. A market fee applies on completed sales.</p>
+        <h3 data-i18n="trade.auctions">Player Auctions</h3>
+        <p class="market-info" data-i18n="trade.auctionsHint">List ore or supplies for auction. The timer starts when the first bid is placed. A market fee applies on completed sales.</p>
         <form id="auction-create-form" class="auction-create-form">
-          <label for="auction-item">Item</label>
+          <label for="auction-item" data-i18n="trade.item">Item</label>
           <select id="auction-item" required></select>
-          <label for="auction-quantity">Quantity</label>
+          <label for="auction-quantity" data-i18n="trade.quantity">Quantity</label>
           <input id="auction-quantity" type="number" min="0.1" step="0.1" required>
-          <label for="auction-start-price">Start price (Rax)</label>
+          <label for="auction-start-price" data-i18n="trade.startPrice">Start price (Rax)</label>
           <input id="auction-start-price" type="number" min="1" step="1" required>
-          <label for="auction-duration">Auction length (after first bid)</label>
-          <select id="auction-duration" required>
+          <label for="auction-duration" data-i18n="trade.duration">Auction length (after first bid)</label>
+          <select id="auction-duration" required data-i18n-options="trade.duration">
             <option value="30">30 minutes</option>
             <option value="60">1 hour</option>
             <option value="360">6 hours</option>
             <option value="1440">24 hours</option>
           </select>
-          <button id="auction-create-btn" type="submit" class="btn accent">List auction</button>
+          <button id="auction-create-btn" type="submit" class="btn accent" data-i18n="trade.listAuction">List auction</button>
         </form>
         <p id="auction-status" class="market-info"></p>
         <div id="auction-list" class="auction-list"></div>
@@ -199,17 +199,17 @@
   <div id="store-modal" class="modal" hidden>
     <div class="modal-card wide">
       <div class="modal-header">
-        <h2>Store</h2>
+        <h2 data-i18n="store.title">Store</h2>
         <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
-      <p id="store-market-info" class="market-info">Market prices loading...</p>
+      <p id="store-market-info" class="market-info" data-i18n="trade.loading">Market prices loading...</p>
       <section>
-        <h3>Buy Supplies (US Market Linked)</h3>
+        <h3 data-i18n="store.buySupplies">Buy Supplies (US Market Linked)</h3>
         <div id="store-supply-list" class="shop-list"></div>
       </section>
       <section>
-        <h3>Company Names (Player Trade)</h3>
-        <p class="market-info">Buy unique company names listed by other miners. Relinquished names stay reserved for 30 days.</p>
+        <h3 data-i18n="store.companyNames">Company Names (Player Trade)</h3>
+        <p class="market-info" data-i18n="store.companyNamesHint">Buy unique company names listed by other miners. Relinquished names stay reserved for 30 days.</p>
         <div id="store-company-name-list" class="shop-list"></div>
         <p id="store-company-name-status" class="market-info"></p>
       </section>
@@ -219,12 +219,12 @@
   <div id="shipping-modal" class="modal" hidden>
     <div class="modal-card wide">
       <div class="modal-header">
-        <h2>Shipping</h2>
+        <h2 data-i18n="shipping.title">Shipping</h2>
         <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
-      <p id="shipping-summary" class="market-info">Load ore cargo and ship it to the NPC refinery.</p>
+      <p id="shipping-summary" class="market-info" data-i18n="shipping.summary">Load ore cargo and ship it to the NPC refinery.</p>
       <section>
-        <h3>Cargo Hold</h3>
+        <h3 data-i18n="shipping.cargoHold">Cargo Hold</h3>
         <div id="shipping-cargo-list" class="shop-list"></div>
       </section>
     </div>
@@ -232,37 +232,37 @@
 
   <div id="day-modal" class="modal" hidden>
     <div class="modal-card">
-      <h2 id="day-report-title">Day Report</h2>
+      <h2 id="day-report-title" data-i18n="day.title">Day Report</h2>
       <pre id="day-report-body" class="day-report"></pre>
-      <button id="close-day-report" type="button" class="btn primary">Continue</button>
+      <button id="close-day-report" type="button" class="btn primary" data-i18n="day.continue">Continue</button>
     </div>
   </div>
 
   <div id="event-modal" class="modal" hidden>
     <div class="modal-card event-modal-card">
-      <h2 id="event-modal-title">Special Event</h2>
+      <h2 id="event-modal-title" data-i18n="event.title">Special Event</h2>
       <p id="event-modal-message" class="event-modal-message"></p>
       <p id="event-modal-challenge" class="event-modal-challenge" hidden></p>
-      <h3 id="event-modal-rewards-heading" class="event-modal-rewards-heading">Rewards</h3>
+      <h3 id="event-modal-rewards-heading" class="event-modal-rewards-heading" data-i18n="event.rewards">Rewards</h3>
       <ul id="event-modal-rewards" class="event-rewards-list"></ul>
-      <button id="event-modal-close" type="button" class="btn primary">Got it</button>
+      <button id="event-modal-close" type="button" class="btn primary" data-i18n="event.gotIt">Got it</button>
     </div>
   </div>
 
   <div id="profile-modal" class="modal profile-modal" hidden>
     <div id="profile-card" class="profile-card theme-classic">
       <header class="profile-top">
-        <h2>RAVA Profile</h2>
+        <h2 data-i18n="profile.title">RAVA Profile</h2>
         <div class="profile-top-actions">
-          <button id="profile-customize-btn" type="button" class="btn primary profile-customize-btn" hidden>Customize Profile</button>
-          <button id="profile-close-btn" type="button" class="btn ghost profile-close">Close</button>
+          <button id="profile-customize-btn" type="button" class="btn primary profile-customize-btn" hidden data-i18n="profile.customize">Customize Profile</button>
+          <button id="profile-close-btn" type="button" class="btn ghost profile-close" data-i18n="modal.close">Close</button>
         </div>
       </header>
 
       <div id="profile-flag-notice" class="profile-flag-notice" hidden>
-        <strong>Profile flagged for review</strong>
+        <strong data-i18n="profile.flaggedTitle">Profile flagged for review</strong>
         <p id="profile-flag-comment" class="profile-flag-comment"></p>
-        <p class="profile-flag-hint">Please update your profile content. The flag clears automatically when you save changes.</p>
+        <p class="profile-flag-hint" data-i18n="profile.flaggedHint">Please update your profile content. The flag clears automatically when you save changes.</p>
       </div>
 
       <div id="profile-banner" class="profile-banner">
@@ -290,63 +290,63 @@
       <div class="profile-body">
         <main class="profile-main">
           <section class="profile-box">
-            <h4>About Me</h4>
-            <div id="profile-about-view" class="profile-box-content empty">No bio yet.</div>
+            <h4 data-i18n="profile.aboutMe">About Me</h4>
+            <div id="profile-about-view" class="profile-box-content empty" data-i18n="profile.aboutEmpty">No bio yet.</div>
           </section>
           <section class="profile-box">
-            <h4>Interests</h4>
-            <div id="profile-interests-view" class="profile-box-content empty">Nothing listed yet.</div>
+            <h4 data-i18n="profile.interests">Interests</h4>
+            <div id="profile-interests-view" class="profile-box-content empty" data-i18n="profile.interestsEmpty">Nothing listed yet.</div>
           </section>
           <section class="profile-box">
-            <h4>Now Playing</h4>
-            <div id="profile-music-view" class="profile-box-content empty">Silence in the void.</div>
+            <h4 data-i18n="profile.nowPlaying">Now Playing</h4>
+            <div id="profile-music-view" class="profile-box-content empty" data-i18n="profile.musicEmpty">Silence in the void.</div>
           </section>
           <section class="profile-box">
-            <h4>Social Links</h4>
+            <h4 data-i18n="profile.socialLinks">Social Links</h4>
             <div id="profile-social-view" class="profile-box-content profile-social-view"></div>
           </section>
           <section class="profile-box">
-            <h4>Friends</h4>
+            <h4 data-i18n="profile.friends">Friends</h4>
             <div id="profile-friends-list" class="profile-box-content profile-friends-list"></div>
           </section>
         </main>
 
         <aside class="profile-sidebar">
           <section class="profile-box">
-            <h4>Mining Stats</h4>
+            <h4 data-i18n="profile.miningStats">Mining Stats</h4>
             <div class="profile-box-content">
               <dl class="profile-stats">
-                <dt>Profile !</dt>
+                <dt data-i18n="profile.profileNumber">Profile !</dt>
                 <dd id="profile-sidebar-number" class="profile-sidebar-number">---</dd>
-                <dt>Signed up</dt>
+                <dt data-i18n="profile.signedUp">Signed up</dt>
                 <dd id="profile-sidebar-member-since">---</dd>
-                <dt id="profile-gender-label" hidden>Gender</dt>
+                <dt id="profile-gender-label" hidden data-i18n="profile.gender">Gender</dt>
                 <dd id="profile-gender-display" hidden>—</dd>
-                <dt>Pronouns</dt>
+                <dt data-i18n="profile.pronouns">Pronouns</dt>
                 <dd id="profile-pronouns-display">—</dd>
-                <dt>Company Name</dt>
+                <dt data-i18n="profile.companyName">Company Name</dt>
                 <dd id="profile-mine-name" class="profile-mine-name-label">---</dd>
-                <dt>Game Day</dt>
+                <dt data-i18n="profile.gameDay">Game Day</dt>
                 <dd id="profile-game-day">---</dd>
-                <dt>Rax</dt>
+                <dt data-i18n="profile.rax">Rax</dt>
                 <dd id="profile-credits">---</dd>
-                <dt>Workers</dt>
+                <dt data-i18n="profile.workers">Workers</dt>
                 <dd id="profile-workers">---</dd>
-                <dt>Zones</dt>
+                <dt data-i18n="profile.zones">Zones</dt>
                 <dd id="profile-zones">---</dd>
               </dl>
             </div>
           </section>
 
           <section id="profile-friend-panel" class="profile-box" hidden>
-            <h4>Friendship</h4>
+            <h4 data-i18n="profile.friendship">Friendship</h4>
             <div class="profile-box-content">
               <p id="profile-friend-status" class="profile-friend-status"></p>
               <div class="profile-friend-actions">
-                <button id="profile-add-friend-btn" type="button" class="btn primary" hidden>Add Friend</button>
-                <button id="profile-accept-friend-btn" type="button" class="btn success" hidden>Accept Request</button>
-                <button id="profile-message-friend-btn" type="button" class="btn primary" hidden>Message</button>
-                <button id="profile-remove-friend-btn" type="button" class="btn ghost" hidden>Remove</button>
+                <button id="profile-add-friend-btn" type="button" class="btn primary" hidden data-i18n="profile.addFriend">Add Friend</button>
+                <button id="profile-accept-friend-btn" type="button" class="btn success" hidden data-i18n="profile.acceptRequest">Accept Request</button>
+                <button id="profile-message-friend-btn" type="button" class="btn primary" hidden data-i18n="profile.message">Message</button>
+                <button id="profile-remove-friend-btn" type="button" class="btn ghost" hidden data-i18n="profile.remove">Remove</button>
               </div>
               <p id="profile-friend-action-status" class="profile-save-status"></p>
             </div>
@@ -359,21 +359,21 @@
   <div id="profile-edit-modal" class="modal profile-modal" hidden>
     <div id="profile-edit-card" class="profile-card theme-classic">
       <header class="profile-top">
-        <h2>Customize Profile</h2>
+        <h2 data-i18n="profile.edit.customizeTitle">Customize Profile</h2>
         <div class="profile-top-actions">
-          <button id="profile-edit-back-btn" type="button" class="btn ghost profile-close">Back to Profile</button>
+          <button id="profile-edit-back-btn" type="button" class="btn ghost profile-close" data-i18n="profile.edit.back">Back to Profile</button>
         </div>
       </header>
 
       <div id="profile-edit-flag-notice" class="profile-flag-notice" hidden>
-        <strong>Profile flagged for review</strong>
+        <strong data-i18n="profile.flaggedTitle">Profile flagged for review</strong>
         <p id="profile-edit-flag-comment" class="profile-flag-comment"></p>
-        <p class="profile-flag-hint">Please update your profile content. The flag clears automatically when you save changes.</p>
+        <p class="profile-flag-hint" data-i18n="profile.flaggedHint">Please update your profile content. The flag clears automatically when you save changes.</p>
       </div>
 
       <div class="profile-edit-body">
         <section class="profile-box profile-edit-panel">
-          <h4>Profile Photo</h4>
+          <h4 data-i18n="profile.edit.photo">Profile Photo</h4>
           <div class="profile-box-content">
             <div class="profile-edit-photo-row">
               <div id="profile-edit-avatar" class="profile-avatar profile-edit-avatar">
@@ -382,14 +382,14 @@
               </div>
               <div id="profile-photo-upload" class="profile-photo-upload">
                 <input id="profile-photo-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
-                <button id="profile-photo-choose-btn" type="button" class="btn primary profile-photo-btn">Choose Photo</button>
-                <button id="profile-photo-btn" type="button" class="btn ghost profile-photo-btn" disabled>Upload</button>
+                <button id="profile-photo-choose-btn" type="button" class="btn primary profile-photo-btn" data-i18n="profile.edit.choosePhoto">Choose Photo</button>
+                <button id="profile-photo-btn" type="button" class="btn ghost profile-photo-btn" disabled data-i18n="profile.edit.upload">Upload</button>
                 <p id="profile-photo-status" class="profile-save-status"></p>
               </div>
             </div>
             <div id="profile-avatar-preset-section" class="profile-avatar-preset-section">
-              <p class="profile-number-label">Default profile photo</p>
-              <p class="profile-number-hint">Choose a silhouette until you upload your own photo. These defaults are used whenever you have no custom upload.</p>
+              <p class="profile-number-label" data-i18n="profile.edit.defaultPhoto">Default profile photo</p>
+              <p class="profile-number-hint" data-i18n="profile.edit.defaultPhotoHint">Choose a silhouette until you upload your own photo. These defaults are used whenever you have no custom upload.</p>
               <div id="profile-avatar-preset-grid" class="profile-avatar-preset-grid" role="radiogroup" aria-label="Default profile photo style"></div>
               <p id="profile-avatar-preset-status" class="profile-save-status"></p>
             </div>
@@ -397,129 +397,129 @@
         </section>
 
         <section class="profile-box profile-edit-panel">
-          <h4>Profile Banner</h4>
+          <h4 data-i18n="profile.edit.banner">Profile Banner</h4>
           <div class="profile-box-content">
-            <p class="profile-number-hint">Custom background behind your photo and headline. JPEG, PNG, WebP, or GIF up to 4 MB. Wide images work best.</p>
+            <p class="profile-number-hint" data-i18n="profile.edit.bannerHint">Custom background behind your photo and headline. JPEG, PNG, WebP, or GIF up to 4 MB. Wide images work best.</p>
             <div id="profile-background-preview" class="profile-background-preview" aria-hidden="true"></div>
             <div class="profile-photo-upload">
               <input id="profile-background-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
-              <button id="profile-background-choose-btn" type="button" class="btn primary profile-photo-btn">Choose Image</button>
-              <button id="profile-background-upload-btn" type="button" class="btn ghost profile-photo-btn" disabled>Upload</button>
-              <button id="profile-background-remove-btn" type="button" class="btn ghost profile-photo-btn" hidden>Remove Background</button>
+              <button id="profile-background-choose-btn" type="button" class="btn primary profile-photo-btn" data-i18n="profile.edit.chooseImage">Choose Image</button>
+              <button id="profile-background-upload-btn" type="button" class="btn ghost profile-photo-btn" disabled data-i18n="profile.edit.upload">Upload</button>
+              <button id="profile-background-remove-btn" type="button" class="btn ghost profile-photo-btn" hidden data-i18n="profile.edit.removeBackground">Remove Background</button>
               <p id="profile-background-status" class="profile-save-status"></p>
             </div>
           </div>
         </section>
 
         <section class="profile-box profile-edit-panel">
-          <h4>Company Name</h4>
+          <h4 data-i18n="profile.edit.companyName">Company Name</h4>
           <div class="profile-box-content">
-            <p class="profile-number-hint">Your mine's public company name. Names must be unique. Relinquished names stay reserved for 30 days.</p>
-            <label for="profile-company-name-input">Company Name</label>
-            <input id="profile-company-name-input" type="text" maxlength="48" placeholder="Orion Vein Works 472" autocomplete="off">
+            <p class="profile-number-hint" data-i18n="profile.edit.companyHint">Your mine's public company name. Names must be unique. Relinquished names stay reserved for 30 days.</p>
+            <label for="profile-company-name-input" data-i18n="profile.edit.companyName">Company Name</label>
+            <input id="profile-company-name-input" type="text" maxlength="48" data-i18n-placeholder="company.namePlaceholder" placeholder="Orion Vein Works 472" autocomplete="off">
             <div class="profile-company-actions">
-              <button id="profile-company-save-btn" type="button" class="btn primary">Save Company Name</button>
-              <button id="profile-company-regenerate-btn" type="button" class="btn ghost">Regenerate</button>
+              <button id="profile-company-save-btn" type="button" class="btn primary" data-i18n="profile.edit.saveCompany">Save Company Name</button>
+              <button id="profile-company-regenerate-btn" type="button" class="btn ghost" data-i18n="profile.edit.regenerate">Regenerate</button>
             </div>
             <p id="profile-company-status" class="profile-save-status"></p>
 
-            <p class="profile-number-label">Company logo</p>
-            <p class="profile-number-hint">Upload a transparent PNG, or queue an AI emblem from your company name and profile. Missing logos are queued automatically at UTC midnight.</p>
+            <p class="profile-number-label" data-i18n="profile.edit.companyLogo">Company logo</p>
+            <p class="profile-number-hint" data-i18n="profile.edit.companyLogoHint">Upload a transparent PNG, or queue an AI emblem from your company name and profile. Missing logos are queued automatically at UTC midnight.</p>
             <div class="profile-company-logo-row">
               <img id="profile-company-logo-preview" class="profile-company-logo profile-company-logo-preview" alt="" hidden>
               <div class="profile-photo-upload">
                 <input id="profile-company-logo-input" type="file" accept="image/png" hidden>
-                <button id="profile-company-logo-choose-btn" type="button" class="btn primary profile-photo-btn">Choose PNG</button>
-                <button id="profile-company-logo-upload-btn" type="button" class="btn ghost profile-photo-btn" disabled>Upload Logo</button>
-                <button id="profile-company-logo-generate-btn" type="button" class="btn ghost profile-photo-btn" hidden>Generate AI Logo</button>
+                <button id="profile-company-logo-choose-btn" type="button" class="btn primary profile-photo-btn" data-i18n="profile.edit.choosePng">Choose PNG</button>
+                <button id="profile-company-logo-upload-btn" type="button" class="btn ghost profile-photo-btn" disabled data-i18n="profile.edit.uploadLogo">Upload Logo</button>
+                <button id="profile-company-logo-generate-btn" type="button" class="btn ghost profile-photo-btn" hidden data-i18n="profile.edit.generateLogo">Generate AI Logo</button>
                 <p id="profile-company-logo-status" class="profile-save-status"></p>
               </div>
             </div>
 
-            <p class="profile-number-label">List for trade</p>
-            <p class="profile-number-hint">Offer your current company name in the Store for other players to buy.</p>
+            <p class="profile-number-label" data-i18n="profile.edit.listForTrade">List for trade</p>
+            <p class="profile-number-hint" data-i18n="profile.edit.listHint">Offer your current company name in the Store for other players to buy.</p>
             <div class="profile-company-list-row">
-              <input id="profile-company-list-price" type="number" min="1" step="1" placeholder="Price in Rax">
-              <button id="profile-company-list-btn" type="button" class="btn primary">List in Store</button>
-              <button id="profile-company-cancel-list-btn" type="button" class="btn ghost" hidden>Cancel Listing</button>
+              <input id="profile-company-list-price" type="number" min="1" step="1" data-i18n-placeholder="profile.edit.pricePlaceholder" placeholder="Price in Rax">
+              <button id="profile-company-list-btn" type="button" class="btn primary" data-i18n="profile.edit.listInStore">List in Store</button>
+              <button id="profile-company-cancel-list-btn" type="button" class="btn ghost" hidden data-i18n="profile.edit.cancelListing">Cancel Listing</button>
             </div>
             <p id="profile-company-list-status" class="profile-save-status"></p>
           </div>
         </section>
 
         <section class="profile-box profile-edit-panel">
-          <h4>Profile Details</h4>
+          <h4 data-i18n="profile.edit.details">Profile Details</h4>
           <div class="profile-box-content">
-            <p class="profile-number-label">Your profile number</p>
+            <p class="profile-number-label" data-i18n="profile.edit.yourNumber">Your profile number</p>
             <p id="profile-edit-number" class="profile-edit-number">---</p>
-            <p class="profile-number-hint">Share this so others can add you as a friend.</p>
+            <p class="profile-number-hint" data-i18n="profile.edit.numberHint">Share this so others can add you as a friend.</p>
 
-            <label for="profile-gender-input">Gender</label>
+            <label for="profile-gender-input" data-i18n="profile.edit.gender">Gender</label>
             <select id="profile-gender-input" aria-describedby="profile-gender-hint">
-              <option value="">Select gender…</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="trans-female">Trans female</option>
-              <option value="trans-male">Trans male</option>
-              <option value="non-binary">Non-binary</option>
-              <option value="prefer-not-to-say">Prefer not to say</option>
+              <option value="" data-i18n="profile.edit.genderSelect">Select gender…</option>
+              <option value="male" data-i18n="profile.edit.gender.male">Male</option>
+              <option value="female" data-i18n="profile.edit.gender.female">Female</option>
+              <option value="trans-female" data-i18n="profile.edit.gender.transFemale">Trans female</option>
+              <option value="trans-male" data-i18n="profile.edit.gender.transMale">Trans male</option>
+              <option value="non-binary" data-i18n="profile.edit.gender.nonBinary">Non-binary</option>
+              <option value="prefer-not-to-say" data-i18n="profile.edit.gender.preferNot">Prefer not to say</option>
             </select>
-            <p id="profile-gender-hint" class="profile-number-hint">Used to choose how we address you in game text (he/him, she/her, they/them).</p>
+            <p id="profile-gender-hint" class="profile-number-hint" data-i18n="profile.edit.genderHint">Used to choose how we address you in game text (he/him, she/her, they/them).</p>
 
             <div id="profile-preferred-pronouns-section" class="profile-preferred-pronouns-section" hidden>
-              <label for="profile-preferred-pronouns-input">Preferred pronouns</label>
+              <label for="profile-preferred-pronouns-input" data-i18n="profile.edit.preferredPronouns">Preferred pronouns</label>
               <select id="profile-preferred-pronouns-input">
-                <option value="">Select pronouns…</option>
-                <option value="he-him">he/him</option>
-                <option value="she-her">she/her</option>
-                <option value="they-them">they/them</option>
+                <option value="" data-i18n="profile.edit.pronounsSelect">Select pronouns…</option>
+                <option value="he-him" data-i18n="profile.edit.pronouns.he">he/him</option>
+                <option value="she-her" data-i18n="profile.edit.pronouns.she">she/her</option>
+                <option value="they-them" data-i18n="profile.edit.pronouns.they">they/them</option>
               </select>
-              <p class="profile-number-hint">Required for non-binary and prefer not to say.</p>
+              <p class="profile-number-hint" data-i18n="profile.edit.pronounsRequired">Required for non-binary and prefer not to say.</p>
             </div>
 
-            <label for="profile-mood-input">Mood</label>
-            <input id="profile-mood-input" type="text" maxlength="120" placeholder="What's your mood today?">
+            <label for="profile-mood-input" data-i18n="profile.edit.mood">Mood</label>
+            <input id="profile-mood-input" type="text" maxlength="120" data-i18n-placeholder="profile.edit.moodPlaceholder" placeholder="What's your mood today?">
 
-            <label for="profile-about-input">About Me</label>
-            <textarea id="profile-about-input" maxlength="2000" placeholder="Tell the galaxy about yourself..."></textarea>
+            <label for="profile-about-input" data-i18n="profile.edit.about">About Me</label>
+            <textarea id="profile-about-input" maxlength="2000" data-i18n-placeholder="profile.edit.aboutPlaceholder" placeholder="Tell the galaxy about yourself..."></textarea>
 
-            <label for="profile-interests-input">Interests</label>
-            <textarea id="profile-interests-input" maxlength="500" placeholder="Asteroids, ore, deep space jazz..."></textarea>
+            <label for="profile-interests-input" data-i18n="profile.edit.interests">Interests</label>
+            <textarea id="profile-interests-input" maxlength="500" data-i18n-placeholder="profile.edit.interestsPlaceholder" placeholder="Asteroids, ore, deep space jazz..."></textarea>
 
-            <label for="profile-music-input">Now Playing</label>
-            <input id="profile-music-input" type="text" maxlength="120" placeholder="Artist — Track">
+            <label for="profile-music-input" data-i18n="profile.edit.music">Now Playing</label>
+            <input id="profile-music-input" type="text" maxlength="120" data-i18n-placeholder="profile.edit.musicPlaceholder" placeholder="Artist — Track">
           </div>
         </section>
 
         <section class="profile-box profile-edit-panel">
-          <h4>Social Links</h4>
+          <h4 data-i18n="profile.edit.social">Social Links</h4>
           <div class="profile-box-content">
-            <label for="profile-discord-input">Discord</label>
-            <input id="profile-discord-input" type="text" maxlength="120" placeholder="username or discord.gg/invite" autocomplete="off">
-            <label for="profile-bluesky-input">Bluesky</label>
-            <input id="profile-bluesky-input" type="text" maxlength="120" placeholder="@handle.bsky.social" autocomplete="off">
-            <label for="profile-twitter-input">Twitter / X</label>
-            <input id="profile-twitter-input" type="text" maxlength="120" placeholder="@handle" autocomplete="off">
-            <label for="profile-youtube-input">YouTube</label>
-            <input id="profile-youtube-input" type="text" maxlength="120" placeholder="@channel or channel URL" autocomplete="off">
-            <label for="profile-facebook-input">Facebook</label>
-            <input id="profile-facebook-input" type="text" maxlength="120" placeholder="username or profile URL" autocomplete="off">
+            <label for="profile-discord-input" data-i18n="social.discord">Discord</label>
+            <input id="profile-discord-input" type="text" maxlength="120" data-i18n-placeholder="social.discordPlaceholder" placeholder="username or discord.gg/invite" autocomplete="off">
+            <label for="profile-bluesky-input" data-i18n="social.bluesky">Bluesky</label>
+            <input id="profile-bluesky-input" type="text" maxlength="120" data-i18n-placeholder="social.blueskyPlaceholder" placeholder="@handle.bsky.social" autocomplete="off">
+            <label for="profile-twitter-input" data-i18n="social.twitter">Twitter / X</label>
+            <input id="profile-twitter-input" type="text" maxlength="120" data-i18n-placeholder="social.twitterPlaceholder" placeholder="@handle" autocomplete="off">
+            <label for="profile-youtube-input" data-i18n="social.youtube">YouTube</label>
+            <input id="profile-youtube-input" type="text" maxlength="120" data-i18n-placeholder="social.youtubePlaceholder" placeholder="@channel or channel URL" autocomplete="off">
+            <label for="profile-facebook-input" data-i18n="social.facebook">Facebook</label>
+            <input id="profile-facebook-input" type="text" maxlength="120" data-i18n-placeholder="social.facebookPlaceholder" placeholder="username or profile URL" autocomplete="off">
           </div>
         </section>
 
         <section class="profile-box profile-edit-panel">
-          <h4>Add a Friend</h4>
+          <h4 data-i18n="profile.edit.addFriend">Add a Friend</h4>
           <div class="profile-box-content">
             <div class="profile-add-friend-row">
-              <input id="profile-add-friend-number" type="text" placeholder="!K7R-8842-9F3A" autocomplete="off">
-              <button id="profile-add-friend-submit-btn" type="button" class="btn primary">Add Friend</button>
+              <input id="profile-add-friend-number" type="text" data-i18n-placeholder="profile.edit.friendPlaceholder" placeholder="!K7R-8842-9F3A" autocomplete="off">
+              <button id="profile-add-friend-submit-btn" type="button" class="btn primary" data-i18n="friends.add">Add Friend</button>
             </div>
             <p id="profile-add-friend-status" class="profile-save-status"></p>
           </div>
         </section>
 
         <div class="profile-save-row profile-edit-save-row">
-          <button id="profile-save-btn" type="button" class="btn primary">Save Profile</button>
+          <button id="profile-save-btn" type="button" class="btn primary" data-i18n="profile.edit.saveProfile">Save Profile</button>
           <span id="profile-save-status" class="profile-save-status"></span>
         </div>
       </div>
@@ -529,30 +529,30 @@
   <div id="friends-modal" class="modal" hidden>
     <div class="modal-card wide">
       <div class="modal-header">
-        <h2>Friends</h2>
+        <h2 data-i18n="friends.title">Friends</h2>
         <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
 
       <section class="friends-add">
-        <label for="add-friend-number">Add friend by profile number</label>
+        <label for="add-friend-number" data-i18n="friends.addByNumber">Add friend by profile number</label>
         <div class="friends-add-row">
-          <input id="add-friend-number" type="text" placeholder="!K7R-8842-9F3A" autocomplete="off">
-          <button id="add-friend-btn" type="button" class="btn primary">Add Friend</button>
+          <input id="add-friend-number" type="text" data-i18n-placeholder="profile.edit.friendPlaceholder" placeholder="!K7R-8842-9F3A" autocomplete="off">
+          <button id="add-friend-btn" type="button" class="btn primary" data-i18n="friends.add">Add Friend</button>
         </div>
         <p id="add-friend-status" class="friends-status"></p>
       </section>
 
       <div class="friends-columns">
         <section>
-          <h3>My Friends</h3>
+          <h3 data-i18n="friends.myFriends">My Friends</h3>
           <div id="friends-list" class="friends-list"></div>
         </section>
         <section>
-          <h3>Incoming Requests</h3>
+          <h3 data-i18n="friends.incoming">Incoming Requests</h3>
           <div id="incoming-friends-list" class="friends-list"></div>
         </section>
         <section>
-          <h3>Pending Sent</h3>
+          <h3 data-i18n="friends.outgoing">Pending Sent</h3>
           <div id="outgoing-friends-list" class="friends-list"></div>
         </section>
       </div>
@@ -562,43 +562,45 @@
   <div id="messages-modal" class="modal" hidden>
     <div class="modal-card wide">
       <div class="modal-header">
-        <h2>Messages</h2>
+        <h2 data-i18n="messages.title">Messages</h2>
         <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
       <p id="messages-status" class="friends-status"></p>
       <div class="player-message-actions">
-        <button id="player-staff-toggle-btn" type="button" class="btn ghost">Message staff</button>
-        <button id="player-peer-toggle-btn" type="button" class="btn ghost" hidden>Back to friends</button>
+        <button id="player-staff-toggle-btn" type="button" class="btn ghost" data-i18n="messages.staffToggle">Message staff</button>
+        <button id="player-peer-toggle-btn" type="button" class="btn ghost" hidden data-i18n="messages.peerToggle">Back to friends</button>
       </div>
       <section id="player-staff-compose" class="player-message-compose" hidden>
         <div class="player-message-compose-head">
-          <h3>Message staff</h3>
+          <h3 data-i18n="messages.staffHeading">Message staff</h3>
         </div>
-        <label for="player-staff-recipient">To</label>
+        <label for="player-staff-recipient" data-i18n="messages.staffTo">To</label>
         <select id="player-staff-recipient">
-          <option value="">Select staff member…</option>
+          <option value="" data-i18n="messages.staffSelect">Select staff member…</option>
         </select>
-        <label for="player-staff-body">Message</label>
+        <label for="player-staff-body" data-i18n="messages.body">Message</label>
         <textarea
           id="player-staff-body"
           maxlength="4000"
           rows="3"
+          data-i18n-placeholder="messages.staffPlaceholder"
           placeholder="Write a message to an admin or moderator…"></textarea>
-        <button id="player-staff-send-btn" type="button" class="btn accent">Send to staff</button>
+        <button id="player-staff-send-btn" type="button" class="btn accent" data-i18n="messages.staffSend">Send to staff</button>
       </section>
       <section id="player-peer-compose" class="player-message-compose">
-        <h3>Send to friend</h3>
-        <label for="player-message-recipient">To</label>
+        <h3 data-i18n="messages.peerHeading">Send to friend</h3>
+        <label for="player-message-recipient" data-i18n="messages.peerTo">To</label>
         <select id="player-message-recipient">
-          <option value="">Select friend…</option>
+          <option value="" data-i18n="messages.peerSelect">Select friend…</option>
         </select>
-        <label for="player-message-body">Message</label>
+        <label for="player-message-body" data-i18n="messages.body">Message</label>
         <textarea
           id="player-message-body"
           maxlength="4000"
           rows="3"
+          data-i18n-placeholder="messages.peerPlaceholder"
           placeholder="Write a message to a friend..."></textarea>
-        <button id="player-message-send-btn" type="button" class="btn primary">Send</button>
+        <button id="player-message-send-btn" type="button" class="btn primary" data-i18n="messages.send">Send</button>
       </section>
       <div class="staff-message-layout">
         <div id="player-messages-inbox" class="staff-message-inbox"></div>
@@ -621,10 +623,10 @@
           <input id="exonet-url-input" type="text" spellcheck="false" autocomplete="off" aria-label="Exonet address">
           <button type="submit">Go</button>
         </form>
-        <button id="exonet-close" type="button" class="btn ghost exonet-close">Close</button>
+        <button id="exonet-close" type="button" class="btn ghost exonet-close" data-i18n="exonet.close">Close</button>
       </header>
       <aside class="exonet-sidebar">
-        <h3>Bookmarks</h3>
+        <h3 data-i18n="exonet.bookmarks">Bookmarks</h3>
         <div id="exonet-bookmarks"></div>
       </aside>
       <main id="exonet-content" class="exonet-content"></main>
@@ -632,6 +634,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260602-weblate-i18n"></script>
+<script type="module" src="/js/app.js?v=20260602-i18n-wired"></script>
 </body>
 </html>

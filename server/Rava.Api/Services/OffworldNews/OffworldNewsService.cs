@@ -300,27 +300,8 @@ public sealed class OffworldNewsService(
         }
     }
 
-    private static OffworldNewsEditionDto EnrichEditionAuthors(OffworldNewsEditionDto edition)
-    {
-        var stories = edition.Stories.Select(EnrichStoryAuthor).ToList();
-        return edition with { Stories = stories };
-    }
-
-    private static OffworldNewsStoryDto EnrichStoryAuthor(OffworldNewsStoryDto story)
-    {
-        var reporter = OffworldNewsReporterCatalog.Resolve(story.AuthorSlug)
-            ?? OffworldNewsReporterCatalog.Resolve(story.Author);
-        if (reporter is null)
-        {
-            return story;
-        }
-
-        return story with
-        {
-            Author = reporter.DisplayName,
-            AuthorSlug = reporter.Slug,
-        };
-    }
+    private static OffworldNewsEditionDto EnrichEditionAuthors(OffworldNewsEditionDto edition) =>
+        OffworldNewsEditionEnricher.EnrichAuthors(edition);
 
     private OffworldNewsEditionDto EnsureStoryImages(OffworldNewsEditionDto edition)
     {

@@ -856,6 +856,12 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       button.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
+        const author = String(button.dataset.newsAuthor ?? "").trim();
+        if (author) {
+          sessionStorage.setItem("onnReporterAuthor", author);
+        } else {
+          sessionStorage.removeItem("onnReporterAuthor");
+        }
         navigate(offworldNewsReporterPath(button.dataset.newsReporter));
       });
     });
@@ -1165,9 +1171,11 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
 
   async function renderOffworldNewsReporter(reporterSlug) {
     const pageSlug = offworldNewsReporterPath(reporterSlug);
+    const authorHint = String(sessionStorage.getItem("onnReporterAuthor") ?? "").trim();
+    sessionStorage.removeItem("onnReporterAuthor");
 
     try {
-      const detail = await fetchOffworldNewsReporterDetail(reporterSlug, "");
+      const detail = await fetchOffworldNewsReporterDetail(reporterSlug, authorHint);
       const reporter = pickField(detail, "reporter");
       if (!reporter) {
         throw new Error("Reporter payload was incomplete.");

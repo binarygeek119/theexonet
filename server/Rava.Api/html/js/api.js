@@ -1,3 +1,4 @@
+// RAVA web API client (v75bf3db)
 const TOKEN_KEY = "rava_token";
 const MINE_KEY = "rava_mineId";
 const USER_KEY = "rava_username";

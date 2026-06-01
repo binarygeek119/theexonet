@@ -69,6 +69,9 @@ jobs:
       - name: Test
         run: dotnet test Rava.slnx --configuration Release --no-build --verbosity normal
 
+      - name: Validate web JavaScript
+        run: node --check Rava.Api/html/js/api.js Rava.Api/html/js/app.js Rava.Api/html/js/exonet.js
+
       - name: Publish web app
         run: |
           dotnet publish Rava.Api/Rava.Api.csproj --configuration Release --output ./publish
@@ -424,6 +427,43 @@ jobs:
               "$target"
           else
             SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${www_rsync_args[@]}" \
+              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              server/Rava.Api/html/ \
+              "$target"
+          fi
+
+      - name: Deploy game html to publish/html
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${api_host}"
+          target="${remote}:${DEPLOY_API_PATH}/html/"
+          html_rsync_args=(
+            -avz
+            --filter 'P images/profile/'
+            --filter 'P images/profile/***'
+            --filter 'P images/profile-backgrounds/'
+            --filter 'P images/profile-backgrounds/***'
+            --filter 'P exonet/offworld-news/editions/'
+            --filter 'P exonet/offworld-news/editions/***'
+            --filter 'P exonet/offworld-news/images/'
+            --filter 'P exonet/offworld-news/images/***'
+            --exclude 'uploads/'
+            --exclude 'images/profile/'
+            --exclude 'images/profile-backgrounds/'
+            --exclude 'exonet/offworld-news/editions/'
+            --exclude 'exonet/offworld-news/images/'
+          )
+          echo "Deploying game html from checkout to ${target}"
+          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+            rsync "${html_rsync_args[@]}" \
+              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              server/Rava.Api/html/ \
+              "$target"
+          else
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${html_rsync_args[@]}" \
               -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
               server/Rava.Api/html/ \
               "$target"

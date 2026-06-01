@@ -44,3 +44,7 @@ Exonet stays English-only so AI-generated news is not mixed with translator work
 ## Deploy
 
 Locale files ship with `deploy-rava-html` / API wwwroot sync. No separate build step.
+
+## Profile completion prompts
+
+When new required profile columns ship (e.g. gender), `ProfileCompletionEvaluator` in `Rava.Core` lists missing fields on `PlayerProfileResponse.missingProfileFields`. Existing players see a blocking modal on login until they save. Add a new check in that class when another field becomes mandatory.

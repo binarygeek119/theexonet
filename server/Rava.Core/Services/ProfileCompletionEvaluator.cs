@@ -1,0 +1,36 @@
+using Rava.Core.Constants;
+using Rava.Core.Dtos;
+
+namespace Rava.Core.Services;
+
+/// <summary>
+/// Detects profile fields that existing players must fill after new DB columns ship.
+/// Add new checks here when a field becomes required for everyone.
+/// </summary>
+public static class ProfileCompletionEvaluator
+{
+    public const string FieldGender = "gender";
+    public const string FieldPreferredPronouns = "preferredPronouns";
+
+    public static ProfileCompletionStatus Evaluate(string? gender, string? preferredPronouns)
+    {
+        var missing = new List<ProfileCompletionFieldDto>();
+        var normalizedGender = ProfileGender.Normalize(gender);
+
+        if (string.IsNullOrEmpty(normalizedGender))
+        {
+            missing.Add(new ProfileCompletionFieldDto(FieldGender));
+        }
+        else if (ProfileGender.RequiresPreferredPronouns(normalizedGender) &&
+                 string.IsNullOrEmpty(ProfilePreferredPronouns.Normalize(preferredPronouns)))
+        {
+            missing.Add(new ProfileCompletionFieldDto(FieldPreferredPronouns));
+        }
+
+        return new ProfileCompletionStatus(missing.Count > 0, missing);
+    }
+}
+
+public sealed record ProfileCompletionStatus(
+    bool Required,
+    IReadOnlyList<ProfileCompletionFieldDto> MissingFields);

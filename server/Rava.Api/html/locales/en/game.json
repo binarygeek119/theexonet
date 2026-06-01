@@ -250,6 +250,13 @@
   "profile.edit.addFriend": "Add a Friend",
   "profile.edit.friendPlaceholder": "!K7R-8842-9F3A",
   "profile.edit.saveProfile": "Save Profile",
+  "profile.completion.title": "Profile update required",
+  "profile.completion.intro": "We added new profile options. Please fill in the details below to continue playing.",
+  "profile.completion.save": "Save and continue",
+  "profile.completion.saving": "Saving…",
+  "profile.completion.saved": "Thank you! Your profile is updated.",
+  "profile.completion.pronounsRequired": "Choose preferred pronouns for your gender selection.",
+  "profile.completion.genderRequired": "Please select your gender.",
 
   "friends.title": "Friends",
   "friends.add": "Add Friend",

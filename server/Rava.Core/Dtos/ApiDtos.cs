@@ -234,7 +234,11 @@ public record PlayerProfileResponse(
     string PronounObject = "them",
     string PronounPossessive = "their",
     string PronounLabel = "they/them",
-    bool RequiresPreferredPronouns = false);
+    bool RequiresPreferredPronouns = false,
+    bool ProfileCompletionRequired = false,
+    IReadOnlyList<ProfileCompletionFieldDto>? MissingProfileFields = null);
+
+public record ProfileCompletionFieldDto(string FieldId);
 
 public record UpdateCompanyNameRequest(string CompanyName);
 

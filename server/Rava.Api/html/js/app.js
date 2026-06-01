@@ -337,6 +337,13 @@ const els = {
   profileFacebookInput: document.getElementById("profile-facebook-input"),
   profileSaveBtn: document.getElementById("profile-save-btn"),
   profileSaveStatus: document.getElementById("profile-save-status"),
+  profileCompletionModal: document.getElementById("profile-completion-modal"),
+  profileCompletionGenderBlock: document.getElementById("profile-completion-gender-block"),
+  profileCompletionGenderInput: document.getElementById("profile-completion-gender-input"),
+  profileCompletionPronounsBlock: document.getElementById("profile-completion-pronouns-block"),
+  profileCompletionPronounsInput: document.getElementById("profile-completion-pronouns-input"),
+  profileCompletionSaveBtn: document.getElementById("profile-completion-save-btn"),
+  profileCompletionStatus: document.getElementById("profile-completion-status"),
   profileFriendPanel: document.getElementById("profile-friend-panel"),
   profileFriendStatus: document.getElementById("profile-friend-status"),
   profileAddFriendBtn: document.getElementById("profile-add-friend-btn"),
@@ -658,7 +665,15 @@ function hideProfileScreens() {
   setHidden(els.profileEditModal, true);
 }
 
+function isProfileCompletionBlocking() {
+  return Boolean(els.profileCompletionModal && !els.profileCompletionModal.hidden);
+}
+
 function closeModals() {
+  if (isProfileCompletionBlocking()) {
+    return;
+  }
+
   els.financeModal.hidden = true;
   els.supplyModal.hidden = true;
   els.dayModal.hidden = true;
@@ -672,7 +687,7 @@ function closeModals() {
 }
 
 function openModal(modal) {
-  if (!modal) {
+  if (!modal || isProfileCompletionBlocking()) {
     return;
   }
 
@@ -991,13 +1006,39 @@ async function enqueueCompanyLogoGeneration() {
   }
 }
 
-function profileEditFormPayload() {
-  const gender = els.profileGenderInput?.value ?? "";
+function profileUpdatePayloadFromState(overrides = {}) {
+  const profile = state.profile ?? {};
+  const gender =
+    overrides.profileGender ??
+    els.profileGenderInput?.value ??
+    profile.profileGender ??
+    "";
   const preferredPronouns = profileGenderRequiresPronouns(gender)
-    ? (els.profilePreferredPronounsInput?.value ?? "")
+    ? (overrides.profilePreferredPronouns ??
+      els.profilePreferredPronounsInput?.value ??
+      profile.profilePreferredPronouns ??
+      "")
     : "";
 
   return {
+    mood: profile.mood ?? "",
+    aboutMe: profile.aboutMe ?? "",
+    music: profile.music ?? "",
+    interests: profile.interests ?? "",
+    discord: profile.discord ?? "",
+    bluesky: profile.bluesky ?? "",
+    twitter: profile.twitter ?? "",
+    youtube: profile.youtube ?? "",
+    facebook: profile.facebook ?? "",
+    profileAvatarPreset: profile.profileAvatarPreset ?? "neutral",
+    profileGender: gender,
+    profilePreferredPronouns: preferredPronouns,
+    ...overrides,
+  };
+}
+
+function profileEditFormPayload() {
+  return profileUpdatePayloadFromState({
     mood: els.profileMoodInput?.value.trim() ?? "",
     aboutMe: els.profileAboutInput?.value ?? "",
     music: els.profileMusicInput?.value.trim() ?? "",
@@ -1007,10 +1048,122 @@ function profileEditFormPayload() {
     twitter: els.profileTwitterInput?.value.trim() ?? "",
     youtube: els.profileYoutubeInput?.value.trim() ?? "",
     facebook: els.profileFacebookInput?.value.trim() ?? "",
-    profileAvatarPreset: state.profile?.profileAvatarPreset ?? "neutral",
-    profileGender: gender,
-    profilePreferredPronouns: preferredPronouns,
-  };
+  });
+}
+
+function profileCompletionNeedsField(profile, fieldId) {
+  return (profile?.missingProfileFields ?? []).some((field) => field.fieldId === fieldId);
+}
+
+function syncProfileCompletionGenderUi() {
+  const gender = els.profileCompletionGenderInput?.value ?? "";
+  const needsGender = profileCompletionNeedsField(state.profile, "gender");
+  const needsPronounsField = profileCompletionNeedsField(state.profile, "preferredPronouns");
+  const showPronouns =
+    profileGenderRequiresPronouns(gender) && (needsPronounsField || needsGender);
+  setHidden(els.profileCompletionPronounsBlock, !showPronouns);
+  if (!needsPronouns && els.profileCompletionPronounsInput) {
+    els.profileCompletionPronounsInput.value = "";
+  }
+}
+
+function renderProfileCompletionModal(profile) {
+  if (!els.profileCompletionModal || !profile?.profileCompletionRequired) {
+    setHidden(els.profileCompletionModal, true);
+    return;
+  }
+
+  const needsGender = profileCompletionNeedsField(profile, "gender");
+  const needsPronouns = profileCompletionNeedsField(profile, "preferredPronouns");
+
+  setHidden(els.profileCompletionGenderBlock, !needsGender);
+  setHidden(els.profileCompletionPronounsBlock, !needsPronouns);
+
+  if (els.profileCompletionGenderInput) {
+    els.profileCompletionGenderInput.value = needsGender ? (profile.profileGender ?? "") : "";
+  }
+  if (els.profileCompletionPronounsInput) {
+    els.profileCompletionPronounsInput.value = profile.profilePreferredPronouns ?? "";
+  }
+
+  syncProfileCompletionGenderUi();
+  applyTranslations(els.profileCompletionModal);
+
+  if (els.profileCompletionStatus) {
+    els.profileCompletionStatus.textContent = "";
+    els.profileCompletionStatus.classList.remove("error", "success");
+  }
+
+  els.profileCompletionModal.hidden = false;
+  document.body.appendChild(els.profileCompletionModal);
+  els.profileCompletionGenderInput?.focus();
+}
+
+function maybeShowProfileCompletion(profile) {
+  if (!profile?.isOwner || profile.isReporter) {
+    setHidden(els.profileCompletionModal, true);
+    return;
+  }
+
+  if (profile.profileCompletionRequired) {
+    state.profile = profile;
+    renderProfileCompletionModal(profile);
+    return;
+  }
+
+  setHidden(els.profileCompletionModal, true);
+}
+
+async function saveProfileCompletion() {
+  if (!state.profile) {
+    return;
+  }
+
+  const gender = els.profileCompletionGenderInput?.value ?? "";
+  if (profileCompletionNeedsField(state.profile, "gender") && !gender) {
+    els.profileCompletionStatus.textContent = t("profile.completion.genderRequired");
+    els.profileCompletionStatus.classList.add("error");
+    els.profileCompletionGenderInput?.focus();
+    return;
+  }
+
+  const preferredPronouns = profileGenderRequiresPronouns(gender)
+    ? (els.profileCompletionPronounsInput?.value ?? "")
+    : "";
+
+  if (profileGenderRequiresPronouns(gender) && !preferredPronouns) {
+    els.profileCompletionStatus.textContent = t("profile.completion.pronounsRequired");
+    els.profileCompletionStatus.classList.add("error");
+    els.profileCompletionPronounsInput?.focus();
+    return;
+  }
+
+  els.profileCompletionStatus.textContent = t("profile.completion.saving");
+  els.profileCompletionStatus.classList.remove("error", "success");
+  if (els.profileCompletionSaveBtn) {
+    els.profileCompletionSaveBtn.disabled = true;
+  }
+
+  try {
+    const profile = await api.updateProfile(
+      profileUpdatePayloadFromState({
+        profileGender: gender,
+        profilePreferredPronouns: preferredPronouns,
+      }),
+    );
+    state.profile = profile;
+    renderProfileGenderPronouns(profile);
+    maybeShowProfileCompletion(profile);
+    els.profileCompletionStatus.textContent = t("profile.completion.saved");
+    els.profileCompletionStatus.classList.add("success");
+  } catch (error) {
+    els.profileCompletionStatus.textContent = error.message;
+    els.profileCompletionStatus.classList.add("error");
+  } finally {
+    if (els.profileCompletionSaveBtn) {
+      els.profileCompletionSaveBtn.disabled = false;
+    }
+  }
 }
 
 function syncProfileGenderPronounsUi() {
@@ -2151,6 +2304,14 @@ async function refreshAll() {
     renderStorePanel();
   }
   await playerMessaging.refreshUnreadBadge();
+
+  try {
+    const profile = await api.getProfile();
+    state.profile = profile;
+    maybeShowProfileCompletion(profile);
+  } catch {
+    // Profile fetch is optional during refresh; completion modal runs on next successful load.
+  }
 }
 
 function isAuthError(error) {
@@ -3173,6 +3334,15 @@ els.profileSaveBtn?.addEventListener("click", () => {
   });
 });
 els.profileGenderInput?.addEventListener("change", syncProfileGenderPronounsUi);
+els.profileCompletionGenderInput?.addEventListener("change", syncProfileCompletionGenderUi);
+els.profileCompletionSaveBtn?.addEventListener("click", () => {
+  saveProfileCompletion().catch((error) => {
+    if (els.profileCompletionStatus) {
+      els.profileCompletionStatus.textContent = error.message;
+      els.profileCompletionStatus.classList.add("error");
+    }
+  });
+});
 els.profileCompanySaveBtn?.addEventListener("click", () => {
   saveCompanyName().catch((error) => {
     els.profileCompanyStatus.textContent = error.message;

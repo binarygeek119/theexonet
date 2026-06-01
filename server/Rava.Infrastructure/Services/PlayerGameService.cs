@@ -1045,6 +1045,9 @@ public class PlayerGameService(
 
         var logoGeneration = await ResolveCompanyLogoGenerationAsync(mine, ct);
         var pronouns = MapPronouns(player);
+        var completion = isOwner
+            ? ProfileCompletionEvaluator.Evaluate(player.ProfileGender, player.ProfilePreferredPronouns)
+            : new ProfileCompletionStatus(false, []);
 
         return new PlayerProfileResponse(
             player.Id,
@@ -1091,7 +1094,9 @@ public class PlayerGameService(
             PronounObject: pronouns.Object,
             PronounPossessive: pronouns.Possessive,
             PronounLabel: pronouns.Label,
-            RequiresPreferredPronouns: ProfileGender.RequiresPreferredPronouns(player.ProfileGender));
+            RequiresPreferredPronouns: ProfileGender.RequiresPreferredPronouns(player.ProfileGender),
+            ProfileCompletionRequired: completion.Required,
+            MissingProfileFields: completion.MissingFields);
     }
 
     private static ProfilePronounSet MapPronouns(PlayerEntity player) =>

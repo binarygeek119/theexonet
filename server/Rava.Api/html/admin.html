@@ -98,7 +98,7 @@
           <div class="admin-panel-head">
             <div>
               <h2>Offworld News</h2>
-              <p class="admin-page-desc">Regenerate today's ONN edition on Exonet. Story regeneration replaces headlines and bodies; image regeneration keeps the current stories. Edit reporter personalities in <code>offworld-news-reporters.csv</code> beside the API (Excel or Google Sheets).</p>
+              <p class="admin-page-desc">Regenerate today's ONN edition on Exonet. Story regeneration replaces headlines and bodies; image regeneration keeps the current stories. Manage reporter personalities, names, and story pool below.</p>
             </div>
           </div>
           <p id="admin-offworld-news-summary" class="admin-page-desc">Loading today's edition…</p>
@@ -108,6 +108,22 @@
             <button id="admin-offworld-news-regen-reporter-portraits-btn" type="button" class="btn ghost">Regenerate reporter portraits</button>
           </div>
           <p id="admin-offworld-news-status" class="status-text"></p>
+
+          <div class="admin-onn-reporters">
+            <h3 class="admin-subheading">Reporter roster</h3>
+            <p id="admin-onn-reporters-path" class="admin-page-desc"></p>
+            <form id="admin-onn-pool-form" class="admin-onn-pool-form">
+              <label>
+                Story pool size
+                <input id="admin-onn-pool-size" type="number" min="0" step="1" value="0">
+              </label>
+              <span class="admin-page-desc">0 = use all reporters in CSV order.</span>
+              <button id="admin-onn-pool-save-btn" type="submit" class="btn ghost">Save pool size</button>
+              <p id="admin-onn-pool-status" class="status-text"></p>
+            </form>
+            <p id="admin-onn-reporters-status" class="status-text"></p>
+            <div id="admin-onn-reporters-list" class="admin-onn-reporters-list"></div>
+          </div>
         </section>
       </section>
 

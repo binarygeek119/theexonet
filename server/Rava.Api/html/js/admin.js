@@ -73,6 +73,13 @@ const els = {
   offworldNewsRegenReporterPortraitsBtn: document.getElementById(
     "admin-offworld-news-regen-reporter-portraits-btn",
   ),
+  onnReportersPath: document.getElementById("admin-onn-reporters-path"),
+  onnPoolForm: document.getElementById("admin-onn-pool-form"),
+  onnPoolSize: document.getElementById("admin-onn-pool-size"),
+  onnPoolSaveBtn: document.getElementById("admin-onn-pool-save-btn"),
+  onnPoolStatus: document.getElementById("admin-onn-pool-status"),
+  onnReportersStatus: document.getElementById("admin-onn-reporters-status"),
+  onnReportersList: document.getElementById("admin-onn-reporters-list"),
   testingModeToggle: document.getElementById("admin-testing-mode-toggle"),
   testingModeHint: document.getElementById("admin-testing-mode-hint"),
   profileTestingBanner: document.getElementById("admin-profile-testing-banner"),
@@ -840,7 +847,7 @@ function renderCreditsTable(players) {
 async function loadDashboard() {
   state.dashboard = await api.adminDashboard();
   renderStats(state.dashboard);
-  await loadOffworldNewsSummary();
+  await Promise.all([loadOffworldNewsSummary(), loadOnnReporters()]);
 }
 
 function countOffworldNewsAiImages(stories) {
@@ -903,6 +910,179 @@ function setOffworldNewsButtonsDisabled(disabled) {
   els.offworldNewsRegenEditionBtn.disabled = disabled;
   els.offworldNewsRegenImagesBtn.disabled = disabled;
   els.offworldNewsRegenReporterPortraitsBtn.disabled = disabled;
+}
+
+function onnReporterField(id, label, value, { textarea = false, hint = "" } = {}) {
+  const control = textarea
+    ? `<textarea id="${id}" rows="3">${escapeHtml(value ?? "")}</textarea>`
+    : `<input id="${id}" type="text" value="${escapeHtml(value ?? "")}">`;
+  const hintHtml = hint ? `<span class="admin-page-desc">${escapeHtml(hint)}</span>` : "";
+  return `<label>${escapeHtml(label)}${control}${hintHtml}</label>`;
+}
+
+function renderOnnReporters(page) {
+  const reporters = page.reporters ?? [];
+  const settings = page.settings ?? {};
+  els.onnReportersPath.textContent = `Roster: ${page.reportersFilePath ?? ""}. Story pool: ${settings.activePoolCount ?? 0} of ${settings.totalReporters ?? reporters.length} reporters.`;
+  els.onnPoolSize.value = settings.reporterPoolSize ?? 0;
+
+  els.onnReportersList.innerHTML = reporters
+    .map((reporter) => {
+      const poolTag = reporter.inStoryPool ? " · in story pool" : "";
+      const specialties = (reporter.specialties ?? []).join("; ");
+      const formId = `admin-onn-form-${reporter.slug}`;
+      return `<details class="admin-onn-reporter">
+        <summary>
+          <strong>${escapeHtml(reporter.displayName)}</strong>
+          <span class="admin-onn-reporter-meta">${escapeHtml(reporter.slug)} · ${escapeHtml(reporter.beat)}${poolTag}</span>
+        </summary>
+        <form id="${formId}" class="admin-onn-reporter-form" data-slug="${escapeHtml(reporter.slug)}">
+          ${onnReporterField(`${formId}-slug`, "Slug (URL)", reporter.slug, { hint: "Change only when renaming; updates portrait folder and friend links." })}
+          ${onnReporterField(`${formId}-name`, "Display name", reporter.displayName)}
+          ${onnReporterField(`${formId}-title`, "Title", reporter.title)}
+          ${onnReporterField(`${formId}-beat`, "Beat", reporter.beat)}
+          ${onnReporterField(`${formId}-bureau`, "Bureau", reporter.bureau)}
+          ${onnReporterField(`${formId}-personality`, "Personality", reporter.personality, { textarea: true })}
+          ${onnReporterField(`${formId}-voice`, "Writing voice", reporter.writingVoice, { textarea: true })}
+          ${onnReporterField(`${formId}-directory-bio`, "Directory bio", reporter.directoryBio, { textarea: true })}
+          ${onnReporterField(`${formId}-onn-bio`, "ONN bio", reporter.onnBio, { textarea: true })}
+          ${onnReporterField(`${formId}-kicker`, "Story kicker", reporter.storyKicker, { textarea: true })}
+          ${onnReporterField(`${formId}-specialties`, "Specialties", specialties, { hint: "Separate with semicolons (;)." })}
+          <div class="button-row">
+            <button type="submit" class="btn primary">Save reporter</button>
+            <button type="button" class="btn ghost admin-onn-regen-portrait-btn">Regenerate portraits</button>
+          </div>
+          <p class="status-text admin-onn-reporter-form-status"></p>
+        </form>
+      </details>`;
+    })
+    .join("");
+
+  els.onnReportersList.querySelectorAll(".admin-onn-reporter-form").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      saveOnnReporter(form).catch((error) =>
+        setStatus(form.querySelector(".admin-onn-reporter-form-status"), error.message, true),
+      );
+    });
+  });
+
+  els.onnReportersList.querySelectorAll(".admin-onn-regen-portrait-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      const form = button.closest(".admin-onn-reporter-form");
+      regenerateOnnReporterPortraits(form).catch((error) =>
+        setStatus(form.querySelector(".admin-onn-reporter-form-status"), error.message, true),
+      );
+    });
+  });
+}
+
+function readOnnReporterForm(form) {
+  const prefix = form.id;
+  const slugField = document.getElementById(`${prefix}-slug`);
+  const newSlug = slugField?.value.trim() ?? "";
+  const originalSlug = form.dataset.slug ?? "";
+  return {
+    newSlug: newSlug !== originalSlug ? newSlug : null,
+    displayName: document.getElementById(`${prefix}-name`)?.value.trim() ?? "",
+    title: document.getElementById(`${prefix}-title`)?.value.trim() ?? "",
+    beat: document.getElementById(`${prefix}-beat`)?.value.trim() ?? "",
+    bureau: document.getElementById(`${prefix}-bureau`)?.value.trim() ?? "",
+    personality: document.getElementById(`${prefix}-personality`)?.value.trim() ?? "",
+    writingVoice: document.getElementById(`${prefix}-voice`)?.value.trim() ?? "",
+    directoryBio: document.getElementById(`${prefix}-directory-bio`)?.value.trim() ?? "",
+    onnBio: document.getElementById(`${prefix}-onn-bio`)?.value.trim() ?? "",
+    storyKicker: document.getElementById(`${prefix}-kicker`)?.value.trim() ?? "",
+    specialties: document.getElementById(`${prefix}-specialties`)?.value.trim() ?? "",
+  };
+}
+
+async function loadOnnReporters() {
+  setStatus(els.onnReportersStatus, "Loading reporters…");
+  try {
+    const page = await api.adminGetOffworldNewsReporters();
+    state.onnReporters = page;
+    renderOnnReporters(page);
+    setStatus(els.onnReportersStatus, `${page.reporters?.length ?? 0} reporters loaded.`);
+  } catch (error) {
+    els.onnReportersList.innerHTML = "";
+    setStatus(els.onnReportersStatus, error.message, true);
+  }
+}
+
+async function saveOnnReporter(form) {
+  const statusEl = form.querySelector(".admin-onn-reporter-form-status");
+  const slug = form.dataset.slug ?? "";
+  const body = readOnnReporterForm(form);
+  setStatus(statusEl, "Saving…");
+  form.querySelectorAll("button").forEach((button) => {
+    button.disabled = true;
+  });
+  try {
+    await api.adminUpdateOffworldNewsReporter(slug, body);
+    await loadOnnReporters();
+    setStatus(statusEl, "Reporter saved.");
+  } catch (error) {
+    setStatus(statusEl, error.message, true);
+  } finally {
+    form.querySelectorAll("button").forEach((button) => {
+      button.disabled = false;
+    });
+  }
+}
+
+async function regenerateOnnReporterPortraits(form) {
+  const statusEl = form.querySelector(".admin-onn-reporter-form-status");
+  const slug = form.dataset.slug ?? "";
+  const name = document.getElementById(`${form.id}-name`)?.value.trim() || slug;
+  if (!window.confirm(`Regenerate AI portrait and banner for ${name}? This uses OffworldNews.ApiKey.`)) {
+    return;
+  }
+
+  setStatus(statusEl, "Regenerating portraits…");
+  form.querySelectorAll("button").forEach((button) => {
+    button.disabled = true;
+  });
+  try {
+    const result = await api.adminRegenerateOffworldNewsReporterPortraits(slug);
+    setStatus(
+      statusEl,
+      result.imageGenerationError
+        ? `${result.message} ${result.imageGenerationError}`
+        : `${result.message} (${result.imagesSaved}/${result.imageAttempts} images).`,
+      Boolean(result.imageGenerationError),
+    );
+  } catch (error) {
+    setStatus(statusEl, error.message, true);
+  } finally {
+    form.querySelectorAll("button").forEach((button) => {
+      button.disabled = false;
+    });
+  }
+}
+
+async function saveOnnPoolSize(event) {
+  event.preventDefault();
+  const size = Number.parseInt(els.onnPoolSize.value, 10);
+  if (!Number.isFinite(size) || size < 0) {
+    setStatus(els.onnPoolStatus, "Enter a non-negative pool size.", true);
+    return;
+  }
+
+  setStatus(els.onnPoolStatus, "Saving…");
+  els.onnPoolSaveBtn.disabled = true;
+  try {
+    const settings = await api.adminUpdateOffworldNewsSettings(size);
+    await loadOnnReporters();
+    setStatus(
+      els.onnPoolStatus,
+      `Story pool set to ${settings.reporterPoolSize === 0 ? "all reporters" : settings.reporterPoolSize} (${settings.activePoolCount} active).`,
+    );
+  } catch (error) {
+    setStatus(els.onnPoolStatus, error.message, true);
+  } finally {
+    els.onnPoolSaveBtn.disabled = false;
+  }
 }
 
 async function regenerateOffworldNewsReporterPortraits() {
@@ -1660,6 +1840,10 @@ els.offworldNewsRegenReporterPortraitsBtn.addEventListener("click", () => {
   regenerateOffworldNewsReporterPortraits().catch((error) =>
     setStatus(els.offworldNewsStatus, error.message, true),
   );
+});
+
+els.onnPoolForm?.addEventListener("submit", (event) => {
+  saveOnnPoolSize(event).catch((error) => setStatus(els.onnPoolStatus, error.message, true));
 });
 
 els.messageLogSearchBtn.addEventListener("click", () => {

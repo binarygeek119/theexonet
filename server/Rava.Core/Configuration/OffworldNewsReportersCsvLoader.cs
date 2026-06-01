@@ -67,6 +67,44 @@ public static class OffworldNewsReportersCsvLoader
         return reporters;
     }
 
+    public static void SaveToFile(string path, IReadOnlyList<OffworldNewsReporterProfile> reporters)
+    {
+        var lines = new List<string>
+        {
+            "Slug,DisplayName,Title,Beat,Bureau,Personality,WritingVoice,DirectoryBio,OnnBio,StoryKicker,Specialties",
+            "# ONN reporter personalities. Edit in Excel or Google Sheets. Specialties: separate with semicolons (;).",
+        };
+
+        foreach (var reporter in reporters)
+        {
+            lines.Add(string.Join(
+                ',',
+                EscapeCsvField(reporter.Slug),
+                EscapeCsvField(reporter.DisplayName),
+                EscapeCsvField(reporter.Title),
+                EscapeCsvField(reporter.Beat),
+                EscapeCsvField(reporter.Bureau),
+                EscapeCsvField(reporter.Personality),
+                EscapeCsvField(reporter.WritingVoice),
+                EscapeCsvField(reporter.DirectoryBio),
+                EscapeCsvField(reporter.OnnBio),
+                EscapeCsvField(reporter.StoryKicker),
+                EscapeCsvField(string.Join(';', reporter.Specialties))));
+        }
+
+        File.WriteAllText(path, string.Join(Environment.NewLine, lines) + Environment.NewLine);
+    }
+
+    private static string EscapeCsvField(string value)
+    {
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r'))
+        {
+            return $"\"{value.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
+        }
+
+        return value;
+    }
+
     private static bool IsHeaderRow(IReadOnlyList<string> columns) =>
         columns[0].Equals("Slug", StringComparison.OrdinalIgnoreCase);
 

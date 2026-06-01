@@ -23,6 +23,29 @@ public class OffworldNewsReporterCatalogTests
     }
 
     [Fact]
+    public void Resolve_matches_slug_display_name_and_handle()
+    {
+        var bySlug = OffworldNewsReporterCatalog.Resolve("mira-solano");
+        Assert.NotNull(bySlug);
+        Assert.Equal("mira-solano", bySlug!.Slug);
+
+        var byName = OffworldNewsReporterCatalog.Resolve("Mira Solano");
+        Assert.NotNull(byName);
+        Assert.Equal("mira-solano", byName!.Slug);
+
+        var byHandle = OffworldNewsReporterCatalog.Resolve("mira.solano");
+        Assert.NotNull(byHandle);
+        Assert.Equal("mira-solano", byHandle!.Slug);
+    }
+
+    [Fact]
+    public void SlugifyDisplayName_matches_exonet_byline_rules()
+    {
+        Assert.Equal("mira-solano", OffworldNewsReporterCatalog.SlugifyDisplayName("Mira Solano"));
+        Assert.Equal("jonah-kest", OffworldNewsReporterCatalog.SlugifyDisplayName("Jonah Kest"));
+    }
+
+    [Fact]
     public void Search_matches_handle_and_name()
     {
         var results = OffworldNewsReporterCatalog.Search("mira.solano", 5);
@@ -37,8 +60,8 @@ public class OffworldNewsReporterCatalogTests
     public void ToDto_includes_directory_and_onn_paths()
     {
         var dto = OffworldNewsReporterCatalog.ToDto(OffworldNewsReporterCatalog.All[0]);
-        Assert.Equal("reporters/mira-solano", dto.DirectoryProfilePath);
-        Assert.Equal("sites/offworld-news/reporters/mira-solano", dto.OnnProfilePath);
+        Assert.Equal("sites/offworld-news/reporters/mira-solano", dto.DirectoryProfilePath);
+        Assert.Equal(dto.DirectoryProfilePath, dto.OnnProfilePath);
         Assert.False(string.IsNullOrWhiteSpace(dto.DirectoryTeaser));
         Assert.False(string.IsNullOrWhiteSpace(dto.Personality));
         Assert.False(string.IsNullOrWhiteSpace(dto.DirectoryBio));
@@ -56,5 +79,26 @@ public class OffworldNewsReporterCatalogTests
         Assert.Contains("Story 3:", block);
         Assert.Contains(reporters[0].DisplayName, block);
         Assert.Contains("voice:", block);
+    }
+
+    [Fact]
+    public void PickForStory_uses_story_pool_when_configured()
+    {
+        OffworldNewsReporterCatalog.ConfigureStoryPoolSize(3);
+        try
+        {
+            var poolSlugs = OffworldNewsReporterCatalog.StoryPool.Select(r => r.Slug).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            Assert.Equal(3, poolSlugs.Count);
+
+            for (var index = 0; index < 20; index++)
+            {
+                var picked = OffworldNewsReporterCatalog.PickForStory(new DateOnly(2026, 6, 1), index);
+                Assert.Contains(picked.Slug, poolSlugs);
+            }
+        }
+        finally
+        {
+            OffworldNewsReporterCatalog.ConfigureStoryPoolSize(0);
+        }
     }
 }

@@ -31,6 +31,40 @@ public static class OffworldNewsReporterCatalog
         new(StringComparer.OrdinalIgnoreCase);
     private static Dictionary<string, OffworldNewsReporterProfile> _byName =
         new(StringComparer.OrdinalIgnoreCase);
+    private static int _storyPoolSize;
+
+    public static void ConfigureStoryPoolSize(int reporterPoolSize)
+    {
+        lock (Gate)
+        {
+            _storyPoolSize = Math.Max(0, reporterPoolSize);
+        }
+    }
+
+    public static int StoryPoolSize
+    {
+        get
+        {
+            lock (Gate)
+            {
+                return _storyPoolSize;
+            }
+        }
+    }
+
+    public static IReadOnlyList<OffworldNewsReporterProfile> StoryPool
+    {
+        get
+        {
+            var roster = All;
+            if (_storyPoolSize <= 0 || _storyPoolSize >= roster.Count)
+            {
+                return roster;
+            }
+
+            return roster.Take(_storyPoolSize).ToList();
+        }
+    }
 
     public static void Configure(string contentRootPath, string reportersFile = "offworld-news-reporters.csv")
     {
@@ -71,9 +105,63 @@ public static class OffworldNewsReporterCatalog
         return displayName is not null && _byName.TryGetValue(displayName.Trim(), out var reporter) ? reporter : null;
     }
 
+    /// <summary>Match roster slug, display name, handle (mira.solano), or slugified name.</summary>
+    public static OffworldNewsReporterProfile? Resolve(string? slugOrNameOrHandle)
+    {
+        if (string.IsNullOrWhiteSpace(slugOrNameOrHandle))
+        {
+            return null;
+        }
+
+        var key = slugOrNameOrHandle.Trim();
+        var bySlug = TryGetBySlug(key);
+        if (bySlug is not null)
+        {
+            return bySlug;
+        }
+
+        var byName = TryGetByDisplayName(key);
+        if (byName is not null)
+        {
+            return byName;
+        }
+
+        var handleAsSlug = key.Replace('.', '-');
+        bySlug = TryGetBySlug(handleAsSlug);
+        if (bySlug is not null)
+        {
+            return bySlug;
+        }
+
+        return TryGetBySlug(SlugifyDisplayName(key));
+    }
+
+    public static string SlugifyDisplayName(string displayName)
+    {
+        var slug = new StringBuilder();
+        var pendingDash = false;
+        foreach (var ch in displayName.Trim().ToLowerInvariant())
+        {
+            if (char.IsAsciiLetterOrDigit(ch))
+            {
+                slug.Append(ch);
+                pendingDash = false;
+                continue;
+            }
+
+            if (!pendingDash && slug.Length > 0)
+            {
+                slug.Append('-');
+                pendingDash = true;
+            }
+        }
+
+        return slug.ToString().Trim('-');
+    }
+
     public static OffworldNewsReporterProfile PickForStory(DateOnly editionDate, int storyIndex)
     {
-        var roster = All;
+        var roster = StoryPool;
         if (roster.Count == 0)
         {
             throw new InvalidOperationException("Offworld News reporter roster is empty.");
@@ -137,7 +225,7 @@ public static class OffworldNewsReporterCatalog
     public static string HandleFromSlug(string slug) =>
         slug.Replace("-", ".", StringComparison.Ordinal);
 
-    public static string DirectoryProfilePath(string slug) => $"reporters/{slug}";
+    public static string DirectoryProfilePath(string slug) => OnnProfilePath(slug);
 
     public static string OnnProfilePath(string slug) => $"sites/offworld-news/reporters/{slug}";
 
@@ -241,11 +329,13 @@ public static class OffworldNewsReporterCatalog
 
 public static class OffworldNewsReporterPaths
 {
+    public const string PublicReportersPath = "/exonet/offworld-news/reporters";
+
     public static string AvatarUrl(string slug) =>
-        $"/exonet/offworld-news/reporters/{slug}/avatar.jpg";
+        $"{PublicReportersPath}/{slug}/avatar.jpg";
 
     public static string BackgroundUrl(string slug) =>
-        $"/exonet/offworld-news/reporters/{slug}/background.jpg";
+        $"{PublicReportersPath}/{slug}/background.jpg";
 
     public static string ReporterFolder(string reportersRoot, string slug) =>
         Path.Combine(reportersRoot, slug);

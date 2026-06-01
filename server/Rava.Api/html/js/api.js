@@ -567,6 +567,34 @@ export class RavaApi {
     });
   }
 
+  adminGetOffworldNewsReporters() {
+    return this.request("/api/admin/offworld-news/reporters");
+  }
+
+  adminUpdateOffworldNewsReporter(slug, body) {
+    return this.request(`/api/admin/offworld-news/reporters/${encodeURIComponent(slug)}`, {
+      method: "PUT",
+      body,
+    });
+  }
+
+  adminRegenerateOffworldNewsReporterPortraits(slug) {
+    return this.request(
+      `/api/admin/offworld-news/reporters/${encodeURIComponent(slug)}/regenerate-portraits`,
+      {
+        method: "POST",
+        body: {},
+      },
+    );
+  }
+
+  adminUpdateOffworldNewsSettings(reporterPoolSize) {
+    return this.request("/api/admin/offworld-news/settings", {
+      method: "PUT",
+      body: { reporterPoolSize },
+    });
+  }
+
   moderatorAccess() {
     return this.request("/api/moderator/access");
   }

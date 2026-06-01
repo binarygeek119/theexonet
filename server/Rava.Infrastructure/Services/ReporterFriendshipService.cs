@@ -94,4 +94,24 @@ public class ReporterFriendshipService(AppDbContext db)
 
         return link is null ? ("none", null) : ("accepted", link.Id);
     }
+
+    public async Task<int> MigrateReporterSlugAsync(string oldSlug, string newSlug, CancellationToken ct)
+    {
+        var links = await db.ReporterFriendships
+            .Where(f => f.ReporterSlug == oldSlug)
+            .ToListAsync(ct);
+
+        if (links.Count == 0)
+        {
+            return 0;
+        }
+
+        foreach (var link in links)
+        {
+            link.ReporterSlug = newSlug;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return links.Count;
+    }
 }

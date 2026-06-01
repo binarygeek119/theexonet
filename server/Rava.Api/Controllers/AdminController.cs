@@ -7,6 +7,7 @@ using Rava.Core.Configuration;
 using Rava.Core.Constants;
 using Rava.Core.Dtos;
 using Rava.Core.Interfaces;
+using Rava.Core.Services;
 using Rava.Infrastructure.Services;
 
 namespace Rava.Api.Controllers;
@@ -22,6 +23,8 @@ public class AdminController(
     GameCreditsConfigService gameCreditsConfigService,
     SpecialEventService specialEventService,
     OffworldNewsService offworldNewsService,
+    OffworldNewsReporterRosterAdminService offworldNewsReporterRoster,
+    OffworldNewsAdminSettingsStore offworldNewsAdminSettings,
     IEmailService emailService,
     IOptions<EmailOptions> emailOptions,
     IOptions<AdminOptions> adminOptions,
@@ -78,7 +81,7 @@ public class AdminController(
     public async Task<ActionResult<AdminOffworldNewsReporterPortraitsResponse>> RegenerateOffworldNewsReporterPortraits(
         CancellationToken ct)
     {
-        var (summary, error) = await offworldNewsService.RegenerateReporterPortraitsAsync(ct);
+        var (summary, error) = await offworldNewsService.RegenerateReporterPortraitsAsync(ct: ct);
         if (error is not null)
         {
             return BadRequest(new { message = error });
@@ -90,6 +93,64 @@ public class AdminController(
             summary.Attempted,
             summary.Succeeded,
             summary.Error));
+    }
+
+    [HttpGet("offworld-news/reporters")]
+    public ActionResult<AdminOffworldNewsReportersPageDto> GetOffworldNewsReporters() =>
+        Ok(offworldNewsReporterRoster.GetPage());
+
+    [HttpPut("offworld-news/reporters/{slug}")]
+    public async Task<ActionResult<AdminOffworldNewsReporterRowDto>> UpdateOffworldNewsReporter(
+        string slug,
+        AdminUpdateOffworldNewsReporterRequest request,
+        CancellationToken ct)
+    {
+        var (reporter, error) = await offworldNewsReporterRoster.UpdateReporterAsync(slug, request, ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(reporter);
+    }
+
+    [HttpPost("offworld-news/reporters/{slug}/regenerate-portraits")]
+    public async Task<ActionResult<AdminOffworldNewsReporterPortraitsResponse>> RegenerateOffworldNewsReporterPortraits(
+        string slug,
+        CancellationToken ct)
+    {
+        var (summary, error) = await offworldNewsService.RegenerateReporterPortraitsAsync([slug], ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(new AdminOffworldNewsReporterPortraitsResponse(
+            summary!.Describe(),
+            summary.ReporterCount,
+            summary.Attempted,
+            summary.Succeeded,
+            summary.Error));
+    }
+
+    [HttpGet("offworld-news/settings")]
+    public ActionResult<AdminOffworldNewsSettingsDto> GetOffworldNewsSettings() =>
+        Ok(new AdminOffworldNewsSettingsDto(
+            offworldNewsAdminSettings.ReporterPoolSize,
+            OffworldNewsReporterCatalog.All.Count,
+            offworldNewsAdminSettings.ActivePoolCount()));
+
+    [HttpPut("offworld-news/settings")]
+    public ActionResult<AdminOffworldNewsSettingsDto> UpdateOffworldNewsSettings(
+        AdminUpdateOffworldNewsSettingsRequest request)
+    {
+        var (settings, error) = offworldNewsReporterRoster.SaveSettings(request.ReporterPoolSize);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(settings);
     }
 
     [HttpGet("players")]

@@ -41,7 +41,7 @@ public sealed class OffworldNewsService(
         var cached = TryLoadEdition(date);
         if (cached is not null)
         {
-            return EnsureStoryImages(cached);
+            return EnsureStoryImages(EnrichEditionAuthors(cached));
         }
 
         await EnsureEditionAsync(date, forceRegenerate: false, ct);
@@ -49,11 +49,12 @@ public sealed class OffworldNewsService(
         cached = TryLoadEdition(date);
         if (cached is not null)
         {
-            return EnsureStoryImages(cached);
+            return EnsureStoryImages(EnrichEditionAuthors(cached));
         }
 
         var companyContext = await LoadCompanyContextAsync(ct);
-        return OffworldNewsTemplateGenerator.Generate(date, _options.StoriesPerDay, companyContext);
+        return EnrichEditionAuthors(
+            OffworldNewsTemplateGenerator.Generate(date, _options.StoriesPerDay, companyContext));
     }
 
     public OffworldNewsArchivesDto ListArchives()
@@ -109,7 +110,7 @@ public sealed class OffworldNewsService(
 
     public OffworldNewsReporterDetailDto? GetReporterDetail(string slug, int storyLimit = 15)
     {
-        var reporter = OffworldNewsReporterCatalog.TryGetBySlug(slug);
+        var reporter = OffworldNewsReporterCatalog.Resolve(slug);
         if (reporter is null)
         {
             return null;
@@ -120,6 +121,7 @@ public sealed class OffworldNewsService(
     }
 
     public async Task<(OffworldNewsReporterPortraitGenerationSummary? Summary, string? Error)> RegenerateReporterPortraitsAsync(
+        IReadOnlyList<string>? slugs = null,
         CancellationToken ct = default)
     {
         if (!_options.Enabled)
@@ -132,13 +134,18 @@ public sealed class OffworldNewsService(
             return (null, "OffworldNews.ApiKey is not configured.");
         }
 
+        if (slugs is { Count: > 0 } && slugs.All(slug => OffworldNewsReporterCatalog.TryGetBySlug(slug) is null))
+        {
+            return (null, "Reporter not found.");
+        }
+
         var generator = new OffworldNewsReporterPortraitGenerator(
             _options,
             httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
             hostingPaths.OffworldNewsReportersAssetsRoot,
             logger);
 
-        var summary = await generator.GenerateAllAsync(ct: ct);
+        var summary = await generator.GenerateAllAsync(slugs, ct);
         return summary.Succeeded == 0
             ? (summary, summary.Error ?? "No reporter portraits were generated.")
             : (summary, null);
@@ -292,6 +299,28 @@ public sealed class OffworldNewsService(
         }
     }
 
+    private static OffworldNewsEditionDto EnrichEditionAuthors(OffworldNewsEditionDto edition)
+    {
+        var stories = edition.Stories.Select(EnrichStoryAuthor).ToList();
+        return edition with { Stories = stories };
+    }
+
+    private static OffworldNewsStoryDto EnrichStoryAuthor(OffworldNewsStoryDto story)
+    {
+        var reporter = OffworldNewsReporterCatalog.Resolve(story.AuthorSlug)
+            ?? OffworldNewsReporterCatalog.Resolve(story.Author);
+        if (reporter is null)
+        {
+            return story;
+        }
+
+        return story with
+        {
+            Author = reporter.DisplayName,
+            AuthorSlug = reporter.Slug,
+        };
+    }
+
     private OffworldNewsEditionDto EnsureStoryImages(OffworldNewsEditionDto edition)
     {
         var stories = edition.Stories
@@ -380,7 +409,7 @@ public sealed class OffworldNewsService(
             edition = await generator.GenerateAsync(date, GetCacheRoot(), companyContext, ct);
         }
 
-        edition = EnsureStoryImages(edition);
+        edition = EnrichEditionAuthors(EnsureStoryImages(edition));
         TrySaveEdition(edition);
         return edition;
     }
@@ -531,7 +560,7 @@ public sealed class OffworldNewsService(
                 httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
                 logger);
             var (edition, imageSummary) = await generator.RegenerateImagesAsync(existing, GetCacheRoot(), ct);
-            edition = EnsureStoryImages(edition);
+            edition = EnrichEditionAuthors(EnsureStoryImages(edition));
             TrySaveEdition(edition);
 
             var illustrated = CountIllustratedStories(edition);

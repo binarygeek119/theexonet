@@ -121,6 +121,8 @@ builder.Services.AddHttpClient(OpenAiOffworldNewsGenerator.HttpClientName, clien
     client.Timeout = TimeSpan.FromMinutes(3);
 });
 builder.Services.AddSingleton<OffworldNewsService>();
+builder.Services.AddSingleton<OffworldNewsAdminSettingsStore>();
+builder.Services.AddScoped<OffworldNewsReporterRosterAdminService>();
 builder.Services.AddHostedService<OffworldNewsSchedulerService>();
 builder.Services.AddSingleton<IProfileAvatarStorage>(sp =>
     new LocalProfileAvatarStorage(new ProfileAvatarStorageOptions
@@ -208,6 +210,8 @@ catch (Exception ex)
         ex);
     return;
 }
+
+app.Services.GetRequiredService<OffworldNewsAdminSettingsStore>().Load();
 
 app.Logger.LogInformation(
     "Content root: {ContentRoot}. Web root: {WebRoot}. Data root: {DataRoot}. Offworld News cache: {OffworldNewsCache}. Profile uploads: {AvatarPath}. Profile backgrounds: {BackgroundPath}",
@@ -356,6 +360,14 @@ app.UseCors();
 
 var hostingOptions = app.Configuration.GetSection(HostingOptions.SectionName).Get<HostingOptions>() ?? new HostingOptions();
 var serveGameUi = hostingOptions.ServeGameUi ?? !app.Environment.IsProduction();
+var resolvedHostingPaths = app.Services.GetRequiredService<RavaHostingPaths>();
+var reportersAssetsRoot = resolvedHostingPaths.OffworldNewsReportersAssetsRoot;
+Directory.CreateDirectory(reportersAssetsRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(reportersAssetsRoot),
+    RequestPath = OffworldNewsReporterPaths.PublicReportersPath,
+});
 
 if (serveGameUi)
 {

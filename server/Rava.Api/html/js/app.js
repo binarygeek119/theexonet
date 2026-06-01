@@ -9,7 +9,7 @@ import {
 } from "./currency.js";
 import { initPlayerMessaging } from "./player-messages.js";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
-import { initExonet } from "./exonet.js?v=20260601-reporter-social";
+import { initExonet } from "./exonet.js?v=20260601-onn-reporter-directory";
 
 const api = new RavaApi(API_BASE_URL);
 

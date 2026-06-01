@@ -31,6 +31,9 @@ required=(
   "${PUBLISH_DIR}/market-items.csv"
   "${PUBLISH_DIR}/trade-items.csv"
   "${PUBLISH_DIR}/hate-speech-terms.csv"
+  "${PUBLISH_DIR}/bad-language-terms.csv"
+  "${PUBLISH_DIR}/political-terms.csv"
+  "${PUBLISH_DIR}/sexual-terms.csv"
 )
 missing=0
 for file in "${required[@]}"; do
@@ -84,6 +87,28 @@ else
 fi
 echo
 
+echo "--- Offworld News ---"
+news_cache="${PUBLISH_DIR}/html/exonet/offworld-news"
+if [ -d "${news_cache}/editions" ]; then
+  echo "OK  ${news_cache}/editions"
+else
+  echo "MISSING  ${news_cache}/editions (create and chown to ${SERVICE_USER})"
+  missing=1
+fi
+if [ "$(id -u)" -eq 0 ]; then
+  mkdir -p "${news_cache}/editions" "${news_cache}/images"
+  chown -R "${SERVICE_USER}:${SERVICE_USER}" "${news_cache}" 2>/dev/null || true
+fi
+if command -v curl >/dev/null 2>&1; then
+  if curl -sf --max-time 15 "http://127.0.0.1:5000/api/public/offworld-news" >/dev/null; then
+    echo "Offworld News endpoint: OK (localhost:5000)"
+  else
+    echo "Offworld News endpoint: FAILED — deploy latest Rava.Api.dll or check journalctl for errors"
+    missing=1
+  fi
+fi
+echo
+
 echo "--- Ownership (service user: ${SERVICE_USER}) ---"
 ls -ld "${PUBLISH_DIR}" "${PUBLISH_DIR}/html" 2>/dev/null || true
 echo
@@ -92,16 +117,24 @@ echo "--- Recent service logs ---"
 journalctl -u "${SERVICE}" -n 40 --no-pager || true
 echo
 
-echo "--- Manual startup test (5s, as ${SERVICE_USER}) ---"
+echo "--- Service status ---"
+if systemctl is-active --quiet "${SERVICE}" 2>/dev/null; then
+  echo "${SERVICE} is running (port 5000 may already be in use)."
+else
+  echo "${SERVICE} is not active."
+fi
+echo
+
+echo "--- Manual startup test (5s, as ${SERVICE_USER}, port 15000) ---"
 if [ -f "${PUBLISH_DIR}/Rava.Api.dll" ]; then
   set +e
   timeout 5 sudo -u "${SERVICE_USER}" \
-    env ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_URLS=http://127.0.0.1:5000 \
+    env ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_URLS=http://127.0.0.1:15000 \
     dotnet "${PUBLISH_DIR}/Rava.Api.dll" 2>&1 | head -n 40
   test_status=${PIPESTATUS[0]}
   set -e
   if [ "$test_status" -eq 124 ]; then
-    echo "(Timed out after 5s — API likely started; press Ctrl+C is normal.)"
+    echo "(Timed out after 5s — API likely started on port 15000.)"
   elif [ "$test_status" -ne 0 ]; then
     echo "Manual startup exited with code ${test_status}."
     missing=1
@@ -111,6 +144,10 @@ echo
 
 if [ "$missing" -ne 0 ]; then
   echo "Fix the errors above, then run:"
+  if [ ! -f "${PUBLISH_DIR}/credits.csv" ]; then
+    echo "  sudo bash $(dirname "$0")/sync-publish-data.sh   # from repo checkout"
+    echo "  # or: sudo sync-rava-data   # after install-rava-scripts"
+  fi
   echo "  sudo systemctl reset-failed ${SERVICE}"
   echo "  sudo systemctl restart ${SERVICE}"
   exit 1

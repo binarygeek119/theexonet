@@ -30,6 +30,7 @@ for script in \
   install-systemd-units.sh \
   install-portal-units.sh \
   deploy-html.sh \
+  sync-publish-data.sh \
   install-bin-scripts.sh; do
   if [ ! -f "${SRC_DIR}/${script}" ]; then
     echo "Missing ${SRC_DIR}/${script}" >&2
@@ -49,6 +50,7 @@ declare -A bin_links=(
   [install-portal-units.sh]=install-rava-portals
   [install-bin-scripts.sh]=install-rava-scripts
   [deploy-html.sh]=deploy-rava-html
+  [sync-publish-data.sh]=sync-rava-data
 )
 
 for src in "${!bin_links[@]}"; do

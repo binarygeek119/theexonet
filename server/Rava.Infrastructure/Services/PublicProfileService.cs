@@ -118,6 +118,47 @@ public class PublicProfileService(
         return MapDetail(player, GetActiveMine(player), ComputeCompanyValue(player));
     }
 
+    public async Task<OffworldNewsCompanyContext> GetNewsCompanyContextAsync(CancellationToken ct)
+    {
+        const int poolSize = 5;
+        var players = await db.Players.AsNoTracking()
+            .Include(p => p.Inventory)
+            .Include(p => p.Mines.Where(m => m.Status == MineStatus.Active))
+                .ThenInclude(m => m.Workers)
+            .Include(p => p.Mines.Where(m => m.Status == MineStatus.Active))
+                .ThenInclude(m => m.Zones)
+            .ToListAsync(ct);
+
+        var visiblePlayers = await FilterPubliclyVisibleAsync(players, ct);
+        var ranked = visiblePlayers
+            .Select(player =>
+            {
+                var mine = GetActiveMine(player);
+                return new
+                {
+                    CompanyName = mine?.Name,
+                    CompanyValue = ComputeCompanyValue(player),
+                };
+            })
+            .Where(entry => !string.IsNullOrWhiteSpace(entry.CompanyName))
+            .OrderByDescending(entry => entry.CompanyValue)
+            .ThenBy(entry => entry.CompanyName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var rising = ranked
+            .Take(poolSize)
+            .Select(entry => entry.CompanyName!)
+            .ToList();
+
+        var struggling = ranked
+            .TakeLast(Math.Min(poolSize, ranked.Count))
+            .Select(entry => entry.CompanyName!)
+            .Where(name => !rising.Contains(name, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        return new OffworldNewsCompanyContext(rising, struggling);
+    }
+
     private async Task<List<PlayerEntity>> SearchAutoAsync(string query, int limit, CancellationToken ct)
     {
         var normalizedNumber = ProfileNumberNormalizer.Normalize(query);

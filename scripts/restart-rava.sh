@@ -37,10 +37,14 @@ prepare_publish_dir() {
 
   mkdir -p \
     "${PUBLISH_DIR}/html/images/profile" \
-    "${PUBLISH_DIR}/html/images/profile-backgrounds"
+    "${PUBLISH_DIR}/html/images/profile-backgrounds" \
+    "${PUBLISH_DIR}/html/exonet/offworld-news/editions" \
+    "${PUBLISH_DIR}/html/exonet/offworld-news/images"
 
   if [ "$(id -u)" -eq 0 ]; then
-    chown -R "${SERVICE_USER}:${SERVICE_USER}" "${PUBLISH_DIR}/html/images" 2>/dev/null || true
+    chown -R "${SERVICE_USER}:${SERVICE_USER}" \
+      "${PUBLISH_DIR}/html/images" \
+      "${PUBLISH_DIR}/html/exonet/offworld-news" 2>/dev/null || true
   fi
 }
 
@@ -93,6 +97,9 @@ systemctl is-active --quiet "${DOCS_SERVICE}" && echo "${DOCS_SERVICE}: running"
 
 if command -v curl >/dev/null 2>&1; then
   curl -sf http://127.0.0.1:5000/api/status >/dev/null && echo "API health: OK" || echo "API health: unreachable"
+  curl -sf --max-time 15 http://127.0.0.1:5000/api/public/offworld-news >/dev/null \
+    && echo "Offworld News API: OK" \
+    || echo "Offworld News API: unreachable (deploy latest Rava.Api.dll and restart)"
   curl -sf http://127.0.0.1:7000/admin.html >/dev/null && echo "Admin portal: OK" || echo "Admin portal: unreachable"
   curl -sf http://127.0.0.1:7050/moderator.html >/dev/null && echo "Moderator portal: OK" || echo "Moderator portal: unreachable"
   curl -sf http://127.0.0.1:9000/ >/dev/null && echo "Docs portal: OK" || echo "Docs portal: unreachable"

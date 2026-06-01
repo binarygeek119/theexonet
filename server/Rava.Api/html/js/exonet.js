@@ -258,8 +258,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       } else if (currentSlug === "docs" || currentSlug.startsWith("docs/")) {
         await renderDocs(currentSlug.split("/").slice(1)[0] || "index");
       } else if (currentSlug === "sites/offworld-news" || currentSlug.startsWith("sites/offworld-news/")) {
-        const storyId = currentSlug.split("/").slice(2).join("/") || "";
-        await renderOffworldNews(storyId);
+        await renderOffworldNews(parseOffworldNewsSlug(currentSlug));
       } else if (PLACEHOLDER_SITES[currentSlug]) {
         renderPlaceholder(currentSlug);
       } else {
@@ -647,6 +646,102 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     });
   }
 
+  function formatNewsEditionDate(value) {
+    if (!value) {
+      return "Today";
+    }
+    const date = typeof value === "string" ? new Date(`${value}T12:00:00Z`) : value;
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
+    return date.toLocaleDateString(undefined, {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+  }
+
+  function parseOffworldNewsSlug(slug) {
+    const parts = slug.split("/").slice(2);
+    if (parts.length === 0) {
+      return { view: "today" };
+    }
+    if (parts[0] === "archives") {
+      if (parts.length === 1) {
+        return { view: "archives" };
+      }
+      if (parts.length === 2) {
+        return { view: "edition", date: parts[1] };
+      }
+      return { view: "story", date: parts[1], storyId: parts.slice(2).join("/") };
+    }
+    return { view: "story", storyId: parts.join("/") };
+  }
+
+  function offworldNewsStoryPath(storyId, archiveDate = "") {
+    if (archiveDate) {
+      return `sites/offworld-news/archives/${archiveDate}/${storyId}`;
+    }
+    return `sites/offworld-news/${storyId}`;
+  }
+
+  function renderOffworldNewsMasthead(editionLabel, sourceLabel, storyCount, { showArchivesButton = true } = {}) {
+    return `
+      <div class="exonet-news-masthead">
+        <div class="exonet-news-brand">OFFWORLD NEWS NETWORK</div>
+        <div class="exonet-news-tagline">Independent coverage of the RAVA frontier</div>
+        ${editionLabel ? `<div class="exonet-news-edition">${escapeHtml(editionLabel)}${storyCount != null ? ` · ${storyCount} stories` : ""}${sourceLabel ? ` · ${escapeHtml(sourceLabel)}` : ""}</div>` : ""}
+        ${showArchivesButton ? `<div class="exonet-news-toolbar"><button type="button" class="btn ghost exonet-news-archives-btn" data-news-archives>ONN Archives →</button></div>` : ""}
+      </div>`;
+  }
+
+  function bindOffworldNewsArchivesButton(root) {
+    root.querySelector("[data-news-archives]")?.addEventListener("click", () => navigate("sites/offworld-news/archives"));
+  }
+    if (!value) {
+      return "—";
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
+    return date.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  function newsTeaser(body, maxLength = 220) {
+    const plain = String(body ?? "").replace(/\s+/g, " ").trim();
+    if (plain.length <= maxLength) {
+      return plain;
+    }
+    return `${plain.slice(0, maxLength).trim()}…`;
+  }
+
+  function renderNewsImage(imageUrl, className = "exonet-news-thumb") {
+    if (!imageUrl) {
+      return "";
+    }
+
+    return `
+      <div class="exonet-news-image-wrap">
+        <img class="${className}" src="${escapeHtml(imageUrl)}" alt="">
+      </div>`;
+  }
+
+  function renderNewsCompany(companyName) {
+    if (!companyName) {
+      return "";
+    }
+
+    return `<span class="exonet-news-company">${escapeHtml(companyName)}</span>`;
+  }
+
   function renderNewsParagraphs(body) {
     return String(body ?? "")
       .split(/\n\s*\n/)
@@ -656,57 +751,149 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       .join("");
   }
 
-  function renderOffworldNewsStoryCard(story, featured = false) {
-    const imageHtml = story.imageUrl
-      ? `<img class="exonet-news-thumb${featured ? " featured" : ""}" src="${escapeHtml(story.imageUrl)}" alt="">`
-      : "";
+  function renderOffworldNewsStoryCard(story, featured = false, archiveDate = "") {
+    const imageClass = featured ? "exonet-news-thumb featured" : "exonet-news-thumb";
+    const imageHtml = renderNewsImage(story.imageUrl, imageClass);
+    const teaser = newsTeaser(story.body);
+    const dateAttr = archiveDate ? ` data-news-date="${escapeHtml(archiveDate)}"` : "";
 
     return `
-      <article class="exonet-news-card${featured ? " featured" : ""}">
+      <article class="exonet-news-card${featured ? " featured" : ""}" data-news-story="${escapeHtml(story.id)}"${dateAttr} tabindex="0" role="link">
         ${imageHtml}
         <div class="exonet-news-card-body">
           <div class="exonet-news-meta">
             <span class="exonet-news-category">${escapeHtml(story.category ?? "News")}</span>
+            ${renderNewsCompany(story.companyName)}
             <span>${escapeHtml(story.location ?? "Belt Relay")}</span>
             <span>${formatNewsTimestamp(story.publishedAt)}</span>
           </div>
-          <button type="button" class="exonet-news-headline" data-news-story="${escapeHtml(story.id)}">
-            ${escapeHtml(story.headline)}
-          </button>
+          <h3 class="exonet-news-headline">${escapeHtml(story.headline)}</h3>
           <p class="exonet-news-dek">${escapeHtml(story.dek ?? "")}</p>
+          ${teaser ? `<p class="exonet-news-teaser">${escapeHtml(teaser)}</p>` : ""}
           <p class="exonet-news-byline">By ${escapeHtml(story.author ?? "ONN Wire Desk")}</p>
+          <span class="exonet-news-read-more">Read full story →</span>
         </div>
       </article>`;
   }
 
-  async function renderOffworldNews(storyId) {
-    const edition = await api.getOffworldNews();
+  function bindOffworldNewsStoryLinks(root) {
+    root.querySelectorAll("[data-news-story]").forEach((element) => {
+      const openStory = () => navigate(`sites/offworld-news/${element.dataset.newsStory}`);
+      element.addEventListener("click", openStory);
+      element.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openStory();
+        }
+      });
+    });
+  }
+
+  function bindOffworldNewsStoryLinks(root) {
+    root.querySelectorAll("[data-news-story]").forEach((element) => {
+      const storyId = element.dataset.newsStory;
+      const archiveDate = element.dataset.newsDate || "";
+      const openStory = () => navigate(offworldNewsStoryPath(storyId, archiveDate));
+      element.addEventListener("click", openStory);
+      element.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openStory();
+        }
+      });
+    });
+  }
+
+  function renderOffworldNewsEditionPage(edition, { archiveDate = "", pageSlug, backLabel = "", backSlug = "" } = {}) {
     const stories = edition.stories ?? [];
-    const editionLabel = edition.editionDate ?? "Today";
+    const editionLabel = formatNewsEditionDate(edition.editionDate ?? archiveDate);
     const sourceLabel =
       edition.source === "openai" ? "AI newsroom edition" : "Relay bulletin edition";
+    const featured = stories[0];
+    const rest = stories.slice(1);
 
-    if (storyId) {
-      const story = stories.find((entry) => entry.id === storyId);
+    content.innerHTML = `
+      ${pageHeader("Offworld News Network", pageSlug)}
+      <div class="exonet-news-site">
+        ${renderOffworldNewsMasthead(editionLabel, sourceLabel, stories.length, { showArchivesButton: !archiveDate })}
+        ${backSlug ? `<button type="button" class="exonet-news-back btn ghost" data-news-back>← ${escapeHtml(backLabel)}</button>` : ""}
+        ${featured ? `<section class="exonet-news-featured">${renderOffworldNewsStoryCard(featured, true, archiveDate)}</section>` : ""}
+        <section class="exonet-news-list">
+          ${rest.map((story) => renderOffworldNewsStoryCard(story, false, archiveDate)).join("")}
+        </section>
+        <p class="exonet-news-footer">${archiveDate ? "Archived ONN relay edition" : "New edition daily at UTC midnight · Click any story for the full article"}</p>
+      </div>`;
+
+    content.querySelector("[data-news-back]")?.addEventListener("click", () => navigate(backSlug));
+    bindOffworldNewsArchivesButton(content);
+    bindOffworldNewsStoryLinks(content);
+  }
+
+  async function renderOffworldNewsArchives() {
+    const archives = await api.getOffworldNewsArchives();
+    const editions = archives.editions ?? [];
+
+    content.innerHTML = `
+      ${pageHeader("ONN Archives", "sites/offworld-news/archives")}
+      <div class="exonet-news-site">
+        ${renderOffworldNewsMasthead("Past relay editions", "", null, { showArchivesButton: false })}
+        <button type="button" class="exonet-news-back btn ghost" data-news-back>← Today's edition</button>
+        <section class="exonet-news-archives">
+          ${editions.length === 0
+            ? `<div class="exonet-panel"><p class="exonet-muted">No archived editions yet. Editions are saved daily at UTC midnight.</p></div>`
+            : editions
+                .map(
+                  (entry) => `
+            <button type="button" class="exonet-news-archive-row" data-archive-date="${escapeHtml(entry.editionDate)}">
+              <span class="exonet-news-archive-date">${escapeHtml(formatNewsEditionDate(entry.editionDate))}</span>
+              <span class="exonet-news-archive-meta">${entry.storyCount ?? 0} stories</span>
+              <span class="exonet-news-archive-headline">${escapeHtml(entry.headline ?? "Edition available")}</span>
+              <span class="exonet-news-read-more">Read edition →</span>
+            </button>`,
+                )
+                .join("")}
+        </section>
+      </div>`;
+
+    content.querySelector("[data-news-back]")?.addEventListener("click", () => navigate("sites/offworld-news"));
+    content.querySelectorAll("[data-archive-date]").forEach((button) => {
+      button.addEventListener("click", () => navigate(`sites/offworld-news/archives/${button.dataset.archiveDate}`));
+    });
+  }
+
+  async function renderOffworldNews(route) {
+    if (route.view === "archives") {
+      await renderOffworldNewsArchives();
+      return;
+    }
+
+    const archiveDate = route.view === "edition" || route.view === "story" ? route.date : "";
+    const edition = await api.getOffworldNews(archiveDate || undefined);
+    const stories = edition.stories ?? [];
+
+    if (route.view === "story" && route.storyId) {
+      const story = stories.find((entry) => entry.id === route.storyId);
+      const storySlug = offworldNewsStoryPath(route.storyId, archiveDate);
+      const backSlug = archiveDate ? `sites/offworld-news/archives/${archiveDate}` : "sites/offworld-news";
+      const backLabel = archiveDate ? "Archived edition" : "Today's edition";
+
       if (!story) {
         content.innerHTML = `
-          ${pageHeader("Offworld News Network", "sites/offworld-news")}
-          <div class="exonet-panel"><p class="exonet-muted">Story not found in today's edition.</p></div>`;
+          ${pageHeader("Offworld News Network", storySlug)}
+          <div class="exonet-panel"><p class="exonet-muted">Story not found in this edition.</p></div>`;
         return;
       }
 
       content.innerHTML = `
-        ${pageHeader("Offworld News Network", `sites/offworld-news/${story.id}`)}
+        ${pageHeader("Offworld News Network", storySlug)}
         <div class="exonet-news-site">
-          <div class="exonet-news-masthead">
-            <div class="exonet-news-brand">OFFWORLD NEWS NETWORK</div>
-            <div class="exonet-news-tagline">Independent coverage of the RAVA frontier</div>
-          </div>
-          <button type="button" class="exonet-news-back btn ghost" data-news-home>← Today's edition</button>
+          ${renderOffworldNewsMasthead(formatNewsEditionDate(edition.editionDate ?? archiveDate), "", null, { showArchivesButton: !archiveDate })}
+          <button type="button" class="exonet-news-back btn ghost" data-news-back>← ${escapeHtml(backLabel)}</button>
           <article class="exonet-news-article">
-            ${story.imageUrl ? `<img class="exonet-news-hero" src="${escapeHtml(story.imageUrl)}" alt="">` : ""}
+            ${renderNewsImage(story.imageUrl, "exonet-news-hero")}
             <div class="exonet-news-meta">
               <span class="exonet-news-category">${escapeHtml(story.category ?? "News")}</span>
+              ${renderNewsCompany(story.companyName)}
               <span>${escapeHtml(story.location ?? "Belt Relay")}</span>
               <span>${formatNewsTimestamp(story.publishedAt)}</span>
             </div>
@@ -719,30 +906,23 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
           </article>
         </div>`;
 
-      content.querySelector("[data-news-home]")?.addEventListener("click", () => navigate("sites/offworld-news"));
+      content.querySelector("[data-news-back]")?.addEventListener("click", () => navigate(backSlug));
+      bindOffworldNewsArchivesButton(content);
       return;
     }
 
-    const featured = stories.find((story) => story.imageUrl) ?? stories[0];
-    const rest = stories.filter((story) => story !== featured);
+    if (route.view === "edition" && archiveDate) {
+      renderOffworldNewsEditionPage(edition, {
+        archiveDate,
+        pageSlug: `sites/offworld-news/archives/${archiveDate}`,
+        backLabel: "ONN Archives",
+        backSlug: "sites/offworld-news/archives",
+      });
+      return;
+    }
 
-    content.innerHTML = `
-      ${pageHeader("Offworld News Network", "sites/offworld-news")}
-      <div class="exonet-news-site">
-        <div class="exonet-news-masthead">
-          <div class="exonet-news-brand">OFFWORLD NEWS NETWORK</div>
-          <div class="exonet-news-tagline">Independent coverage of the RAVA frontier</div>
-          <div class="exonet-news-edition">${escapeHtml(editionLabel)} · ${stories.length} stories · ${escapeHtml(sourceLabel)}</div>
-        </div>
-        ${featured ? `<section class="exonet-news-featured">${renderOffworldNewsStoryCard(featured, true)}</section>` : ""}
-        <section class="exonet-news-list">
-          ${rest.map((story) => renderOffworldNewsStoryCard(story)).join("")}
-        </section>
-        <p class="exonet-news-footer">New edition daily at UTC midnight · ${stories.filter((story) => story.imageUrl).length} illustrated story/stories today</p>
-      </div>`;
-
-    content.querySelectorAll("[data-news-story]").forEach((button) => {
-      button.addEventListener("click", () => navigate(`sites/offworld-news/${button.dataset.newsStory}`));
+    renderOffworldNewsEditionPage(edition, {
+      pageSlug: "sites/offworld-news",
     });
   }
 

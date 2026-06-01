@@ -230,6 +230,10 @@ export class RavaApi {
     return this.request(`/api/public/offworld-news${params}`, { auth: false });
   }
 
+  getOffworldNewsArchives() {
+    return this.request("/api/public/offworld-news/archives", { auth: false });
+  }
+
   getTradeItems() {
     return this.request("/api/trade/items", { auth: false });
   }

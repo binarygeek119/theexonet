@@ -15,8 +15,11 @@ public class OffworldNewsTemplateGeneratorTests
         Assert.All(edition.Stories, story =>
         {
             Assert.False(string.IsNullOrWhiteSpace(story.Id));
-            Assert.False(string.IsNullOrWhiteSpace(story.Headline));
-            Assert.False(string.IsNullOrWhiteSpace(story.Body));
+        Assert.False(string.IsNullOrWhiteSpace(story.Headline));
+        Assert.False(string.IsNullOrWhiteSpace(story.Body));
+        Assert.Contains("\n\n", story.Body);
+        Assert.False(string.IsNullOrWhiteSpace(story.CompanyName));
+        Assert.False(string.IsNullOrWhiteSpace(story.ImageUrl));
         });
     }
 

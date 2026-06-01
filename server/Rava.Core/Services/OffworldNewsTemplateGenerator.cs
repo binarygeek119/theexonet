@@ -7,7 +7,16 @@ namespace Rava.Core.Services;
 
 public static partial class OffworldNewsTemplateGenerator
 {
-    private static readonly string[] Categories = ["Markets", "Mining", "Corporate", "Shipping", "Exonet"];
+    private static readonly string[] Categories =
+    [
+        "Markets",
+        "Mining",
+        "Corporate",
+        "Shipping",
+        "Politics",
+        "Exonet",
+    ];
+
     private static readonly string[] Locations =
     [
         "Ceres Relay",
@@ -15,6 +24,9 @@ public static partial class OffworldNewsTemplateGenerator
         "Belt Sector 7",
         "Phobos Anchorage",
         "Titan Freight Hub",
+        "Europa Deep Survey",
+        "Vesta Charter Station",
+        "Callisto Outer Rim",
     ];
 
     private static readonly string[] Authors =
@@ -24,29 +36,61 @@ public static partial class OffworldNewsTemplateGenerator
         "ONN Wire Desk",
         "Relay Correspondent",
         "Frontier Bureau",
+        "Aster Belt Political Desk",
     ];
 
-    public static OffworldNewsEditionDto Generate(DateOnly editionDate, int storyCount)
+    private static readonly string[] FakeCompanyNames =
+    [
+        "VoidCorp Holdings",
+        "Redshift Logistics",
+        "Ceres Consolidated Mining",
+        "Helios Belt Freight",
+        "Titan Ore Syndicate",
+        "Phobos Deep Works",
+        "Luna Trade Collective",
+        "Sagittarius Survey Group",
+        "Orbital Commons Alliance",
+        "Nebula Refinery Partners",
+        "Kuiper Lane Shipping",
+        "Iron Halo Extraction",
+    ];
+
+    public static OffworldNewsEditionDto Generate(
+        DateOnly editionDate,
+        int storyCount,
+        OffworldNewsCompanyContext? companyContext = null)
     {
         storyCount = Math.Clamp(storyCount, 1, 10);
         var random = CreateRandom(editionDate);
         var publishedBase = editionDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc).AddHours(6);
+        var rising = companyContext?.RisingCompanies ?? [];
+        var struggling = companyContext?.StrugglingCompanies ?? [];
 
         var stories = new List<OffworldNewsStoryDto>();
         for (var index = 0; index < storyCount; index++)
         {
-            var template = StoryTemplates[random.Next(StoryTemplates.Length)];
-            var headline = string.Format(template.Headline, Pick(random, HeadlineSubjects));
+            var template = StoryTemplates[index % StoryTemplates.Length];
+            var category = Categories[index % Categories.Length];
+            var companyName = PickCompany(random, rising, struggling, index);
+            var topic = Pick(random, TopicSubjects);
+            var actor = Pick(random, BodyActors);
+            var detail = Pick(random, BodyDetails);
+            var location = Pick(random, Locations);
+            var headline = string.Format(template.Headline, companyName, topic, actor, location);
+            var dek = string.Format(template.Dek, companyName, topic, actor, location);
+            var body = string.Format(template.Body, companyName, actor, detail, location);
+
             stories.Add(new OffworldNewsStoryDto(
                 $"{Slugify(headline)}-{index + 1}",
                 headline,
-                string.Format(template.Dek, Pick(random, DekDetails)),
-                string.Format(template.Body, Pick(random, BodyDetails), Pick(random, BodyDetails)),
-                Categories[index % Categories.Length],
-                Pick(random, Locations),
+                dek,
+                body,
+                category,
+                location,
                 Pick(random, Authors),
                 publishedBase.AddHours(index * 2.5),
-                null));
+                companyName,
+                PlaceholderImageForCategory(category)));
         }
 
         return new OffworldNewsEditionDto(
@@ -55,6 +99,40 @@ public static partial class OffworldNewsTemplateGenerator
             "template",
             stories);
     }
+
+    private static string PickCompany(
+        Random random,
+        IReadOnlyList<string> rising,
+        IReadOnlyList<string> struggling,
+        int index)
+    {
+        if (index % 5 == 0 && rising.Count > 0)
+        {
+            return rising[random.Next(rising.Count)];
+        }
+
+        if (index % 5 == 2 && struggling.Count > 0)
+        {
+            return struggling[random.Next(struggling.Count)];
+        }
+
+        return FakeCompanyNames[random.Next(FakeCompanyNames.Length)];
+    }
+
+    public static string PlaceholderImageForCategory(string category) =>
+        $"/exonet/offworld-news/placeholders/{SlugifyCategory(category)}.svg";
+
+    private static string SlugifyCategory(string category) =>
+        category.ToLowerInvariant() switch
+        {
+            "markets" => "markets",
+            "mining" => "mining",
+            "corporate" => "corporate",
+            "shipping" => "shipping",
+            "politics" => "politics",
+            "exonet" => "exonet",
+            _ => "markets",
+        };
 
     private static Random CreateRandom(DateOnly date)
     {
@@ -76,71 +154,82 @@ public static partial class OffworldNewsTemplateGenerator
 
     private readonly record struct StoryTemplate(string Headline, string Dek, string Body);
 
-    private static readonly string[] HeadlineSubjects =
+    private static readonly string[] TopicSubjects =
     [
         "Ferroxite",
         "Voidium",
         "Stellarite",
         "Salvage Scrap",
-        "Rax liquidity",
-        "drill-bit shortages",
-        "Exonet relay traffic",
-        "company-name listings",
-        "orbital shipping queues",
-        "independent miners",
+        "drill-bit futures",
+        "Exonet relay bandwidth",
+        "outer-belt shipping lanes",
+        "Rax liquidity pools",
+        "emergency buy back volume",
+        "company-name auctions",
     ];
 
-    private static readonly string[] DekDetails =
-    [
-        "independent operators",
-        "refinery schedulers",
-        "the Belt exchanges",
-        "frontier payroll offices",
-        "trade auction desks",
-    ];
-
-    private static readonly string[] BodyDetails =
+    private static readonly string[] BodyActors =
     [
         "Reactive Asteroid Venturing Agency observers",
         "NPC refinery buyers",
         "public Exonet directories",
         "orbital cargo inspectors",
         "Rax clearinghouses",
+        "independent belt surveyors",
+        "Trade Market auction clerks",
+    ];
+
+    private static readonly string[] BodyDetails =
+    [
+        "a delayed ore convoy",
+        "fresh assay rumors from Sector 7",
+        "tighter supply consumption on game-day rollovers",
+        "new charter filings for outer-planet claims",
+        "political pressure from the Orbital Commons",
+        "record drill-bit burn rates",
     ];
 
     private static readonly StoryTemplate[] StoryTemplates =
     [
         new(
-            "{0} futures spike as relay traders chase fresh assay rumors",
-            "Market desks across {0} report unusually tight spreads before the UTC day rollover.",
-            "Offworld News Network monitors say {0} spent the morning refreshing market terminals as {1} confirmed higher-than-expected demand from outer-belt contracts. Several independent mining companies told ONN they are holding ore in cargo until refinery bids stabilize."),
+            "{1} rally lifts {0} after stellar refinery bids",
+            "Live US-linked supply stocks and ore spreads moved before the UTC midnight edition.",
+            "{0} led the morning belt markets after {1} confirmed unusually tight Ferroxite and Voidium spreads on public terminals. Traders on Ceres Relay said {0} crews were holding cargo until NPC buyers posted clearer Rax prices.\n\nAnalysts cautioned that emergency buy back chatter could still cap upside if payroll pressure rises before the next game day. {2} noted that auction fee pools on the Trade Market also climbed overnight, feeding the shared market value figure on status dashboards."),
         new(
-            "Emergency buy back chatter rises after {0} payroll squeeze",
-            "Operators warn that soft-locked crews may lean on 50% refinery buy backs before the next game day.",
-            "Financial relay traffic shows more miners reviewing emergency buy back rates on the Shipping Authority feed. {0} and {1} both noted that Rax balances are being stretched by supply consumption and daily payroll."),
-        new(
-            "Exonet Miner Profiles leaderboard reshuffled by {0} valuations",
-            "Public company value rankings on the interplanetary browser drew heavy traffic overnight.",
-            "The Exonet directory logged a surge in profile lookups after {0} published revised company value estimates that include ore stockpiles at base prices. {1} called the metric a rough proxy, not a formal audit."),
-        new(
-            "Trade Market auction fee pool climbs as {0} listings close hot",
-            "Completed sales continue feeding the public Trade Market value tracker.",
-            "Auction clerks report brisk bidding on supply bundles and branded company names. {0} said a portion of each completed sale still flows into the shared market value figure displayed on status dashboards and Exonet trade pages."),
-        new(
-            "Shipping Authority warns of {0} backlog at outer refineries",
+            "{0} warns of shipping backlog on {1} routes",
             "Cargo manifests must match in-game inventory before dispatch, inspectors repeat.",
-            "Lines at NPC refinery doors lengthened after {0} redirected haulers from a delayed ore convoy. {1} reminded operators that extracted ore must sit in cargo holds before shipping panels can dispatch it."),
+            "Lines at NPC refinery doors lengthened after {0} redirected haulers away from {3}. {1} said several captains missed dispatch windows because ore still sat in mine cargo holds instead of ready manifests.\n\nThe Shipping Authority feed reminded operators that extracted ore must be in cargo before the shipping panel can move it. {2} reported that {0} is negotiating priority slots with {1} brokers while fuel-cell stocks run thin on outer lanes."),
         new(
-            "Company Exchange sees quirky {0} names return from limbo",
-            "Relinquished company names stay reserved for 30 days before re-entering public use.",
-            "Corporate registries on Exonet show renewed interest in recycled mine names as {0} cleared several limbo entries. {1} cautioned buyers to verify listing prices before purchasing a name from the player trade store."),
+            "Interplanetary council debates charter for {3}",
+            "{0} and rival syndicates clash over who may open the next claim window.",
+            "Delegates from the Orbital Commons Alliance opened hearings on whether {3} should host a new public claim lottery. {0} argued that established operators like itself deserve first survey rights, while {1} lobbyists pushed for open access to independent miners.\n\n{2} said the vote could reshape how new planets enter the public Exonet registry. Observers expect a compromise that keeps RAVA starter rules intact while allowing limited outer-rim pilots."),
         new(
-            "VoidCorp placeholder site still offline, {0} memes spread anyway",
-            "Exonet users joke that the corporate portal remains 'under reconstruction in orbit.'",
-            "Even with VoidCorp Holdings still marked coming soon on Exonet, {0} circulated satirical earnings reports across miner chat relays. {1} noted the prank traffic did not affect live RAVA production systems."),
+            "{0} opens new mine face after {1} survey",
+            "Fresh zones and worker assignments are expected to ripple through company value rankings.",
+            "{0} announced a new extraction face after {1} completed a charter survey near {3}. Company registries on Exonet Miner Profiles logged a spike in lookups as investors guessed how ore stockpiles might change at base prices.\n\n{2} called the opening a modest boost for runway days if supplies stay above minimums. Rival {1} operators warned that depletion on older tiles still threatens payroll unless drill-bit orders keep pace."),
         new(
-            "Independent crews celebrate record {0} extraction shift",
-            "Worker morale posts dominate social directories after a clean day advance.",
-            "Mining forums highlighted crews that assigned workers to rich zones and kept supplies above minimums. {0} credited drill-bit and life-support stocks for the efficiency bump, while {1} warned depletion still looms on overworked tiles."),
+            "{0} faces payroll squeeze despite {1} headline",
+            "Soft-locked crews may lean on 50% emergency buy backs before the next game day.",
+            "Financial relay traffic shows {0} reviewing emergency buy back rates on the Shipping Authority feed after {2} flagged rising life-support consumption. {1} spreads offered little relief as NPC refineries held firm on Salvage Scrap bids.\n\nFormer allies in the belt exchange said {0} may list branded company names on the Trade Market if Rax balances do not recover. {2} emphasized that public rankings are rough proxies, not formal audits."),
+        new(
+            "Exonet leaderboard reshuffled as {0} climbs",
+            "Public company value rankings drew heavy traffic overnight on the interplanetary browser.",
+            "The Exonet directory logged a surge in profile lookups after revised company value estimates moved {0} into the top tier. The metric blends Rax, ore at base prices, supplies, and equipment, making it a favorite gossip score rather than a formal filing.\n\n{1} analysts said {0} benefited from disciplined worker assignments and steady zone output. {2} reminded readers that miners in distress still appear on the same board, and today's winners can become tomorrow's cautionary tales."),
+        new(
+            "Trade Market heats up as {0} chases {1} listings",
+            "Completed sales continue feeding the public Trade Market value tracker.",
+            "Auction clerks report brisk bidding on supply bundles and recycled company names tied to {0}. Several listings originated from operators who relinquished mine branding during Rax crunches, then watched names re-enter the market after limbo periods.\n\n{1} said a portion of each completed sale still flows into the shared market value figure displayed on Exonet trade pages. {2} urged buyers to verify listing prices before purchasing a name from the player trade store."),
+        new(
+            "New planet survey filed for {3} outer rim",
+            "{0} sponsors probe as {1} traffic lights up charter offices.",
+            "A joint filing from {0} and {1} survey contractors proposed a staged opening for new claim tiles beyond Belt Sector 7. RAVA agency staff said any production rule changes would ship through normal game updates, not overnight decree.\n\n{2} reported strong Exonet chatter about which ore mixes the region might favor. Politicians in the Orbital Commons demanded transparency on how starter mines and NPC refineries would interact with the new lanes."),
+        new(
+            "{0} comm modules spike on {1} outage rumors",
+            "Exonet relay traffic rerouted through backup nodes for six hours.",
+            "Comm-module supply bids jumped after a partial relay fault forced {0} traffic through backup nodes. {1} sellers on the Trade Market posted premiums while independent miners complained about sluggish profile uploads.\n\n{2} said RAVA production systems stayed online throughout the incident. {0} pledged to restock Comm Modules at Luna Port if auction prices remain elevated through the UTC day boundary."),
+        new(
+            "Corporate registry flags unusual {0} filings",
+            "{1} names and mine transfers draw regulator side-eye on Exonet.",
+            "Corporate monitors flagged a burst of {0} activity around mine transfers and company-name listings. {1} investigators said some filings coincided with emergency buy back spikes, suggesting operators were recycling brands to raise quick Rax.\n\n{2} noted that relinquished names remain reserved for thirty days before re-entering public use. Market desks said {0} remains solvent for now, but interplanetary politics may tighten disclosure rules if the pattern continues."),
     ];
 }

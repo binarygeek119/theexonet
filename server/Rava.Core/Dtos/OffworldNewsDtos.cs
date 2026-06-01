@@ -9,6 +9,7 @@ public record OffworldNewsStoryDto(
     string Location,
     string Author,
     DateTime PublishedAt,
+    string? CompanyName,
     string? ImageUrl);
 
 public record OffworldNewsEditionDto(
@@ -16,3 +17,11 @@ public record OffworldNewsEditionDto(
     DateTime GeneratedAt,
     string Source,
     IReadOnlyList<OffworldNewsStoryDto> Stories);
+
+public record OffworldNewsArchiveEntryDto(
+    DateOnly EditionDate,
+    int StoryCount,
+    string? Headline);
+
+public record OffworldNewsArchivesDto(
+    IReadOnlyList<OffworldNewsArchiveEntryDto> Editions);

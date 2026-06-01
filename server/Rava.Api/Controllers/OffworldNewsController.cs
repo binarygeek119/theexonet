@@ -28,4 +28,11 @@ public class OffworldNewsController(OffworldNewsService offworldNewsService) : C
 
         return Ok(await offworldNewsService.GetEditionAsync(editionDate, ct));
     }
+
+    [AllowAnonymous]
+    [HttpGet("archives")]
+    public ActionResult<OffworldNewsArchivesDto> ListArchives()
+    {
+        return Ok(offworldNewsService.ListArchives());
+    }
 }

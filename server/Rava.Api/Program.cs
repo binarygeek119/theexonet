@@ -93,6 +93,7 @@ builder.Services.AddHttpClient(OpenAiOffworldNewsGenerator.HttpClientName, clien
     client.Timeout = TimeSpan.FromMinutes(3);
 });
 builder.Services.AddSingleton<OffworldNewsService>();
+builder.Services.AddHostedService<OffworldNewsSchedulerService>();
 builder.Services.AddSingleton<IProfileAvatarStorage>(sp =>
     new LocalProfileAvatarStorage(new ProfileAvatarStorageOptions
     {

@@ -560,11 +560,26 @@ export class RavaApi {
     });
   }
 
-  adminRegenerateOffworldNewsReporterPortraits() {
+  adminRegenerateAllOffworldNewsReporterPortraits() {
     return this.request("/api/admin/offworld-news/regenerate-reporter-portraits", {
       method: "POST",
       body: {},
     });
+  }
+
+  adminRegenerateOneOffworldNewsReporterPortraits(slug) {
+    const normalized = String(slug ?? "").trim();
+    if (!normalized || normalized === "undefined") {
+      return Promise.reject(new Error("Reporter slug is missing. Reload the admin page and try again."));
+    }
+
+    return this.request(
+      `/api/admin/offworld-news/reporters/${encodeURIComponent(normalized)}/regenerate-portraits`,
+      {
+        method: "POST",
+        body: {},
+      },
+    );
   }
 
   adminGetOffworldNewsReporters() {
@@ -576,16 +591,6 @@ export class RavaApi {
       method: "PUT",
       body,
     });
-  }
-
-  adminRegenerateOffworldNewsReporterPortraits(slug) {
-    return this.request(
-      `/api/admin/offworld-news/reporters/${encodeURIComponent(slug)}/regenerate-portraits`,
-      {
-        method: "POST",
-        body: {},
-      },
-    );
   }
 
   adminUpdateOffworldNewsSettings(reporterPoolSize) {

@@ -119,7 +119,13 @@ public class AdminController(
         string slug,
         CancellationToken ct)
     {
-        var (summary, error) = await offworldNewsService.RegenerateReporterPortraitsAsync([slug], ct);
+        if (string.IsNullOrWhiteSpace(slug)
+            || slug.Equals("undefined", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { message = "Reporter slug is required." });
+        }
+
+        var (summary, error) = await offworldNewsService.RegenerateReporterPortraitsAsync([slug.Trim()], ct);
         if (error is not null)
         {
             return BadRequest(new { message = error });

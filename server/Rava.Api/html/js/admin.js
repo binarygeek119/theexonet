@@ -1033,7 +1033,8 @@ async function saveOnnReporter(form) {
 
 async function regenerateOnnReporterPortraits(form) {
   const statusEl = form.querySelector(".admin-onn-reporter-form-status");
-  const slug = form.dataset.slug ?? "";
+  const slug =
+    document.getElementById(`${form.id}-slug`)?.value.trim() || form.dataset.slug || "";
   const name = document.getElementById(`${form.id}-name`)?.value.trim() || slug;
   if (!window.confirm(`Regenerate AI portrait and banner for ${name}? This uses OffworldNews.ApiKey.`)) {
     return;
@@ -1044,7 +1045,7 @@ async function regenerateOnnReporterPortraits(form) {
     button.disabled = true;
   });
   try {
-    const result = await api.adminRegenerateOffworldNewsReporterPortraits(slug);
+    const result = await api.adminRegenerateOneOffworldNewsReporterPortraits(slug);
     setStatus(
       statusEl,
       result.imageGenerationError
@@ -1097,7 +1098,7 @@ async function regenerateOffworldNewsReporterPortraits() {
   setStatus(els.offworldNewsStatus, "Regenerating reporter portraits…");
   setOffworldNewsButtonsDisabled(true);
   try {
-    const result = await api.adminRegenerateOffworldNewsReporterPortraits();
+    const result = await api.adminRegenerateAllOffworldNewsReporterPortraits();
     setStatus(
       els.offworldNewsStatus,
       result.imageGenerationError

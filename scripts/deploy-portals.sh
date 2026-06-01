@@ -47,14 +47,16 @@ if [ ! -f "${SERVER_DIR}/Rava.Admin/Rava.Admin.csproj" ]; then
 fi
 
 sync_portal_wwwroot() {
-  bash "${SCRIPT_DIR}/sync-portal-wwwroot.sh" \
-    "${SERVER_DIR}/Rava.Api/html" \
+  bash "${SCRIPT_DIR}/sync-publish-wwwroot.sh" \
+    "${SERVER_DIR}" \
     "${PUBLISH_DIR}/wwwroot"
   chown -R "${SERVICE_USER}:${SERVICE_USER}" "${PUBLISH_DIR}/wwwroot" 2>/dev/null || true
 }
 
 verify_portal_files() {
   for required in \
+    "${PUBLISH_DIR}/wwwroot/index.html" \
+    "${PUBLISH_DIR}/wwwroot/js/status.js" \
     "${PUBLISH_DIR}/wwwroot/admin.html" \
     "${PUBLISH_DIR}/wwwroot/moderator.html" \
     "${PUBLISH_DIR}/wwwroot/js/admin-testing-mode.js" \

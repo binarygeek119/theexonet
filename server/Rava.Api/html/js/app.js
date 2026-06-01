@@ -156,6 +156,8 @@ const els = {
   storeModal: document.getElementById("store-modal"),
   storeMarketInfo: document.getElementById("store-market-info"),
   storeSupplyList: document.getElementById("store-supply-list"),
+  storeCompanyNameList: document.getElementById("store-company-name-list"),
+  storeCompanyNameStatus: document.getElementById("store-company-name-status"),
   shippingModal: document.getElementById("shipping-modal"),
   shippingSummary: document.getElementById("shipping-summary"),
   shippingCargoList: document.getElementById("shipping-cargo-list"),
@@ -193,6 +195,7 @@ const els = {
   profileInterestsView: document.getElementById("profile-interests-view"),
   profileMusicView: document.getElementById("profile-music-view"),
   profileSocialView: document.getElementById("profile-social-view"),
+  profileFriendsList: document.getElementById("profile-friends-list"),
   profileMineName: document.getElementById("profile-mine-name"),
   profileGameDay: document.getElementById("profile-game-day"),
   profileCredits: document.getElementById("profile-credits"),
@@ -200,17 +203,33 @@ const els = {
   profileZones: document.getElementById("profile-zones"),
   profileSidebarNumber: document.getElementById("profile-sidebar-number"),
   profileSidebarMemberSince: document.getElementById("profile-sidebar-member-since"),
+  profileCustomizeBtn: document.getElementById("profile-customize-btn"),
+  profileEditModal: document.getElementById("profile-edit-modal"),
+  profileEditCard: document.getElementById("profile-edit-card"),
+  profileEditBackBtn: document.getElementById("profile-edit-back-btn"),
+  profileEditFlagNotice: document.getElementById("profile-edit-flag-notice"),
+  profileEditFlagComment: document.getElementById("profile-edit-flag-comment"),
+  profileEditAvatar: document.getElementById("profile-edit-avatar"),
+  profileEditAvatarImg: document.getElementById("profile-edit-avatar-img"),
+  profileEditAvatarInitials: document.getElementById("profile-edit-avatar-initials"),
   profileEditNumber: document.getElementById("profile-edit-number"),
   profileAddFriendNumber: document.getElementById("profile-add-friend-number"),
   profileAddFriendSubmitBtn: document.getElementById("profile-add-friend-submit-btn"),
   profileAddFriendStatus: document.getElementById("profile-add-friend-status"),
-  profileEditPanel: document.getElementById("profile-edit-panel"),
   profilePhotoUpload: document.getElementById("profile-photo-upload"),
   profilePhotoInput: document.getElementById("profile-photo-input"),
   profilePhotoChooseBtn: document.getElementById("profile-photo-choose-btn"),
   profilePhotoBtn: document.getElementById("profile-photo-btn"),
   profilePhotoStatus: document.getElementById("profile-photo-status"),
   profileMoodInput: document.getElementById("profile-mood-input"),
+  profileCompanyNameInput: document.getElementById("profile-company-name-input"),
+  profileCompanySaveBtn: document.getElementById("profile-company-save-btn"),
+  profileCompanyRegenerateBtn: document.getElementById("profile-company-regenerate-btn"),
+  profileCompanyStatus: document.getElementById("profile-company-status"),
+  profileCompanyListPrice: document.getElementById("profile-company-list-price"),
+  profileCompanyListBtn: document.getElementById("profile-company-list-btn"),
+  profileCompanyCancelListBtn: document.getElementById("profile-company-cancel-list-btn"),
+  profileCompanyListStatus: document.getElementById("profile-company-list-status"),
   profileAboutInput: document.getElementById("profile-about-input"),
   profileInterestsInput: document.getElementById("profile-interests-input"),
   profileMusicInput: document.getElementById("profile-music-input"),
@@ -531,11 +550,16 @@ function showScreen(screen) {
   }
 }
 
+function hideProfileScreens() {
+  els.profileModal.hidden = true;
+  els.profileEditModal.hidden = true;
+}
+
 function closeModals() {
   els.financeModal.hidden = true;
   els.supplyModal.hidden = true;
   els.dayModal.hidden = true;
-  els.profileModal.hidden = true;
+  hideProfileScreens();
   els.friendsModal.hidden = true;
   els.messagesModal.hidden = true;
   els.shippingModal.hidden = true;
@@ -582,22 +606,281 @@ function setProfileText(el, value, emptyText) {
 }
 
 function applyProfileTheme() {
-  els.profileCard.className = "profile-card theme-classic";
+  const themeClass = "profile-card theme-classic";
+  els.profileCard.className = themeClass;
+  els.profileEditCard.className = themeClass;
+}
+
+function renderAvatarOnElements(profile, imgEl, initialsEl, avatarEl) {
+  const imageUrl = profile.profileImageUrl;
+  if (imageUrl) {
+    imgEl.src = imageUrl;
+    imgEl.hidden = false;
+    avatarEl.classList.add("has-photo");
+  } else {
+    imgEl.removeAttribute("src");
+    imgEl.hidden = true;
+    avatarEl.classList.remove("has-photo");
+  }
+
+  initialsEl.textContent = profileInitials(profile.username);
 }
 
 function renderProfileAvatar(profile) {
-  const imageUrl = profile.profileImageUrl;
-  if (imageUrl) {
-    els.profileAvatarImg.src = imageUrl;
-    els.profileAvatarImg.hidden = false;
-    els.profileAvatar.classList.add("has-photo");
+  renderAvatarOnElements(
+    profile,
+    els.profileAvatarImg,
+    els.profileAvatarInitials,
+    els.profileAvatar,
+  );
+}
+
+function renderProfileEditAvatar(profile) {
+  renderAvatarOnElements(
+    profile,
+    els.profileEditAvatarImg,
+    els.profileEditAvatarInitials,
+    els.profileEditAvatar,
+  );
+}
+
+function populateProfileEditForm(profile) {
+  els.profileEditNumber.textContent = profile.profileNumber || "---";
+  els.profileCompanyNameInput.value = profile.mineName ?? "";
+  els.profileMoodInput.value = profile.mood ?? "";
+  els.profileAboutInput.value = profile.aboutMe ?? "";
+  els.profileInterestsInput.value = profile.interests ?? "";
+  els.profileMusicInput.value = profile.music ?? "";
+  els.profileDiscordInput.value = profile.discord ?? "";
+  els.profileBlueskyInput.value = profile.bluesky ?? "";
+  els.profileTwitterInput.value = profile.twitter ?? "";
+  els.profileYoutubeInput.value = profile.youtube ?? "";
+  els.profileFacebookInput.value = profile.facebook ?? "";
+  els.profileSaveStatus.textContent = "";
+  els.profileSaveStatus.classList.remove("error", "success");
+  els.profileAddFriendStatus.textContent = "";
+  els.profileAddFriendStatus.classList.remove("error", "success");
+  els.profilePhotoStatus.textContent = "";
+  els.profilePhotoStatus.classList.remove("error", "success");
+  els.profilePhotoBtn.disabled = true;
+  els.profilePhotoChooseBtn.textContent = "Choose Photo";
+  if (els.profilePhotoInput) {
+    els.profilePhotoInput.value = "";
+  }
+  renderCompanyNameListingControls(profile);
+}
+
+function renderCompanyNameListingControls(profile) {
+  const listed = Boolean(profile.companyNameListed);
+  els.profileCompanyListBtn.hidden = listed;
+  els.profileCompanyCancelListBtn.hidden = !listed;
+  els.profileCompanyListPrice.disabled = listed;
+  els.profileCompanyRegenerateBtn.disabled = listed;
+  els.profileCompanySaveBtn.disabled = listed;
+  els.profileCompanyNameInput.readOnly = listed;
+
+  if (listed) {
+    els.profileCompanyListPrice.value = String(profile.companyNameListingPrice ?? "");
+    els.profileCompanyListStatus.textContent = `Listed in the Store for ${Number(profile.companyNameListingPrice ?? 0).toLocaleString()} credits.`;
+    els.profileCompanyListStatus.classList.add("success");
   } else {
-    els.profileAvatarImg.removeAttribute("src");
-    els.profileAvatarImg.hidden = true;
-    els.profileAvatar.classList.remove("has-photo");
+    els.profileCompanyListStatus.textContent = "";
+    els.profileCompanyListStatus.classList.remove("error", "success");
   }
 
-  els.profileAvatarInitials.textContent = profileInitials(profile.username);
+  els.profileCompanyStatus.textContent = "";
+  els.profileCompanyStatus.classList.remove("error", "success");
+}
+
+function applyCompanyNameUpdate(result) {
+  if (!state.profile || !result) {
+    return;
+  }
+
+  state.profile = {
+    ...state.profile,
+    mineName: result.companyName,
+    mineId: result.mineId,
+    companyNameListed: result.companyNameListed,
+    companyNameListingId: result.companyNameListingId,
+    companyNameListingPrice: result.companyNameListingPrice,
+  };
+
+  els.profileMineName.textContent = result.companyName;
+  populateProfileEditForm(state.profile);
+  renderProfile(state.profile);
+
+  if (state.mine) {
+    state.mine = { ...state.mine, name: result.companyName };
+    renderHud();
+  }
+}
+
+async function saveCompanyName() {
+  const companyName = els.profileCompanyNameInput.value.trim();
+  if (!companyName) {
+    els.profileCompanyStatus.textContent = "Enter a company name.";
+    els.profileCompanyStatus.classList.add("error");
+    return;
+  }
+
+  els.profileCompanyStatus.textContent = "Saving company name...";
+  els.profileCompanyStatus.classList.remove("error", "success");
+  try {
+    const result = await api.updateCompanyName(companyName);
+    applyCompanyNameUpdate(result);
+    els.profileCompanyStatus.textContent = result.message;
+    els.profileCompanyStatus.classList.add("success");
+  } catch (error) {
+    els.profileCompanyStatus.textContent = error.message;
+    els.profileCompanyStatus.classList.add("error");
+  }
+}
+
+async function regenerateCompanyName() {
+  els.profileCompanyStatus.textContent = "Generating a new name...";
+  els.profileCompanyStatus.classList.remove("error", "success");
+  try {
+    const result = await api.regenerateCompanyName();
+    applyCompanyNameUpdate(result);
+    els.profileCompanyStatus.textContent = result.message;
+    els.profileCompanyStatus.classList.add("success");
+  } catch (error) {
+    els.profileCompanyStatus.textContent = error.message;
+    els.profileCompanyStatus.classList.add("error");
+  }
+}
+
+async function listCompanyNameForSale() {
+  const price = Number(els.profileCompanyListPrice.value);
+  if (!Number.isFinite(price) || price < 1) {
+    els.profileCompanyListStatus.textContent = "Enter a listing price of at least 1 credit.";
+    els.profileCompanyListStatus.classList.add("error");
+    return;
+  }
+
+  els.profileCompanyListStatus.textContent = "Listing company name...";
+  els.profileCompanyListStatus.classList.remove("error", "success");
+  try {
+    const result = await api.listCompanyName(price);
+    applyCompanyNameUpdate(result);
+    els.profileCompanyListStatus.textContent = result.message;
+    els.profileCompanyListStatus.classList.add("success");
+  } catch (error) {
+    els.profileCompanyListStatus.textContent = error.message;
+    els.profileCompanyListStatus.classList.add("error");
+  }
+}
+
+async function cancelCompanyNameListing() {
+  const listingId = state.profile?.companyNameListingId;
+  if (!listingId) {
+    return;
+  }
+
+  els.profileCompanyListStatus.textContent = "Cancelling listing...";
+  els.profileCompanyListStatus.classList.remove("error", "success");
+  try {
+    const result = await api.cancelCompanyNameListing(listingId);
+    applyCompanyNameUpdate(result);
+    els.profileCompanyListStatus.textContent = result.message;
+    els.profileCompanyListStatus.classList.add("success");
+  } catch (error) {
+    els.profileCompanyListStatus.textContent = error.message;
+    els.profileCompanyListStatus.classList.add("error");
+  }
+}
+
+async function purchaseCompanyNameListing(listingId) {
+  els.storeCompanyNameStatus.textContent = "Purchasing company name...";
+  try {
+    const result = await api.purchaseCompanyName(listingId);
+    els.storeCompanyNameStatus.textContent = result.message;
+    await refreshAll();
+    await loadStoreCompanyNames();
+    if (!els.profileModal.hidden || !els.profileEditModal.hidden) {
+      await refreshProfileIfOpen();
+    }
+  } catch (error) {
+    els.storeCompanyNameStatus.textContent = error.message;
+  }
+}
+
+async function loadStoreCompanyNames() {
+  els.storeCompanyNameList.innerHTML = "";
+  try {
+    const response = await api.getCompanyNameListings();
+    const listings = response.listings ?? [];
+    if (listings.length === 0) {
+      els.storeCompanyNameList.innerHTML = "<p class='market-info'>No company names listed right now.</p>";
+      return;
+    }
+
+    for (const listing of listings) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "shop-btn";
+      button.innerHTML = `<strong>${listing.companyName}</strong><span>Seller: ${listing.sellerUsername} · ${Number(listing.price).toLocaleString()} cr</span>`;
+      button.addEventListener("click", () => {
+        purchaseCompanyNameListing(listing.id).catch((error) => {
+          els.storeCompanyNameStatus.textContent = error.message;
+        });
+      });
+      els.storeCompanyNameList.appendChild(button);
+    }
+  } catch (error) {
+    els.storeCompanyNameList.innerHTML = "<p class='market-info'>Unable to load company name listings.</p>";
+    els.storeCompanyNameStatus.textContent = error.message;
+  }
+}
+
+function formatPublicStatus(status) {
+  const text = (status ?? "").trim();
+  return text || "No public status yet.";
+}
+
+function renderProfileFriends(profile) {
+  const friends = profile.friends ?? [];
+  els.profileFriendsList.innerHTML = "";
+  els.profileFriendsList.classList.toggle("empty", friends.length === 0);
+
+  if (friends.length === 0) {
+    els.profileFriendsList.textContent = profile.isOwner
+      ? "No friends yet. Add someone from Customize Profile or the Friends menu."
+      : "No friends to show yet.";
+    return;
+  }
+
+  for (const friend of friends) {
+    const item = document.createElement("article");
+    item.className = "profile-friend-item";
+
+    const head = document.createElement("div");
+    head.className = "profile-friend-head";
+
+    const name = document.createElement("button");
+    name.type = "button";
+    name.className = "profile-friend-name";
+    name.textContent = friend.username;
+    name.addEventListener("click", () => openProfile(friend.username));
+
+    const number = document.createElement("span");
+    number.className = "profile-friend-number";
+    number.textContent = friend.profileNumber || "---";
+
+    head.append(name, number);
+
+    const status = document.createElement("p");
+    status.className = "profile-friend-status";
+    status.textContent = formatPublicStatus(friend.publicStatus);
+
+    const mood = document.createElement("p");
+    mood.className = "profile-friend-mood";
+    mood.textContent = friend.mood || "Ready to mine.";
+
+    item.append(head, status, mood);
+    els.profileFriendsList.appendChild(item);
+  }
 }
 
 function renderProfile(profile) {
@@ -623,42 +906,26 @@ function renderProfile(profile) {
   els.profileZones.textContent = String(profile.zoneCount ?? 0);
 
   const isOwner = Boolean(profile.isOwner);
-  els.profileEditPanel.hidden = !isOwner;
-  els.profilePhotoUpload.hidden = !isOwner;
+  els.profileCustomizeBtn.hidden = !isOwner;
   if (isOwner) {
-    els.profileEditNumber.textContent = profile.profileNumber || "---";
-    els.profileMoodInput.value = profile.mood ?? "";
-    els.profileAboutInput.value = profile.aboutMe ?? "";
-    els.profileInterestsInput.value = profile.interests ?? "";
-    els.profileMusicInput.value = profile.music ?? "";
-    els.profileDiscordInput.value = profile.discord ?? "";
-    els.profileBlueskyInput.value = profile.bluesky ?? "";
-    els.profileTwitterInput.value = profile.twitter ?? "";
-    els.profileYoutubeInput.value = profile.youtube ?? "";
-    els.profileFacebookInput.value = profile.facebook ?? "";
+    populateProfileEditForm(profile);
+    renderProfileEditAvatar(profile);
   }
 
-  els.profileSaveStatus.textContent = "";
-  els.profileSaveStatus.classList.remove("error", "success");
-  els.profileAddFriendStatus.textContent = "";
-  els.profileAddFriendStatus.classList.remove("error", "success");
-  els.profilePhotoStatus.textContent = "";
-  els.profilePhotoStatus.classList.remove("error", "success");
-  els.profilePhotoBtn.disabled = true;
-  els.profilePhotoChooseBtn.textContent = "Choose Photo";
   renderProfileFlagNotice(profile);
   renderProfileFriendPanel(profile);
+  renderProfileFriends(profile);
 }
 
 function renderProfileFlagNotice(profile) {
   const activeFlag = profile.activeFlag;
-  if (profile.isOwner && activeFlag) {
-    els.profileFlagNotice.hidden = false;
-    els.profileFlagComment.textContent = activeFlag.comment;
-  } else {
-    els.profileFlagNotice.hidden = true;
-    els.profileFlagComment.textContent = "";
-  }
+  const showFlag = Boolean(profile.isOwner && activeFlag);
+  const comment = showFlag ? activeFlag.comment : "";
+
+  els.profileFlagNotice.hidden = !showFlag;
+  els.profileFlagComment.textContent = comment;
+  els.profileEditFlagNotice.hidden = !showFlag;
+  els.profileEditFlagComment.textContent = comment;
 }
 
 async function uploadProfilePhoto() {
@@ -676,6 +943,9 @@ async function uploadProfilePhoto() {
     const profile = await api.uploadProfileAvatar(file);
     els.profilePhotoInput.value = "";
     renderProfile(profile);
+    if (!els.profileEditModal.hidden) {
+      renderProfileEditAvatar(profile);
+    }
     els.profilePhotoStatus.textContent = "Profile photo updated.";
     els.profilePhotoStatus.classList.add("success");
   } catch (error) {
@@ -725,7 +995,7 @@ async function openMessagesModal(toPlayerId = null) {
   els.supplyModal.hidden = true;
   els.shippingModal.hidden = true;
   els.storeModal.hidden = true;
-  els.profileModal.hidden = true;
+  hideProfileScreens();
   els.dayModal.hidden = true;
   els.friendsModal.hidden = true;
   els.messagesModal.hidden = false;
@@ -867,7 +1137,7 @@ async function openFriendsModal() {
   els.supplyModal.hidden = true;
   els.shippingModal.hidden = true;
   els.storeModal.hidden = true;
-  els.profileModal.hidden = true;
+  hideProfileScreens();
   els.dayModal.hidden = true;
   els.messagesModal.hidden = true;
   els.friendsModal.hidden = false;
@@ -919,9 +1189,25 @@ async function submitProfileAddFriend() {
     if (!els.friendsModal.hidden) {
       await loadFriends();
     }
+    await refreshProfileIfOpen();
   } catch (error) {
     els.profileAddFriendStatus.textContent = error.message;
     els.profileAddFriendStatus.classList.add("error");
+  }
+}
+
+async function refreshProfileIfOpen() {
+  if ((els.profileModal.hidden && els.profileEditModal.hidden) || !state.profile) {
+    return;
+  }
+
+  try {
+    const profile = state.profile.isOwner
+      ? await api.getProfile()
+      : await api.getProfileByUsername(state.profile.username);
+    renderProfile(profile);
+  } catch (error) {
+    showStatus(error.message, true);
   }
 }
 
@@ -929,20 +1215,14 @@ async function acceptFriendRequest(friendshipId) {
   const result = await api.acceptFriend(friendshipId);
   setFriendsStatus(result.message, false);
   await loadFriends();
-  if (state.profile && !state.profile.isOwner) {
-    const profile = await api.getProfileByUsername(state.profile.username);
-    renderProfile(profile);
-  }
+  await refreshProfileIfOpen();
 }
 
 async function removeFriendRequest(friendshipId) {
   const result = await api.removeFriend(friendshipId);
   setFriendsStatus(result.message, false);
   await loadFriends();
-  if (state.profile && !state.profile.isOwner && state.profile.friendshipId === friendshipId) {
-    const profile = await api.getProfileByUsername(state.profile.username);
-    renderProfile(profile);
-  }
+  await refreshProfileIfOpen();
 }
 
 async function profileAddFriend() {
@@ -1014,8 +1294,40 @@ async function profileRemoveFriend() {
   }
 }
 
+function openProfileEdit() {
+  const profile = state.profile;
+  if (!profile?.isOwner) {
+    return;
+  }
+
+  populateProfileEditForm(profile);
+  renderProfileEditAvatar(profile);
+  renderProfileFlagNotice(profile);
+  applyProfileTheme();
+
+  els.profileModal.hidden = true;
+  els.profileEditModal.hidden = false;
+  openModal(els.profileEditModal);
+}
+
+async function closeProfileEdit(refreshProfile = true) {
+  els.profileEditModal.hidden = true;
+  els.profileModal.hidden = false;
+  openModal(els.profileModal);
+
+  if (!refreshProfile || !state.profile?.isOwner) {
+    return;
+  }
+
+  try {
+    const profile = await api.getProfile();
+    renderProfile(profile);
+  } catch (error) {
+    showStatus(error.message, true);
+  }
+}
+
 async function openProfile(username) {
-  els.profileSaveStatus.textContent = "";
   els.financeModal.hidden = true;
   els.supplyModal.hidden = true;
   els.shippingModal.hidden = true;
@@ -1023,6 +1335,7 @@ async function openProfile(username) {
   els.friendsModal.hidden = true;
   els.messagesModal.hidden = true;
   els.dayModal.hidden = true;
+  els.profileEditModal.hidden = true;
   els.profileModal.hidden = false;
   openModal(els.profileModal);
 
@@ -1032,7 +1345,7 @@ async function openProfile(username) {
       : await api.getProfile();
     renderProfile(profile);
   } catch (error) {
-    els.profileModal.hidden = true;
+    hideProfileScreens();
     showStatus(error.message, true);
   }
 }
@@ -1054,6 +1367,7 @@ async function saveProfile() {
       facebook: els.profileFacebookInput.value.trim(),
     });
     renderProfile(profile);
+    renderProfileEditAvatar(profile);
     els.profileSaveStatus.textContent = "Profile saved!";
     els.profileSaveStatus.classList.add("success");
   } catch (error) {
@@ -1410,6 +1724,11 @@ function renderStorePanel() {
     button.addEventListener("click", () => buySupply(type));
     els.storeSupplyList.appendChild(button);
   }
+
+  els.storeCompanyNameStatus.textContent = "";
+  loadStoreCompanyNames().catch((error) => {
+    els.storeCompanyNameStatus.textContent = error.message;
+  });
 }
 
 function renderShippingPanel() {
@@ -1897,12 +2216,42 @@ els.logoutBtn.addEventListener("click", logout);
 els.playerName.addEventListener("click", () => openProfile());
 els.profileBtn.addEventListener("click", () => openProfile());
 els.profileCloseBtn.addEventListener("click", () => {
-  els.profileModal.hidden = true;
+  hideProfileScreens();
+});
+els.profileCustomizeBtn.addEventListener("click", () => {
+  openProfileEdit();
+});
+els.profileEditBackBtn.addEventListener("click", () => {
+  closeProfileEdit().catch((error) => showStatus(error.message, true));
 });
 els.profileSaveBtn.addEventListener("click", () => {
   saveProfile().catch((error) => {
     els.profileSaveStatus.textContent = error.message;
     els.profileSaveStatus.classList.add("error");
+  });
+});
+els.profileCompanySaveBtn.addEventListener("click", () => {
+  saveCompanyName().catch((error) => {
+    els.profileCompanyStatus.textContent = error.message;
+    els.profileCompanyStatus.classList.add("error");
+  });
+});
+els.profileCompanyRegenerateBtn.addEventListener("click", () => {
+  regenerateCompanyName().catch((error) => {
+    els.profileCompanyStatus.textContent = error.message;
+    els.profileCompanyStatus.classList.add("error");
+  });
+});
+els.profileCompanyListBtn.addEventListener("click", () => {
+  listCompanyNameForSale().catch((error) => {
+    els.profileCompanyListStatus.textContent = error.message;
+    els.profileCompanyListStatus.classList.add("error");
+  });
+});
+els.profileCompanyCancelListBtn.addEventListener("click", () => {
+  cancelCompanyNameListing().catch((error) => {
+    els.profileCompanyListStatus.textContent = error.message;
+    els.profileCompanyListStatus.classList.add("error");
   });
 });
 els.profilePhotoChooseBtn.addEventListener("click", () => {
@@ -1987,7 +2336,7 @@ els.financeBtn.addEventListener("click", () => {
   els.supplyModal.hidden = true;
   els.shippingModal.hidden = true;
   els.storeModal.hidden = true;
-  els.profileModal.hidden = true;
+  hideProfileScreens();
   els.friendsModal.hidden = true;
   els.messagesModal.hidden = true;
   openModal(els.financeModal);
@@ -1995,7 +2344,7 @@ els.financeBtn.addEventListener("click", () => {
 });
 els.tradeMarketBtn.addEventListener("click", () => {
   els.financeModal.hidden = true;
-  els.profileModal.hidden = true;
+  hideProfileScreens();
   els.friendsModal.hidden = true;
   els.messagesModal.hidden = true;
   els.shippingModal.hidden = true;
@@ -2005,7 +2354,7 @@ els.tradeMarketBtn.addEventListener("click", () => {
 });
 els.storeBtn.addEventListener("click", () => {
   els.financeModal.hidden = true;
-  els.profileModal.hidden = true;
+  hideProfileScreens();
   els.friendsModal.hidden = true;
   els.messagesModal.hidden = true;
   els.supplyModal.hidden = true;
@@ -2015,7 +2364,7 @@ els.storeBtn.addEventListener("click", () => {
 });
 els.shippingBtn.addEventListener("click", () => {
   els.financeModal.hidden = true;
-  els.profileModal.hidden = true;
+  hideProfileScreens();
   els.friendsModal.hidden = true;
   els.messagesModal.hidden = true;
   els.supplyModal.hidden = true;

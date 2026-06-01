@@ -1,0 +1,5 @@
+Setting,Amount,Description
+# Credit grants and fees. Opens in Excel or Google Sheets.
+SignUp,5000,Credits granted when a new player registers
+BirthdayBonus,500,Bonus credits on the player's birthday once per year
+CompanyNameReclaimFee,2500,Fee to reclaim a company name within the 30-day limbo window

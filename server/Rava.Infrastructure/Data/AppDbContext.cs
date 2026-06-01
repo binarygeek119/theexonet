@@ -16,6 +16,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<FriendshipEntity> Friendships => Set<FriendshipEntity>();
     public DbSet<MineGroupEntity> MineGroups => Set<MineGroupEntity>();
     public DbSet<MarketListingEntity> MarketListings => Set<MarketListingEntity>();
+    public DbSet<CompanyNameLimboEntity> CompanyNameLimbo => Set<CompanyNameLimboEntity>();
+    public DbSet<CompanyNameListingEntity> CompanyNameListings => Set<CompanyNameListingEntity>();
     public DbSet<AccountResetEntity> AccountResets => Set<AccountResetEntity>();
     public DbSet<PasswordResetTokenEntity> PasswordResetTokens => Set<PasswordResetTokenEntity>();
     public DbSet<ProfileFlagEntity> ProfileFlags => Set<ProfileFlagEntity>();
@@ -246,6 +248,28 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(a => a.Event)
                 .WithMany(ev => ev.Announcements)
                 .HasForeignKey(a => a.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CompanyNameLimboEntity>(e =>
+        {
+            e.HasIndex(l => l.NormalizedName);
+            e.HasIndex(l => l.AvailableAfter);
+            e.HasIndex(l => l.PlayerId);
+            e.HasOne(l => l.Player)
+                .WithMany()
+                .HasForeignKey(l => l.PlayerId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<CompanyNameListingEntity>(e =>
+        {
+            e.HasIndex(l => l.NormalizedName);
+            e.HasIndex(l => l.Status);
+            e.HasIndex(l => l.SellerPlayerId);
+            e.HasOne(l => l.Seller)
+                .WithMany()
+                .HasForeignKey(l => l.SellerPlayerId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

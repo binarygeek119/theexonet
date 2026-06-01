@@ -27,7 +27,7 @@ echo "--- Required files ---"
 required=(
   "${PUBLISH_DIR}/Rava.Api.dll"
   "${PUBLISH_DIR}/appsettings.json"
-  "${PUBLISH_DIR}/credits.json"
+  "${PUBLISH_DIR}/credits.csv"
   "${PUBLISH_DIR}/market-items.csv"
   "${PUBLISH_DIR}/trade-items.csv"
   "${PUBLISH_DIR}/hate-speech-terms.csv"

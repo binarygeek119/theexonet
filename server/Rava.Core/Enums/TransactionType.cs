@@ -10,5 +10,8 @@ public enum TransactionType
     EmergencyBuyback,
     MineSale,
     BirthdayBonus,
-    SpecialEventBonus
+    SpecialEventBonus,
+    CompanyNamePurchase,
+    CompanyNameSale,
+    CompanyNameReclaim
 }

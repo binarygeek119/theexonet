@@ -169,7 +169,44 @@ public record PlayerProfileResponse(
     bool IsOwner,
     string FriendshipStatus,
     string FriendshipId,
-    ProfileFlagDto? ActiveFlag = null);
+    ProfileFlagDto? ActiveFlag = null,
+    IReadOnlyList<ProfileFriendDto>? Friends = null,
+    Guid? MineId = null,
+    bool CompanyNameListed = false,
+    Guid? CompanyNameListingId = null,
+    decimal? CompanyNameListingPrice = null,
+    IReadOnlyList<ReclaimableCompanyNameDto>? ReclaimableCompanyNames = null,
+    decimal CompanyNameReclaimFee = 0);
+
+public record UpdateCompanyNameRequest(string CompanyName);
+
+public record ListCompanyNameRequest(decimal Price);
+
+public record CompanyNameActionResponse(
+    string CompanyName,
+    Guid MineId,
+    bool CompanyNameListed,
+    Guid? CompanyNameListingId,
+    decimal? CompanyNameListingPrice,
+    string Message,
+    IReadOnlyList<ReclaimableCompanyNameDto>? ReclaimableCompanyNames = null,
+    decimal CompanyNameReclaimFee = 0);
+
+public record CompanyNameListingDto(
+    Guid Id,
+    string CompanyName,
+    string SellerUsername,
+    decimal Price,
+    DateTime ListedAt);
+
+public record CompanyNameListingsResponse(IReadOnlyList<CompanyNameListingDto> Listings);
+
+public record ProfileFriendDto(
+    Guid PlayerId,
+    string Username,
+    string ProfileNumber,
+    string Mood,
+    string PublicStatus);
 
 public record UpdatePlayerProfileRequest(
     string Mood,
@@ -226,13 +263,23 @@ public record AdminPlayersResponse(IReadOnlyList<AdminPlayerSummary> Players);
 
 public record AdminSetCreditsRequest(decimal Credits);
 
-public record GameCreditsConfigDto(decimal SignUp, decimal BirthdayBonus);
+public record GameCreditsConfigDto(decimal SignUp, decimal BirthdayBonus, decimal CompanyNameReclaimFee);
 
 public record GameCreditsConfigResponse(GameCreditsConfigDto Credits, string FilePath);
 
-public record UpdateGameCreditsConfigRequest(decimal SignUp, decimal BirthdayBonus);
+public record UpdateGameCreditsConfigRequest(
+    decimal SignUp,
+    decimal BirthdayBonus,
+    decimal CompanyNameReclaimFee);
 
 public record UpdateGameCreditsConfigResponse(GameCreditsConfigDto Credits, string Message);
+
+public record ReclaimableCompanyNameDto(
+    string DisplayName,
+    DateTime ReservedUntil,
+    decimal ReclaimFee);
+
+public record ReclaimCompanyNameRequest(string CompanyName);
 
 public record AdminPlayerProfileResponse(
     Guid Id,

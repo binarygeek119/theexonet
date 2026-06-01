@@ -44,7 +44,7 @@ dotnet --list-runtimes
    | `Rava.Admin.dll` + `wwwroot/` | Same publish bundle |
    | `Rava.Moderator.dll` + `wwwroot/` | Same publish bundle |
    | `Rava.Docs.dll` + `content/` + `wwwroot/` | Same publish bundle |
-   | `credits.json` | Included in publish output |
+   | `credits.csv` | Included in publish output |
    | `appsettings.json` | Copy from `appsettings.json.example`, then edit |
 
    Add **`StatusMonitor`**, **`AdminPortal`**, **`ModeratorPortal`**, and **`DocsPortal`** sections to the same `appsettings.json` for the status dashboard (port 6000), admin portal (port 7000), moderator portal (port 7050), and game docs (port 9000). Do **not** add a top-level `"Urls"` key — each systemd service sets its own port via `ASPNETCORE_URLS`.
@@ -348,7 +348,7 @@ If the API returns **502**, `/api/status` shows **database offline**, or **`rava
    - Wrong database name or username (must match your real Postgres setup)
    - **`28P01: password authentication failed for user "rava"`** — production `appsettings.json` still uses `Username=rava`; use your real Postgres user (often `postgres`). Deploy never overwrites `appsettings.json`.
    - `appsettings.json` missing from the API folder (publish does not include it)
-   - `credits.json` missing from the API folder
+   - `credits.csv` missing from the API folder
 7. **Test locally on the server:**  
    `curl http://127.0.0.1:5000/api/status` — should return JSON with `"databaseStatus":"online"`
 8. **`.NET runtime missing`:** log shows `Framework: Microsoft.NETCore.App, version '10.0.0'` but only 8.x installed — install `aspnetcore-runtime-10.0` (see step 2 above).

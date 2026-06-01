@@ -218,6 +218,44 @@ export class RavaApi {
     });
   }
 
+  updateCompanyName(companyName) {
+    return this.request("/api/player/company-name", {
+      method: "PUT",
+      body: { companyName },
+    });
+  }
+
+  regenerateCompanyName() {
+    return this.request("/api/player/company-name/regenerate", {
+      method: "POST",
+      body: {},
+    });
+  }
+
+  listCompanyName(price) {
+    return this.request("/api/player/company-name/listing", {
+      method: "POST",
+      body: { price },
+    });
+  }
+
+  cancelCompanyNameListing(listingId) {
+    return this.request(`/api/player/company-name/listing/${listingId}`, {
+      method: "DELETE",
+    });
+  }
+
+  getCompanyNameListings() {
+    return this.request("/api/trade/company-names");
+  }
+
+  purchaseCompanyName(listingId) {
+    return this.request(`/api/trade/company-names/${listingId}/purchase`, {
+      method: "POST",
+      body: {},
+    });
+  }
+
   async uploadProfileAvatar(file) {
     const form = new FormData();
     form.append("file", file);
@@ -301,10 +339,10 @@ export class RavaApi {
     return this.request("/api/admin/game-credits-config");
   }
 
-  adminSaveGameCreditsConfig(signUp, birthdayBonus) {
+  adminSaveGameCreditsConfig(signUp, birthdayBonus, companyNameReclaimFee) {
     return this.request("/api/admin/game-credits-config", {
       method: "PUT",
-      body: { signUp, birthdayBonus },
+      body: { signUp, birthdayBonus, companyNameReclaimFee },
     });
   }
 

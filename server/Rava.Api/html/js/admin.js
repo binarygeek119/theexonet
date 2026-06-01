@@ -64,6 +64,7 @@ const els = {
   gameCreditsForm: document.getElementById("admin-game-credits-form"),
   gameCreditsSignUp: document.getElementById("admin-game-credits-signup"),
   gameCreditsBirthday: document.getElementById("admin-game-credits-birthday"),
+  gameCreditsReclaim: document.getElementById("admin-game-credits-reclaim"),
   gameCreditsSaveBtn: document.getElementById("admin-game-credits-save-btn"),
   gameCreditsResetBtn: document.getElementById("admin-game-credits-reset-btn"),
   gameCreditsStatus: document.getElementById("admin-game-credits-status"),
@@ -953,6 +954,7 @@ function renderGameCreditsConfig(response) {
 
   els.gameCreditsSignUp.value = String(credits.signUp ?? 0);
   els.gameCreditsBirthday.value = String(credits.birthdayBonus ?? 0);
+  els.gameCreditsReclaim.value = String(credits.companyNameReclaimFee ?? 0);
   els.gameCreditsPath.textContent = response?.filePath
     ? `File: ${response.filePath}`
     : "";
@@ -965,6 +967,7 @@ function setGameCreditsStatus(message, isError = false) {
 async function saveGameCreditsConfig() {
   const signUp = Number(els.gameCreditsSignUp.value);
   const birthdayBonus = Number(els.gameCreditsBirthday.value);
+  const companyNameReclaimFee = Number(els.gameCreditsReclaim.value);
 
   if (!Number.isFinite(signUp) || signUp < 0) {
     setGameCreditsStatus("Enter a valid sign-up credits amount.", true);
@@ -976,10 +979,15 @@ async function saveGameCreditsConfig() {
     return;
   }
 
+  if (!Number.isFinite(companyNameReclaimFee) || companyNameReclaimFee < 0) {
+    setGameCreditsStatus("Enter a valid company name reclaim fee.", true);
+    return;
+  }
+
   els.gameCreditsSaveBtn.disabled = true;
   setGameCreditsStatus("Saving…");
   try {
-    const result = await api.adminSaveGameCreditsConfig(signUp, birthdayBonus);
+    const result = await api.adminSaveGameCreditsConfig(signUp, birthdayBonus, companyNameReclaimFee);
     state.gameCreditsConfig = result.credits ?? null;
     renderGameCreditsConfig({ credits: result.credits, filePath: els.gameCreditsPath.textContent.replace(/^File: /, "") });
     setGameCreditsStatus(result.message ?? "Saved.", false);

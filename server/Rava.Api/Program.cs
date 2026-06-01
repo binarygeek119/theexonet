@@ -40,8 +40,6 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     WebRootPath = webRootPath,
 });
 
-builder.Configuration.AddJsonFile("credits.json", optional: false, reloadOnChange: true);
-
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.Configure<MarketOptions>(builder.Configuration.GetSection(MarketOptions.SectionName));
 builder.Services.Configure<TradeOptions>(builder.Configuration.GetSection(TradeOptions.SectionName));
@@ -81,8 +79,11 @@ builder.Services.AddScoped<HateSpeechScanner>();
 builder.Services.AddScoped<PlayerWarningService>();
 builder.Services.AddScoped<MessageModerationService>();
 builder.Services.AddScoped<GameCreditsConfigService>();
+builder.Services.AddSingleton<GameCreditsProvider>();
+builder.Services.AddSingleton<IGameCreditsConfig>(sp => sp.GetRequiredService<GameCreditsProvider>());
 builder.Services.AddScoped<SpecialEventService>();
 builder.Services.AddScoped<PlayerProfileUpgrader>();
+builder.Services.AddScoped<CompanyNameService>();
 builder.Services.AddSingleton<IProfileAvatarStorage>(sp =>
     new LocalProfileAvatarStorage(new ProfileAvatarStorageOptions
     {
@@ -94,6 +95,7 @@ builder.Services.Configure<FormOptions>(options =>
 });
 builder.Services.AddScoped<IDataMigration, ProfileDefaultsMigration>();
 builder.Services.AddScoped<IDataMigration, ProfileNumberMigration>();
+builder.Services.AddScoped<IDataMigration, CompanyNameMigration>();
 builder.Services.AddScoped<PlayerDataMigrationRunner>();
 builder.Services.AddSingleton<IMineSimulationService, MineSimulationService>();
 builder.Services.AddSingleton<IStarterMineGenerator, StarterMineGenerator>();
@@ -159,7 +161,7 @@ try
 catch (Exception ex)
 {
     FailStartup(
-        "Failed to build the application. Check appsettings.json, credits.json, and deploy files under /var/www/publish.",
+        "Failed to build the application. Check appsettings.json, credits.csv, and deploy files under /var/www/publish.",
         ex);
     return;
 }
@@ -215,6 +217,10 @@ var tradeItemsPath = Path.Combine(contentRootPath, tradeOptions.ItemsFile);
 app.Logger.LogInformation(
     "Trade market items file: {ItemsFile}",
     tradeItemsPath);
+
+var creditsOptions = builder.Configuration.GetSection(GameCreditsOptions.SectionName).Get<GameCreditsOptions>() ?? new GameCreditsOptions();
+var creditsPath = Path.Combine(contentRootPath, creditsOptions.CreditsFile);
+app.Logger.LogInformation("Game credits spreadsheet: {CreditsFile}", creditsPath);
 
 var configuredAdminUsernames = app.Configuration
     .GetSection(AdminOptions.SectionName)

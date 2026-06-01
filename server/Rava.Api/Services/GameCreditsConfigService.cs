@@ -1,29 +1,34 @@
-using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Rava.Core.Configuration;
 using Rava.Core.Dtos;
+using Rava.Core.Interfaces;
+using Rava.Infrastructure.Services;
 
 namespace Rava.Api.Services;
 
 public class GameCreditsConfigService(
     IWebHostEnvironment environment,
-    IOptionsMonitor<GameCreditsOptions> optionsMonitor)
+    IOptionsMonitor<GameCreditsOptions> optionsMonitor,
+    GameCreditsProvider creditsProvider)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
-
-    public string FilePath => Path.Combine(environment.ContentRootPath, "credits.json");
+    public string FilePath =>
+        Path.Combine(environment.ContentRootPath, optionsMonitor.CurrentValue.CreditsFile);
 
     public GameCreditsConfigResponse GetConfig()
     {
-        var credits = optionsMonitor.CurrentValue;
+        creditsProvider.Reload();
         return new GameCreditsConfigResponse(
-            new GameCreditsConfigDto(credits.SignUp, credits.BirthdayBonus),
+            new GameCreditsConfigDto(
+                creditsProvider.SignUp,
+                creditsProvider.BirthdayBonus,
+                creditsProvider.CompanyNameReclaimFee),
             FilePath);
     }
 
     public async Task<(GameCreditsConfigDto? Credits, string? Error)> SaveAsync(
         decimal signUp,
         decimal birthdayBonus,
+        decimal companyNameReclaimFee,
         CancellationToken ct)
     {
         if (signUp < 0)
@@ -36,18 +41,21 @@ public class GameCreditsConfigService(
             return (null, "Birthday bonus cannot be negative.");
         }
 
-        var payload = new Dictionary<string, Dictionary<string, decimal>>
+        if (companyNameReclaimFee < 0)
         {
-            [GameCreditsOptions.SectionName] = new()
-            {
-                [nameof(GameCreditsOptions.SignUp)] = signUp,
-                [nameof(GameCreditsOptions.BirthdayBonus)] = birthdayBonus
-            }
+            return (null, "Company name reclaim fee cannot be negative.");
+        }
+
+        var values = new GameCreditsValues
+        {
+            SignUp = signUp,
+            BirthdayBonus = birthdayBonus,
+            CompanyNameReclaimFee = companyNameReclaimFee,
         };
 
-        var json = JsonSerializer.Serialize(payload, JsonOptions);
-        await File.WriteAllTextAsync(FilePath, json + Environment.NewLine, ct);
+        await Task.Run(() => GameCreditsCsvLoader.SaveToFile(FilePath, values), ct);
+        creditsProvider.Reload();
 
-        return (new GameCreditsConfigDto(signUp, birthdayBonus), null);
+        return (new GameCreditsConfigDto(signUp, birthdayBonus, companyNameReclaimFee), null);
     }
 }

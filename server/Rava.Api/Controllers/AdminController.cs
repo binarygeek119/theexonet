@@ -92,6 +92,7 @@ public class AdminController(
         var (credits, error) = await gameCreditsConfigService.SaveAsync(
             request.SignUp,
             request.BirthdayBonus,
+            request.CompanyNameReclaimFee,
             ct);
 
         if (error is not null)
@@ -101,7 +102,7 @@ public class AdminController(
 
         return Ok(new UpdateGameCreditsConfigResponse(
             credits!,
-            "Credits configuration saved. New sign-ups and birthday bonuses use these values immediately."));
+            "Credits configuration saved. New sign-ups, birthday bonuses, and reclaim fees use these values immediately."));
     }
 
     [HttpGet("special-events")]

@@ -11,4 +11,5 @@ public static class PlayerDataMigrations
 {
     public const string ProfileDefaults = "20250529-profile-defaults";
     public const string ProfileNumbers = "20250529-profile-numbers";
+    public const string CompanyNames = "20250529-company-names";
 }

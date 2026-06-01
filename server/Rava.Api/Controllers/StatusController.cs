@@ -21,7 +21,7 @@ public class StatusController(
     ServerRuntimeInfo runtime,
     IMarketDataProvider marketProvider,
     IMarketItemsCatalog marketItems,
-    IOptionsMonitor<GameCreditsOptions> creditsOptions) : ControllerBase
+    IGameCreditsConfig gameCreditsConfig) : ControllerBase
 {
     [AllowAnonymous]
     [HttpGet("status")]
@@ -64,7 +64,7 @@ public class StatusController(
     public async Task<ActionResult<PublicEconomyResponse>> GetEconomy(CancellationToken ct)
     {
         var today = UtcGameClock.Today;
-        var credits = creditsOptions.CurrentValue;
+        var credits = gameCreditsConfig;
         var referenceGameDay = 1;
 
         try

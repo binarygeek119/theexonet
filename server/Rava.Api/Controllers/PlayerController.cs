@@ -11,6 +11,7 @@ namespace Rava.Api.Controllers;
 [RequestSizeLimit(ProfileAvatarUploadLimits.MaxBytes)]
 public class PlayerController(
     PlayerGameService gameService,
+    CompanyNameService companyNameService,
     PlayerMessageService playerMessageService,
     PeerMessageService peerMessageService,
     PlayerToStaffMessageService playerToStaffMessageService) : ControllerBase
@@ -67,6 +68,72 @@ public class PlayerController(
         }
 
         return profile is null ? NotFound() : Ok(profile);
+    }
+
+    [HttpPut("company-name")]
+    public async Task<ActionResult<CompanyNameActionResponse>> UpdateCompanyName(
+        UpdateCompanyNameRequest request,
+        CancellationToken ct)
+    {
+        var (result, error) = await companyNameService.RenameMineAsync(
+            User.GetPlayerId(),
+            request.CompanyName,
+            ct);
+
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(result);
+    }
+
+    [HttpPost("company-name/regenerate")]
+    public async Task<ActionResult<CompanyNameActionResponse>> RegenerateCompanyName(CancellationToken ct)
+    {
+        var (result, error) = await companyNameService.RegenerateMineNameAsync(User.GetPlayerId(), ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(result);
+    }
+
+    [HttpPost("company-name/listing")]
+    public async Task<ActionResult<CompanyNameActionResponse>> ListCompanyNameForSale(
+        ListCompanyNameRequest request,
+        CancellationToken ct)
+    {
+        var (result, error) = await companyNameService.CreateListingAsync(
+            User.GetPlayerId(),
+            request.Price,
+            ct);
+
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(result);
+    }
+
+    [HttpDelete("company-name/listing/{listingId:guid}")]
+    public async Task<ActionResult<CompanyNameActionResponse>> CancelCompanyNameListing(
+        Guid listingId,
+        CancellationToken ct)
+    {
+        var (result, error) = await companyNameService.CancelListingAsync(
+            User.GetPlayerId(),
+            listingId,
+            ct);
+
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(result);
     }
 
     [HttpGet("friends")]

@@ -271,6 +271,34 @@ public static class DatabaseSchemaUpdater
             CREATE INDEX IF NOT EXISTS "IX_SpecialEventAnnouncements_EventId" ON "SpecialEventAnnouncements" ("EventId");
             ALTER TABLE "SpecialEvents" ADD COLUMN IF NOT EXISTS "SaleBonusPercent" numeric NOT NULL DEFAULT 0;
             ALTER TABLE "SpecialEvents" ADD COLUMN IF NOT EXISTS "TradeBonusPercent" numeric NOT NULL DEFAULT 0;
+            CREATE TABLE IF NOT EXISTS "CompanyNameLimbo" (
+                "Id" uuid NOT NULL,
+                "NormalizedName" text NOT NULL,
+                "DisplayName" text NOT NULL,
+                "AvailableAfter" timestamp with time zone NOT NULL,
+                "CreatedAt" timestamp with time zone NOT NULL DEFAULT NOW(),
+                CONSTRAINT "PK_CompanyNameLimbo" PRIMARY KEY ("Id")
+            );
+            CREATE INDEX IF NOT EXISTS "IX_CompanyNameLimbo_NormalizedName" ON "CompanyNameLimbo" ("NormalizedName");
+            CREATE INDEX IF NOT EXISTS "IX_CompanyNameLimbo_AvailableAfter" ON "CompanyNameLimbo" ("AvailableAfter");
+            CREATE TABLE IF NOT EXISTS "CompanyNameListings" (
+                "Id" uuid NOT NULL,
+                "SellerPlayerId" uuid NOT NULL,
+                "SellerMineId" uuid NOT NULL,
+                "CompanyName" text NOT NULL,
+                "NormalizedName" text NOT NULL,
+                "Price" numeric NOT NULL,
+                "Status" text NOT NULL DEFAULT 'active',
+                "CreatedAt" timestamp with time zone NOT NULL DEFAULT NOW(),
+                "SoldAt" timestamp with time zone NULL,
+                "BuyerPlayerId" uuid NULL,
+                CONSTRAINT "PK_CompanyNameListings" PRIMARY KEY ("Id"),
+                CONSTRAINT "FK_CompanyNameListings_Players_SellerPlayerId" FOREIGN KEY ("SellerPlayerId")
+                    REFERENCES "Players" ("Id") ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS "IX_CompanyNameListings_NormalizedName" ON "CompanyNameListings" ("NormalizedName");
+            CREATE INDEX IF NOT EXISTS "IX_CompanyNameListings_Status" ON "CompanyNameListings" ("Status");
+            CREATE INDEX IF NOT EXISTS "IX_CompanyNameListings_SellerPlayerId" ON "CompanyNameListings" ("SellerPlayerId");
             """,
             cancellationToken);
     }

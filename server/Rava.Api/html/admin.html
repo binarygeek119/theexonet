@@ -223,7 +223,7 @@
           <div class="admin-panel-head">
             <div>
               <h2>Game credits</h2>
-              <p class="admin-page-desc">Edit <code>credits.json</code> — sign-up and birthday bonus amounts for new registrations and birthday rewards.</p>
+              <p class="admin-page-desc">Edit <code>credits.csv</code> — sign-up, birthday bonus, and company name reclaim fee. Opens in Excel or Google Sheets.</p>
             </div>
           </div>
           <p id="admin-game-credits-path" class="admin-page-desc admin-config-path"></p>
@@ -232,6 +232,8 @@
             <input id="admin-game-credits-signup" type="number" min="0" step="1" required>
             <label for="admin-game-credits-birthday">Birthday bonus</label>
             <input id="admin-game-credits-birthday" type="number" min="0" step="1" required>
+            <label for="admin-game-credits-reclaim">Company name reclaim fee</label>
+            <input id="admin-game-credits-reclaim" type="number" min="0" step="1" required>
             <div class="admin-config-actions">
               <button id="admin-game-credits-save-btn" type="submit" class="btn primary">Save credits file</button>
               <button id="admin-game-credits-reset-btn" type="button" class="btn ghost">Reset</button>

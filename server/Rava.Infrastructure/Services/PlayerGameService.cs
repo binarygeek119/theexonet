@@ -3,8 +3,6 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Rava.Core.Configuration;
 using Rava.Core.Constants;
 using Rava.Core.Dtos;
 using Rava.Core.Enums;
@@ -27,12 +25,13 @@ public class PlayerGameService(
     IStarterMineGenerator starterMineGenerator,
     IPasswordHasher passwordHasher,
     PlayerProfileUpgrader profileUpgrader,
+    CompanyNameService companyNameService,
     IProfileAvatarStorage profileAvatarStorage,
     SpecialEventService specialEventService,
-    IOptionsMonitor<GameCreditsOptions> gameCreditsOptions)
+    IGameCreditsConfig gameCreditsConfig)
 {
     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> DayProcessLocks = new();
-    private GameCreditsOptions Credits => gameCreditsOptions.CurrentValue;
+    private IGameCreditsConfig Credits => gameCreditsConfig;
 
     public const string PasswordResetSentMessage =
         "If an account exists for that email, a password reset link has been sent.";
@@ -75,6 +74,7 @@ public class PlayerGameService(
         };
 
         var mine = EntityMapper.ToEntity(mineState, playerId);
+        await companyNameService.AssignUniqueNameToMineAsync(mine, ct);
         var inventoryEntities = starterInventory.Select(EntityMapper.ToEntity).ToList();
 
         player.Transactions.Add(new TransactionEntity
@@ -828,6 +828,20 @@ public class PlayerGameService(
             activeFlag = await GetActiveProfileFlagAsync(player.Id, ct);
         }
 
+        var friends = await GetProfileFriendsAsync(player.Id, ct);
+        Guid? mineId = null;
+        bool companyNameListed = false;
+        Guid? companyNameListingId = null;
+        decimal? companyNameListingPrice = null;
+
+        if (isOwner && mine is not null)
+        {
+            mineId = mine.Id;
+            (companyNameListingId, companyNameListingPrice) =
+                await companyNameService.GetActiveListingForPlayerAsync(player.Id, ct);
+            companyNameListed = companyNameListingId is not null;
+        }
+
         return new PlayerProfileResponse(
             player.Id,
             player.Username,
@@ -851,7 +865,44 @@ public class PlayerGameService(
             isOwner,
             friendshipStatus,
             friendshipId?.ToString() ?? string.Empty,
-            activeFlag);
+            activeFlag,
+            friends,
+            mineId,
+            companyNameListed,
+            companyNameListingId,
+            companyNameListingPrice);
+    }
+
+    private async Task<IReadOnlyList<ProfileFriendDto>> GetProfileFriendsAsync(Guid playerId, CancellationToken ct)
+    {
+        var friendships = await db.Friendships.AsNoTracking()
+            .Where(f => f.Status == FriendshipStatuses.Accepted &&
+                        (f.PlayerId == playerId || f.FriendId == playerId))
+            .ToListAsync(ct);
+
+        if (friendships.Count == 0)
+        {
+            return [];
+        }
+
+        var otherIds = friendships
+            .Select(f => f.PlayerId == playerId ? f.FriendId : f.PlayerId)
+            .Distinct()
+            .ToList();
+
+        var players = await db.Players.AsNoTracking()
+            .Where(p => otherIds.Contains(p.Id))
+            .OrderBy(p => p.Username)
+            .ToListAsync(ct);
+
+        return players
+            .Select(p => new ProfileFriendDto(
+                p.Id,
+                p.Username,
+                p.ProfileNumber,
+                p.ProfileMood,
+                string.Empty))
+            .ToList();
     }
 
     private async Task<ProfileFlagDto?> GetActiveProfileFlagAsync(Guid playerId, CancellationToken ct)

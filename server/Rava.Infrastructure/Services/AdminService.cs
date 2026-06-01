@@ -1,8 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Rava.Core.Configuration;
 using Rava.Core.Dtos;
 using Rava.Core.Enums;
+using Rava.Core.Interfaces;
 using Rava.Infrastructure.Data;
 using Rava.Infrastructure.Entities;
 
@@ -13,11 +12,10 @@ public class AdminService(
     PlayerBanService playerBanService,
     StaffModerationPolicy staffModerationPolicy,
     PlayerWarningService playerWarningService,
-    IOptionsMonitor<GameCreditsOptions> creditsOptions)
+    IGameCreditsConfig gameCreditsConfig)
 {
     public async Task<AdminDashboardResponse> GetDashboardAsync(CancellationToken ct)
     {
-        var credits = creditsOptions.CurrentValue;
         var world = await db.GameWorld.AsNoTracking().FirstOrDefaultAsync(ct);
         return new AdminDashboardResponse(
             await db.Players.CountAsync(ct),
@@ -25,8 +23,8 @@ public class AdminService(
             await db.Friendships.CountAsync(f => f.Status == "accepted", ct),
             world?.CurrentDay ?? 1,
             await db.Players.SumAsync(p => p.Credits, ct),
-            credits.SignUp,
-            credits.BirthdayBonus);
+            gameCreditsConfig.SignUp,
+            gameCreditsConfig.BirthdayBonus);
     }
 
     public async Task<AdminPlayersResponse> GetPlayersAsync(string? search, int limit, CancellationToken ct)

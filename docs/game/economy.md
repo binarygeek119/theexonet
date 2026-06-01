@@ -4,7 +4,7 @@
 
 Credits are the main currency. You earn them by selling ore and spend them on supplies, payroll, and market purchases.
 
-New accounts receive a signup credit bonus (see server `credits.json` for current values).
+New accounts receive a signup credit bonus (see server `credits.csv` for current values).
 
 ## Finances panel
 

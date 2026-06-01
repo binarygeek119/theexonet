@@ -147,6 +147,34 @@ public class MarketListingEntity
     public decimal UnitPrice { get; set; }
 }
 
+public class CompanyNameLimboEntity
+{
+    public Guid Id { get; set; }
+    public Guid? PlayerId { get; set; }
+    public string NormalizedName { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public DateTime AvailableAfter { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public PlayerEntity? Player { get; set; }
+}
+
+public class CompanyNameListingEntity
+{
+    public Guid Id { get; set; }
+    public Guid SellerPlayerId { get; set; }
+    public Guid SellerMineId { get; set; }
+    public string CompanyName { get; set; } = string.Empty;
+    public string NormalizedName { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public string Status { get; set; } = CompanyNameListingStatuses.Active;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? SoldAt { get; set; }
+    public Guid? BuyerPlayerId { get; set; }
+
+    public PlayerEntity Seller { get; set; } = null!;
+}
+
 public class AccountResetEntity
 {
     public Guid Id { get; set; }

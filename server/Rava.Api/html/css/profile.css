@@ -63,6 +63,61 @@
   border-color: rgba(255, 255, 255, 0.35) !important;
 }
 
+.profile-top-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.profile-customize-btn {
+  font-size: 0.85rem;
+  padding: 6px 12px;
+}
+
+.profile-edit-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-edit-photo-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.profile-edit-avatar {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.profile-edit-save-row {
+  padding: 4px 10px 12px;
+}
+
+.profile-company-actions,
+.profile-company-list-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.profile-company-list-row input[type="number"] {
+  flex: 1 1 140px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #99bbee;
+  border-radius: 0;
+  background: #fff;
+  color: #111;
+}
+
 .profile-banner {
   display: grid;
   grid-template-columns: 120px 1fr;
@@ -235,7 +290,7 @@
 }
 
 .profile-number::before {
-  content: "Profile #: ";
+  content: "Profile !: ";
   font-family: "Trebuchet MS", "Segoe UI", sans-serif;
   font-weight: 700;
   font-size: 0.85rem;
@@ -310,6 +365,81 @@
 .profile-social-empty {
   margin: 0;
   opacity: 0.55;
+  font-style: italic;
+}
+
+.profile-friends-list {
+  white-space: normal;
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+}
+
+.profile-friends-list.empty {
+  opacity: 0.55;
+  font-style: italic;
+}
+
+.profile-friend-item {
+  padding: 8px 10px;
+  border: 1px solid #99bbee;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.theme-neon .profile-friend-item,
+.theme-midnight .profile-friend-item {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.theme-solar .profile-friend-item {
+  border-color: #ffcc88;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.profile-friend-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.profile-friend-name {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.profile-friend-name:hover {
+  color: #003399;
+}
+
+.theme-neon .profile-friend-name:hover,
+.theme-midnight .profile-friend-name:hover {
+  color: #aaccff;
+}
+
+.profile-friend-number {
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.profile-friend-status {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+}
+
+.profile-friend-mood {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
   font-style: italic;
 }
 

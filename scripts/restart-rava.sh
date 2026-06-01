@@ -99,36 +99,64 @@ prepare_publish_dir() {
     chown -R "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}/exonet" 2>/dev/null || true
   fi
 
-  ensure_portal_wwwroot
+  ensure_shared_wwwroot
 }
 
-ensure_portal_wwwroot() {
+ensure_shared_wwwroot() {
   local wwwroot="${PUBLISH_DIR}/wwwroot"
+  local status_wwwroot="${PUBLISH_DIR}/status-wwwroot"
+  local server_dir=""
   local html_source=""
 
-  mkdir -p "${wwwroot}"
+  mkdir -p "${wwwroot}" "${status_wwwroot}"
 
   if [ -f "${SCRIPT_DIR}/../server/Rava.Api/html/admin.html" ]; then
-    html_source="$(cd "${SCRIPT_DIR}/../server/Rava.Api/html" && pwd)"
+    server_dir="$(cd "${SCRIPT_DIR}/../server" && pwd)"
+    html_source="${server_dir}/Rava.Api/html"
   elif [ -f "/usr/local/lib/rava/html/admin.html" ]; then
     html_source="/usr/local/lib/rava/html"
   elif [ -f "${PUBLISH_DIR}/html/admin.html" ]; then
     html_source="${PUBLISH_DIR}/html"
   fi
 
-  if [ -n "${html_source}" ] && [ -f "${SCRIPT_DIR}/sync-portal-wwwroot.sh" ]; then
+  if [ -n "$server_dir" ] && [ -f "${SCRIPT_DIR}/sync-publish-wwwroot.sh" ]; then
+    if [ ! -f "${wwwroot}/index.html" ] \
+      || [ ! -f "${wwwroot}/js/status.js" ] \
+      || [ ! -f "${status_wwwroot}/index.html" ] \
+      || [ ! -f "${wwwroot}/admin.html" ] \
+      || [ ! -f "${wwwroot}/moderator.html" ] \
+      || [ ! -f "${wwwroot}/js/currency.js" ]; then
+      echo "Syncing missing status + portal wwwroot files from ${server_dir}..."
+      bash "${SCRIPT_DIR}/sync-publish-wwwroot.sh" "${server_dir}" "${wwwroot}"
+    fi
+  elif [ -n "${html_source}" ] && [ -f "${SCRIPT_DIR}/sync-portal-wwwroot.sh" ]; then
     if [ ! -f "${wwwroot}/admin.html" ] || [ ! -f "${wwwroot}/moderator.html" ] || [ ! -f "${wwwroot}/js/currency.js" ]; then
       echo "Syncing missing portal wwwroot files from ${html_source}..."
       bash "${SCRIPT_DIR}/sync-portal-wwwroot.sh" "${html_source}" "${wwwroot}"
+    fi
+    if [ -n "$server_dir" ] && [ -f "${SCRIPT_DIR}/sync-status-wwwroot.sh" ] \
+      && { [ ! -f "${status_wwwroot}/index.html" ] || [ ! -f "${status_wwwroot}/js/status.js" ]; }; then
+      echo "Syncing missing status wwwroot files from ${server_dir}..."
+      bash "${SCRIPT_DIR}/sync-status-wwwroot.sh" "${server_dir}" "${status_wwwroot}"
+      bash "${SCRIPT_DIR}/sync-status-wwwroot.sh" "${server_dir}" "${wwwroot}"
     fi
   elif [ ! -f "${wwwroot}/admin.html" ] || [ ! -f "${wwwroot}/moderator.html" ]; then
     echo "WARN: missing ${wwwroot}/admin.html or moderator.html — run: sudo deploy-rava-portals --static-only" >&2
   fi
 
-  if [ "$(id -u)" -eq 0 ] && [ -d "${wwwroot}" ]; then
-    chown -R "${SERVICE_USER}:${SERVICE_USER}" "${wwwroot}" 2>/dev/null || true
-    find "${wwwroot}" -type d -exec chmod 755 {} + 2>/dev/null || true
-    find "${wwwroot}" -type f -exec chmod 644 {} + 2>/dev/null || true
+  if [ ! -f "${status_wwwroot}/index.html" ] || [ ! -f "${status_wwwroot}/js/status.js" ]; then
+    echo "WARN: missing status dashboard files — run: sudo deploy-rava-status --static-only" >&2
+  fi
+
+  if [ "$(id -u)" -eq 0 ]; then
+    for dir in "${wwwroot}" "${status_wwwroot}"; do
+      if [ ! -d "$dir" ]; then
+        continue
+      fi
+      chown -R "${SERVICE_USER}:${SERVICE_USER}" "$dir" 2>/dev/null || true
+      find "$dir" -type d -exec chmod 755 {} + 2>/dev/null || true
+      find "$dir" -type f -exec chmod 644 {} + 2>/dev/null || true
+    done
   fi
 }
 

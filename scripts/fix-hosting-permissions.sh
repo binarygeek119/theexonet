@@ -49,12 +49,15 @@ fix_publish_tree() {
   ensure_dir "${WWW_ROOT}" 755
   ensure_dir "${PUBLISH_DIR}" 755
   ensure_dir "${PUBLISH_DIR}/.aspnet" 775 "${SERVICE_USER}:${SERVICE_GROUP}"
-  if [ -d "${PUBLISH_DIR}/wwwroot" ]; then
-    chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "${PUBLISH_DIR}/wwwroot"
-    find "${PUBLISH_DIR}/wwwroot" -type d -exec chmod 755 {} +
-    find "${PUBLISH_DIR}/wwwroot" -type f -exec chmod 644 {} +
-    say "OK  ${PUBLISH_DIR}/wwwroot (644/755, ${SERVICE_USER})"
-  fi
+  for www_assets in "${PUBLISH_DIR}/wwwroot" "${PUBLISH_DIR}/status-wwwroot"; do
+    if [ ! -d "$www_assets" ]; then
+      continue
+    fi
+    chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "$www_assets"
+    find "$www_assets" -type d -exec chmod 755 {} +
+    find "$www_assets" -type f -exec chmod 644 {} +
+    say "OK  ${www_assets} (644/755, ${SERVICE_USER})"
+  done
 }
 
 fix_data_tree() {

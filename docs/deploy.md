@@ -163,7 +163,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now rava-status
 ```
 
-`Rava.Status` serves static files from `/var/www/publish/wwwroot/` (`index.html`, `js/status.js`, etc.). CI and `deploy-rava-portals` use `scripts/sync-publish-wwwroot.sh` so admin/moderator deploys do not delete status assets. If the status site returns **404**, restore wwwroot and restart: `sudo deploy-rava-status --static-only` (from the repo on the server).
+`Rava.Status` serves static files from `/var/www/publish/status-wwwroot/` first, then `/var/www/publish/wwwroot/` (`index.html`, `js/status.js`, etc.). CI and `deploy-rava-portals` use `scripts/sync-publish-wwwroot.sh` so admin/moderator deploys do not delete status assets. If the status site returns **404** or Chrome shows `chrome-error://chromewebdata/`, the dashboard HTML was likely removed by a portal-only rsync — restore and restart: `sudo deploy-rava-status --static-only` (from the repo on the server), then hard-refresh the browser.
 
 Optional admin portal on port **7000** — uses the same `/var/www/publish` folder as the API.
 

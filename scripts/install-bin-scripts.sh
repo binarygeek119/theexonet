@@ -37,6 +37,8 @@ for script in \
   resolve-server-dir.sh \
   dotnet-sdk.sh \
   sync-portal-wwwroot.sh \
+  sync-status-wwwroot.sh \
+  sync-publish-wwwroot.sh \
   migrate-publish-data-to-var-www.sh \
   sync-publish-data.sh \
   fix-hosting-permissions.sh \

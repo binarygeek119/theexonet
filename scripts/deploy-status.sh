@@ -46,13 +46,15 @@ if [ ! -f "${SERVER_DIR}/Rava.Status/Rava.Status.csproj" ]; then
 fi
 
 sync_status_wwwroot() {
-  local src="${SERVER_DIR}/Rava.Status/wwwroot"
-  if [ ! -d "$src" ]; then
-    echo "Missing ${src}" >&2
-    exit 1
-  fi
-  rsync -a "${src}/" "${PUBLISH_DIR}/wwwroot/"
-  chown -R "${SERVICE_USER}:${SERVICE_USER}" "${PUBLISH_DIR}/wwwroot" 2>/dev/null || true
+  bash "${SCRIPT_DIR}/sync-status-wwwroot.sh" \
+    "${SERVER_DIR}" \
+    "${PUBLISH_DIR}/status-wwwroot"
+  bash "${SCRIPT_DIR}/sync-publish-wwwroot.sh" \
+    "${SERVER_DIR}" \
+    "${PUBLISH_DIR}/wwwroot"
+  chown -R "${SERVICE_USER}:${SERVICE_USER}" \
+    "${PUBLISH_DIR}/status-wwwroot" \
+    "${PUBLISH_DIR}/wwwroot" 2>/dev/null || true
 }
 
 restart_status() {
@@ -76,6 +78,8 @@ if [ "$STATIC_ONLY" -eq 1 ] || ! rava_has_dotnet_sdk; then
   fi
   sync_status_wwwroot
   for required in \
+    "${PUBLISH_DIR}/status-wwwroot/index.html" \
+    "${PUBLISH_DIR}/status-wwwroot/js/status.js" \
     "${PUBLISH_DIR}/wwwroot/index.html" \
     "${PUBLISH_DIR}/wwwroot/js/status.js"; do
     if [ ! -f "$required" ]; then
@@ -104,8 +108,8 @@ rsync -a \
 
 for required in \
   "${PUBLISH_DIR}/Rava.Status.dll" \
-  "${PUBLISH_DIR}/wwwroot/index.html" \
-  "${PUBLISH_DIR}/wwwroot/js/status.js"; do
+  "${PUBLISH_DIR}/status-wwwroot/index.html" \
+  "${PUBLISH_DIR}/status-wwwroot/js/status.js"; do
   if [ ! -f "$required" ]; then
     echo "ERROR: missing ${required} after status deploy." >&2
     exit 1

@@ -6,38 +6,15 @@ set -euo pipefail
 SERVER_DIR="${1:?server directory (contains Rava.Status and Rava.Api)}"
 WWWROOT_DIR="${2:?wwwroot destination directory}"
 
-STATUS_SRC="${SERVER_DIR}/Rava.Status/wwwroot"
 HTML_DIR="${SERVER_DIR}/Rava.Api/html"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STATUS_DEDICATED="$(dirname "$WWWROOT_DIR")/status-wwwroot"
 
-if [ ! -d "$STATUS_SRC" ]; then
-  echo "Missing status wwwroot: ${STATUS_SRC}" >&2
-  exit 1
-fi
+bash "${SCRIPT_DIR}/sync-status-wwwroot.sh" "$SERVER_DIR" "$WWWROOT_DIR"
+mkdir -p "$STATUS_DEDICATED"
+bash "${SCRIPT_DIR}/sync-status-wwwroot.sh" "$SERVER_DIR" "$STATUS_DEDICATED"
 
-mkdir -p "${WWWROOT_DIR}/css" "${WWWROOT_DIR}/js"
-
-copy_status_file() {
-  local rel="$1"
-  local src="${STATUS_SRC}/${rel}"
-  local dest="${WWWROOT_DIR}/${rel}"
-  if [ ! -f "$src" ]; then
-    echo "Missing ${src}" >&2
-    exit 1
-  fi
-  mkdir -p "$(dirname "$dest")"
-  cp -f "$src" "$dest"
-}
-
-for rel in \
-  index.html \
-  values.html \
-  css/status.css \
-  js/status.js \
-  js/values.js; do
-  copy_status_file "$rel"
-done
-
-bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/sync-portal-wwwroot.sh" \
+bash "${SCRIPT_DIR}/sync-portal-wwwroot.sh" \
   "$HTML_DIR" \
   "$WWWROOT_DIR"
 

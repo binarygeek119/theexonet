@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Rava.Core.Configuration;
 using Rava.Status;
@@ -24,8 +25,13 @@ builder.Services.AddSingleton<MonitorRuntimeInfo>();
 var app = builder.Build();
 var monitorRuntime = app.Services.GetRequiredService<MonitorRuntimeInfo>();
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
+var staticFiles = BuildStatusStaticFileProvider(contentRootPath, app.Environment);
+app.UseDefaultFiles(new DefaultFilesOptions
+{
+    FileProvider = staticFiles,
+    DefaultFileNames = ["index.html"],
+});
+app.UseStaticFiles(new StaticFileOptions { FileProvider = staticFiles });
 
 app.MapGet("/api/dashboard", async (
     IHttpClientFactory httpClientFactory,
@@ -141,6 +147,29 @@ app.MapGet("/api/economy", async (
 
 app.Logger.LogInformation("RAVA status dashboard listening on {Urls}", builder.Configuration["Urls"] ?? "http://0.0.0.0:6000");
 app.Run();
+
+static IFileProvider BuildStatusStaticFileProvider(string contentRootPath, IWebHostEnvironment environment)
+{
+    var providers = new List<IFileProvider>();
+
+    var dedicatedStatusRoot = Path.Combine(contentRootPath, "status-wwwroot");
+    if (Directory.Exists(dedicatedStatusRoot))
+    {
+        providers.Add(new PhysicalFileProvider(dedicatedStatusRoot));
+    }
+
+    var sharedWebRoot = Path.Combine(contentRootPath, "wwwroot");
+    if (Directory.Exists(sharedWebRoot))
+    {
+        providers.Add(new PhysicalFileProvider(sharedWebRoot));
+    }
+
+    providers.Add(environment.WebRootFileProvider);
+
+    return providers.Count == 1
+        ? providers[0]
+        : new CompositeFileProvider(providers);
+}
 
 static async Task<PortalStatusPayload> ProbePortalAsync(
     HttpClient client,

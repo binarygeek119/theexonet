@@ -130,18 +130,10 @@ th:last-child {
 }
 
 .grid {
-  display: flex;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: stretch;
   gap: 1rem;
-  overflow-x: auto;
-  padding-bottom: 0.25rem;
-  scrollbar-width: thin;
-}
-
-.grid .card {
-  flex: 1 1 0;
-  min-width: 200px;
 }
 
 .links-card {
@@ -253,21 +245,21 @@ dd {
   background: rgba(125, 211, 252, 0.08);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .grid {
-    flex-wrap: wrap;
-    overflow-x: visible;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
 
-  .grid .card {
-    flex: 1 1 calc(50% - 0.5rem);
-    min-width: min(100%, 240px);
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
-  .grid .card {
-    flex: 1 1 100%;
+  .grid {
+    grid-template-columns: 1fr;
   }
 
   dl div {

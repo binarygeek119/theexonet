@@ -221,6 +221,13 @@ const els = {
   profilePhotoChooseBtn: document.getElementById("profile-photo-choose-btn"),
   profilePhotoBtn: document.getElementById("profile-photo-btn"),
   profilePhotoStatus: document.getElementById("profile-photo-status"),
+  profileBanner: document.getElementById("profile-banner"),
+  profileBackgroundPreview: document.getElementById("profile-background-preview"),
+  profileBackgroundInput: document.getElementById("profile-background-input"),
+  profileBackgroundChooseBtn: document.getElementById("profile-background-choose-btn"),
+  profileBackgroundUploadBtn: document.getElementById("profile-background-upload-btn"),
+  profileBackgroundRemoveBtn: document.getElementById("profile-background-remove-btn"),
+  profileBackgroundStatus: document.getElementById("profile-background-status"),
   profileMoodInput: document.getElementById("profile-mood-input"),
   profileCompanyNameInput: document.getElementById("profile-company-name-input"),
   profileCompanySaveBtn: document.getElementById("profile-company-save-btn"),
@@ -550,9 +557,15 @@ function showScreen(screen) {
   }
 }
 
+function setHidden(el, hidden) {
+  if (el) {
+    el.hidden = hidden;
+  }
+}
+
 function hideProfileScreens() {
-  els.profileModal.hidden = true;
-  els.profileEditModal.hidden = true;
+  setHidden(els.profileModal, true);
+  setHidden(els.profileEditModal, true);
 }
 
 function closeModals() {
@@ -600,6 +613,9 @@ function formatProfileDate(value) {
 }
 
 function setProfileText(el, value, emptyText) {
+  if (!el) {
+    return;
+  }
   const text = (value ?? "").trim();
   el.textContent = text || emptyText;
   el.classList.toggle("empty", !text);
@@ -607,12 +623,60 @@ function setProfileText(el, value, emptyText) {
 
 function applyProfileTheme() {
   const themeClass = "profile-card theme-classic";
-  els.profileCard.className = themeClass;
-  els.profileEditCard.className = themeClass;
+  if (els.profileCard) {
+    els.profileCard.className = themeClass;
+  }
+  if (els.profileEditCard) {
+    els.profileEditCard.className = themeClass;
+  }
+}
+
+function resolveProfileAssetUrl(url) {
+  if (!url) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  if (url.startsWith("/") && API_BASE_URL) {
+    return `${API_BASE_URL}${url}`;
+  }
+
+  return url;
+}
+
+function applyProfileBannerBackground(bannerEl, url) {
+  if (!bannerEl) {
+    return;
+  }
+
+  const resolved = resolveProfileAssetUrl(url);
+  if (resolved) {
+    bannerEl.style.backgroundImage = `url("${resolved}")`;
+    bannerEl.classList.add("has-custom-background");
+  } else {
+    bannerEl.style.removeProperty("background-image");
+    bannerEl.classList.remove("has-custom-background");
+  }
+}
+
+function renderProfileBackgroundPreview(profile) {
+  if (!els.profileBackgroundPreview) {
+    return;
+  }
+
+  applyProfileBannerBackground(els.profileBackgroundPreview, profile?.profileBackgroundUrl);
+  setHidden(els.profileBackgroundRemoveBtn, !profile?.profileBackgroundUrl);
 }
 
 function renderAvatarOnElements(profile, imgEl, initialsEl, avatarEl) {
-  const imageUrl = profile.profileImageUrl;
+  if (!imgEl || !initialsEl || !avatarEl) {
+    return;
+  }
+
+  const imageUrl = resolveProfileAssetUrl(profile.profileImageUrl);
   if (imageUrl) {
     imgEl.src = imageUrl;
     imgEl.hidden = false;
@@ -645,35 +709,85 @@ function renderProfileEditAvatar(profile) {
 }
 
 function populateProfileEditForm(profile) {
-  els.profileEditNumber.textContent = profile.profileNumber || "---";
-  els.profileCompanyNameInput.value = profile.mineName ?? "";
-  els.profileMoodInput.value = profile.mood ?? "";
-  els.profileAboutInput.value = profile.aboutMe ?? "";
-  els.profileInterestsInput.value = profile.interests ?? "";
-  els.profileMusicInput.value = profile.music ?? "";
-  els.profileDiscordInput.value = profile.discord ?? "";
-  els.profileBlueskyInput.value = profile.bluesky ?? "";
-  els.profileTwitterInput.value = profile.twitter ?? "";
-  els.profileYoutubeInput.value = profile.youtube ?? "";
-  els.profileFacebookInput.value = profile.facebook ?? "";
-  els.profileSaveStatus.textContent = "";
-  els.profileSaveStatus.classList.remove("error", "success");
-  els.profileAddFriendStatus.textContent = "";
-  els.profileAddFriendStatus.classList.remove("error", "success");
-  els.profilePhotoStatus.textContent = "";
-  els.profilePhotoStatus.classList.remove("error", "success");
-  els.profilePhotoBtn.disabled = true;
-  els.profilePhotoChooseBtn.textContent = "Choose Photo";
+  if (els.profileEditNumber) {
+    els.profileEditNumber.textContent = profile.profileNumber || "---";
+  }
+  if (els.profileCompanyNameInput) {
+    els.profileCompanyNameInput.value = profile.mineName ?? "";
+  }
+  if (els.profileMoodInput) {
+    els.profileMoodInput.value = profile.mood ?? "";
+  }
+  if (els.profileAboutInput) {
+    els.profileAboutInput.value = profile.aboutMe ?? "";
+  }
+  if (els.profileInterestsInput) {
+    els.profileInterestsInput.value = profile.interests ?? "";
+  }
+  if (els.profileMusicInput) {
+    els.profileMusicInput.value = profile.music ?? "";
+  }
+  if (els.profileDiscordInput) {
+    els.profileDiscordInput.value = profile.discord ?? "";
+  }
+  if (els.profileBlueskyInput) {
+    els.profileBlueskyInput.value = profile.bluesky ?? "";
+  }
+  if (els.profileTwitterInput) {
+    els.profileTwitterInput.value = profile.twitter ?? "";
+  }
+  if (els.profileYoutubeInput) {
+    els.profileYoutubeInput.value = profile.youtube ?? "";
+  }
+  if (els.profileFacebookInput) {
+    els.profileFacebookInput.value = profile.facebook ?? "";
+  }
+  if (els.profileSaveStatus) {
+    els.profileSaveStatus.textContent = "";
+    els.profileSaveStatus.classList.remove("error", "success");
+  }
+  if (els.profileAddFriendStatus) {
+    els.profileAddFriendStatus.textContent = "";
+    els.profileAddFriendStatus.classList.remove("error", "success");
+  }
+  if (els.profilePhotoStatus) {
+    els.profilePhotoStatus.textContent = "";
+    els.profilePhotoStatus.classList.remove("error", "success");
+  }
+  if (els.profilePhotoBtn) {
+    els.profilePhotoBtn.disabled = true;
+  }
+  if (els.profilePhotoChooseBtn) {
+    els.profilePhotoChooseBtn.textContent = "Choose Photo";
+  }
   if (els.profilePhotoInput) {
     els.profilePhotoInput.value = "";
   }
+  if (els.profileBackgroundStatus) {
+    els.profileBackgroundStatus.textContent = "";
+    els.profileBackgroundStatus.classList.remove("error", "success");
+  }
+  if (els.profileBackgroundUploadBtn) {
+    els.profileBackgroundUploadBtn.disabled = true;
+  }
+  if (els.profileBackgroundChooseBtn) {
+    els.profileBackgroundChooseBtn.textContent = "Choose Image";
+  }
+  if (els.profileBackgroundInput) {
+    els.profileBackgroundInput.value = "";
+  }
+  renderProfileBackgroundPreview(profile);
   renderCompanyNameListingControls(profile);
 }
 
 function renderCompanyNameListingControls(profile) {
+  if (!els.profileCompanyNameInput) {
+    return;
+  }
+
   const listed = Boolean(profile.companyNameListed);
-  els.profileCompanyListBtn.hidden = listed;
-  els.profileCompanyCancelListBtn.hidden = !listed;
+  setHidden(els.profileCompanyListBtn, listed);
+  setHidden(els.profileCompanyCancelListBtn, !listed);
   els.profileCompanyListPrice.disabled = listed;
   els.profileCompanyRegenerateBtn.disabled = listed;
   els.profileCompanySaveBtn.disabled = listed;
@@ -798,7 +912,7 @@ async function purchaseCompanyNameListing(listingId) {
     els.storeCompanyNameStatus.textContent = result.message;
     await refreshAll();
     await loadStoreCompanyNames();
-    if (!els.profileModal.hidden || !els.profileEditModal.hidden) {
+    if (!els.profileModal?.hidden || !els.profileEditModal?.hidden) {
       await refreshProfileIfOpen();
     }
   } catch (error) {
@@ -807,6 +921,10 @@ async function purchaseCompanyNameListing(listingId) {
 }
 
 async function loadStoreCompanyNames() {
+  if (!els.storeCompanyNameList) {
+    return;
+  }
+
   els.storeCompanyNameList.innerHTML = "";
   try {
     const response = await api.getCompanyNameListings();
@@ -840,6 +958,10 @@ function formatPublicStatus(status) {
 }
 
 function renderProfileFriends(profile) {
+  if (!els.profileFriendsList) {
+    return;
+  }
+
   const friends = profile.friends ?? [];
   els.profileFriendsList.innerHTML = "";
   els.profileFriendsList.classList.toggle("empty", friends.length === 0);
@@ -887,6 +1009,7 @@ function renderProfile(profile) {
   state.profile = profile;
   applyProfileTheme();
   renderProfileAvatar(profile);
+  applyProfileBannerBackground(els.profileBanner, profile.profileBackgroundUrl);
   els.profileUsername.textContent = profile.username;
   els.profileMoodDisplay.textContent = profile.mood || "Ready to mine.";
   els.profileNumber.textContent = profile.profileNumber || "---";
@@ -906,7 +1029,7 @@ function renderProfile(profile) {
   els.profileZones.textContent = String(profile.zoneCount ?? 0);
 
   const isOwner = Boolean(profile.isOwner);
-  els.profileCustomizeBtn.hidden = !isOwner;
+  setHidden(els.profileCustomizeBtn, !isOwner);
   if (isOwner) {
     populateProfileEditForm(profile);
     renderProfileEditAvatar(profile);
@@ -922,10 +1045,14 @@ function renderProfileFlagNotice(profile) {
   const showFlag = Boolean(profile.isOwner && activeFlag);
   const comment = showFlag ? activeFlag.comment : "";
 
-  els.profileFlagNotice.hidden = !showFlag;
-  els.profileFlagComment.textContent = comment;
-  els.profileEditFlagNotice.hidden = !showFlag;
-  els.profileEditFlagComment.textContent = comment;
+  setHidden(els.profileFlagNotice, !showFlag);
+  if (els.profileFlagComment) {
+    els.profileFlagComment.textContent = comment;
+  }
+  setHidden(els.profileEditFlagNotice, !showFlag);
+  if (els.profileEditFlagComment) {
+    els.profileEditFlagComment.textContent = comment;
+  }
 }
 
 async function uploadProfilePhoto() {
@@ -943,7 +1070,7 @@ async function uploadProfilePhoto() {
     const profile = await api.uploadProfileAvatar(file);
     els.profilePhotoInput.value = "";
     renderProfile(profile);
-    if (!els.profileEditModal.hidden) {
+    if (!els.profileEditModal?.hidden) {
       renderProfileEditAvatar(profile);
     }
     els.profilePhotoStatus.textContent = "Profile photo updated.";
@@ -954,9 +1081,57 @@ async function uploadProfilePhoto() {
   }
 }
 
+async function uploadProfileBackground() {
+  const file = els.profileBackgroundInput.files?.[0];
+  if (!file) {
+    els.profileBackgroundStatus.textContent = "Choose a JPEG, PNG, WebP, or GIF image first.";
+    els.profileBackgroundStatus.classList.add("error");
+    return;
+  }
+
+  els.profileBackgroundStatus.textContent = "Uploading banner...";
+  els.profileBackgroundStatus.classList.remove("error", "success");
+
+  try {
+    const profile = await api.uploadProfileBackground(file);
+    els.profileBackgroundInput.value = "";
+    renderProfile(profile);
+    if (!els.profileEditModal?.hidden) {
+      populateProfileEditForm(profile);
+    }
+    els.profileBackgroundStatus.textContent = "Profile banner updated.";
+    els.profileBackgroundStatus.classList.add("success");
+  } catch (error) {
+    els.profileBackgroundStatus.textContent = error.message;
+    els.profileBackgroundStatus.classList.add("error");
+  }
+}
+
+async function removeProfileBackground() {
+  els.profileBackgroundStatus.textContent = "Removing banner...";
+  els.profileBackgroundStatus.classList.remove("error", "success");
+
+  try {
+    const profile = await api.removeProfileBackground();
+    renderProfile(profile);
+    if (!els.profileEditModal?.hidden) {
+      populateProfileEditForm(profile);
+    }
+    els.profileBackgroundStatus.textContent = "Profile banner removed.";
+    els.profileBackgroundStatus.classList.add("success");
+  } catch (error) {
+    els.profileBackgroundStatus.textContent = error.message;
+    els.profileBackgroundStatus.classList.add("error");
+  }
+}
+
 function renderProfileFriendPanel(profile) {
+  if (!els.profileFriendPanel) {
+    return;
+  }
+
   const isOwner = Boolean(profile.isOwner);
-  els.profileFriendPanel.hidden = isOwner;
+  setHidden(els.profileFriendPanel, isOwner);
   els.profileFriendActionStatus.textContent = "";
   els.profileFriendActionStatus.classList.remove("error", "success");
 
@@ -965,10 +1140,10 @@ function renderProfileFriendPanel(profile) {
   }
 
   const status = profile.friendshipStatus ?? "none";
-  els.profileAddFriendBtn.hidden = status !== "none";
-  els.profileAcceptFriendBtn.hidden = status !== "pending_incoming";
-  els.profileMessageFriendBtn.hidden = status !== "accepted";
-  els.profileRemoveFriendBtn.hidden = !["pending_outgoing", "pending_incoming", "accepted"].includes(status);
+  setHidden(els.profileAddFriendBtn, status !== "none");
+  setHidden(els.profileAcceptFriendBtn, status !== "pending_incoming");
+  setHidden(els.profileMessageFriendBtn, status !== "accepted");
+  setHidden(els.profileRemoveFriendBtn, !["pending_outgoing", "pending_incoming", "accepted"].includes(status));
 
   switch (status) {
     case "accepted":
@@ -1197,7 +1372,9 @@ async function submitProfileAddFriend() {
 }
 
 async function refreshProfileIfOpen() {
-  if ((els.profileModal.hidden && els.profileEditModal.hidden) || !state.profile) {
+  const profileClosed = !els.profileModal || els.profileModal.hidden;
+  const editClosed = !els.profileEditModal || els.profileEditModal.hidden;
+  if ((profileClosed && editClosed) || !state.profile) {
     return;
   }
 
@@ -1296,7 +1473,7 @@ async function profileRemoveFriend() {
 
 function openProfileEdit() {
   const profile = state.profile;
-  if (!profile?.isOwner) {
+  if (!profile?.isOwner || !els.profileEditModal) {
     return;
   }
 
@@ -1305,14 +1482,14 @@ function openProfileEdit() {
   renderProfileFlagNotice(profile);
   applyProfileTheme();
 
-  els.profileModal.hidden = true;
-  els.profileEditModal.hidden = false;
+  setHidden(els.profileModal, true);
+  setHidden(els.profileEditModal, false);
   openModal(els.profileEditModal);
 }
 
 async function closeProfileEdit(refreshProfile = true) {
-  els.profileEditModal.hidden = true;
-  els.profileModal.hidden = false;
+  setHidden(els.profileEditModal, true);
+  setHidden(els.profileModal, false);
   openModal(els.profileModal);
 
   if (!refreshProfile || !state.profile?.isOwner) {
@@ -1335,8 +1512,8 @@ async function openProfile(username) {
   els.friendsModal.hidden = true;
   els.messagesModal.hidden = true;
   els.dayModal.hidden = true;
-  els.profileEditModal.hidden = true;
-  els.profileModal.hidden = false;
+  setHidden(els.profileEditModal, true);
+  setHidden(els.profileModal, false);
   openModal(els.profileModal);
 
   try {
@@ -1725,10 +1902,16 @@ function renderStorePanel() {
     els.storeSupplyList.appendChild(button);
   }
 
-  els.storeCompanyNameStatus.textContent = "";
-  loadStoreCompanyNames().catch((error) => {
-    els.storeCompanyNameStatus.textContent = error.message;
-  });
+  if (els.storeCompanyNameStatus) {
+    els.storeCompanyNameStatus.textContent = "";
+  }
+  if (els.storeCompanyNameList) {
+    loadStoreCompanyNames().catch((error) => {
+      if (els.storeCompanyNameStatus) {
+        els.storeCompanyNameStatus.textContent = error.message;
+      }
+    });
+  }
 }
 
 function renderShippingPanel() {
@@ -2218,37 +2401,37 @@ els.profileBtn.addEventListener("click", () => openProfile());
 els.profileCloseBtn.addEventListener("click", () => {
   hideProfileScreens();
 });
-els.profileCustomizeBtn.addEventListener("click", () => {
+els.profileCustomizeBtn?.addEventListener("click", () => {
   openProfileEdit();
 });
-els.profileEditBackBtn.addEventListener("click", () => {
+els.profileEditBackBtn?.addEventListener("click", () => {
   closeProfileEdit().catch((error) => showStatus(error.message, true));
 });
-els.profileSaveBtn.addEventListener("click", () => {
+els.profileSaveBtn?.addEventListener("click", () => {
   saveProfile().catch((error) => {
     els.profileSaveStatus.textContent = error.message;
     els.profileSaveStatus.classList.add("error");
   });
 });
-els.profileCompanySaveBtn.addEventListener("click", () => {
+els.profileCompanySaveBtn?.addEventListener("click", () => {
   saveCompanyName().catch((error) => {
     els.profileCompanyStatus.textContent = error.message;
     els.profileCompanyStatus.classList.add("error");
   });
 });
-els.profileCompanyRegenerateBtn.addEventListener("click", () => {
+els.profileCompanyRegenerateBtn?.addEventListener("click", () => {
   regenerateCompanyName().catch((error) => {
     els.profileCompanyStatus.textContent = error.message;
     els.profileCompanyStatus.classList.add("error");
   });
 });
-els.profileCompanyListBtn.addEventListener("click", () => {
+els.profileCompanyListBtn?.addEventListener("click", () => {
   listCompanyNameForSale().catch((error) => {
     els.profileCompanyListStatus.textContent = error.message;
     els.profileCompanyListStatus.classList.add("error");
   });
 });
-els.profileCompanyCancelListBtn.addEventListener("click", () => {
+els.profileCompanyCancelListBtn?.addEventListener("click", () => {
   cancelCompanyNameListing().catch((error) => {
     els.profileCompanyListStatus.textContent = error.message;
     els.profileCompanyListStatus.classList.add("error");
@@ -2274,6 +2457,39 @@ els.profilePhotoBtn.addEventListener("click", () => {
   uploadProfilePhoto().catch((error) => {
     els.profilePhotoStatus.textContent = error.message;
     els.profilePhotoStatus.classList.add("error");
+  });
+});
+els.profileBackgroundChooseBtn?.addEventListener("click", () => {
+  els.profileBackgroundInput.click();
+});
+els.profileBackgroundInput?.addEventListener("change", () => {
+  const file = els.profileBackgroundInput.files?.[0];
+  if (!file) {
+    els.profileBackgroundUploadBtn.disabled = true;
+    els.profileBackgroundChooseBtn.textContent = "Choose Image";
+    applyProfileBannerBackground(els.profileBackgroundPreview, state.profile?.profileBackgroundUrl);
+    return;
+  }
+
+  els.profileBackgroundUploadBtn.disabled = false;
+  els.profileBackgroundChooseBtn.textContent = file.name.length > 14
+    ? `${file.name.slice(0, 11)}…`
+    : file.name;
+
+  const previewUrl = URL.createObjectURL(file);
+  els.profileBackgroundPreview.style.backgroundImage = `url("${previewUrl}")`;
+  els.profileBackgroundPreview.classList.add("has-custom-background");
+});
+els.profileBackgroundUploadBtn?.addEventListener("click", () => {
+  uploadProfileBackground().catch((error) => {
+    els.profileBackgroundStatus.textContent = error.message;
+    els.profileBackgroundStatus.classList.add("error");
+  });
+});
+els.profileBackgroundRemoveBtn?.addEventListener("click", () => {
+  removeProfileBackground().catch((error) => {
+    els.profileBackgroundStatus.textContent = error.message;
+    els.profileBackgroundStatus.classList.add("error");
   });
 });
 els.profileAddFriendBtn.addEventListener("click", () => {

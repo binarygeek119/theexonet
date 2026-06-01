@@ -27,6 +27,7 @@ public class PlayerGameService(
     PlayerProfileUpgrader profileUpgrader,
     CompanyNameService companyNameService,
     IProfileAvatarStorage profileAvatarStorage,
+    IProfileBackgroundStorage profileBackgroundStorage,
     SpecialEventService specialEventService,
     IGameCreditsConfig gameCreditsConfig)
 {
@@ -654,6 +655,68 @@ public class PlayerGameService(
         return (await MapProfileAsync(player, playerId, ct), null);
     }
 
+    public async Task<(PlayerProfileResponse? Profile, string? Error)> UploadProfileBackgroundAsync(
+        Guid playerId,
+        Stream content,
+        string contentType,
+        long length,
+        CancellationToken ct)
+    {
+        var header = new byte[16];
+        var read = await content.ReadAsync(header.AsMemory(0, header.Length), ct);
+        var validationError = ProfileBackgroundValidator.Validate(contentType, length, header.AsSpan(0, read));
+        if (validationError is not null)
+        {
+            return (null, validationError);
+        }
+
+        if (content.CanSeek)
+        {
+            content.Position = 0;
+        }
+        else
+        {
+            return (null, "Could not read uploaded image.");
+        }
+
+        var player = await db.Players.FirstOrDefaultAsync(p => p.Id == playerId, ct);
+        if (player is null)
+        {
+            return (null, null);
+        }
+
+        player.ProfileBackgroundUrl = await profileBackgroundStorage.SaveAsync(playerId, content, contentType, ct);
+        player.ProfileBackgroundRevision++;
+        await ResolveActiveProfileFlagsAsync(playerId, ct);
+        await db.SaveChangesAsync(ct);
+
+        return (await MapProfileAsync(player, playerId, ct), null);
+    }
+
+    public async Task<(PlayerProfileResponse? Profile, string? Error)> RemoveProfileBackgroundAsync(
+        Guid playerId,
+        CancellationToken ct)
+    {
+        var player = await db.Players.FirstOrDefaultAsync(p => p.Id == playerId, ct);
+        if (player is null)
+        {
+            return (null, null);
+        }
+
+        if (string.IsNullOrWhiteSpace(player.ProfileBackgroundUrl))
+        {
+            return (await MapProfileAsync(player, playerId, ct), null);
+        }
+
+        await profileBackgroundStorage.DeleteForPlayerAsync(playerId, ct);
+        player.ProfileBackgroundUrl = string.Empty;
+        player.ProfileBackgroundRevision++;
+        await ResolveActiveProfileFlagsAsync(playerId, ct);
+        await db.SaveChangesAsync(ct);
+
+        return (await MapProfileAsync(player, playerId, ct), null);
+    }
+
     public async Task<FriendsListResponse> GetFriendsAsync(Guid playerId, CancellationToken ct)
     {
         var friendships = await db.Friendships.AsNoTracking()
@@ -847,6 +910,7 @@ public class PlayerGameService(
             player.Username,
             player.ProfileNumber,
             FormatProfileImageUrl(player.ProfileImageUrl, player.ProfileImageRevision),
+            FormatProfileImageUrl(player.ProfileBackgroundUrl, player.ProfileBackgroundRevision),
             player.ProfileMood,
             player.ProfileAboutMe,
             player.ProfileMusic,

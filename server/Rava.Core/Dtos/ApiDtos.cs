@@ -151,6 +151,7 @@ public record PlayerProfileResponse(
     string Username,
     string ProfileNumber,
     string ProfileImageUrl,
+    string ProfileBackgroundUrl,
     string Mood,
     string AboutMe,
     string Music,

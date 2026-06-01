@@ -49,6 +49,44 @@ public class PlayerController(
         return profile is null ? NotFound() : Ok(profile);
     }
 
+    [HttpPost("profile/background")]
+    [RequestSizeLimit(ProfileBackgroundUploadLimits.MaxBytes)]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<PlayerProfileResponse>> UploadBackground(IFormFile file, CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { message = "Choose an image file to upload." });
+        }
+
+        await using var stream = file.OpenReadStream();
+        var (profile, error) = await gameService.UploadProfileBackgroundAsync(
+            User.GetPlayerId(),
+            stream,
+            file.ContentType,
+            file.Length,
+            ct);
+
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return profile is null ? NotFound() : Ok(profile);
+    }
+
+    [HttpDelete("profile/background")]
+    public async Task<ActionResult<PlayerProfileResponse>> RemoveBackground(CancellationToken ct)
+    {
+        var (profile, error) = await gameService.RemoveProfileBackgroundAsync(User.GetPlayerId(), ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return profile is null ? NotFound() : Ok(profile);
+    }
+
     [HttpGet("profile/user/{username}")]
     public async Task<ActionResult<PlayerProfileResponse>> GetProfile(string username, CancellationToken ct)
     {

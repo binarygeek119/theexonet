@@ -89,9 +89,14 @@ builder.Services.AddSingleton<IProfileAvatarStorage>(sp =>
     {
         WebRootPath = webRootPath
     }));
+builder.Services.AddSingleton<IProfileBackgroundStorage>(sp =>
+    new LocalProfileBackgroundStorage(new ProfileBackgroundStorageOptions
+    {
+        WebRootPath = webRootPath
+    }));
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = ProfileAvatarUploadLimits.MaxBytes;
+    options.MultipartBodyLengthLimit = ProfileBackgroundUploadLimits.MaxBytes;
 });
 builder.Services.AddScoped<IDataMigration, ProfileDefaultsMigration>();
 builder.Services.AddScoped<IDataMigration, ProfileNumberMigration>();
@@ -302,12 +307,13 @@ using (var scope = app.Services.CreateScope())
     try
     {
         Directory.CreateDirectory(Path.Combine(webRootPath, ProfileAvatarStorageOptions.RelativeFolder));
+        Directory.CreateDirectory(Path.Combine(webRootPath, ProfileBackgroundStorageOptions.RelativeFolder));
     }
     catch (Exception ex)
     {
         FailStartup(
-            $"Could not create {Path.Combine(webRootPath, ProfileAvatarStorageOptions.RelativeFolder)}. " +
-            "Ensure www-data can write under html/images/profile/. Run: sudo chown -R www-data:www-data /var/www/publish",
+            $"Could not create profile image folders under {webRootPath}. " +
+            "Ensure www-data can write under html/images/. Run: sudo chown -R www-data:www-data /var/www/publish",
             ex);
     }
 }

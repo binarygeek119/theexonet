@@ -82,6 +82,10 @@ export class RavaApi {
         const error = await response.json();
         if (error?.message) {
           message = error.message;
+        } else if (error?.detail) {
+          message = error.detail;
+        } else if (error?.title) {
+          message = error.title;
         }
         if (error?.code) {
           code = error.code;
@@ -285,6 +289,47 @@ export class RavaApi {
     }
 
     return response.json();
+  }
+
+  async uploadProfileBackground(file) {
+    const form = new FormData();
+    form.append("file", file);
+
+    const headers = { Accept: "application/json" };
+    if (this.token) {
+      headers.Authorization = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(`${this.baseUrl}/api/player/profile/background`, {
+      method: "POST",
+      headers,
+      body: form,
+    });
+
+    if (!response.ok) {
+      let message = formatHttpError(response);
+      try {
+        const error = await response.json();
+        if (error?.message) {
+          message = error.message;
+        } else if (error?.detail) {
+          message = error.detail;
+        } else if (error?.title) {
+          message = error.title;
+        }
+      } catch {
+        // ignore parse errors
+      }
+      throw new Error(message);
+    }
+
+    return response.json();
+  }
+
+  removeProfileBackground() {
+    return this.request("/api/player/profile/background", {
+      method: "DELETE",
+    });
   }
 
   getFriends() {
@@ -597,6 +642,10 @@ function formatHttpError(response) {
 
   if (response.status === 403) {
     return "Access denied. Your account is not configured as an admin.";
+  }
+
+  if (response.status === 404) {
+    return "That API feature is not on the server yet. Redeploy Rava.Api, restart the service, then hard-refresh this page.";
   }
 
   if (response.status === 405) {

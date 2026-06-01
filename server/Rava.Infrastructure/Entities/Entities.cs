@@ -28,6 +28,8 @@ public class PlayerEntity
     public string ProfileNumber { get; set; } = string.Empty;
     public string ProfileImageUrl { get; set; } = string.Empty;
     public int ProfileImageRevision { get; set; }
+    public string ProfileBackgroundUrl { get; set; } = string.Empty;
+    public int ProfileBackgroundRevision { get; set; }
 
     public ICollection<MineEntity> Mines { get; set; } = [];
     public ICollection<InventoryItemEntity> Inventory { get; set; } = [];

@@ -230,7 +230,7 @@
         <p class="profile-flag-hint">Please update your profile content. The flag clears automatically when you save changes.</p>
       </div>
 
-      <div class="profile-banner">
+      <div id="profile-banner" class="profile-banner">
           <div id="profile-avatar-column" class="profile-avatar-column">
           <div id="profile-avatar" class="profile-avatar">
             <img id="profile-avatar-img" class="profile-avatar-img" alt="" hidden>
@@ -340,6 +340,21 @@
                 <button id="profile-photo-btn" type="button" class="btn ghost profile-photo-btn" disabled>Upload</button>
                 <p id="profile-photo-status" class="profile-save-status"></p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="profile-box profile-edit-panel">
+          <h4>Profile Banner</h4>
+          <div class="profile-box-content">
+            <p class="profile-number-hint">Custom background behind your photo and headline. JPEG, PNG, WebP, or GIF up to 4 MB. Wide images work best.</p>
+            <div id="profile-background-preview" class="profile-background-preview" aria-hidden="true"></div>
+            <div class="profile-photo-upload">
+              <input id="profile-background-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+              <button id="profile-background-choose-btn" type="button" class="btn primary profile-photo-btn">Choose Image</button>
+              <button id="profile-background-upload-btn" type="button" class="btn ghost profile-photo-btn" disabled>Upload</button>
+              <button id="profile-background-remove-btn" type="button" class="btn ghost profile-photo-btn" hidden>Remove Background</button>
+              <p id="profile-background-status" class="profile-save-status"></p>
             </div>
           </div>
         </section>

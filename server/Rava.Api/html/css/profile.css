@@ -124,6 +124,51 @@
   gap: 16px;
   padding: 16px;
   border-bottom: 2px dashed rgba(0, 51, 153, 0.35);
+  position: relative;
+  background-color: #e8f0ff;
+  background-image: radial-gradient(circle at 25% 25%, rgba(102, 153, 255, 0.22) 1px, transparent 1px);
+  background-size: 12px 12px;
+}
+
+.profile-banner.has-custom-background {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.profile-banner.has-custom-background::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(255, 255, 255, 0.78) 55%,
+    rgba(255, 255, 255, 0.62) 100%
+  );
+  pointer-events: none;
+}
+
+.profile-banner.has-custom-background > * {
+  position: relative;
+  z-index: 1;
+}
+
+.profile-background-preview {
+  min-height: 110px;
+  margin-bottom: 12px;
+  border: 2px dashed #99bbee;
+  border-radius: 0;
+  background-color: #e8f0ff;
+  background-image: radial-gradient(circle at 25% 25%, rgba(102, 153, 255, 0.22) 1px, transparent 1px);
+  background-size: 12px 12px;
+  background-repeat: repeat;
+}
+
+.profile-background-preview.has-custom-background {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .theme-neon .profile-banner,

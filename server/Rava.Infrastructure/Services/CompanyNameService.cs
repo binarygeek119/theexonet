@@ -67,7 +67,7 @@ public class CompanyNameService(AppDbContext db)
 
         var oldName = mine.Name;
         mine.Name = displayName;
-        await PutNameInLimboAsync(oldName, ct);
+        await PutNameInLimboAsync(oldName, playerId, ct);
         await db.SaveChangesAsync(ct);
 
         return (await BuildActionResponseAsync(playerId, mine, "Company name updated.", ct), null);
@@ -90,7 +90,7 @@ public class CompanyNameService(AppDbContext db)
 
         var oldName = mine.Name;
         mine.Name = await GenerateUniqueNameAsync(ct);
-        await PutNameInLimboAsync(oldName, ct);
+        await PutNameInLimboAsync(oldName, playerId, ct);
         await db.SaveChangesAsync(ct);
 
         return (await BuildActionResponseAsync(playerId, mine, "New company name generated.", ct), null);
@@ -204,7 +204,7 @@ public class CompanyNameService(AppDbContext db)
         var purchasedName = listing.CompanyName;
 
         buyerMine.Name = purchasedName;
-        await PutNameInLimboAsync(buyerOldName, ct);
+        await PutNameInLimboAsync(buyerOldName, buyerId, ct);
 
         sellerMine.Name = await GenerateUniqueNameAsync(ct);
 
@@ -359,7 +359,7 @@ public class CompanyNameService(AppDbContext db)
                 ct);
     }
 
-    private async Task PutNameInLimboAsync(string displayName, CancellationToken ct)
+    private async Task PutNameInLimboAsync(string displayName, Guid? playerId, CancellationToken ct)
     {
         var normalized = CompanyNameNormalizer.NormalizeKey(displayName);
         if (string.IsNullOrWhiteSpace(normalized))
@@ -378,6 +378,7 @@ public class CompanyNameService(AppDbContext db)
             db.CompanyNameLimbo.Add(new CompanyNameLimboEntity
             {
                 Id = Guid.NewGuid(),
+                PlayerId = playerId,
                 NormalizedName = normalized,
                 DisplayName = CompanyNameNormalizer.NormalizeDisplay(displayName),
                 AvailableAfter = availableAfter,
@@ -386,6 +387,7 @@ public class CompanyNameService(AppDbContext db)
         }
         else
         {
+            existing.PlayerId = playerId;
             existing.DisplayName = CompanyNameNormalizer.NormalizeDisplay(displayName);
             existing.AvailableAfter = availableAfter;
             existing.CreatedAt = DateTime.UtcNow;

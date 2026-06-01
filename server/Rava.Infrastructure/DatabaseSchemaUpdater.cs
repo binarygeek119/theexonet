@@ -41,6 +41,8 @@ public static class DatabaseSchemaUpdater
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileNumber" text NOT NULL DEFAULT '';
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileImageUrl" text NOT NULL DEFAULT '';
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileImageRevision" integer NOT NULL DEFAULT 0;
+            ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileBackgroundUrl" text NOT NULL DEFAULT '';
+            ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileBackgroundRevision" integer NOT NULL DEFAULT 0;
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "Birthday" date;
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "LastBirthdayBonusYear" integer;
             CREATE UNIQUE INDEX IF NOT EXISTS "IX_Players_ProfileNumber"
@@ -281,6 +283,18 @@ public static class DatabaseSchemaUpdater
             );
             CREATE INDEX IF NOT EXISTS "IX_CompanyNameLimbo_NormalizedName" ON "CompanyNameLimbo" ("NormalizedName");
             CREATE INDEX IF NOT EXISTS "IX_CompanyNameLimbo_AvailableAfter" ON "CompanyNameLimbo" ("AvailableAfter");
+            ALTER TABLE "CompanyNameLimbo" ADD COLUMN IF NOT EXISTS "PlayerId" uuid NULL;
+            CREATE INDEX IF NOT EXISTS "IX_CompanyNameLimbo_PlayerId" ON "CompanyNameLimbo" ("PlayerId");
+            DO $schema$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'FK_CompanyNameLimbo_Players_PlayerId') THEN
+                    ALTER TABLE "CompanyNameLimbo"
+                        ADD CONSTRAINT "FK_CompanyNameLimbo_Players_PlayerId"
+                        FOREIGN KEY ("PlayerId") REFERENCES "Players" ("Id") ON DELETE SET NULL;
+                END IF;
+            END
+            $schema$;
             CREATE TABLE IF NOT EXISTS "CompanyNameListings" (
                 "Id" uuid NOT NULL,
                 "SellerPlayerId" uuid NOT NULL,

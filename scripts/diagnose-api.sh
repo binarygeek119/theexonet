@@ -43,6 +43,25 @@ for file in "${required[@]}"; do
 done
 echo
 
+echo "--- Upload folders ---"
+for dir in \
+  "${PUBLISH_DIR}/html/images/profile" \
+  "${PUBLISH_DIR}/html/images/profile-backgrounds"; do
+  if [ -d "$dir" ]; then
+    echo "OK  $dir"
+    ls -ld "$dir" 2>/dev/null || true
+  else
+    echo "MISSING  $dir (create before restart)"
+    missing=1
+  fi
+done
+if [ "$(id -u)" -eq 0 ]; then
+  mkdir -p "${PUBLISH_DIR}/html/images/profile" "${PUBLISH_DIR}/html/images/profile-backgrounds"
+  chown -R "${SERVICE_USER}:${SERVICE_USER}" "${PUBLISH_DIR}/html/images" 2>/dev/null || true
+  echo "Ensured upload folders exist and are owned by ${SERVICE_USER}."
+fi
+echo
+
 echo "--- appsettings.json ---"
 if [ -f "${PUBLISH_DIR}/appsettings.json" ]; then
   if python3 -m json.tool "${PUBLISH_DIR}/appsettings.json" >/dev/null 2>&1; then

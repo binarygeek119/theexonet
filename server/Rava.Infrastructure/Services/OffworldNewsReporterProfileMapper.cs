@@ -1,3 +1,4 @@
+using Rava.Core.Configuration;
 using Rava.Core.Dtos;
 using Rava.Core.Services;
 
@@ -8,7 +9,15 @@ public static class OffworldNewsReporterProfileMapper
     public static PlayerProfileResponse ToPlayerProfile(
         OffworldNewsReporterProfile reporter,
         string friendshipStatus,
-        Guid? friendshipId)
+        Guid? friendshipId,
+        RavaHostingPaths? hostingPaths = null) =>
+        ToPlayerProfile(reporter, friendshipStatus, friendshipId, hostingPaths?.ReporterAssetRoots() ?? []);
+
+    public static PlayerProfileResponse ToPlayerProfile(
+        OffworldNewsReporterProfile reporter,
+        string friendshipStatus,
+        Guid? friendshipId,
+        params string[] reporterAssetRoots)
     {
         var interests = reporter.Specialties.Count > 0
             ? string.Join(", ", reporter.Specialties)
@@ -18,8 +27,8 @@ public static class OffworldNewsReporterProfileMapper
             Guid.Empty,
             OffworldNewsReporterSocial.UsernameFor(reporter),
             OffworldNewsReporterSocial.ProfileNumberFor(reporter.Slug),
-            OffworldNewsReporterPaths.AvatarUrl(reporter.Slug),
-            OffworldNewsReporterPaths.BackgroundUrl(reporter.Slug),
+            ResolveAvatarUrl(reporter.Slug, reporterAssetRoots),
+            ResolveBackgroundUrl(reporter.Slug, reporterAssetRoots),
             string.Empty,
             reporter.Personality,
             reporter.DirectoryBio,
@@ -52,14 +61,23 @@ public static class OffworldNewsReporterProfileMapper
             OnnProfilePath: OffworldNewsReporterCatalog.OnnProfilePath(reporter.Slug));
     }
 
-    public static PublicProfileSummaryDto ToPublicSummary(OffworldNewsReporterProfile reporter, int rank = 0) =>
+    public static PublicProfileSummaryDto ToPublicSummary(
+        OffworldNewsReporterProfile reporter,
+        int rank = 0,
+        RavaHostingPaths? hostingPaths = null) =>
+        ToPublicSummary(reporter, rank, hostingPaths?.ReporterAssetRoots() ?? []);
+
+    public static PublicProfileSummaryDto ToPublicSummary(
+        OffworldNewsReporterProfile reporter,
+        int rank,
+        params string[] reporterAssetRoots) =>
         new(
             OffworldNewsReporterSocial.UsernameFor(reporter),
             OffworldNewsReporterSocial.ProfileNumberFor(reporter.Slug),
             $"{reporter.Title} · {reporter.Bureau}",
             string.Empty,
             reporter.Personality,
-            OffworldNewsReporterPaths.AvatarUrl(reporter.Slug),
+            ResolveAvatarUrl(reporter.Slug, reporterAssetRoots),
             1,
             0,
             0,
@@ -68,7 +86,14 @@ public static class OffworldNewsReporterProfileMapper
             IsReporter: true,
             ReporterSlug: reporter.Slug);
 
-    public static PublicProfileDetailDto ToPublicDetail(OffworldNewsReporterProfile reporter)
+    public static PublicProfileDetailDto ToPublicDetail(
+        OffworldNewsReporterProfile reporter,
+        RavaHostingPaths? hostingPaths = null) =>
+        ToPublicDetail(reporter, hostingPaths?.ReporterAssetRoots() ?? []);
+
+    public static PublicProfileDetailDto ToPublicDetail(
+        OffworldNewsReporterProfile reporter,
+        params string[] reporterAssetRoots)
     {
         var interests = reporter.Specialties.Count > 0
             ? string.Join(", ", reporter.Specialties)
@@ -79,7 +104,7 @@ public static class OffworldNewsReporterProfileMapper
             OffworldNewsReporterSocial.ProfileNumberFor(reporter.Slug),
             $"{reporter.Title} · {reporter.Bureau}",
             string.Empty,
-            OffworldNewsReporterPaths.AvatarUrl(reporter.Slug),
+            ResolveAvatarUrl(reporter.Slug, reporterAssetRoots),
             reporter.Personality,
             reporter.DirectoryBio,
             interests,
@@ -98,4 +123,14 @@ public static class OffworldNewsReporterProfileMapper
             ReporterSlug: reporter.Slug,
             OnnProfilePath: OffworldNewsReporterCatalog.OnnProfilePath(reporter.Slug));
     }
+
+    private static string ResolveAvatarUrl(string slug, string[] reporterAssetRoots) =>
+        reporterAssetRoots.Length > 0
+            ? OffworldNewsReporterPaths.ResolveAvatarUrl(slug, reporterAssetRoots)
+            : OffworldNewsReporterPaths.AvatarUrl(slug);
+
+    private static string ResolveBackgroundUrl(string slug, string[] reporterAssetRoots) =>
+        reporterAssetRoots.Length > 0
+            ? OffworldNewsReporterPaths.ResolveBackgroundUrl(slug, reporterAssetRoots)
+            : OffworldNewsReporterPaths.BackgroundUrl(slug);
 }

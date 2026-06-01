@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rava.Core.Configuration;
 using Rava.Core.Constants;
 using Rava.Core.Dtos;
 using Rava.Core.Enums;
@@ -13,7 +14,8 @@ namespace Rava.Infrastructure.Services;
 public class PublicProfileService(
     AppDbContext db,
     IMarketItemsCatalog marketItems,
-    PlayerBanService playerBanService)
+    PlayerBanService playerBanService,
+    RavaHostingPaths hostingPaths)
 {
     public const string SortCompanyValue = "companyValue";
 
@@ -49,7 +51,7 @@ public class PublicProfileService(
         };
 
         var summaries = await MapSummariesAsync(players, ct);
-        var merged = MergeReporterSearchResults(query, limit, summaries);
+        var merged = MergeReporterSearchResults(query, limit, summaries, hostingPaths.ReporterAssetRoots());
         return new PublicProfileSearchResponse(query, normalizedMode, merged);
     }
 
@@ -105,7 +107,7 @@ public class PublicProfileService(
         var reporter = OffworldNewsReporterSocial.TryGetByUsername(username);
         if (reporter is not null)
         {
-            return OffworldNewsReporterProfileMapper.ToPublicDetail(reporter);
+            return OffworldNewsReporterProfileMapper.ToPublicDetail(reporter, hostingPaths);
         }
 
         var normalized = username.Trim().ToLowerInvariant();
@@ -169,14 +171,15 @@ public class PublicProfileService(
     private static IReadOnlyList<PublicProfileSummaryDto> MergeReporterSearchResults(
         string query,
         int limit,
-        IReadOnlyList<PublicProfileSummaryDto> playerSummaries)
+        IReadOnlyList<PublicProfileSummaryDto> playerSummaries,
+        string[] reporterAssetRoots)
     {
         var reporters = new List<PublicProfileSummaryDto>();
         var byNumber = OffworldNewsReporterSocial.TryGetByProfileNumber(
             ProfileNumberNormalizer.Normalize(query));
         if (byNumber is not null)
         {
-            reporters.Add(OffworldNewsReporterProfileMapper.ToPublicSummary(byNumber));
+            reporters.Add(OffworldNewsReporterProfileMapper.ToPublicSummary(byNumber, 0, reporterAssetRoots));
         }
 
         foreach (var reporter in OffworldNewsReporterSocial.Search(query, limit))
@@ -186,7 +189,7 @@ public class PublicProfileService(
                 continue;
             }
 
-            reporters.Add(OffworldNewsReporterProfileMapper.ToPublicSummary(reporter));
+            reporters.Add(OffworldNewsReporterProfileMapper.ToPublicSummary(reporter, 0, reporterAssetRoots));
         }
 
         if (reporters.Count == 0)

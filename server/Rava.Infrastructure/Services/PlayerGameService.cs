@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Rava.Core.Configuration;
 using Rava.Core.Constants;
 using Rava.Core.Dtos;
 using Rava.Core.Enums;
@@ -32,7 +33,8 @@ public class PlayerGameService(
     ICompanyLogoStorage companyLogoStorage,
     SpecialEventService specialEventService,
     IGameCreditsConfig gameCreditsConfig,
-    ReporterFriendshipService reporterFriendshipService)
+    ReporterFriendshipService reporterFriendshipService,
+    RavaHostingPaths hostingPaths)
 {
     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> DayProcessLocks = new();
     private IGameCreditsConfig Credits => gameCreditsConfig;
@@ -569,7 +571,7 @@ public class PlayerGameService(
         {
             var (status, friendshipId) =
                 await reporterFriendshipService.GetFriendshipStatusAsync(viewerId, reporter.Slug, ct);
-            return OffworldNewsReporterProfileMapper.ToPlayerProfile(reporter, status, friendshipId);
+            return OffworldNewsReporterProfileMapper.ToPlayerProfile(reporter, status, friendshipId, hostingPaths);
         }
 
         var normalized = username.Trim().ToLowerInvariant();

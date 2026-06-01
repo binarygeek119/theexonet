@@ -567,9 +567,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     }
 
     const profile = await api.getPublicProfileByUsername(username);
-    const avatarHtml = profile.profileImageUrl
-      ? `<img class="exonet-profile-avatar" src="${escapeHtml(resolveExonetAssetUrl(profile.profileImageUrl))}" alt="">`
-      : `<div class="exonet-profile-initials">${escapeHtml(profileInitials(profile.username))}</div>`;
+    const avatarHtml = renderProfileAvatarMarkup(profile, profile.username);
 
     if (pickField(profile, "isReporter")) {
       const profileSlug = pickField(profile, "reporterSlug") || username;
@@ -654,16 +652,30 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       </table>`;
   }
 
+  function renderProfileAvatarMarkup(profileOrEntry, label) {
+    const url = resolveExonetAssetUrl(pickField(profileOrEntry, "profileImageUrl"));
+    const name = label ?? pickField(profileOrEntry, "username") ?? "?";
+    if (!url) {
+      return `<div class="exonet-profile-initials exonet-profile-initials-compact">${escapeHtml(profileInitials(name))}</div>`;
+    }
+
+    const initials = escapeHtml(profileInitials(name));
+    return `<img class="exonet-profile-avatar exonet-profile-avatar-compact" src="${escapeHtml(url)}" alt="" loading="lazy" onerror="this.remove(); this.parentElement?.querySelector('.exonet-profile-initials-fallback')?.classList.remove('is-hidden');"><div class="exonet-profile-initials exonet-profile-initials-compact exonet-profile-initials-fallback is-hidden">${initials}</div>`;
+  }
+
   function renderProfileResultsList(results) {
     return `
       <div class="exonet-grid exonet-profile-results">
         ${results
           .map(
             (entry) => `
-          <button type="button" class="exonet-tile" data-profile="${escapeHtml(entry.username)}">
-            <strong>${escapeHtml(entry.username)}${entry.isReporter ? " · ONN" : ""}</strong>
-            <span>${escapeHtml(entry.companyName ?? (entry.isReporter ? "Offworld News Network" : "Unknown mine"))}</span>
-            <span>${escapeHtml(entry.profileNumber ?? "—")}${entry.isReporter ? "" : ` · ${formatRaxPlain(entry.companyValue ?? 0)}`}</span>
+          <button type="button" class="exonet-tile exonet-profile-result-tile" data-profile="${escapeHtml(entry.username)}">
+            ${entry.isReporter || entry.profileImageUrl ? renderProfileAvatarMarkup(entry, entry.username) : ""}
+            <div class="exonet-profile-result-copy">
+              <strong>${escapeHtml(entry.username)}${entry.isReporter ? " · ONN" : ""}</strong>
+              <span>${escapeHtml(entry.companyName ?? (entry.isReporter ? "Offworld News Network" : "Unknown mine"))}</span>
+              <span>${escapeHtml(entry.profileNumber ?? "—")}${entry.isReporter ? "" : ` · ${formatRaxPlain(entry.companyValue ?? 0)}`}</span>
+            </div>
           </button>`,
           )
           .join("")}

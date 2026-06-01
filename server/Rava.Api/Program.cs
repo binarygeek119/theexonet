@@ -53,6 +53,13 @@ var offworldNewsCacheRoot = RavaDataPaths.ResolveOffworldNewsCacheRoot(
     contentRootPath,
     webRootPath,
     offworldNewsOptionsForPaths.CacheDirectory);
+var hostingPaths = new RavaHostingPaths
+{
+    DataRoot = dataRootPath,
+    ImagesRoot = imagesRootPath,
+    OffworldNewsCacheRoot = offworldNewsCacheRoot,
+};
+builder.Services.AddSingleton(hostingPaths);
 
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.Configure<MarketOptions>(builder.Configuration.GetSection(MarketOptions.SectionName));
@@ -195,9 +202,11 @@ catch (Exception ex)
 }
 
 app.Logger.LogInformation(
-    "Content root: {ContentRoot}. Web root: {WebRoot}. Profile uploads: {AvatarPath}. Profile backgrounds: {BackgroundPath}",
+    "Content root: {ContentRoot}. Web root: {WebRoot}. Data root: {DataRoot}. Offworld News cache: {OffworldNewsCache}. Profile uploads: {AvatarPath}. Profile backgrounds: {BackgroundPath}",
     contentRootPath,
     webRootPath,
+    dataRootPath,
+    offworldNewsCacheRoot,
     Path.Combine(imagesRootPath, ProfileAvatarStorageOptions.RelativeFolder),
     Path.Combine(imagesRootPath, ProfileBackgroundStorageOptions.RelativeFolder));
 

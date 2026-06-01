@@ -10,6 +10,8 @@ public static class RavaDataPaths
 
     public const string DefaultProductionPath = "/var/www/data";
 
+    public const string DefaultPublishPath = "/var/www/publish";
+
     public static string Resolve(string contentRootPath)
     {
         var fromEnv = Environment.GetEnvironmentVariable(EnvironmentVariable);
@@ -18,7 +20,26 @@ public static class RavaDataPaths
             return Path.GetFullPath(fromEnv.Trim());
         }
 
-        return contentRootPath;
+        var normalizedContent = Path.GetFullPath(contentRootPath);
+        var productionDataAppsettings = Path.Combine(DefaultProductionPath, "appsettings.json");
+        if (File.Exists(productionDataAppsettings)
+            && IsUnderOrEqual(normalizedContent, DefaultPublishPath))
+        {
+            return DefaultProductionPath;
+        }
+
+        return normalizedContent;
+    }
+
+    private static bool IsUnderOrEqual(string path, string root)
+    {
+        if (path.Equals(root, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var prefix = root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        return path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
     }
 
     public static string ResolveFile(string contentRootPath, string fileName) =>

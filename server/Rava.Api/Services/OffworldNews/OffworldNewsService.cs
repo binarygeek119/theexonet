@@ -11,8 +11,8 @@ using Rava.Infrastructure.Services;
 namespace Rava.Api.Services.OffworldNews;
 
 public sealed class OffworldNewsService(
-    IWebHostEnvironment environment,
     IOptions<OffworldNewsOptions> options,
+    RavaHostingPaths hostingPaths,
     IHttpClientFactory httpClientFactory,
     IServiceScopeFactory scopeFactory,
     ILogger<OffworldNewsService> logger)
@@ -27,6 +27,7 @@ public sealed class OffworldNewsService(
     };
 
     private readonly OffworldNewsOptions _options = options.Value;
+    private readonly string _cacheRoot = hostingPaths.OffworldNewsCacheRoot;
 
     public async Task<OffworldNewsEditionDto> GetEditionAsync(DateOnly? editionDate = null, CancellationToken ct = default)
     {
@@ -302,19 +303,7 @@ public sealed class OffworldNewsService(
         }
     }
 
-    private string GetCacheRoot()
-    {
-        var webRoot = environment.WebRootPath;
-        if (string.IsNullOrWhiteSpace(webRoot))
-        {
-            webRoot = Path.Combine(environment.ContentRootPath, "html");
-        }
-
-        return RavaDataPaths.ResolveOffworldNewsCacheRoot(
-            environment.ContentRootPath,
-            webRoot,
-            _options.CacheDirectory);
-    }
+    private string GetCacheRoot() => _cacheRoot;
 
     private string GetEditionFilePath(DateOnly date) =>
         Path.Combine(GetCacheRoot(), "editions", $"{date:yyyy-MM-dd}.json");

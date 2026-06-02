@@ -493,6 +493,13 @@ app.UseMiddleware<Rava.Api.Middleware.PlayerBanMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 
+var faviconPath = Path.Combine(webRootPath, "favicon.svg");
+app.MapGet("/favicon.svg", () =>
+    File.Exists(faviconPath)
+        ? Results.File(faviconPath, "image/svg+xml")
+        : Results.NotFound());
+app.MapGet("/favicon.ico", () => Results.Redirect("/favicon.svg", permanent: false));
+
 if (serveGameUi)
 {
     app.MapGet("/admin", () => Results.Redirect("/admin.html"));
@@ -508,6 +515,8 @@ else
         <head>
           <meta charset="utf-8">
           <title>RAVA API</title>
+          <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+          <link rel="alternate icon" href="/favicon.ico">
         </head>
         <body>API status is OK</body>
         </html>

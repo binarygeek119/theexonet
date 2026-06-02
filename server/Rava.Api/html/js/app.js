@@ -7,9 +7,9 @@ import {
   setRaxHtml,
   RAX_NAME,
 } from "./currency.js";
-import { initPlayerMessaging } from "./player-messages.js?v=20260529-testing-mode-server";
+import { initPlayerMessaging } from "./player-messages.js?v=20260529-testing-friends-refresh";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
-import { initExonet } from "./exonet.js?v=20260529-testing-mode-server-2";
+import { initExonet } from "./exonet.js?v=20260529-testing-friends-refresh";
 import { initI18n, applyTranslations, wireLocaleSelectors, wireLocaleSelector, getLocale, setLocale, t } from "./i18n.js";
 import {
   augmentOwnerProfileForTesting,
@@ -18,7 +18,7 @@ import {
   resolveDummyGameProfile,
   saveRemovedDummyFriendship,
   setCachedTestingModeEnabled,
-} from "./admin-testing-mode.js?v=20260529-testing-mode-server";
+} from "./admin-testing-mode.js?v=20260529-testing-friends-refresh";
 
 const api = new RavaApi(API_BASE_URL);
 
@@ -2114,19 +2114,21 @@ function isTestingFriendsActive() {
 }
 
 async function refreshStaffAdminFlag() {
-  const previousTestingMode = state.testingModeEnabled;
+  const wasTestingFriendsActive = isTestingFriendsActive();
   try {
     const access = await api.adminAccess();
     state.isStaffAdmin = Boolean(access?.isAdmin);
     state.testingModeEnabled = Boolean(access?.testingModeEnabled);
     setCachedTestingModeEnabled(state.testingModeEnabled);
-  } catch {
-    state.isStaffAdmin = false;
-    state.testingModeEnabled = false;
-    setCachedTestingModeEnabled(false);
+  } catch (error) {
+    if (error?.status === 401 || error?.status === 403) {
+      state.isStaffAdmin = false;
+      state.testingModeEnabled = false;
+      setCachedTestingModeEnabled(false);
+    }
   }
 
-  if (previousTestingMode !== state.testingModeEnabled) {
+  if (wasTestingFriendsActive !== isTestingFriendsActive()) {
     if (!els.friendsModal?.hidden) {
       await loadFriends().catch(() => {});
     }
@@ -2146,6 +2148,7 @@ async function openFriendsModal() {
   openModal(els.friendsModal);
   setFriendsStatus(t("friends.loading"));
   try {
+    await refreshStaffAdminFlag();
     await loadFriends();
     setFriendsStatus("");
   } catch (error) {
@@ -2378,6 +2381,7 @@ async function openProfile(username) {
   openModal(els.profileModal);
 
   try {
+    await refreshStaffAdminFlag();
     let profile;
     if (username) {
       profile = resolveDummyGameProfile(
@@ -3853,6 +3857,20 @@ async function startApp() {
     if (state.mine && !els.storeModal.hidden) {
       renderStorePanel();
     }
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !els.loginScreen.hidden) {
+      return;
+    }
+
+    refreshStaffAdminFlag()
+      .then(async () => {
+        if (!els.friendsModal?.hidden) {
+          await loadFriends();
+        }
+      })
+      .catch(() => {});
   });
 
   setAuthMode("login");

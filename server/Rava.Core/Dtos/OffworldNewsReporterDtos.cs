@@ -17,6 +17,8 @@ public record OffworldNewsReporterDto(
     string DirectoryProfilePath,
     string OnnProfilePath,
     string ReportedLocationsNote,
+    IReadOnlyList<string> NotableLocations,
+    IReadOnlyList<string> NotableStories,
     string Network = "Offworld News Network");
 
 public record OffworldNewsReporterStoryRefDto(
@@ -59,6 +61,16 @@ public record AdminOffworldNewsReporterRowDto(
     string StoryKicker,
     IReadOnlyList<string> Specialties,
     string Gender,
+    string NotableLocations,
+    string NotableStories,
+    string Hair,
+    string Eyes,
+    string Race,
+    string Build,
+    string FacialHair,
+    string Makeup,
+    string DistinctiveFeatures,
+    string Species,
     bool InStoryPool,
     string AvatarUrl,
     string BackgroundUrl);
@@ -80,7 +92,17 @@ public record AdminUpdateOffworldNewsReporterRequest(
     string OnnBio,
     string StoryKicker,
     string Specialties,
-    string Gender);
+    string Gender,
+    string NotableLocations,
+    string NotableStories,
+    string Hair,
+    string Eyes,
+    string Race,
+    string Build,
+    string FacialHair,
+    string Makeup,
+    string DistinctiveFeatures,
+    string Species);
 
 public record AdminCreateOffworldNewsReporterRequest(
     string Slug,
@@ -94,7 +116,17 @@ public record AdminCreateOffworldNewsReporterRequest(
     string OnnBio,
     string StoryKicker,
     string Specialties,
-    string Gender);
+    string Gender,
+    string NotableLocations,
+    string NotableStories,
+    string Hair,
+    string Eyes,
+    string Race,
+    string Build,
+    string FacialHair,
+    string Makeup,
+    string DistinctiveFeatures,
+    string Species);
 
 public record AdminUpdateOffworldNewsSettingsRequest(int ReporterPoolSize);
 

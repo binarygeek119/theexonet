@@ -28,13 +28,27 @@ public static class OffworldNewsReporterPortraitGender
         return SlugHashIsEven(slug) ? Female : Male;
     }
 
-    public static string PortraitSubjectPhrase(string? gender)
+    public static string PortraitSubjectPhrase(string? gender, string? species = null)
     {
+        if (ReporterSpecies.IsHuman(species))
+        {
+            return Normalize(gender) switch
+            {
+                Female => "clearly female adult human woman journalist",
+                Male => "clearly male adult human man journalist",
+                _ => "adult human journalist",
+            };
+        }
+
+        var speciesLabel = ReporterSpecies.DisplayLabel(species);
         return Normalize(gender) switch
         {
-            Female => "clearly female adult woman journalist",
-            Male => "clearly male adult man journalist",
-            _ => "adult journalist",
+            Female =>
+                $"clearly female adult {speciesLabel} alien journalist with believable non-human anatomy",
+            Male =>
+                $"clearly male adult {speciesLabel} alien journalist with believable non-human anatomy",
+            _ =>
+                $"adult {speciesLabel} alien journalist with believable non-human anatomy",
         };
     }
 

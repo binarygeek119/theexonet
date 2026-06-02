@@ -51,7 +51,9 @@ bash ../scripts/sync-publish-wwwroot.sh . publish/wwwroot
 require publish/status-wwwroot/index.html
 require publish/status-wwwroot/ai.html
 require publish/status-wwwroot/favicon.svg
-require publish/wwwroot/css/docs.css
+require publish/html/images/profile-defaults/female.svg
+require publish/html/images/profile-defaults/male.svg
+require publish/html/images/profile-defaults/neutral.svg
 
 mkdir -p data
 cp -f Rava.Api/*.csv data/

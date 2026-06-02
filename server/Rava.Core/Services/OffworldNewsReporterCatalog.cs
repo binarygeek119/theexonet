@@ -17,7 +17,15 @@ public sealed record OffworldNewsReporterProfile(
     string OnnBio,
     string StoryKicker,
     IReadOnlyList<string> Specialties,
-    string Gender = OffworldNewsReporterPortraitGender.Male);
+    string Gender = OffworldNewsReporterPortraitGender.Male,
+    IReadOnlyList<string> NotableLocations = null!,
+    IReadOnlyList<string> NotableStories = null!,
+    ReporterAppearance Appearance = null!)
+{
+    public IReadOnlyList<string> NotableLocations { get; init; } = NotableLocations ?? [];
+    public IReadOnlyList<string> NotableStories { get; init; } = NotableStories ?? [];
+    public ReporterAppearance Appearance { get; init; } = Appearance ?? ReporterAppearance.Empty;
+}
 
 /// <summary>
 /// ONN reporter roster loaded from <c>offworld-news-reporters.csv</c> (editable in Excel or Google Sheets).
@@ -264,7 +272,9 @@ public static class OffworldNewsReporterCatalog
                 : OffworldNewsReporterPaths.BackgroundUrl(reporter.Slug),
             DirectoryProfilePath(reporter.Slug),
             OnnProfilePath(reporter.Slug),
-            OffworldNewsReporterBackgroundLocations.ProfileNote(reporter));
+            OffworldNewsReporterBackgroundLocations.ProfileNote(reporter),
+            reporter.NotableLocations,
+            reporter.NotableStories);
 
     private static void EnsureLoaded(bool force = false)
     {

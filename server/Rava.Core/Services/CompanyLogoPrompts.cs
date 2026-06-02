@@ -47,12 +47,12 @@ public static class CompanyLogoPrompts
             : "asteroid mining, ore haulers, frontier industry";
 
         return
-            "Flat vector corporate emblem logo mark for a sci-fi asteroid mining company. " +
-            $"Company name inspiration: \"{company}\". Brand personality from profile: {hintText}. " +
-            "Single centered symbol or monogram, no photograph, no people, no scenery. " +
-            "Bold simple shapes, cool cyan and steel blue palette with one accent color, readable at small size. " +
-            "CRITICAL: fully transparent background (alpha channel), no backdrop, no border frame, no drop shadow on a rectangle, " +
-            "no text, no letters, no words, no watermark.";
+            "Professional corporate logo mark for a sci-fi asteroid mining company — a real brand emblem, not a photo or UI mockup. " +
+            $"Inspired by the company name \"{company}\" and profile tone: {hintText}. " +
+            "Design one centered icon only: geometric crest, ore-crystal badge, abstract hauler silhouette, or industrial monogram built from simple shapes. " +
+            "Style like a Fortune 500 / aerospace company logo: clean vector art, balanced symmetry, bold readable silhouette, cool cyan and steel blue with one accent. " +
+            "CRITICAL: fully transparent background (alpha channel only), clear art floating on transparency — no backdrop, no white box, no border frame, " +
+            "no card, no drop-shadow rectangle, no paper, no scene, no people, no text, no letters, no words, no watermark.";
     }
 
     private static string TrimSnippet(string value, int maxLength)

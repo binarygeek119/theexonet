@@ -86,6 +86,8 @@ public class OffworldNewsReporterCatalogTests
         Assert.False(string.IsNullOrWhiteSpace(dto.OnnBio));
         Assert.NotEqual(dto.DirectoryBio, dto.OnnBio);
         Assert.StartsWith("Noteworthy embeds:", dto.ReportedLocationsNote);
+        Assert.NotEmpty(dto.NotableLocations);
+        Assert.NotEmpty(dto.NotableStories);
     }
 
     [Fact]

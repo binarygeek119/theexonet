@@ -13,6 +13,7 @@ using Rava.Api.Services.CompanyLogo;
 using Rava.Api.Services.OpenAi;
 using Rava.Api.Services.OffworldNews;
 using Rava.Core.Configuration;
+using Rava.Core.Constants;
 using Rava.Core.Interfaces;
 using Rava.Core.Services;
 using Rava.Infrastructure;
@@ -276,6 +277,18 @@ catch (Exception ex)
 app.Services.GetRequiredService<OffworldNewsAdminSettingsStore>().Load();
 app.Services.GetRequiredService<OpenAiUsageTracker>().Load();
 
+var offworldNewsStartupOptions =
+    app.Configuration.GetSection(OffworldNewsOptions.SectionName).Get<OffworldNewsOptions>()
+    ?? new OffworldNewsOptions();
+if (offworldNewsStartupOptions.Enabled)
+{
+    OffworldNewsStorageLayoutMigration.RunIfNeeded(offworldNewsCacheRoot, app.Logger);
+    OffworldNewsReporterProfileMigration.RunIfNeeded(
+        contentRootPath,
+        offworldNewsStartupOptions.ReportersFile,
+        app.Logger);
+}
+
 app.Logger.LogInformation(
     "Content root: {ContentRoot}. Web root: {WebRoot}. Data root: {DataRoot}. Offworld News cache: {OffworldNewsCache}. Profile uploads: {AvatarPath}. Profile backgrounds: {BackgroundPath}. Company logos: {CompanyLogoPath}",
     contentRootPath,
@@ -444,6 +457,27 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new CompositeFileProvider(reporterFileProviders),
     RequestPath = OffworldNewsReporterPaths.PublicReportersPath,
 });
+
+var profileDefaultsRoot = Path.Combine(webRootPath, "images", "profile-defaults");
+if (Directory.Exists(profileDefaultsRoot))
+{
+    // Must register before /images/profile uploads: that path is a prefix of /images/profile-defaults.
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(profileDefaultsRoot),
+        RequestPath = ProfileAvatarPresets.PublicPath
+    });
+}
+
+var offworldNewsPlaceholdersRoot = Path.Combine(webRootPath, "exonet", "offworld-news", "placeholders");
+if (Directory.Exists(offworldNewsPlaceholdersRoot))
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(offworldNewsPlaceholdersRoot),
+        RequestPath = "/exonet/offworld-news/placeholders"
+    });
+}
 
 if (serveGameUi)
 {

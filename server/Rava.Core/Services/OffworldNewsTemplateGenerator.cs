@@ -15,6 +15,8 @@ public static partial class OffworldNewsTemplateGenerator
         "Shipping",
         "Politics",
         "Exonet",
+        "Frontier",
+        "Security",
     ];
 
     private static readonly string[] Locations =
@@ -27,6 +29,10 @@ public static partial class OffworldNewsTemplateGenerator
         "Europa Deep Survey",
         "Vesta Charter Station",
         "Callisto Outer Rim",
+        "Survey Planet K-19",
+        "The Meridian Rift",
+        "Halo-7 Watch Arc",
+        "Driftward Expanse",
     ];
 
     private static readonly string[] FakeCompanyNames =
@@ -127,6 +133,8 @@ public static partial class OffworldNewsTemplateGenerator
             "shipping" => "shipping",
             "politics" => "politics",
             "exonet" => "exonet",
+            "frontier" => "frontier",
+            "security" => "security",
             _ => "markets",
         };
 
@@ -162,6 +170,11 @@ public static partial class OffworldNewsTemplateGenerator
         "Rax liquidity pools",
         "emergency buy back volume",
         "company-name auctions",
+        "a newly charted exoplanet",
+        "a pre-contact watchlist world",
+        "an outer-rim charter vote",
+        "a border skirmish corridor",
+        "a smuggler black-route",
     ];
 
     private static readonly string[] BodyActors =
@@ -173,6 +186,11 @@ public static partial class OffworldNewsTemplateGenerator
         "Rax clearinghouses",
         "independent belt surveyors",
         "Trade Market auction clerks",
+        "Outer Rim Patrol cutters",
+        "Interplanetary Marshal Service agents",
+        "Orbital Commons peace envoys",
+        "deep-survey probe teams",
+        "black-route smuggling syndicates",
     ];
 
     private static readonly string[] BodyDetails =
@@ -183,6 +201,11 @@ public static partial class OffworldNewsTemplateGenerator
         "new charter filings for outer-planet claims",
         "political pressure from the Orbital Commons",
         "record drill-bit burn rates",
+        "a long-range sensor sweep under non-interference doctrine",
+        "navigation beacons for licensed hauler lanes",
+        "a ceasefire line contested by rival flotillas",
+        "bounty postings on interplanetary fugitives",
+        "first-contact briefings for independent captains",
     ];
 
     private static readonly StoryTemplate[] StoryTemplates =
@@ -227,5 +250,25 @@ public static partial class OffworldNewsTemplateGenerator
             "Corporate registry flags unusual {0} filings",
             "{1} names and mine transfers draw regulator side-eye on Exonet.",
             "Corporate monitors flagged a burst of {0} activity around mine transfers and company-name listings. {1} investigators said some filings coincided with emergency buy back spikes, suggesting operators were recycling brands to raise quick Rax.\n\n{2} noted that relinquished names remain reserved for thirty days before re-entering public use. Market desks said {0} remains solvent for now, but interplanetary politics may tighten disclosure rules if the pattern continues."),
+        new(
+            "Watchlist probe maps {3} under observation-only charter",
+            "{0} keeps distance as RAVA non-interference rules bar surface contact.",
+            "Deep-survey telemetry from {0} placed {3} on the agency watchlist after spectroscopy hinted at habitable bands and unusual ore signatures. Under observation-only rules, no landing parties, trade windows, or claim filings may proceed until the Orbital Commons finishes a multi-cycle review.\n\n{2} compared the posture to classic first-contact doctrine: look, record, do not steer. {1} lobbyists already argue the world should stay quarantined forever, while {0} sponsors quietly fund passive sensor arrays in the {3} halo."),
+        new(
+            "Traveler advisory opens {3} to licensed outer-rim convoys",
+            "{0} publishes beacon charts as {1} captains gain clearance to pass through.",
+            "After three observation cycles, charter clerks upgraded {3} from watchlist-only to traveler-introduced status. Licensed haulers may now download navigation beacons and receive diplomatic briefings at {0} relay desks, though mining claims and permanent bases remain forbidden.\n\n{2} said the step mirrors how earlier belt worlds entered the public lane network: introduced carefully, exploited later. Captains on Exonet trade pages debated whether {1} routes through the region justify extra fuel-cell reserves before the next game day."),
+        new(
+            "{3} votes to join the outer-rim charter fold",
+            "{0} celebrates as new world enters the shared journey with claim windows ahead.",
+            "Delegates ratified {3} as a full charter participant, moving the world from traveler access to active membership in the belt relay community. {0} pledged survey teams and starter-compatible claim templates so independent miners can eventually open faces under RAVA production rules.\n\n{2} called it the kind of milestone that reshapes Exonet maps overnight. {1} analysts warned that ore mixes on the new world could shift NPC refinery bids once the first cargo manifests clear inspection at {0}."),
+        new(
+            "Border flotillas clash near {3} as interplanetary war fears rise",
+            "{0} convoys diverted while Orbital Commons envoys chase a ceasefire line.",
+            "Patrol cutters from rival syndicates exchanged warning shots across a contested corridor near {3}, forcing {0} haulers onto longer {1} detours. {2} reported damaged comm modules on two freighters and a twelve-hour freeze on neutral shipping manifests.\n\nOrbital Commons peace envoys opened an emergency channel, invoking belt-neutrality precedes from earlier charter wars. Market desks said {1} spreads widened anyway, and {0} crews stocked extra life support before the UTC midnight edition."),
+        new(
+            "Interplanetary marshals bust {1} ring tied to {0}",
+            "Black-route smugglers accused of Rax laundering across {3}.",
+            "The Interplanetary Marshal Service unsealed indictments against a {1} cartel accused of running stolen ore and falsified cargo tags through {3}. Investigators said {0} appeared on wire chatter as a fence for hot Ferroxite and Voidium before refinery assays caught mismatched manifests.\n\n{2} published bounty notices on Exonet security feeds, warning captains not to accept rush charters from unknown brokers. Corporate monitors added that {0} itself is not charged, but syndicate lawyers demanded retractions before the next charter session."),
     ];
 }

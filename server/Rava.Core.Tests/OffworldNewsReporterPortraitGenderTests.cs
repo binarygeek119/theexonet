@@ -18,4 +18,15 @@ public class OffworldNewsReporterPortraitGenderTests
         Assert.Equal(OffworldNewsReporterPortraitGender.Female, OffworldNewsReporterPortraitGender.InferForSlug("mira-solano"));
         Assert.Equal(OffworldNewsReporterPortraitGender.Male, OffworldNewsReporterPortraitGender.InferForSlug("jonah-kest"));
     }
+
+    [Fact]
+    public void PortraitSubjectPhrase_supports_human_and_alien_species()
+    {
+        Assert.Contains(
+            "human woman journalist",
+            OffworldNewsReporterPortraitGender.PortraitSubjectPhrase(OffworldNewsReporterPortraitGender.Female, ReporterSpecies.Human));
+        Assert.Contains(
+            "Europan alien journalist",
+            OffworldNewsReporterPortraitGender.PortraitSubjectPhrase(OffworldNewsReporterPortraitGender.Male, "Europan"));
+    }
 }

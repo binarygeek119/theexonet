@@ -723,6 +723,23 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     });
   }
 
+  function renderOffworldNewsReporterListSection(title, items) {
+    const list = (items ?? [])
+      .map((item) => String(item ?? "").trim())
+      .filter((item) => item.length > 0);
+    if (list.length === 0) {
+      return "";
+    }
+
+    return `
+      <div class="exonet-news-reporter-list-block">
+        <h4 class="exonet-news-reporter-list-title">${escapeHtml(title)}</h4>
+        <ul class="exonet-news-reporter-list">
+          ${list.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+        </ul>
+      </div>`;
+  }
+
   /** Player-facing masthead never shows internal edition source (e.g. openai / template). */
   function offworldNewsPlayerSourceLabel() {
     return "";
@@ -989,17 +1006,31 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       </button>`;
   }
 
+  const OFFWORLD_NEWS_LOST_IMAGE = "/exonet/offworld-news/placeholders/lost-transmission.svg";
+
   function renderNewsImage(imageUrl, className = "exonet-news-thumb", aspect = "") {
     if (!imageUrl) {
       return "";
     }
 
     const resolvedUrl = resolveOffworldNewsImageUrl(imageUrl);
+    const lostUrl = resolveOffworldNewsImageUrl(OFFWORLD_NEWS_LOST_IMAGE);
     const aspectClass = aspect ? ` aspect-${aspect}` : "";
+    const isLost = imageUrl === OFFWORLD_NEWS_LOST_IMAGE;
+    const lostAlt = "Image has been lost in transmission";
 
     return `
-      <div class="exonet-news-image-wrap${aspectClass}">
-        <img class="${className}" src="${escapeHtml(resolvedUrl)}" alt="">
+      <div class="exonet-news-image-wrap${aspectClass}${isLost ? " is-lost-transmission" : ""}">
+        <img
+          class="${className}"
+          src="${escapeHtml(resolvedUrl)}"
+          alt="${isLost ? escapeHtml(lostAlt) : ""}"
+          ${
+            isLost
+              ? ""
+              : `onerror="this.onerror=null;this.src='${lostUrl.replace(/'/g, "\\'")}';this.alt='${lostAlt.replace(/'/g, "\\'")}';this.closest('.exonet-news-image-wrap')?.classList.add('is-lost-transmission');"`
+          }
+        >
       </div>`;
   }
 
@@ -1207,7 +1238,14 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       const beat = pickField(reporter, "beat") ?? "";
       const bureau = pickField(reporter, "bureau") ?? "";
       const bio = pickField(reporter, "onnBio") ?? pickField(reporter, "directoryBio") ?? "";
+      const notableLocations = pickField(reporter, "notableLocations") ?? [];
+      const notableStories = pickField(reporter, "notableStories") ?? [];
       const locationsNote = pickField(reporter, "reportedLocationsNote") ?? "";
+      const locationsHtml = renderOffworldNewsReporterListSection("Noteworthy locations", notableLocations)
+        || (locationsNote
+          ? `<p class="exonet-news-reporter-locations"><strong>Noteworthy locations</strong><br>${escapeHtml(locationsNote)}</p>`
+          : "");
+      const careerHtml = renderOffworldNewsReporterListSection("Career highlights", notableStories);
 
       content.innerHTML = `
         ${pageHeader(displayName, pageSlug)}
@@ -1227,7 +1265,8 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
                 <p class="exonet-news-reporter-title">${escapeHtml(title)}</p>
                 <p class="exonet-news-reporter-meta">${escapeHtml(beat)} desk · ${escapeHtml(bureau)}</p>
                 <p class="exonet-news-reporter-bio">${escapeHtml(bio)}</p>
-                ${locationsNote ? `<p class="exonet-news-reporter-locations"><strong>Noteworthy locations</strong><br>${escapeHtml(locationsNote)}</p>` : ""}
+                ${locationsHtml}
+                ${careerHtml}
                 ${specialties ? `<div class="exonet-news-reporter-tags">${specialties}</div>` : ""}
               </div>
             </div>

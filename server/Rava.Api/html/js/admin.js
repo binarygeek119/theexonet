@@ -1022,8 +1022,33 @@ function onnReporterGenderField(id, gender) {
       <option value="female"${value === "female" ? " selected" : ""}>Female</option>
       <option value="male"${value === "male" ? " selected" : ""}>Male</option>
     </select>
-    <span class="admin-page-desc">Portrait and banner AI use gender, beat, bureau, and personality from this profile.</span>
+    <span class="admin-page-desc">Portrait AI uses gender, species, race, and the appearance fields below. Banner AI uses notable locations and career stories.</span>
   </label>`;
+}
+
+function onnReporterCareerFields(formId, reporter = {}) {
+  return `
+    <fieldset class="admin-onn-field-group">
+      <legend>Career &amp; embeds</legend>
+      ${onnReporterField(`${formId}-notable-locations`, "Notable reporting locations", pickJson(reporter, "notableLocations") ?? "", { textarea: true, hint: "Semicolon-separated places that matter to this reporter (drives banner AI)." })}
+      ${onnReporterField(`${formId}-notable-stories`, "Big career stories", pickJson(reporter, "notableStories") ?? "", { textarea: true, hint: "Semicolon-separated headline-style scoops (shown on profile and banner memorabilia)." })}
+    </fieldset>`;
+}
+
+function onnReporterAppearanceFields(formId, reporter = {}) {
+  const species = String(pickJson(reporter, "species") ?? "human").trim() || "human";
+  return `
+    <fieldset class="admin-onn-field-group">
+      <legend>Portrait appearance (AI)</legend>
+      ${onnReporterField(`${formId}-species`, "Species", species, { hint: "Human, or an alien type (Europan, Callistan, Martian, etc.). Aliens use the same ONN blue/cyan portrait style." })}
+      ${onnReporterField(`${formId}-race`, "Race / skin", pickJson(reporter, "race") ?? pickJson(reporter, "complexion") ?? "", { hint: "Ethnicity, skin tone, or alien dermal color/texture." })}
+      ${onnReporterField(`${formId}-hair`, "Hair / crest", pickJson(reporter, "hair") ?? "", { hint: "Human hair or alien crest, ridges, filaments." })}
+      ${onnReporterField(`${formId}-eyes`, "Eyes", pickJson(reporter, "eyes") ?? "")}
+      ${onnReporterField(`${formId}-build`, "Build", pickJson(reporter, "build") ?? "", { hint: "e.g. tall and lean, stocky, muscular." })}
+      ${onnReporterField(`${formId}-facial-hair`, "Facial hair", pickJson(reporter, "facialHair") ?? "", { hint: "None, stubble, beard, etc." })}
+      ${onnReporterField(`${formId}-makeup`, "Makeup / markings", pickJson(reporter, "makeup") ?? "", { hint: "None or describe style / bioluminescent accents." })}
+      ${onnReporterField(`${formId}-distinctive`, "Distinctive features", pickJson(reporter, "distinctiveFeatures") ?? "", { textarea: true, hint: "Scars, antennae, jewelry, accessories, alien anatomy cues." })}
+    </fieldset>`;
 }
 
 function onnReporterAddFormHtml() {
@@ -1046,6 +1071,8 @@ function onnReporterAddFormHtml() {
         ${onnReporterField(`${formId}-onn-bio`, "ONN bio", "", { textarea: true })}
         ${onnReporterField(`${formId}-kicker`, "Story kicker", "", { textarea: true })}
         ${onnReporterField(`${formId}-specialties`, "Specialties", "", { hint: "Separate with semicolons (;)." })}
+        ${onnReporterCareerFields(formId)}
+        ${onnReporterAppearanceFields(formId)}
         <div class="button-row admin-onn-reporter-actions">
           <button type="submit" class="btn primary">Add reporter</button>
           <button type="button" class="btn ghost admin-onn-add-generate-btn" data-onn-assets="both">Add &amp; generate AI portraits</button>
@@ -1098,6 +1125,8 @@ function renderOnnReporters(page) {
           ${onnReporterField(`${formId}-onn-bio`, "ONN bio", pickJson(reporter, "onnBio"), { textarea: true })}
           ${onnReporterField(`${formId}-kicker`, "Story kicker", pickJson(reporter, "storyKicker"), { textarea: true })}
           ${onnReporterField(`${formId}-specialties`, "Specialties", specialties, { hint: "Separate with semicolons (;)." })}
+          ${onnReporterCareerFields(formId, reporter)}
+          ${onnReporterAppearanceFields(formId, reporter)}
           <div class="button-row admin-onn-reporter-actions">
             <button type="submit" class="btn primary">Save reporter</button>
             <button type="button" class="btn ghost admin-onn-regen-portrait-btn" data-onn-assets="avatar">Regenerate portrait</button>
@@ -1176,6 +1205,16 @@ function readOnnReporterForm(form) {
     onnBio: document.getElementById(`${prefix}-onn-bio`)?.value.trim() ?? "",
     storyKicker: document.getElementById(`${prefix}-kicker`)?.value.trim() ?? "",
     specialties: document.getElementById(`${prefix}-specialties`)?.value.trim() ?? "",
+    notableLocations: document.getElementById(`${prefix}-notable-locations`)?.value.trim() ?? "",
+    notableStories: document.getElementById(`${prefix}-notable-stories`)?.value.trim() ?? "",
+    hair: document.getElementById(`${prefix}-hair`)?.value.trim() ?? "",
+    eyes: document.getElementById(`${prefix}-eyes`)?.value.trim() ?? "",
+    race: document.getElementById(`${prefix}-race`)?.value.trim() ?? "",
+    build: document.getElementById(`${prefix}-build`)?.value.trim() ?? "",
+    facialHair: document.getElementById(`${prefix}-facial-hair`)?.value.trim() ?? "",
+    makeup: document.getElementById(`${prefix}-makeup`)?.value.trim() ?? "",
+    distinctiveFeatures: document.getElementById(`${prefix}-distinctive`)?.value.trim() ?? "",
+    species: document.getElementById(`${prefix}-species`)?.value.trim() ?? "human",
   };
 }
 
@@ -1194,6 +1233,16 @@ function readOnnReporterCreateBody(form) {
     onnBio: body.onnBio,
     storyKicker: body.storyKicker,
     specialties: body.specialties,
+    notableLocations: body.notableLocations,
+    notableStories: body.notableStories,
+    hair: body.hair,
+    eyes: body.eyes,
+    race: body.race,
+    build: body.build,
+    facialHair: body.facialHair,
+    makeup: body.makeup,
+    distinctiveFeatures: body.distinctiveFeatures,
+    species: body.species,
   };
 }
 
@@ -1421,11 +1470,15 @@ async function regenerateOffworldNewsReporterPortraits() {
 }
 
 async function regenerateOffworldNewsImages() {
-  if (!window.confirm("Regenerate AI images for today's stories? Headlines and article text will stay the same.")) {
+  if (
+    !window.confirm(
+      "Regenerate only today's existing AI story images? Headlines, article text, archive editions, and placeholder images are left unchanged.",
+    )
+  ) {
     return;
   }
 
-  setStatus(els.offworldNewsStatus, "Regenerating images…");
+  setStatus(els.offworldNewsStatus, "Regenerating today's AI images…");
   setOffworldNewsButtonsDisabled(true);
   try {
     const result = await api.adminRegenerateOffworldNewsImages();

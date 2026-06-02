@@ -217,7 +217,7 @@
   "profile.edit.saveCompany": "Save Company Name",
   "profile.edit.regenerate": "Regenerate",
   "profile.edit.companyLogo": "Company logo",
-  "profile.edit.companyLogoHint": "Upload a transparent PNG, or queue an AI emblem from your company name and profile. Missing logos are queued automatically at UTC midnight.",
+  "profile.edit.companyLogoHint": "Upload a transparent PNG emblem, or generate an AI corporate logo mark from your company name and profile. Logos appear as clear art on your banner with no background box. Missing logos are queued automatically at UTC midnight.",
   "profile.edit.choosePng": "Choose PNG",
   "profile.edit.uploadLogo": "Upload Logo",
   "profile.edit.generateLogo": "Generate AI Logo",

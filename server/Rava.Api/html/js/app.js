@@ -883,9 +883,9 @@ function renderCompanyLogoOnElement(profile, imgEl, { slotEl = null, placeholder
     return;
   }
 
-  const companyName = profile?.mineName?.trim() || "Company";
   if (placeholderEl) {
-    placeholderEl.textContent = companyLogoInitials(companyName);
+    placeholderEl.textContent = "";
+    placeholderEl.hidden = true;
   }
 
   if (profile?.isReporter) {
@@ -896,6 +896,7 @@ function renderCompanyLogoOnElement(profile, imgEl, { slotEl = null, placeholder
     return;
   }
 
+  const companyName = profile?.mineName?.trim() || "Company";
   const imageUrl = resolveProfileAssetUrl(profile?.companyLogoUrl);
   if (!imageUrl) {
     imgEl.removeAttribute("src");

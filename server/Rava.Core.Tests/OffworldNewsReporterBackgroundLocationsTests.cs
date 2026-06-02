@@ -32,8 +32,13 @@ public class OffworldNewsReporterBackgroundLocationsTests
         var reporter = OffworldNewsReporterCatalog.TryGetBySlug(slug);
         Assert.NotNull(reporter);
 
+        Assert.Contains(
+            reporter!.NotableLocations,
+            location => location.Contains(fragment, StringComparison.OrdinalIgnoreCase));
+
+        var primary = OffworldNewsReporterBackgroundLocations.PickPrimaryLocation(reporter);
         var scene = OffworldNewsReporterBackgroundLocations.DescribeScene(reporter);
-        Assert.Contains(fragment, scene, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(primary, scene, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -61,6 +66,33 @@ public class OffworldNewsReporterBackgroundLocationsTests
     }
 
     [Fact]
+    public void CareerStoriesNote_joins_notable_stories()
+    {
+        var reporter = OffworldNewsReporterCatalog.TryGetBySlug("marcus-whitaker");
+        Assert.NotNull(reporter);
+
+        var note = OffworldNewsReporterBackgroundLocations.CareerStoriesNote(reporter!);
+
+        Assert.Contains("Morning Wrap That Moved Ferroxite", note);
+        Assert.Contains("Buyback Alert at First Light", note);
+    }
+
+    [Fact]
+    public void PickPrimaryLocation_is_stable_for_multiple_embeds()
+    {
+        var reporter = OffworldNewsReporterCatalog.TryGetBySlug("jonah-kest");
+        Assert.NotNull(reporter);
+        Assert.True(reporter!.NotableLocations.Count > 1);
+
+        var first = OffworldNewsReporterBackgroundLocations.PickPrimaryLocation(reporter);
+        var second = OffworldNewsReporterBackgroundLocations.PickPrimaryLocation(reporter);
+
+        Assert.False(string.IsNullOrWhiteSpace(first));
+        Assert.Equal(first, second);
+        Assert.Contains(first, reporter.NotableLocations, StringComparer.Ordinal);
+    }
+
+    [Fact]
     public void BuildBackgroundPrompt_uses_location_scene_and_bureau()
     {
         var reporter = OffworldNewsReporterCatalog.TryGetBySlug("marcus-whitaker");
@@ -69,7 +101,7 @@ public class OffworldNewsReporterBackgroundLocationsTests
         var prompt = OffworldNewsReporterPortraitPrompts.BuildBackgroundPrompt(reporter);
 
         Assert.Contains("Titan Freight Hub", prompt);
-        Assert.Contains("morning market wrap", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("morning", prompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("news location", prompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("no people", prompt, StringComparison.OrdinalIgnoreCase);
     }

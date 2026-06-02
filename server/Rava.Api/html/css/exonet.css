@@ -729,6 +729,10 @@
   max-height: 360px;
 }
 
+.exonet-news-image-wrap.is-lost-transmission img {
+  object-fit: cover;
+}
+
 .exonet-news-image-wrap::after {
   content: "";
   position: absolute;
@@ -938,6 +942,36 @@
   margin: 12px 0 0;
   color: #c7dbf0;
   line-height: 1.55;
+  max-width: 62ch;
+}
+
+.exonet-news-reporter-list-block {
+  margin-top: 14px;
+  max-width: 62ch;
+}
+
+.exonet-news-reporter-list-title {
+  margin: 0 0 6px;
+  color: #d8e8fb;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.exonet-news-reporter-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #b8cfe8;
+  line-height: 1.5;
+}
+
+.exonet-news-reporter-list li + li {
+  margin-top: 4px;
+}
+
+.exonet-news-reporter-locations {
+  margin-top: 14px;
+  color: #b8cfe8;
+  line-height: 1.5;
   max-width: 62ch;
 }
 

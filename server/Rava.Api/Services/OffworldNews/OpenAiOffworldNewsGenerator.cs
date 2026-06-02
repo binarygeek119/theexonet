@@ -37,20 +37,25 @@ public sealed class OpenAiOffworldNewsGenerator(
 
     public async Task<(OffworldNewsEditionDto Edition, OffworldNewsImageGenerationSummary Images)> RegenerateImagesAsync(
         OffworldNewsEditionDto edition,
+        IReadOnlyList<int> storyIndices,
         string cacheRoot,
         CancellationToken ct)
     {
+        if (storyIndices.Count == 0)
+        {
+            return (edition, new OffworldNewsImageGenerationSummary(0, 0, "No AI images were selected for regeneration."));
+        }
+
         var drafts = edition.Stories
-            .Select(story => new StoryDraft(
-                story with
-                {
-                    ImageUrl = OffworldNewsTemplateGenerator.PlaceholderImageForCategory(story.Category),
-                    ImageAspect = null,
-                },
-                null))
+            .Select(story => new StoryDraft(story, null))
             .ToList();
 
-        var (updatedDrafts, summary) = await ApplyImagesToDraftsAsync(drafts, edition.EditionDate, cacheRoot, ct);
+        var (updatedDrafts, summary) = await ApplyImagesToDraftsAsync(
+            drafts,
+            edition.EditionDate,
+            cacheRoot,
+            ct,
+            storyIndices);
 
         var result = edition with
         {
@@ -65,17 +70,27 @@ public sealed class OpenAiOffworldNewsGenerator(
         List<StoryDraft> drafts,
         DateOnly editionDate,
         string cacheRoot,
-        CancellationToken ct)
+        CancellationToken ct,
+        IReadOnlyList<int>? storyIndices = null)
     {
         var imageCap = options.MaxImagesPerDay <= 0
             ? drafts.Count
             : Math.Clamp(options.MaxImagesPerDay, 1, drafts.Count);
 
+        var indices = storyIndices is { Count: > 0 }
+            ? storyIndices.Where(index => index >= 0 && index < drafts.Count).Distinct().OrderBy(index => index).ToList()
+            : Enumerable.Range(0, Math.Min(drafts.Count, imageCap)).ToList();
+
+        if (indices.Count == 0)
+        {
+            return (drafts, new OffworldNewsImageGenerationSummary(0, 0, "No stories were selected for image regeneration."));
+        }
+
         var attempted = 0;
         var succeeded = 0;
         string? lastError = null;
 
-        for (var index = 0; index < drafts.Count && index < imageCap; index++)
+        foreach (var index in indices)
         {
             var draft = drafts[index];
             var story = draft.Story;
@@ -120,17 +135,20 @@ public sealed class OpenAiOffworldNewsGenerator(
             };
         }
 
-        for (var index = imageCap; index < drafts.Count; index++)
+        if (storyIndices is null)
         {
-            var draft = drafts[index];
-            var story = draft.Story;
-            drafts[index] = draft with
+            for (var index = imageCap; index < drafts.Count; index++)
             {
-                Story = story with
+                var draft = drafts[index];
+                var story = draft.Story;
+                drafts[index] = draft with
                 {
-                    ImageUrl = story.ImageUrl ?? OffworldNewsTemplateGenerator.PlaceholderImageForCategory(story.Category),
-                },
-            };
+                    Story = story with
+                    {
+                        ImageUrl = story.ImageUrl ?? OffworldNewsTemplateGenerator.PlaceholderImageForCategory(story.Category),
+                    },
+                };
+            }
         }
 
         return (drafts, new OffworldNewsImageGenerationSummary(attempted, succeeded, lastError));
@@ -159,7 +177,7 @@ public sealed class OpenAiOffworldNewsGenerator(
             - Ores: Ferroxite, Voidium, Stellarite, Salvage Scrap
             - Supplies: Drill Bits, Fuel Cells, Life Support, Comm Modules (linked to live US stock symbols in-game)
             - Features: Trade Market auctions, company name trading, Exonet browser, Miner Profiles leaderboard, emergency buy back at 50% refinery value, UTC game days, shipping routes to NPC refineries
-            - Tone: mix of Bloomberg wire + frontier tabloid; no real-world politics; no hate; family-friendly
+            - Tone: mix of Bloomberg wire + frontier tabloid + optimistic Star Trek-style exploration ethics; no real-world politics; no hate; family-friendly
             - Never mention artificial intelligence, AI, language models, ChatGPT, or automated/machine-written news in headlines, dek, or body
 
             Story topics MUST vary across the edition and include several of:
@@ -167,8 +185,17 @@ public sealed class OpenAiOffworldNewsGenerator(
             - Shipping routes, refinery queues, cargo manifests
             - Player-style mining companies doing well (use rising list) or in trouble (use struggling list)
             - Fake corporate names when not using a player company
-            - New planets, survey charters, new mine openings
+            - New planets and survey charters (see Frontier tiers below)
             - Interplanetary politics (Orbital Commons, charter votes, registry rules)
+            - Interplanetary wars: border skirmishes, flotilla standoffs, ceasefire talks, convoy diversions — dramatic but not gratuitously violent; focus on shipping, diplomacy, and belt neutrality
+            - Interplanetary criminals: smuggling rings, black-route haulers, marshal busts, bounty postings, Rax laundering, falsified cargo manifests
+
+            Frontier / new-world coverage (Star Trek-style discovery arc — use different tiers across stories, do not repeat the same tier every time):
+            1) Observation only — long-range probes, watchlist worlds, non-interference / look-but-do-not-land doctrine, passive sensor arrays, Orbital Commons review cycles
+            2) Introduced to travelers — navigation beacons published, licensed convoy advisories, diplomatic briefings for captains, trade passage allowed but no claims yet
+            3) Joining the journey — charter fold votes, new worlds entering the belt relay community, upcoming claim windows under RAVA rules, survey teams embedding for production
+
+            Assign Frontier category to discovery/first-contact stories; Security category to wars, marshals, smugglers, and cartels; keep existing categories for markets, mining, etc.
 
             Real player mining companies doing well lately: {{risingList}}
             Real player mining companies under pressure lately: {{strugglingList}}
@@ -189,7 +216,7 @@ public sealed class OpenAiOffworldNewsGenerator(
                   "headline": "string",
                   "dek": "short subheadline",
                   "body": "paragraphs separated by \\n\\n",
-                  "category": "Markets|Mining|Corporate|Shipping|Politics|Exonet",
+                  "category": "Markets|Mining|Corporate|Shipping|Politics|Exonet|Frontier|Security",
                   "location": "fictional belt or outer-planet location",
                   "companyName": "featured mining company or syndicate in the story",
                   "imagePrompt": "1-2 sentences describing the exact illustration scene for this story only"
@@ -350,7 +377,7 @@ public sealed class OpenAiOffworldNewsGenerator(
             return (null, error);
         }
 
-        var imageDir = Path.Combine(cacheRoot, "images", editionDate.ToString("yyyy-MM-dd"));
+        var imageDir = OffworldNewsStoragePaths.ImageDirectoryPath(cacheRoot, editionDate);
         Directory.CreateDirectory(imageDir);
         var fileName = $"{SanitizeFileName(story.Id)}.jpg";
         var filePath = Path.Combine(imageDir, fileName);
@@ -372,7 +399,7 @@ public sealed class OpenAiOffworldNewsGenerator(
         }
 
         return (new GeneratedImageResult(
-            $"{OffworldNewsImagePaths.PublicImagesPrefix}{editionDate:yyyy-MM-dd}/{fileName}",
+            OffworldNewsStoragePaths.BuildPublicImageUrl(editionDate, fileName),
             aspect.Key), null);
     }
 

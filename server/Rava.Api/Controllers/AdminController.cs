@@ -75,7 +75,7 @@ public class AdminController(
 
         return Ok(OffworldNewsService.ToRegenerateResponse(
             edition!,
-            "Today's Offworld News images were regenerated."));
+            "Today's Offworld News AI images were regenerated. Archive editions were not changed."));
     }
 
     [HttpPost("offworld-news/regenerate-reporter-portraits")]

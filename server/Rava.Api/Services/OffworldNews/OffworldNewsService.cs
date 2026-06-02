@@ -64,14 +64,13 @@ public sealed class OffworldNewsService(
             return new OffworldNewsArchivesDto([]);
         }
 
-        var editionsDir = Path.Combine(GetCacheRoot(), "editions");
-        if (!Directory.Exists(editionsDir))
+        if (OffworldNewsStoragePaths.CountEditionFiles(GetCacheRoot()) == 0)
         {
             return new OffworldNewsArchivesDto([]);
         }
 
         var entries = new List<OffworldNewsArchiveEntryDto>();
-        foreach (var path in Directory.EnumerateFiles(editionsDir, "*.json"))
+        foreach (var path in OffworldNewsStoragePaths.EnumerateEditionFiles(GetCacheRoot()))
         {
             var fileName = Path.GetFileNameWithoutExtension(path);
             if (!DateOnly.TryParse(fileName, out var editionDate))
@@ -109,12 +108,7 @@ public sealed class OffworldNewsService(
     {
         var today = UtcGameClock.Today;
         var edition = TryLoadEdition(today);
-        var editionsDir = Path.Combine(GetCacheRoot(), "editions");
-        var archiveCount = 0;
-        if (Directory.Exists(editionsDir))
-        {
-            archiveCount = Directory.EnumerateFiles(editionsDir, "*.json").Count();
-        }
+        var archiveCount = OffworldNewsStoragePaths.CountEditionFiles(GetCacheRoot());
 
         int? illustrated = null;
         if (edition?.Stories is { Count: > 0 })
@@ -194,13 +188,12 @@ public sealed class OffworldNewsService(
     {
         limit = Math.Clamp(limit, 1, 50);
         var matches = new List<OffworldNewsReporterStoryRefDto>();
-        var editionsDir = Path.Combine(GetCacheRoot(), "editions");
-        if (!Directory.Exists(editionsDir))
+        if (OffworldNewsStoragePaths.CountEditionFiles(GetCacheRoot()) == 0)
         {
             return matches;
         }
 
-        foreach (var path in Directory.EnumerateFiles(editionsDir, "*.json").OrderByDescending(File.GetLastWriteTimeUtc))
+        foreach (var path in OffworldNewsStoragePaths.EnumerateEditionFiles(GetCacheRoot()).OrderByDescending(File.GetLastWriteTimeUtc))
         {
             if (matches.Count >= limit)
             {
@@ -272,7 +265,7 @@ public sealed class OffworldNewsService(
             return;
         }
 
-        EnsureCacheDirectories(date);
+        OffworldNewsStoragePaths.EnsureEditionDirectories(GetCacheRoot(), date);
 
         if (!forceRegenerate)
         {
@@ -366,8 +359,8 @@ public sealed class OffworldNewsService(
         {
             return story with
             {
-                ImageUrl = OffworldNewsTemplateGenerator.PlaceholderImageForCategory(story.Category),
-                ImageAspect = null,
+                ImageUrl = OffworldNewsImagePaths.LostTransmissionImagePath,
+                ImageAspect = story.ImageAspect,
             };
         }
 
@@ -391,8 +384,8 @@ public sealed class OffworldNewsService(
 
     private OffworldNewsEditionDto? TryLoadEdition(DateOnly date)
     {
-        var path = GetEditionFilePath(date);
-        if (!File.Exists(path))
+        var path = OffworldNewsStoragePaths.ResolveEditionFilePath(GetCacheRoot(), date);
+        if (path is null)
         {
             return null;
         }
@@ -483,10 +476,11 @@ public sealed class OffworldNewsService(
     {
         try
         {
-            EnsureCacheDirectories(edition.EditionDate);
-            var path = GetEditionFilePath(edition.EditionDate);
+            OffworldNewsStoragePaths.EnsureEditionDirectories(GetCacheRoot(), edition.EditionDate);
+            var path = OffworldNewsStoragePaths.EditionFilePath(GetCacheRoot(), edition.EditionDate);
             var json = JsonSerializer.Serialize(edition, JsonOptions);
             File.WriteAllText(path, json);
+            OffworldNewsStoragePaths.DeleteLegacyEditionFile(GetCacheRoot(), edition.EditionDate);
         }
         catch (Exception ex)
         {
@@ -502,16 +496,6 @@ public sealed class OffworldNewsService(
         OffworldNewsReporterCatalog.ToDto(reporter, hostingPaths.ReporterAssetRoots());
 
     private string GetCacheRoot() => _cacheRoot;
-
-    private string GetEditionFilePath(DateOnly date) =>
-        Path.Combine(GetCacheRoot(), "editions", $"{date:yyyy-MM-dd}.json");
-
-    private void EnsureCacheDirectories(DateOnly date)
-    {
-        var root = GetCacheRoot();
-        Directory.CreateDirectory(Path.Combine(root, "editions"));
-        Directory.CreateDirectory(Path.Combine(root, "images", date.ToString("yyyy-MM-dd")));
-    }
 
     public async Task<(OffworldNewsEditionDto? Edition, string? Error)> RegenerateTodayEditionAsync(CancellationToken ct = default)
     {
@@ -568,30 +552,49 @@ public sealed class OffworldNewsService(
             return (null, "No edition found for today. Regenerate stories first.");
         }
 
+        if (existing.EditionDate != date)
+        {
+            return (null, "Today's edition file has a mismatched date. Regenerate stories first.");
+        }
+
+        var storyIndices = existing.Stories
+            .Select((story, index) => (story, index))
+            .Where(item => OffworldNewsImagePaths.IsGeneratedImageUrlForEdition(item.story.ImageUrl, date))
+            .Select(item => item.index)
+            .ToList();
+
+        if (storyIndices.Count == 0)
+        {
+            return (null, "No AI images found for today's edition.");
+        }
+
         var gate = GenerationLocks.GetOrAdd(date, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(ct);
         try
         {
-            EnsureCacheDirectories(date);
-            DeleteEditionImages(date);
-
-            existing = ResetGeneratedImagesToPlaceholders(existing);
+            DeleteEditionImagesForStories(existing, date);
+            existing = ResetGeneratedImagesToPlaceholdersForEdition(existing, date);
             TrySaveEdition(existing);
 
             var generator = new OpenAiOffworldNewsGenerator(
                 _options,
                 httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
                 logger);
-            var (edition, imageSummary) = await generator.RegenerateImagesAsync(existing, GetCacheRoot(), ct);
+            var (edition, imageSummary) = await generator.RegenerateImagesAsync(
+                existing,
+                storyIndices,
+                GetCacheRoot(),
+                ct);
             edition = EnrichEditionAuthors(EnsureStoryImages(edition));
             TrySaveEdition(edition);
 
             var illustrated = CountIllustratedStories(edition);
             logger.LogInformation(
-                "Admin regenerated Offworld News images for {Date}: {Succeeded}/{Attempted} illustrated",
+                "Admin regenerated Offworld News images for {Date}: {Succeeded}/{Attempted} illustrated ({StoryCount} stories targeted)",
                 date,
                 imageSummary.Succeeded,
-                imageSummary.Attempted);
+                imageSummary.Attempted,
+                storyIndices.Count);
 
             if (illustrated == 0 && imageSummary.Attempted > 0)
             {
@@ -642,19 +645,44 @@ public sealed class OffworldNewsService(
             error);
     }
 
-    private void DeleteEditionImages(DateOnly date)
+    private OffworldNewsEditionDto ResetGeneratedImagesToPlaceholdersForEdition(
+        OffworldNewsEditionDto edition,
+        DateOnly editionDate)
     {
-        var imageDir = Path.Combine(GetCacheRoot(), "images", date.ToString("yyyy-MM-dd"));
-        if (!Directory.Exists(imageDir))
-        {
-            return;
-        }
+        var stories = edition.Stories
+            .Select(story => OffworldNewsImagePaths.IsGeneratedImageUrlForEdition(story.ImageUrl, editionDate)
+                ? story with
+                {
+                    ImageUrl = OffworldNewsTemplateGenerator.PlaceholderImageForCategory(story.Category),
+                    ImageAspect = null,
+                }
+                : story)
+            .ToList();
 
-        foreach (var path in Directory.EnumerateFiles(imageDir))
+        return edition with { Stories = stories };
+    }
+
+    private void DeleteEditionImagesForStories(OffworldNewsEditionDto edition, DateOnly date)
+    {
+        foreach (var story in edition.Stories)
         {
+            if (!OffworldNewsImagePaths.IsGeneratedImageUrlForEdition(story.ImageUrl, date))
+            {
+                continue;
+            }
+
+            var path = OffworldNewsImagePaths.TryResolveCacheFilePath(GetCacheRoot(), story.ImageUrl);
+            if (path is null)
+            {
+                continue;
+            }
+
             try
             {
-                File.Delete(path);
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
             }
             catch (Exception ex)
             {
@@ -662,4 +690,7 @@ public sealed class OffworldNewsService(
             }
         }
     }
+
+    private void DeleteEditionImages(DateOnly date) =>
+        OffworldNewsStoragePaths.DeleteEditionImageDirectories(GetCacheRoot(), date);
 }

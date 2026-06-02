@@ -15,7 +15,7 @@ public static class CompanyLogoOpenAiImageRequest
 
         if (OffworldNewsOpenAiImageRequest.IsGptImageModel(model))
         {
-            body["quality"] = "medium";
+            body["quality"] = "high";
             body["output_format"] = "png";
             body["background"] = "transparent";
             return body;

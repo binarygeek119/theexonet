@@ -104,17 +104,7 @@ public sealed class OffworldNewsReporterRosterAdminService(
         var oldSlug = reporters[index].Slug;
         var updated = BuildProfile(
             newSlug,
-            displayName,
-            request.Title,
-            request.Beat,
-            request.Bureau,
-            request.Personality,
-            request.WritingVoice,
-            request.DirectoryBio,
-            request.OnnBio,
-            request.StoryKicker,
-            request.Specialties,
-            request.Gender);
+            request);
 
         reporters[index] = updated;
         OffworldNewsReportersCsvLoader.SaveToFile(ReportersFilePath, reporters);
@@ -175,6 +165,16 @@ public sealed class OffworldNewsReporterRosterAdminService(
             reporter.StoryKicker,
             reporter.Specialties,
             reporter.Gender,
+            string.Join("; ", reporter.NotableLocations),
+            string.Join("; ", reporter.NotableStories),
+            reporter.Appearance.Hair,
+            reporter.Appearance.Eyes,
+            reporter.Appearance.Race,
+            reporter.Appearance.Build,
+            reporter.Appearance.FacialHair,
+            reporter.Appearance.Makeup,
+            reporter.Appearance.DistinctiveFeatures,
+            reporter.Appearance.Species,
             inStoryPool,
             OffworldNewsReporterPaths.ResolveAvatarUrl(reporter.Slug, assetRoots),
             OffworldNewsReporterPaths.ResolveBackgroundUrl(reporter.Slug, assetRoots));
@@ -195,7 +195,17 @@ public sealed class OffworldNewsReporterRosterAdminService(
             request.OnnBio,
             request.StoryKicker,
             request.Specialties,
-            request.Gender);
+            request.Gender,
+            request.NotableLocations,
+            request.NotableStories,
+            request.Hair,
+            request.Eyes,
+            request.Race,
+            request.Build,
+            request.FacialHair,
+            request.Makeup,
+            request.DistinctiveFeatures,
+            request.Species);
 
     private static OffworldNewsReporterProfile BuildProfile(
         string slug,
@@ -212,7 +222,17 @@ public sealed class OffworldNewsReporterRosterAdminService(
             request.OnnBio,
             request.StoryKicker,
             request.Specialties,
-            request.Gender);
+            request.Gender,
+            request.NotableLocations,
+            request.NotableStories,
+            request.Hair,
+            request.Eyes,
+            request.Race,
+            request.Build,
+            request.FacialHair,
+            request.Makeup,
+            request.DistinctiveFeatures,
+            request.Species);
 
     private static OffworldNewsReporterProfile BuildProfile(
         string slug,
@@ -226,7 +246,17 @@ public sealed class OffworldNewsReporterRosterAdminService(
         string onnBio,
         string storyKicker,
         string specialties,
-        string gender) =>
+        string gender,
+        string notableLocations,
+        string notableStories,
+        string hair,
+        string eyes,
+        string race,
+        string build,
+        string facialHair,
+        string makeup,
+        string distinctiveFeatures,
+        string species) =>
         new(
             slug,
             displayName.Trim(),
@@ -239,7 +269,18 @@ public sealed class OffworldNewsReporterRosterAdminService(
             onnBio.Trim(),
             storyKicker.Trim(),
             ParseSpecialties(specialties),
-            NormalizeGender(gender, slug));
+            NormalizeGender(gender, slug),
+            OffworldNewsReportersCsvLoader.ParseDelimitedList(notableLocations),
+            OffworldNewsReportersCsvLoader.ParseDelimitedList(notableStories),
+            new ReporterAppearance(
+                hair,
+                eyes,
+                race,
+                build,
+                facialHair,
+                makeup,
+                distinctiveFeatures,
+                ReporterSpecies.Normalize(species)));
 
     private static IReadOnlyList<string> ParseSpecialties(string? specialties) =>
         string.IsNullOrWhiteSpace(specialties)

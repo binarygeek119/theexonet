@@ -1,4 +1,4 @@
-import { getDummyFriendSummaries, isDummyPlayerId } from "./admin-testing-mode.js";
+import { getDummyFriendSummaries, isDummyPlayerId } from "./admin-testing-mode.js?v=20260529-testing-mode-server";
 
 function escapeHtml(value) {
   return String(value ?? "")

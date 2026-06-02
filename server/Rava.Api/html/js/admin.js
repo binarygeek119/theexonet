@@ -22,7 +22,7 @@ import {
   mergePlayersForDisplay,
   saveTestingModeEnabled,
   setCachedTestingModeEnabled,
-} from "./admin-testing-mode.js";
+} from "./admin-testing-mode.js?v=20260529-testing-mode-server";
 
 const api = new RavaApi(API_BASE_URL);
 

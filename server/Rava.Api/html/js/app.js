@@ -7,9 +7,9 @@ import {
   setRaxHtml,
   RAX_NAME,
 } from "./currency.js";
-import { initPlayerMessaging } from "./player-messages.js";
+import { initPlayerMessaging } from "./player-messages.js?v=20260529-testing-mode-server";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
-import { initExonet } from "./exonet.js?v=20260529-testing-mode-server";
+import { initExonet } from "./exonet.js?v=20260529-testing-mode-server-2";
 import { initI18n, applyTranslations, wireLocaleSelectors, wireLocaleSelector, getLocale, setLocale, t } from "./i18n.js";
 import {
   augmentOwnerProfileForTesting,
@@ -18,7 +18,7 @@ import {
   resolveDummyGameProfile,
   saveRemovedDummyFriendship,
   setCachedTestingModeEnabled,
-} from "./admin-testing-mode.js";
+} from "./admin-testing-mode.js?v=20260529-testing-mode-server";
 
 const api = new RavaApi(API_BASE_URL);
 

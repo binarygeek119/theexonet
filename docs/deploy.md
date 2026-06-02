@@ -436,6 +436,7 @@ Leave unset (or not `true`) until secrets below are configured.
 | `DEPLOY_ADMIN_SERVICE` | Optional; systemd unit to restart after deploy, e.g. `rava-admin` |
 | `DEPLOY_MODERATOR_SERVICE` | Optional; systemd unit to restart after deploy, e.g. `rava-moderator` |
 | `DEPLOY_DOCS_SERVICE` | Optional; systemd unit to restart after deploy, e.g. `rava-docs` |
+| `DEPLOY_REPO_PATH` | Optional; on-server git checkout synced each deploy, default `/opt/rava/rava` |
 
 Add the matching **public** key to `~/.ssh/authorized_keys` on the server.
 

@@ -205,6 +205,9 @@ jobs:
       DEPLOY_ADMIN_SERVICE: ${{ vars.DEPLOY_ADMIN_SERVICE || secrets.DEPLOY_ADMIN_SERVICE || 'rava-admin' }}
       DEPLOY_MODERATOR_SERVICE: ${{ vars.DEPLOY_MODERATOR_SERVICE || secrets.DEPLOY_MODERATOR_SERVICE || 'rava-moderator' }}
       DEPLOY_DOCS_SERVICE: ${{ vars.DEPLOY_DOCS_SERVICE || secrets.DEPLOY_DOCS_SERVICE || 'rava-docs' }}
+      DEPLOY_REPO_PATH: ${{ vars.DEPLOY_REPO_PATH || secrets.DEPLOY_REPO_PATH || '/opt/rava/rava' }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      GITHUB_SHA: ${{ github.sha }}
 
     steps:
       - name: Checkout
@@ -335,6 +338,10 @@ jobs:
           echo "DEPLOY_WWW_PATH=$www_path" >> "$GITHUB_ENV"
           echo "DEPLOY_API_PATH=$api_path" >> "$GITHUB_ENV"
 
+          repo_path="$(normalize_path "$DEPLOY_REPO_PATH")"
+          validate_path "DEPLOY_REPO_PATH" "$repo_path"
+          echo "DEPLOY_REPO_PATH=$repo_path" >> "$GITHUB_ENV"
+
           effective_www_host="${www_host:-$host}"
           effective_api_host="${api_host:-$host}"
           if [ "$effective_www_host" = "$effective_api_host" ] && { [ "$www_path" = "$api_path" ] || [ "$www_path" = "${api_path}/html" ]; }; then
@@ -351,6 +358,7 @@ jobs:
             echo "  www: ${user}@${effective_www_host}:${www_path}/"
             echo "  api: ${user}@${effective_api_host}:${api_path}/"
           fi
+          echo "  repo: ${repo_path}"
 
       - name: Add SSH host keys
         run: |
@@ -452,6 +460,7 @@ jobs:
             ensure_dir "$api_host" "${DEPLOY_API_PATH}/html" "publish html"
             ensure_dir "$api_host" "${DEPLOY_API_PATH}/wwwroot" "admin/moderator wwwroot"
             ensure_dir "$api_host" "${DEPLOY_API_PATH}/status-wwwroot" "status dashboard wwwroot"
+            ensure_dir "$api_host" "$(dirname "${DEPLOY_REPO_PATH}")" "server git checkout parent"
             ensure_dir "$api_host" "${DEPLOY_API_PATH}/.aspnet" "aspnet keys"
           else
             ensure_dir "$www_host" "$DEPLOY_WWW_PATH" "www"
@@ -588,6 +597,36 @@ jobs:
               "$status_target"
           fi
 
+      - name: Update server git checkout
+        continue-on-error: true
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${api_host}"
+          repo_url="https://github.com/${GITHUB_REPOSITORY}.git"
+          staging="/tmp/rava-sync-server-repo"
+          run_remote() {
+            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            else
+              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
+                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            fi
+          }
+          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+            rsync -az scripts/sync-server-repo.sh \
+              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              "${remote}:${staging}/"
+          else
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -az scripts/sync-server-repo.sh \
+              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              "${remote}:${staging}/"
+          fi
+          echo "Syncing git checkout at ${DEPLOY_REPO_PATH} to ${GITHUB_SHA}"
+          run_remote "bash '${staging}/sync-server-repo.sh' '${DEPLOY_REPO_PATH}' '${GITHUB_SHA}' '${repo_url}'"
+
       # /var/www/data is server-managed (appsettings.json + CSVs). Deploy never rsyncs there.
 
       - name: Fix portal wwwroot ownership
@@ -691,19 +730,24 @@ jobs:
             fi
           }
 
-          staging="/tmp/rava-scripts-install"
-          echo "Syncing scripts/ to ${remote}:${staging}"
-          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            rsync -az --delete scripts/ \
-              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              "${remote}:${staging}/"
+          repo_scripts="${DEPLOY_REPO_PATH}/scripts"
+          if run_remote "test -f '${repo_scripts}/install-bin-scripts.sh'"; then
+            echo "Installing helper scripts from ${repo_scripts}"
+            run_remote "${sudo_prefix}bash '${repo_scripts}/install-bin-scripts.sh' '${repo_scripts}'"
           else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -az --delete scripts/ \
-              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              "${remote}:${staging}/"
+            staging="/tmp/rava-scripts-install"
+            echo "Repo scripts missing — syncing scripts/ to ${remote}:${staging}"
+            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+              rsync -az --delete scripts/ \
+                -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+                "${remote}:${staging}/"
+            else
+              SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -az --delete scripts/ \
+                -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+                "${remote}:${staging}/"
+            fi
+            run_remote "${sudo_prefix}bash ${staging}/install-bin-scripts.sh ${staging}"
           fi
-
-          run_remote "${sudo_prefix}bash ${staging}/install-bin-scripts.sh ${staging}"
           echo "Installed /usr/local/bin/restart-rava and related helpers."
 
       - name: Verify portal assets on server

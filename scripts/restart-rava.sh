@@ -113,6 +113,10 @@ ensure_shared_wwwroot() {
   if [ -f "${SCRIPT_DIR}/../server/Rava.Api/html/admin.html" ]; then
     server_dir="$(cd "${SCRIPT_DIR}/../server" && pwd)"
     html_source="${server_dir}/Rava.Api/html"
+  elif [ -f "${SCRIPT_DIR}/resolve-server-dir.sh" ]; then
+    if server_dir="$(bash "${SCRIPT_DIR}/resolve-server-dir.sh" 2>/dev/null)"; then
+      html_source="${server_dir}/Rava.Api/html"
+    fi
   elif [ -f "/usr/local/lib/rava/html/admin.html" ]; then
     html_source="/usr/local/lib/rava/html"
   elif [ -f "${PUBLISH_DIR}/html/admin.html" ]; then

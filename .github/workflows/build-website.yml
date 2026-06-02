@@ -123,6 +123,9 @@ jobs:
           test -f publish/wwwroot/js/currency.js
           test -f publish/wwwroot/js/admin-testing-mode.js
           bash ../scripts/sync-publish-wwwroot.sh . publish/wwwroot
+          test -f publish/wwwroot/css/docs.css
+          test -f publish/Rava.Docs.dll
+          test -f publish/content/index.md
           mkdir -p data
           cp -f Rava.Api/*.csv data/
           test -f data/credits.csv
@@ -562,7 +565,8 @@ jobs:
           test -f "${staging}/wwwroot/js/admin-testing-mode.js"
           test -f "${staging}/status-wwwroot/index.html"
           test -f "${staging}/status-wwwroot/ai.html"
-          echo "Deploying status + portal wwwroot to ${www_target} and ${status_target}"
+          test -f "${staging}/wwwroot/css/docs.css"
+          echo "Deploying status + portal + docs wwwroot to ${www_target} and ${status_target}"
           rsync_common=( -avz --delete )
           if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
             rsync "${rsync_common[@]}" \
@@ -737,6 +741,8 @@ jobs:
           verify_file "Status index.html" "${DEPLOY_API_PATH}/status-wwwroot/index.html"
           verify_file "Status ai.html" "${DEPLOY_API_PATH}/status-wwwroot/ai.html"
           verify_file "Status favicon.svg" "${DEPLOY_API_PATH}/status-wwwroot/favicon.svg"
+          verify_file "Docs docs.css" "${DEPLOY_API_PATH}/wwwroot/css/docs.css"
+          verify_file "Docs content index" "${DEPLOY_API_PATH}/content/index.md"
 
           verify_http() {
             local label="$1"
@@ -759,3 +765,4 @@ jobs:
           verify_http "Admin currency.js" "http://127.0.0.1:7000/js/currency.js"
           verify_http "Admin admin-testing-mode.js" "http://127.0.0.1:7000/js/admin-testing-mode.js"
           verify_http "Moderator currency.js" "http://127.0.0.1:7050/js/currency.js"
+          verify_http "Docs CSS" "http://127.0.0.1:9000/css/docs.css"

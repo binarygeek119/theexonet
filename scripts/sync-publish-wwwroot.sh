@@ -18,15 +18,20 @@ bash "${SCRIPT_DIR}/sync-portal-wwwroot.sh" \
   "$HTML_DIR" \
   "$WWWROOT_DIR"
 
+bash "${SCRIPT_DIR}/sync-docs-wwwroot.sh" \
+  "$SERVER_DIR" \
+  "$WWWROOT_DIR"
+
 for required in \
   "${WWWROOT_DIR}/index.html" \
   "${WWWROOT_DIR}/js/status.js" \
   "${WWWROOT_DIR}/admin.html" \
-  "${WWWROOT_DIR}/js/admin-testing-mode.js"; do
+  "${WWWROOT_DIR}/js/admin-testing-mode.js" \
+  "${WWWROOT_DIR}/css/docs.css"; do
   if [ ! -f "$required" ]; then
     echo "ERROR: ${required} missing after publish wwwroot sync." >&2
     exit 1
   fi
 done
 
-echo "Synced status + portal wwwroot assets into ${WWWROOT_DIR}"
+echo "Synced status + portal + docs wwwroot assets into ${WWWROOT_DIR}"

@@ -38,6 +38,7 @@ for script in \
   dotnet-sdk.sh \
   sync-portal-wwwroot.sh \
   sync-status-wwwroot.sh \
+  sync-docs-wwwroot.sh \
   sync-publish-wwwroot.sh \
   migrate-publish-data-to-var-www.sh \
   sync-publish-data.sh \

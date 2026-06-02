@@ -72,14 +72,16 @@ Valid characters: letters, numbers, underscore `_`. Must start with a letter or 
 
 **Single-folder setup (recommended):** set both `DEPLOY_WWW_PATH` and `DEPLOY_API_PATH` to `/var/www/publish`. The workflow skips the separate html rsync and deploys game files under `publish/html/`. Point nginx/Apache for the game site at `/var/www/publish/html`.
 
-**Server git checkout:** each deploy runs `git fetch` + `git reset --hard` in `DEPLOY_REPO_PATH` (default `/opt/rava/rava`) so manual commands like `sudo deploy-rava-status` use the same commit as CI. One-time setup on the server:
+**Server git checkout:** each deploy rsyncs repository sources to `DEPLOY_REPO_PATH` (default `/opt/rava/rava`) from the GitHub Actions checkout — no git credentials are required on the server. The deployed commit SHA is written to `.deploy-commit`.
+
+Optional one-time clone if you want `git pull` on the server for manual work (requires GitHub SSH access):
 
 ```bash
 sudo mkdir -p /opt/rava
-sudo git clone https://github.com/binarygeek119/rava.git /opt/rava/rava
+sudo git clone git@github.com:binarygeek119/rava.git /opt/rava/rava
 ```
 
-For a private repo, clone once on the server with credentials that can `git fetch` (deploy key or cached HTTPS token). If the checkout step fails, deploy still rsyncs publish files; fix git access and re-run the workflow.
+Or run `sudo bash scripts/sync-server-repo.sh /opt/rava/rava origin/main git@github.com:binarygeek119/rava.git` after configuring a deploy key. CI deploy does not use this script.
 
 **Never use `/var/www` alone** for either path — that rsyncs html and portal `wwwroot` files beside `publish/` and creates `/var/www/.aspnet` outside the app folder.
 

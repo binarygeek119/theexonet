@@ -566,8 +566,6 @@ jobs:
           set -euo pipefail
           api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
           remote="${DEPLOY_USER}@${api_host}"
-          repo_url="https://github.com/${GITHUB_REPOSITORY}.git"
-          staging="/tmp/rava-sync-server-repo"
           run_remote() {
             if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
               ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
@@ -576,17 +574,33 @@ jobs:
                 ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
             fi
           }
+          repo_rsync_args=(
+            -az
+            --delete
+            --exclude '.git/'
+            --exclude 'server/publish/'
+            --exclude 'server/publish-*/'
+            --exclude 'server/**/bin/'
+            --exclude 'server/**/obj/'
+            --exclude 'server/Rava.Api/html/uploads/'
+            --exclude 'server/Rava.Api/*.dll'
+            --exclude 'server/Rava.Api/publish/'
+          )
+          echo "Rsyncing repository sources to ${DEPLOY_REPO_PATH} (${GITHUB_SHA})"
           if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            rsync -az scripts/sync-server-repo.sh \
+            rsync "${repo_rsync_args[@]}" \
               -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              "${remote}:${staging}/"
+              ./ \
+              "${remote}:${DEPLOY_REPO_PATH}/"
           else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -az scripts/sync-server-repo.sh \
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${repo_rsync_args[@]}" \
               -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              "${remote}:${staging}/"
+              ./ \
+              "${remote}:${DEPLOY_REPO_PATH}/"
           fi
-          echo "Syncing git checkout at ${DEPLOY_REPO_PATH} to ${GITHUB_SHA}"
-          run_remote "bash '${staging}/sync-server-repo.sh' '${DEPLOY_REPO_PATH}' '${GITHUB_SHA}' '${repo_url}'"
+          run_remote "test -f '${DEPLOY_REPO_PATH}/server/Rava.Api/Rava.Api.csproj'"
+          run_remote "printf '%s\\n' '${GITHUB_SHA}' > '${DEPLOY_REPO_PATH}/.deploy-commit'"
+          echo "Server sources updated at ${DEPLOY_REPO_PATH}"
 
       # /var/www/data is server-managed (appsettings.json + CSVs). Deploy never rsyncs there.
 

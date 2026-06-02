@@ -1,13 +1,15 @@
 #!/bin/bash
-# Keep the on-server git checkout in sync with CI deploy (default: /opt/rava/rava).
+# Keep the on-server git checkout in sync (manual / local use).
+# CI deploy rsyncs the repository from GitHub Actions instead — no server git credentials needed.
+#
 # Usage:
 #   bash scripts/sync-server-repo.sh
-#   bash scripts/sync-server-repo.sh /opt/rava/rava abc123def https://github.com/owner/rava.git
+#   bash scripts/sync-server-repo.sh /opt/rava/rava abc123def git@github.com:owner/rava.git
 set -euo pipefail
 
 REPO_PATH="${1:-${RAVA_REPO_DIR:-/opt/rava/rava}}"
 TARGET_REF="${2:-origin/main}"
-REPO_URL="${3:-${RAVA_REPO_URL:-https://github.com/binarygeek119/rava.git}}"
+REPO_URL="${3:-${RAVA_REPO_URL:-git@github.com:binarygeek119/rava.git}}"
 
 looks_like_repo() {
   local path="$1"

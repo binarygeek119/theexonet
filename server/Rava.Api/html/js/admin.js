@@ -1006,11 +1006,25 @@ function onnReporterPortraitHtml(reporter, displayName, { compact = false } = {}
     </div>`;
 }
 
+function onnReporterFieldValue(reporter, key, { list = false } = {}) {
+  const raw = pickJson(reporter, key);
+  if (list && Array.isArray(raw)) {
+    return raw.join("; ");
+  }
+
+  if (raw == null) {
+    return "";
+  }
+
+  return String(raw);
+}
+
 function onnReporterField(id, label, value, { textarea = false, hint = "", slugInput = false } = {}) {
+  const displayValue = value == null ? "" : Array.isArray(value) ? value.join("; ") : String(value);
   const attrs = slugInput ? ' data-onn-slug type="text"' : ` id="${id}" type="text"`;
   const control = textarea
-    ? `<textarea id="${id}" rows="3">${escapeHtml(value ?? "")}</textarea>`
-    : `<input${attrs} value="${escapeHtml(value ?? "")}">`;
+    ? `<textarea id="${id}" rows="3">${escapeHtml(displayValue)}</textarea>`
+    : `<input${attrs} value="${escapeHtml(displayValue)}">`;
   const hintHtml = hint ? `<span class="admin-page-desc">${escapeHtml(hint)}</span>` : "";
   return `<label>${escapeHtml(label)}${control}${hintHtml}</label>`;
 }
@@ -1028,27 +1042,28 @@ function onnReporterGenderField(id, gender) {
 
 function onnReporterCareerFields(formId, reporter = {}) {
   return `
-    <fieldset class="admin-onn-field-group">
-      <legend>Career &amp; embeds</legend>
-      ${onnReporterField(`${formId}-notable-locations`, "Notable reporting locations", pickJson(reporter, "notableLocations") ?? "", { textarea: true, hint: "Semicolon-separated places that matter to this reporter (drives banner AI)." })}
-      ${onnReporterField(`${formId}-notable-stories`, "Big career stories", pickJson(reporter, "notableStories") ?? "", { textarea: true, hint: "Semicolon-separated headline-style scoops (shown on profile and banner memorabilia)." })}
-    </fieldset>`;
+    <details class="admin-onn-field-group" open>
+      <summary>Career &amp; embeds</summary>
+      ${onnReporterField(`${formId}-notable-locations`, "Notable reporting locations", onnReporterFieldValue(reporter, "notableLocations", { list: true }), { textarea: true, hint: "Semicolon-separated places that matter to this reporter (drives banner AI)." })}
+      ${onnReporterField(`${formId}-notable-stories`, "Big career stories", onnReporterFieldValue(reporter, "notableStories", { list: true }), { textarea: true, hint: "Semicolon-separated headline-style scoops (shown on profile and banner memorabilia)." })}
+    </details>`;
 }
 
 function onnReporterAppearanceFields(formId, reporter = {}) {
-  const species = String(pickJson(reporter, "species") ?? "human").trim() || "human";
+  const species = String(onnReporterFieldValue(reporter, "species") || "human").trim() || "human";
+  const race = onnReporterFieldValue(reporter, "race") || onnReporterFieldValue(reporter, "complexion");
   return `
-    <fieldset class="admin-onn-field-group">
-      <legend>Portrait appearance (AI)</legend>
+    <details class="admin-onn-field-group" open>
+      <summary>Portrait appearance (AI)</summary>
       ${onnReporterField(`${formId}-species`, "Species", species, { hint: "Human, or an alien type (Europan, Callistan, Martian, etc.). Aliens use the same ONN blue/cyan portrait style." })}
-      ${onnReporterField(`${formId}-race`, "Race / skin", pickJson(reporter, "race") ?? pickJson(reporter, "complexion") ?? "", { hint: "Ethnicity, skin tone, or alien dermal color/texture." })}
-      ${onnReporterField(`${formId}-hair`, "Hair / crest", pickJson(reporter, "hair") ?? "", { hint: "Human hair or alien crest, ridges, filaments." })}
-      ${onnReporterField(`${formId}-eyes`, "Eyes", pickJson(reporter, "eyes") ?? "")}
-      ${onnReporterField(`${formId}-build`, "Build", pickJson(reporter, "build") ?? "", { hint: "e.g. tall and lean, stocky, muscular." })}
-      ${onnReporterField(`${formId}-facial-hair`, "Facial hair", pickJson(reporter, "facialHair") ?? "", { hint: "None, stubble, beard, etc." })}
-      ${onnReporterField(`${formId}-makeup`, "Makeup / markings", pickJson(reporter, "makeup") ?? "", { hint: "None or describe style / bioluminescent accents." })}
-      ${onnReporterField(`${formId}-distinctive`, "Distinctive features", pickJson(reporter, "distinctiveFeatures") ?? "", { textarea: true, hint: "Scars, antennae, jewelry, accessories, alien anatomy cues." })}
-    </fieldset>`;
+      ${onnReporterField(`${formId}-race`, "Race / skin", race, { hint: "Ethnicity, skin tone, or alien dermal color/texture." })}
+      ${onnReporterField(`${formId}-hair`, "Hair / crest", onnReporterFieldValue(reporter, "hair"), { hint: "Human hair or alien crest, ridges, filaments." })}
+      ${onnReporterField(`${formId}-eyes`, "Eyes", onnReporterFieldValue(reporter, "eyes"))}
+      ${onnReporterField(`${formId}-build`, "Build", onnReporterFieldValue(reporter, "build"), { hint: "e.g. tall and lean, stocky, muscular." })}
+      ${onnReporterField(`${formId}-facial-hair`, "Facial hair", onnReporterFieldValue(reporter, "facialHair"), { hint: "None, stubble, beard, etc." })}
+      ${onnReporterField(`${formId}-makeup`, "Makeup / markings", onnReporterFieldValue(reporter, "makeup"), { hint: "None or describe style / bioluminescent accents." })}
+      ${onnReporterField(`${formId}-distinctive`, "Distinctive features", onnReporterFieldValue(reporter, "distinctiveFeatures"), { textarea: true, hint: "Scars, antennae, jewelry, accessories, alien anatomy cues." })}
+    </details>`;
 }
 
 function onnReporterAddFormHtml() {
@@ -1112,6 +1127,7 @@ function renderOnnReporters(page) {
         <form id="${formId}" class="admin-onn-reporter-form" data-slug="${escapeHtml(slug)}">
           <div class="admin-onn-reporter-layout">
             ${onnReporterPortraitHtml(reporter, displayName)}
+            <div class="admin-onn-reporter-main">
             <div class="admin-onn-reporter-fields">
           ${onnReporterField(`${formId}-slug`, "Slug (URL)", slug, { slugInput: true, hint: "Change only when renaming; updates portrait folder and friend links." })}
           ${onnReporterField(`${formId}-name`, "Display name", displayName)}
@@ -1127,13 +1143,16 @@ function renderOnnReporters(page) {
           ${onnReporterField(`${formId}-specialties`, "Specialties", specialties, { hint: "Separate with semicolons (;)." })}
           ${onnReporterCareerFields(formId, reporter)}
           ${onnReporterAppearanceFields(formId, reporter)}
-          <div class="button-row admin-onn-reporter-actions">
-            <button type="submit" class="btn primary">Save reporter</button>
-            <button type="button" class="btn ghost admin-onn-regen-portrait-btn" data-onn-assets="avatar">Regenerate portrait</button>
-            <button type="button" class="btn ghost admin-onn-regen-portrait-btn" data-onn-assets="background">Regenerate banner</button>
-            <button type="button" class="btn ghost admin-onn-regen-portrait-btn" data-onn-assets="both">Regenerate both</button>
-          </div>
-          <p class="status-text admin-onn-reporter-form-status"></p>
+            </div>
+            <div class="admin-onn-reporter-fields-footer">
+              <div class="button-row admin-onn-reporter-actions">
+                <button type="submit" class="btn primary">Save reporter</button>
+                <button type="button" class="btn ghost admin-onn-regen-portrait-btn" data-onn-assets="avatar">Regenerate portrait</button>
+                <button type="button" class="btn ghost admin-onn-regen-portrait-btn" data-onn-assets="background">Regenerate banner</button>
+                <button type="button" class="btn ghost admin-onn-regen-portrait-btn" data-onn-assets="both">Regenerate both</button>
+              </div>
+              <p class="status-text admin-onn-reporter-form-status"></p>
+            </div>
             </div>
           </div>
         </form>

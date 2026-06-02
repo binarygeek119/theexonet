@@ -56,15 +56,6 @@ const els = {
   monitorUptime: document.getElementById("monitor-uptime"),
   monitorFirstRun: document.getElementById("monitor-first-run"),
   monitorUtc: document.getElementById("monitor-utc"),
-  linkStatus: document.getElementById("link-status"),
-  linkGame: document.getElementById("link-game"),
-  linkApi: document.getElementById("link-api"),
-  linkDocs: document.getElementById("link-docs"),
-  linkAdmin: document.getElementById("link-admin"),
-  linkModerator: document.getElementById("link-moderator"),
-  linkValues: document.getElementById("link-values"),
-  linkApiStatus: document.getElementById("link-api-status"),
-  linkOpenAiStatus: document.getElementById("link-openai-status"),
 };
 
 function setPill(element, label, tone) {
@@ -202,9 +193,6 @@ function formatOpenAiComponents(components) {
 function renderOpenAiCard(openAi, checkedUtc) {
   const statusPageUrl = openAi?.statusPageUrl || "https://status.openai.com/";
   els.openaiStatusPage.textContent = statusPageUrl;
-  if (els.linkOpenAiStatus) {
-    els.linkOpenAiStatus.href = statusPageUrl;
-  }
 
   els.openaiResponseMs.textContent = openAi?.responseMs != null ? `${openAi.responseMs} ms` : "—";
   els.openaiChecked.textContent = formatUtc(checkedUtc);
@@ -252,14 +240,6 @@ function renderDashboard(data) {
   els.apiResponseMs.textContent = data.apiResponseMs != null ? `${data.apiResponseMs} ms` : "—";
   els.apiChecked.textContent = formatUtc(data.utc);
   els.apiError.textContent = data.apiError || "—";
-
-  els.linkStatus.href = data.statusPublicUrl;
-  els.linkGame.href = data.gameUrl;
-  els.linkApi.href = data.apiPublicUrl;
-  els.linkDocs.href = data.docsPortal?.publicUrl || data.docsPublicUrl;
-  els.linkAdmin.href = data.adminPortal?.publicUrl || "#";
-  els.linkModerator.href = data.moderatorPortal?.publicUrl || "#";
-  els.linkApiStatus.href = `${data.apiBaseUrl}/api/status`;
 
   renderPortalCard(data.docsPortal, {
     overall: els.docsOverall,

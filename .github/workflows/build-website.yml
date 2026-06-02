@@ -115,14 +115,14 @@ jobs:
           test -f publish/wwwroot/index.html
           test -f publish/wwwroot/favicon.svg
           test -f publish/wwwroot/js/status.js
-          test -f publish/status-wwwroot/index.html
-          test -f publish/status-wwwroot/ai.html
-          test -f publish/status-wwwroot/favicon.svg
           test -f publish/wwwroot/admin.html
           test -f publish/wwwroot/moderator.html
           test -f publish/wwwroot/js/currency.js
           test -f publish/wwwroot/js/admin-testing-mode.js
           bash ../scripts/sync-publish-wwwroot.sh . publish/wwwroot
+          test -f publish/status-wwwroot/index.html
+          test -f publish/status-wwwroot/ai.html
+          test -f publish/status-wwwroot/favicon.svg
           test -f publish/wwwroot/css/docs.css
           test -f publish/Rava.Docs.dll
           test -f publish/content/index.md

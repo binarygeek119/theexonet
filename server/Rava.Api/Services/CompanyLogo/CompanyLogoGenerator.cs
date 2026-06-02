@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using Rava.Core.Configuration;
 using Rava.Core.Interfaces;
@@ -99,7 +100,7 @@ public sealed class CompanyLogoGenerator(
         }
         else
         {
-            return (null, DescribeApiFailure(200, payload));
+            return (null, DescribeMissingImageData(payload));
         }
 
         try
@@ -137,6 +138,24 @@ public sealed class CompanyLogoGenerator(
         return $"{trimmed}/{path.TrimStart('/')}";
     }
 
+    private static string DescribeMissingImageData(string payload)
+    {
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<ImageGenerationResponse>(payload, SerializerOptions);
+            if (parsed?.Data is { Count: > 0 })
+            {
+                return "OpenAI returned a success response but no usable image data (expected b64_json or url).";
+            }
+        }
+        catch
+        {
+            // ignore parse errors
+        }
+
+        return DescribeApiFailure(200, payload);
+    }
+
     private static string DescribeApiFailure(int status, string payload)
     {
         try
@@ -165,7 +184,9 @@ public sealed class CompanyLogoGenerator(
 
     private sealed class ImageData
     {
+        [JsonPropertyName("b64_json")]
         public string? B64Json { get; set; }
+
         public string? Url { get; set; }
     }
 

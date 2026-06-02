@@ -106,6 +106,8 @@ rsync -a \
   --exclude 'status-runtime.json' \
   "${work}/publish-status/" "${PUBLISH_DIR}/"
 
+sync_status_wwwroot
+
 for required in \
   "${PUBLISH_DIR}/Rava.Status.dll" \
   "${PUBLISH_DIR}/status-wwwroot/index.html" \

@@ -12,32 +12,14 @@ if [ ! -d "$STATUS_SRC" ]; then
   exit 1
 fi
 
-mkdir -p "${WWWROOT_DIR}/css" "${WWWROOT_DIR}/js"
-
-copy_status_file() {
-  local rel="$1"
-  local src="${STATUS_SRC}/${rel}"
-  local dest="${WWWROOT_DIR}/${rel}"
-  if [ ! -f "$src" ]; then
-    echo "Missing ${src}" >&2
-    exit 1
-  fi
-  mkdir -p "$(dirname "$dest")"
-  cp -f "$src" "$dest"
-}
-
-for rel in \
-  index.html \
-  values.html \
-  css/status.css \
-  js/status.js \
-  js/values.js; do
-  copy_status_file "$rel"
-done
+mkdir -p "$WWWROOT_DIR"
+rsync -a "${STATUS_SRC}/" "${WWWROOT_DIR}/"
 
 for required in \
   "${WWWROOT_DIR}/index.html" \
-  "${WWWROOT_DIR}/js/status.js"; do
+  "${WWWROOT_DIR}/js/status.js" \
+  "${WWWROOT_DIR}/ai.html" \
+  "${WWWROOT_DIR}/favicon.svg"; do
   if [ ! -f "$required" ]; then
     echo "ERROR: ${required} missing after status wwwroot sync." >&2
     exit 1

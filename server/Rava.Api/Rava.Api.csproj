@@ -11,6 +11,13 @@
     <!-- WebRoot=html already publishes static files; explicit html/** duplicated locale JSON (NETSDK1022). -->
     <Content Remove="html/images/profile/**" />
     <Content Include="html/images/profile/.gitkeep" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Remove="*.dll" />
+    <Content Remove="*.deps.json" />
+    <Content Remove="*.runtimeconfig.json" />
+    <Content Remove="*.staticwebassets.endpoints.json" />
+    <Content Remove="publish/**" />
+    <Content Remove="Rava.Status*" />
+    <Content Remove="web.config" />
   </ItemGroup>
 
   <ItemGroup>

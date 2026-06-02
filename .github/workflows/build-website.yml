@@ -91,46 +91,7 @@ jobs:
           node --check Rava.Status/wwwroot/js/ai-content.js
 
       - name: Publish web app
-        run: |
-          dotnet publish Rava.Status/Rava.Status.csproj --configuration Release --output ./publish-status
-          dotnet publish Rava.Admin/Rava.Admin.csproj --configuration Release --output ./publish-admin
-          dotnet publish Rava.Moderator/Rava.Moderator.csproj --configuration Release --output ./publish-moderator
-          dotnet publish Rava.Docs/Rava.Docs.csproj --configuration Release --output ./publish-docs
-          bash ../scripts/sync-portal-wwwroot.sh Rava.Api/html publish-admin/wwwroot
-          bash ../scripts/sync-portal-wwwroot.sh Rava.Api/html publish-moderator/wwwroot
-          mkdir -p publish
-          rsync -a publish-status/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
-          rsync -a publish-admin/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
-          rsync -a publish-moderator/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
-          rsync -a publish-docs/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
-          dotnet publish Rava.Api/Rava.Api.csproj --configuration Release --output ./publish-api
-          rsync -a publish-api/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
-          rsync -a Rava.Api/html/ publish/html/
-          test -f publish/Rava.Api.dll
-          test -f publish/Rava.Core.dll
-          test -f publish/Rava.Infrastructure.dll
-          test -f publish/Rava.Status.dll
-          test -f publish/Rava.Admin.dll
-          test -f publish/Rava.Moderator.dll
-          test -f publish/wwwroot/index.html
-          test -f publish/wwwroot/favicon.svg
-          test -f publish/wwwroot/js/status.js
-          test -f publish/wwwroot/admin.html
-          test -f publish/wwwroot/moderator.html
-          test -f publish/wwwroot/js/currency.js
-          test -f publish/wwwroot/js/admin-testing-mode.js
-          bash ../scripts/sync-publish-wwwroot.sh . publish/wwwroot
-          test -f publish/status-wwwroot/index.html
-          test -f publish/status-wwwroot/ai.html
-          test -f publish/status-wwwroot/favicon.svg
-          test -f publish/wwwroot/css/docs.css
-          test -f publish/Rava.Docs.dll
-          test -f publish/content/index.md
-          mkdir -p data
-          cp -f Rava.Api/*.csv data/
-          test -f data/credits.csv
-          test -f data/market-items.csv
-          test -f data/hate-speech-terms.csv
+        run: bash ../scripts/test-publish-bundle.sh
 
       - name: Upload publish artifact
         uses: actions/upload-artifact@v7

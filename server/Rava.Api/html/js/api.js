@@ -119,7 +119,7 @@ export class RavaApi {
     return response.json();
   }
 
-  register(username, email, password, birthday, profileGender, profilePreferredPronouns, profileLocale) {
+  register(username, email, password, birthday, profileGender, profilePreferredPronouns, profileLocale, profileBirthdayPublic = false, profileAgePublic = false) {
     return this.request("/api/auth/register", {
       method: "POST",
       body: {
@@ -130,6 +130,8 @@ export class RavaApi {
         profileGender,
         profilePreferredPronouns: profilePreferredPronouns || null,
         profileLocale,
+        profileBirthdayPublic,
+        profileAgePublic,
       },
       auth: false,
     });
@@ -239,6 +241,15 @@ export class RavaApi {
       limit: String(limit),
     });
     return this.request(`/api/public/profiles/leaderboard?${params.toString()}`, { auth: false });
+  }
+
+  browsePublicProfiles(sort = "username", limit = 50, offset = 0) {
+    const params = new URLSearchParams({
+      sort,
+      limit: String(limit),
+      offset: String(offset),
+    });
+    return this.request(`/api/public/profiles/browse?${params.toString()}`, { auth: false });
   }
 
   getPublicProfileByUsername(username) {

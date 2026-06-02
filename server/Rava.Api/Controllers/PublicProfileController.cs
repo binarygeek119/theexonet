@@ -26,6 +26,15 @@ public class PublicProfileController(PublicProfileService publicProfileService) 
     }
 
     [AllowAnonymous]
+    [HttpGet("browse")]
+    public async Task<ActionResult<PublicProfileBrowseResponse>> Browse(
+        [FromQuery] string sort = PublicProfileService.SortUsername,
+        [FromQuery] int limit = 50,
+        [FromQuery] int offset = 0,
+        CancellationToken ct = default) =>
+        Ok(await publicProfileService.BrowseAsync(sort, limit, offset, ct));
+
+    [AllowAnonymous]
     [HttpGet("leaderboard")]
     public async Task<ActionResult<PublicProfileLeaderboardResponse>> Leaderboard(
         [FromQuery] string sort = PublicProfileService.SortCompanyValue,

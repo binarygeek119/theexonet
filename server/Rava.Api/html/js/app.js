@@ -9,16 +9,18 @@ import {
 } from "./currency.js";
 import { initPlayerMessaging } from "./player-messages.js";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
-import { initExonet } from "./exonet.js?v=20260602-onn-profile-portraits";
+import { initExonet } from "./exonet.js?v=20260529-profile-browse-list";
 import { initI18n, applyTranslations, wireLocaleSelectors, wireLocaleSelector, getLocale, setLocale, t } from "./i18n.js";
+import {
+  augmentOwnerProfileForTesting,
+  isDummyFriendshipId,
+  loadTestingModeEnabled,
+  mergeFriendsListForTesting,
+  resolveDummyGameProfile,
+  saveRemovedDummyFriendship,
+} from "./admin-testing-mode.js";
 
 const api = new RavaApi(API_BASE_URL);
-
-const PROFILE_AVATAR_PRESETS = [
-  { id: "female", labelKey: "avatar.preset.female" },
-  { id: "male", labelKey: "avatar.preset.male" },
-  { id: "neutral", labelKey: "avatar.preset.neutral" },
-];
 
 const PROFILE_GENDER_LABEL_KEYS = {
   male: "profile.edit.gender.male",
@@ -54,7 +56,26 @@ function resetRegisterProfileFields() {
   if (els.registerPronounsInput) {
     els.registerPronounsInput.value = "";
   }
+  if (els.registerBirthdayPublic) {
+    els.registerBirthdayPublic.checked = false;
+  }
+  if (els.registerAgePublic) {
+    els.registerAgePublic.checked = false;
+  }
   syncRegisterGenderUi();
+}
+
+function formatProfilePublicInfo(profile) {
+  const parts = [];
+  const birthday = profile?.publicBirthday;
+  const age = profile?.publicAge;
+  if (birthday) {
+    parts.push(t("profile.publicBirthday", { date: birthday }));
+  }
+  if (age != null && Number.isFinite(Number(age))) {
+    parts.push(t("profile.publicAge", { age: String(age) }));
+  }
+  return parts.join(" · ");
 }
 
 async function applyProfileLocaleFromServer(profile) {
@@ -170,6 +191,8 @@ const state = {
   finances: null,
   market: null,
   profile: null,
+  accountProfile: null,
+  isStaffAdmin: false,
   friends: null,
   selectedZoneId: null,
   authMode: "login",
@@ -197,6 +220,8 @@ const els = {
   registerGenderInput: document.getElementById("register-gender-input"),
   registerPronounsGroup: document.getElementById("register-pronouns-group"),
   registerPronounsInput: document.getElementById("register-pronouns-input"),
+  registerBirthdayPublic: document.getElementById("register-birthday-public"),
+  registerAgePublic: document.getElementById("register-age-public"),
   birthdayMonth: document.getElementById("birthday-month"),
   birthdayDay: document.getElementById("birthday-day"),
   birthdayYear: document.getElementById("birthday-year"),
@@ -296,6 +321,7 @@ const els = {
   profileMoodDisplay: document.getElementById("profile-mood-display"),
   profileNumber: document.getElementById("profile-number"),
   profileMemberSince: document.getElementById("profile-member-since"),
+  profilePublicInfo: document.getElementById("profile-public-info"),
   profileAboutView: document.getElementById("profile-about-view"),
   profileInterestsView: document.getElementById("profile-interests-view"),
   profileMusicView: document.getElementById("profile-music-view"),
@@ -318,19 +344,16 @@ const els = {
   profileEditAvatarImg: document.getElementById("profile-edit-avatar-img"),
   profileEditAvatarInitials: document.getElementById("profile-edit-avatar-initials"),
   profileEditNumber: document.getElementById("profile-edit-number"),
-  profileAddFriendNumber: document.getElementById("profile-add-friend-number"),
-  profileAddFriendSubmitBtn: document.getElementById("profile-add-friend-submit-btn"),
-  profileAddFriendStatus: document.getElementById("profile-add-friend-status"),
-  profilePhotoUpload: document.getElementById("profile-photo-upload"),
   profilePhotoInput: document.getElementById("profile-photo-input"),
   profilePhotoChooseBtn: document.getElementById("profile-photo-choose-btn"),
   profilePhotoBtn: document.getElementById("profile-photo-btn"),
   profilePhotoStatus: document.getElementById("profile-photo-status"),
-  profileAvatarPresetSection: document.getElementById("profile-avatar-preset-section"),
-  profileAvatarPresetGrid: document.getElementById("profile-avatar-preset-grid"),
-  profileAvatarPresetStatus: document.getElementById("profile-avatar-preset-status"),
+  profileEditHeaderBanner: document.getElementById("profile-edit-header-banner"),
+  profileEditPreviewUsername: document.getElementById("profile-edit-preview-username"),
+  profileEditPreviewMood: document.getElementById("profile-edit-preview-mood"),
+  profileEditCompanyLogoSlot: document.getElementById("profile-edit-company-logo-slot"),
+  profileEditCompanyLogoPlaceholder: document.getElementById("profile-edit-company-logo-placeholder"),
   profileBanner: document.getElementById("profile-banner"),
-  profileBackgroundPreview: document.getElementById("profile-background-preview"),
   profileBackgroundInput: document.getElementById("profile-background-input"),
   profileBackgroundChooseBtn: document.getElementById("profile-background-choose-btn"),
   profileBackgroundUploadBtn: document.getElementById("profile-background-upload-btn"),
@@ -340,6 +363,8 @@ const els = {
   profileGenderInput: document.getElementById("profile-gender-input"),
   profilePreferredPronounsSection: document.getElementById("profile-preferred-pronouns-section"),
   profilePreferredPronounsInput: document.getElementById("profile-preferred-pronouns-input"),
+  profileBirthdayPublicInput: document.getElementById("profile-birthday-public-input"),
+  profileAgePublicInput: document.getElementById("profile-age-public-input"),
   profileGenderLabel: document.getElementById("profile-gender-label"),
   profileGenderDisplay: document.getElementById("profile-gender-display"),
   profilePronounsDisplay: document.getElementById("profile-pronouns-display"),
@@ -815,13 +840,27 @@ function applyProfileBannerBackground(bannerEl, url) {
   }
 }
 
+function syncProfileEditHeaderPreview(profile) {
+  if (els.profileEditPreviewUsername) {
+    els.profileEditPreviewUsername.textContent = profile?.username ?? "Commander";
+  }
+  if (els.profileEditPreviewMood) {
+    const mood =
+      els.profileMoodInput?.value?.trim() ||
+      profile?.mood ||
+      (profile?.isReporter ? t("profile.moodReporter") : t("profile.moodDefault"));
+    els.profileEditPreviewMood.textContent = mood;
+  }
+}
+
 function renderProfileBackgroundPreview(profile) {
-  if (!els.profileBackgroundPreview) {
+  if (!els.profileEditHeaderBanner) {
     return;
   }
 
-  applyProfileBannerBackground(els.profileBackgroundPreview, profile?.profileBackgroundUrl);
+  applyProfileBannerBackground(els.profileEditHeaderBanner, profile?.profileBackgroundUrl);
   setHidden(els.profileBackgroundRemoveBtn, !profile?.profileBackgroundUrl);
+  syncProfileEditHeaderPreview(profile);
 }
 
 function clearProfileAvatarPhoto(imgEl, initialsEl, avatarEl) {
@@ -924,7 +963,10 @@ function renderProfileCompanyLogo(profile) {
     slotEl: els.profileCompanyLogoSlot,
     placeholderEl: els.profileCompanyLogoPlaceholder,
   });
-  renderCompanyLogoOnElement(profile, els.profileCompanyLogoPreview);
+  renderCompanyLogoOnElement(profile, els.profileCompanyLogoPreview, {
+    slotEl: els.profileEditCompanyLogoSlot,
+    placeholderEl: els.profileEditCompanyLogoPlaceholder,
+  });
   updateCompanyLogoGenerationUi(profile);
 }
 
@@ -944,7 +986,7 @@ function updateCompanyLogoGenerationUi(profile) {
     els.profileCompanyLogoGenerateBtn.disabled = busy;
     els.profileCompanyLogoGenerateBtn.textContent = busy
       ? (status === "processing" ? t("profile.logoGenerating") : t("profile.logoQueued"))
-      : t("profile.edit.generateLogo");
+      : t("profile.edit.generateLogoShort");
   }
 
   if (els.profileCompanyLogoStatus && profile?.companyLogoGenerationMessage && busy) {
@@ -976,10 +1018,22 @@ function syncCompanyLogoGenerationPoll(profile) {
   }
 
   companyLogoGenerationPollTimer = setInterval(() => {
-    pollCompanyLogoGeneration().catch(() => {
+    pollCompanyLogoGeneration().catch((error) => {
       stopCompanyLogoGenerationPoll();
+      if (els.profileCompanyLogoStatus) {
+        els.profileCompanyLogoStatus.textContent = error.message;
+        els.profileCompanyLogoStatus.classList.add("error");
+      }
     });
   }, 4000);
+
+  pollCompanyLogoGeneration().catch((error) => {
+    stopCompanyLogoGenerationPoll();
+    if (els.profileCompanyLogoStatus) {
+      els.profileCompanyLogoStatus.textContent = error.message;
+      els.profileCompanyLogoStatus.classList.add("error");
+    }
+  });
 }
 
 async function pollCompanyLogoGeneration() {
@@ -1002,7 +1056,17 @@ async function pollCompanyLogoGeneration() {
   }
 
   stopCompanyLogoGenerationPoll();
-  const profile = await api.getMyProfile();
+  let profile;
+  try {
+    profile = await api.getProfile();
+  } catch (error) {
+    if (els.profileCompanyLogoStatus) {
+      els.profileCompanyLogoStatus.textContent = error.message;
+      els.profileCompanyLogoStatus.classList.add("error");
+    }
+    return;
+  }
+
   renderProfile(profile);
   if (!els.profileEditModal?.hidden) {
     populateProfileEditForm(profile);
@@ -1032,11 +1096,12 @@ async function enqueueCompanyLogoGeneration() {
 
   try {
     const response = await api.enqueueCompanyLogoGeneration();
-    const generation = response?.generation ?? response;
+    const generation = response?.generation;
     state.profile = {
       ...state.profile,
-      companyLogoGenerationStatus: generation?.status ?? "queued",
-      companyLogoGenerationMessage: response?.message ?? generation?.message ?? "Queued for AI logo generation.",
+      companyLogoGenerationStatus: generation?.status ?? response?.status ?? "queued",
+      companyLogoGenerationMessage:
+        generation?.message ?? response?.message ?? "Queued for AI logo generation.",
     };
     updateCompanyLogoGenerationUi(state.profile);
     syncCompanyLogoGenerationPoll(state.profile);
@@ -1076,7 +1141,6 @@ function profileUpdatePayloadFromState(overrides = {}) {
     twitter: profile.twitter ?? "",
     youtube: profile.youtube ?? "",
     facebook: profile.facebook ?? "",
-    profileAvatarPreset: profile.profileAvatarPreset ?? "neutral",
     profileGender: gender,
     profilePreferredPronouns: preferredPronouns,
     profileLocale:
@@ -1099,6 +1163,8 @@ function profileEditFormPayload() {
     twitter: els.profileTwitterInput?.value.trim() ?? "",
     youtube: els.profileYoutubeInput?.value.trim() ?? "",
     facebook: els.profileFacebookInput?.value.trim() ?? "",
+    profileBirthdayPublic: Boolean(els.profileBirthdayPublicInput?.checked),
+    profileAgePublic: Boolean(els.profileAgePublicInput?.checked),
   });
 }
 
@@ -1240,6 +1306,8 @@ async function saveProfileCompletion() {
       applyTranslations(document);
     }
     renderProfileGenderPronouns(profile);
+    renderProfileAvatar(profile);
+    renderProfileEditAvatar(profile);
     await maybeShowProfileCompletion(profile);
     els.profileCompletionStatus.textContent = t("profile.completion.saved");
     els.profileCompletionStatus.classList.add("success");
@@ -1308,75 +1376,6 @@ function renderProfileGenderPronouns(profile) {
   }
 }
 
-function renderProfileAvatarPresets(profile) {
-  if (!els.profileAvatarPresetGrid || !els.profileAvatarPresetSection) {
-    return;
-  }
-
-  const hasCustom = Boolean(profile?.hasCustomProfilePhoto);
-  const selected = profile?.profileAvatarPreset || "neutral";
-  setHidden(els.profileAvatarPresetSection, Boolean(profile?.isReporter));
-
-  els.profileAvatarPresetGrid.innerHTML = PROFILE_AVATAR_PRESETS.map((preset) => {
-    const assetUrl = resolveProfileAssetUrl(`/images/profile-defaults/${preset.id}.svg`);
-    const isSelected = preset.id === selected;
-    return `
-      <button
-        type="button"
-        class="profile-avatar-preset-option${isSelected ? " is-selected" : ""}"
-        data-avatar-preset="${preset.id}"
-        aria-pressed="${isSelected ? "true" : "false"}"
-        ${hasCustom ? "disabled" : ""}
-      >
-        <img class="profile-avatar-preset-thumb" src="${assetUrl}" alt="">
-        <span class="profile-avatar-preset-label">${t(preset.labelKey)}</span>
-      </button>`;
-  }).join("");
-
-  els.profileAvatarPresetGrid.querySelectorAll("[data-avatar-preset]").forEach((button) => {
-    button.addEventListener("click", () => {
-      selectProfileAvatarPreset(button.dataset.avatarPreset).catch((error) => {
-        if (els.profileAvatarPresetStatus) {
-          els.profileAvatarPresetStatus.textContent = error.message;
-          els.profileAvatarPresetStatus.classList.add("error");
-        }
-      });
-    });
-  });
-
-  if (els.profileAvatarPresetStatus && !hasCustom) {
-    els.profileAvatarPresetStatus.textContent = "";
-    els.profileAvatarPresetStatus.classList.remove("error", "success");
-  } else if (els.profileAvatarPresetStatus && hasCustom) {
-    els.profileAvatarPresetStatus.textContent = t("profile.avatarCustomShown");
-    els.profileAvatarPresetStatus.classList.remove("error", "success");
-  }
-}
-
-async function selectProfileAvatarPreset(preset) {
-  if (!state.profile?.isOwner || state.profile?.hasCustomProfilePhoto) {
-    return;
-  }
-
-  if (els.profileAvatarPresetStatus) {
-    els.profileAvatarPresetStatus.textContent = t("profile.avatarSaving");
-    els.profileAvatarPresetStatus.classList.remove("error", "success");
-  }
-
-  const profile = await api.updateProfile({
-    ...profileEditFormPayload(),
-    profileAvatarPreset: preset,
-  });
-  state.profile = profile;
-  renderProfile(profile);
-  renderProfileEditAvatar(profile);
-  renderProfileAvatarPresets(profile);
-  if (els.profileAvatarPresetStatus) {
-    els.profileAvatarPresetStatus.textContent = t("profile.avatarUpdated");
-    els.profileAvatarPresetStatus.classList.add("success");
-  }
-}
-
 function populateProfileEditForm(profile) {
   if (els.profileEditNumber) {
     els.profileEditNumber.textContent = profile.profileNumber || "---";
@@ -1393,6 +1392,12 @@ function populateProfileEditForm(profile) {
   }
   if (els.profilePreferredPronounsInput) {
     els.profilePreferredPronounsInput.value = profile.profilePreferredPronouns ?? "";
+  }
+  if (els.profileBirthdayPublicInput) {
+    els.profileBirthdayPublicInput.checked = Boolean(profile.profileBirthdayPublic);
+  }
+  if (els.profileAgePublicInput) {
+    els.profileAgePublicInput.checked = Boolean(profile.profileAgePublic);
   }
   syncProfileGenderPronounsUi();
   if (els.profileMoodInput) {
@@ -1426,20 +1431,15 @@ function populateProfileEditForm(profile) {
     els.profileSaveStatus.textContent = "";
     els.profileSaveStatus.classList.remove("error", "success");
   }
-  if (els.profileAddFriendStatus) {
-    els.profileAddFriendStatus.textContent = "";
-    els.profileAddFriendStatus.classList.remove("error", "success");
-  }
   if (els.profilePhotoStatus) {
     els.profilePhotoStatus.textContent = "";
     els.profilePhotoStatus.classList.remove("error", "success");
   }
-  renderProfileAvatarPresets(profile);
   if (els.profilePhotoBtn) {
     els.profilePhotoBtn.disabled = true;
   }
   if (els.profilePhotoChooseBtn) {
-    els.profilePhotoChooseBtn.textContent = t("profile.edit.choosePhoto");
+    els.profilePhotoChooseBtn.textContent = t("profile.edit.choosePhotoShort");
   }
   if (els.profilePhotoInput) {
     els.profilePhotoInput.value = "";
@@ -1452,7 +1452,7 @@ function populateProfileEditForm(profile) {
     els.profileBackgroundUploadBtn.disabled = true;
   }
   if (els.profileBackgroundChooseBtn) {
-    els.profileBackgroundChooseBtn.textContent = t("profile.edit.chooseImage");
+    els.profileBackgroundChooseBtn.textContent = t("profile.edit.chooseBanner");
   }
   if (els.profileBackgroundInput) {
     els.profileBackgroundInput.value = "";
@@ -1466,12 +1466,13 @@ function populateProfileEditForm(profile) {
     els.profileCompanyLogoUploadBtn.disabled = true;
   }
   if (els.profileCompanyLogoChooseBtn) {
-    els.profileCompanyLogoChooseBtn.textContent = t("profile.edit.choosePng");
+    els.profileCompanyLogoChooseBtn.textContent = t("profile.edit.chooseLogoShort");
   }
   if (els.profileCompanyLogoInput) {
     els.profileCompanyLogoInput.value = "";
   }
   renderProfileBackgroundPreview(profile);
+  syncProfileEditHeaderPreview(profile);
   renderCompanyNameListingControls(profile);
 }
 
@@ -1733,6 +1734,11 @@ function renderProfile(profile) {
   const signedUp = formatProfileDate(profile.memberSince);
   els.profileMemberSince.textContent = t("profile.memberSince", { date: signedUp });
   els.profileSidebarMemberSince.textContent = signedUp;
+  const publicInfo = formatProfilePublicInfo(profile);
+  if (els.profilePublicInfo) {
+    els.profilePublicInfo.textContent = publicInfo;
+    setHidden(els.profilePublicInfo, !publicInfo);
+  }
   setProfileText(els.profileAboutView, profile.aboutMe, t("profile.aboutEmpty"));
   setProfileText(els.profileInterestsView, profile.interests, t("profile.interestsEmpty"));
   setProfileText(els.profileMusicView, profile.music, t("profile.musicEmpty"));
@@ -1773,6 +1779,10 @@ function renderProfile(profile) {
   renderProfileFriendPanel(profile);
   renderProfileFriends(profile);
   syncCompanyLogoGenerationPoll(profile);
+  if (!els.profileEditModal?.hidden) {
+    syncProfileEditHeaderPreview(profile);
+    renderProfileBackgroundPreview(profile);
+  }
 }
 
 function renderProfileFlagNotice(profile) {
@@ -1808,7 +1818,6 @@ async function uploadProfilePhoto() {
     renderProfile(profile);
     if (!els.profileEditModal?.hidden) {
       renderProfileEditAvatar(profile);
-      renderProfileAvatarPresets(profile);
     }
     els.profilePhotoStatus.textContent = t("profile.photoUpdated");
     els.profilePhotoStatus.classList.add("success");
@@ -1909,9 +1918,9 @@ function renderProfileFriendPanel(profile) {
   }
 
   const status = profile.friendshipStatus ?? "none";
-  setHidden(els.profileAddFriendBtn, status !== "none");
+  setHidden(els.profileAddFriendBtn, status !== "none" || profile.isTestingDummy);
   setHidden(els.profileAcceptFriendBtn, status !== "pending_incoming" || profile.isReporter);
-  setHidden(els.profileMessageFriendBtn, status !== "accepted" || profile.isReporter);
+  setHidden(els.profileMessageFriendBtn, status !== "accepted" || profile.isReporter || profile.isTestingDummy);
   setHidden(els.profileRemoveFriendBtn, !["pending_outgoing", "pending_incoming", "accepted"].includes(status));
 
   switch (status) {
@@ -1998,7 +2007,7 @@ function createFriendItem(
     const actions = document.createElement("div");
     actions.className = "friend-item-actions";
 
-    if (showMessage && !friend.isReporter) {
+    if (showMessage && !friend.isReporter && !friend.isTestingDummy) {
       const messageBtn = document.createElement("button");
       messageBtn.type = "button";
       messageBtn.className = "btn primary";
@@ -2083,8 +2092,18 @@ function renderFriendsPanel() {
 }
 
 async function loadFriends() {
-  state.friends = await api.getFriends();
+  const response = await api.getFriends();
+  state.friends = mergeFriendsListForTesting(response, loadTestingModeEnabled(), state.isStaffAdmin);
   renderFriendsPanel();
+}
+
+async function refreshStaffAdminFlag() {
+  try {
+    const access = await api.adminAccess();
+    state.isStaffAdmin = Boolean(access?.isAdmin);
+  } catch {
+    state.isStaffAdmin = false;
+  }
 }
 
 async function openFriendsModal() {
@@ -2126,31 +2145,6 @@ async function submitAddFriend(profileNumber) {
   }
 }
 
-async function submitProfileAddFriend() {
-  const value = els.profileAddFriendNumber.value.trim();
-  if (!value) {
-    els.profileAddFriendStatus.textContent = t("friends.invalidNumber");
-    els.profileAddFriendStatus.classList.add("error");
-    return;
-  }
-
-  els.profileAddFriendStatus.textContent = t("friends.sending");
-  els.profileAddFriendStatus.classList.remove("error", "success");
-  try {
-    const result = await api.addFriend(value);
-    els.profileAddFriendNumber.value = "";
-    els.profileAddFriendStatus.textContent = result.message;
-    els.profileAddFriendStatus.classList.add("success");
-    if (!els.friendsModal.hidden) {
-      await loadFriends();
-    }
-    await refreshProfileIfOpen();
-  } catch (error) {
-    els.profileAddFriendStatus.textContent = error.message;
-    els.profileAddFriendStatus.classList.add("error");
-  }
-}
-
 async function refreshProfileIfOpen() {
   const profileClosed = !els.profileModal || els.profileModal.hidden;
   const editClosed = !els.profileEditModal || els.profileEditModal.hidden;
@@ -2159,9 +2153,27 @@ async function refreshProfileIfOpen() {
   }
 
   try {
-    const profile = state.profile.isOwner
-      ? await api.getProfile()
-      : await api.getProfileByUsername(state.profile.username);
+    let profile;
+    if (state.profile.isOwner) {
+      profile = augmentOwnerProfileForTesting(
+        await api.getProfile(),
+        loadTestingModeEnabled(),
+        state.isStaffAdmin,
+      );
+      state.accountProfile = profile;
+    } else if (state.profile.isTestingDummy) {
+      profile = resolveDummyGameProfile(
+        state.profile.username,
+        state.accountProfile,
+        loadTestingModeEnabled(),
+        state.isStaffAdmin,
+      );
+      if (!profile) {
+        return;
+      }
+    } else {
+      profile = await api.getProfileByUsername(state.profile.username);
+    }
     renderProfile(profile);
   } catch (error) {
     showStatus(error.message, true);
@@ -2176,6 +2188,18 @@ async function acceptFriendRequest(friendshipId) {
 }
 
 async function removeFriendRequest(friendshipId) {
+  if (
+    isDummyFriendshipId(friendshipId) &&
+    loadTestingModeEnabled() &&
+    state.isStaffAdmin
+  ) {
+    saveRemovedDummyFriendship(friendshipId);
+    setFriendsStatus("Friend removed.", false);
+    await loadFriends();
+    await refreshProfileIfOpen();
+    return;
+  }
+
   const result = await api.removeFriend(friendshipId);
   setFriendsStatus(result.message, false);
   await loadFriends();
@@ -2237,6 +2261,29 @@ async function profileRemoveFriend() {
   els.profileFriendActionStatus.textContent = t("friend.updating");
   els.profileFriendActionStatus.classList.remove("error", "success");
   try {
+    if (
+      isDummyFriendshipId(friendshipId) &&
+      loadTestingModeEnabled() &&
+      state.isStaffAdmin
+    ) {
+      saveRemovedDummyFriendship(friendshipId);
+      els.profileFriendActionStatus.textContent = "Friend removed.";
+      els.profileFriendActionStatus.classList.add("success");
+      const refreshed = resolveDummyGameProfile(
+        state.profile.username,
+        state.accountProfile,
+        loadTestingModeEnabled(),
+        state.isStaffAdmin,
+      );
+      if (refreshed) {
+        renderProfile(refreshed);
+      }
+      if (!els.friendsModal.hidden) {
+        await loadFriends();
+      }
+      return;
+    }
+
     const result = await api.removeFriend(friendshipId);
     els.profileFriendActionStatus.textContent = result.message;
     els.profileFriendActionStatus.classList.add("success");
@@ -2278,7 +2325,12 @@ async function closeProfileEdit(refreshProfile = true) {
   }
 
   try {
-    const profile = await api.getProfile();
+    const profile = augmentOwnerProfileForTesting(
+      await api.getProfile(),
+      loadTestingModeEnabled(),
+      state.isStaffAdmin,
+    );
+    state.accountProfile = profile;
     renderProfile(profile);
   } catch (error) {
     showStatus(error.message, true);
@@ -2298,9 +2350,25 @@ async function openProfile(username) {
   openModal(els.profileModal);
 
   try {
-    const profile = username
-      ? await api.getProfileByUsername(username)
-      : await api.getProfile();
+    let profile;
+    if (username) {
+      profile = resolveDummyGameProfile(
+        username,
+        state.accountProfile,
+        loadTestingModeEnabled(),
+        state.isStaffAdmin,
+      );
+      if (!profile) {
+        profile = await api.getProfileByUsername(username);
+      }
+    } else {
+      profile = augmentOwnerProfileForTesting(
+        await api.getProfile(),
+        loadTestingModeEnabled(),
+        state.isStaffAdmin,
+      );
+      state.accountProfile = profile;
+    }
     renderProfile(profile);
   } catch (error) {
     hideProfileScreens();
@@ -2344,8 +2412,9 @@ async function saveProfile() {
       twitter: els.profileTwitterInput.value.trim(),
       youtube: els.profileYoutubeInput.value.trim(),
       facebook: els.profileFacebookInput.value.trim(),
-      profileAvatarPreset: state.profile?.profileAvatarPreset ?? "neutral",
       profileLocale: nextLocale,
+      profileBirthdayPublic: payload.profileBirthdayPublic,
+      profileAgePublic: payload.profileAgePublic,
     });
     state.profile = profile;
     if (getLocale() !== nextLocale) {
@@ -2409,9 +2478,15 @@ async function refreshAll() {
     renderStorePanel();
   }
   await playerMessaging.refreshUnreadBadge();
+  await refreshStaffAdminFlag();
 
   try {
-    const profile = await api.getProfile();
+    const profile = augmentOwnerProfileForTesting(
+      await api.getProfile(),
+      loadTestingModeEnabled(),
+      state.isStaffAdmin,
+    );
+    state.accountProfile = profile;
     state.profile = profile;
     await maybeShowProfileCompletion(profile);
   } catch {
@@ -3189,7 +3264,17 @@ async function authenticate(register) {
   showLoginStatus(isRegister ? t("auth.creatingAccount") : t("auth.connecting"), "info");
   try {
     if (isRegister) {
-      await api.register(username, email, password, birthday, profileGender, profilePreferredPronouns, profileLocale);
+      await api.register(
+        username,
+        email,
+        password,
+        birthday,
+        profileGender,
+        profilePreferredPronouns,
+        profileLocale,
+        Boolean(els.registerBirthdayPublic?.checked),
+        Boolean(els.registerAgePublic?.checked),
+      );
       await setLocale(profileLocale);
       applyTranslations(document);
       els.password.value = "";
@@ -3497,6 +3582,9 @@ els.profileCompanyCancelListBtn?.addEventListener("click", () => {
     els.profileCompanyListStatus.classList.add("error");
   });
 });
+els.profileMoodInput?.addEventListener("input", () => {
+  syncProfileEditHeaderPreview(state.profile);
+});
 els.profilePhotoChooseBtn.addEventListener("click", () => {
   els.profilePhotoInput.click();
 });
@@ -3504,7 +3592,7 @@ els.profilePhotoInput.addEventListener("change", () => {
   const file = els.profilePhotoInput.files?.[0];
   if (!file) {
     els.profilePhotoBtn.disabled = true;
-    els.profilePhotoChooseBtn.textContent = t("profile.edit.choosePhoto");
+    els.profilePhotoChooseBtn.textContent = t("profile.edit.choosePhotoShort");
     return;
   }
 
@@ -3526,8 +3614,11 @@ els.profileCompanyLogoInput?.addEventListener("change", () => {
   const file = els.profileCompanyLogoInput.files?.[0];
   if (!file) {
     els.profileCompanyLogoUploadBtn.disabled = true;
-    els.profileCompanyLogoChooseBtn.textContent = t("profile.edit.choosePng");
-    renderCompanyLogoOnElement(state.profile, els.profileCompanyLogoPreview);
+    els.profileCompanyLogoChooseBtn.textContent = t("profile.edit.chooseLogoShort");
+    renderCompanyLogoOnElement(state.profile, els.profileCompanyLogoPreview, {
+      slotEl: els.profileEditCompanyLogoSlot,
+      placeholderEl: els.profileEditCompanyLogoPlaceholder,
+    });
     return;
   }
 
@@ -3547,6 +3638,7 @@ els.profileCompanyLogoInput?.addEventListener("change", () => {
   if (els.profileCompanyLogoPreview) {
     els.profileCompanyLogoPreview.src = previewUrl;
     els.profileCompanyLogoPreview.hidden = false;
+    els.profileEditCompanyLogoSlot?.classList.add("has-logo");
   }
 });
 els.profileCompanyLogoUploadBtn?.addEventListener("click", () => {
@@ -3570,8 +3662,8 @@ els.profileBackgroundInput?.addEventListener("change", () => {
   const file = els.profileBackgroundInput.files?.[0];
   if (!file) {
     els.profileBackgroundUploadBtn.disabled = true;
-    els.profileBackgroundChooseBtn.textContent = t("profile.edit.chooseImage");
-    applyProfileBannerBackground(els.profileBackgroundPreview, state.profile?.profileBackgroundUrl);
+    els.profileBackgroundChooseBtn.textContent = t("profile.edit.chooseBanner");
+    applyProfileBannerBackground(els.profileEditHeaderBanner, state.profile?.profileBackgroundUrl);
     return;
   }
 
@@ -3581,8 +3673,10 @@ els.profileBackgroundInput?.addEventListener("change", () => {
     : file.name;
 
   const previewUrl = URL.createObjectURL(file);
-  els.profileBackgroundPreview.style.backgroundImage = `url("${previewUrl}")`;
-  els.profileBackgroundPreview.classList.add("has-custom-background");
+  if (els.profileEditHeaderBanner) {
+    els.profileEditHeaderBanner.style.backgroundImage = `url("${previewUrl}")`;
+    els.profileEditHeaderBanner.classList.add("has-custom-background");
+  }
 });
 els.profileBackgroundUploadBtn?.addEventListener("click", () => {
   uploadProfileBackground().catch((error) => {
@@ -3630,21 +3724,6 @@ els.messagesBtn.addEventListener("click", () => {
 });
 els.addFriendBtn.addEventListener("click", () => {
   submitAddFriend(els.addFriendNumber.value).catch((error) => setFriendsStatus(error.message, true));
-});
-els.profileAddFriendSubmitBtn.addEventListener("click", () => {
-  submitProfileAddFriend().catch((error) => {
-    els.profileAddFriendStatus.textContent = error.message;
-    els.profileAddFriendStatus.classList.add("error");
-  });
-});
-els.profileAddFriendNumber.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    submitProfileAddFriend().catch((error) => {
-      els.profileAddFriendStatus.textContent = error.message;
-      els.profileAddFriendStatus.classList.add("error");
-    });
-  }
 });
 els.addFriendNumber.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
@@ -3738,7 +3817,6 @@ async function startApp() {
       renderProfile(state.profile);
       if (!els.profileEditModal?.hidden) {
         populateProfileEditForm(state.profile);
-        renderProfileAvatarPresets(state.profile);
       }
     }
     if (state.mine && !els.supplyModal.hidden) {

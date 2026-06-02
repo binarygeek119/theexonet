@@ -21,6 +21,15 @@ public static class ProfileAvatarPresets
             _ => DefaultPreset,
         };
 
+    /// <summary>Default silhouette preset from profile gender (used until a custom photo is uploaded).</summary>
+    public static string FromGender(string? gender) =>
+        ProfileGender.Normalize(gender) switch
+        {
+            ProfileGender.Male or ProfileGender.TransMale => Male,
+            ProfileGender.Female or ProfileGender.TransFemale => Female,
+            _ => Neutral,
+        };
+
     public static string AssetPath(string preset) =>
         $"{PublicPath}/{Normalize(preset)}.svg";
 

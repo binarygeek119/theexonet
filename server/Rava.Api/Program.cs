@@ -165,6 +165,7 @@ builder.Services.AddScoped<PlayerProfileUpgrader>();
 builder.Services.AddScoped<CompanyNameService>();
 builder.Services.AddScoped<TradeAuctionService>();
 builder.Services.AddScoped<PublicProfileService>();
+builder.Services.AddScoped<PlayerActivityService>();
 builder.Services.AddScoped<ReporterFriendshipService>();
 builder.Services.AddSingleton<OpenAiUsageTracker>();
 builder.Services.AddSingleton<OpenAiBillingProbe>();
@@ -523,6 +524,7 @@ else
 }
 
 app.UseAuthentication();
+app.UseMiddleware<Rava.Api.Middleware.PlayerActivityMiddleware>();
 app.UseMiddleware<Rava.Api.Middleware.PlayerBanMiddleware>();
 app.UseAuthorization();
 app.MapControllers();

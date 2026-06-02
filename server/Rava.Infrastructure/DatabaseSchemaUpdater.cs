@@ -374,6 +374,10 @@ public static class DatabaseSchemaUpdater
             );
             CREATE INDEX IF NOT EXISTS "IX_CompanyLogoQueue_MineId_Status" ON "CompanyLogoQueue" ("MineId", "Status");
             CREATE INDEX IF NOT EXISTS "IX_CompanyLogoQueue_RequestedAt" ON "CompanyLogoQueue" ("RequestedAt");
+            ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "LastSeenAtUtc" timestamp with time zone;
+            CREATE INDEX IF NOT EXISTS "IX_Players_LastSeenAtUtc" ON "Players" ("LastSeenAtUtc");
+            ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileBirthdayPublic" boolean NOT NULL DEFAULT false;
+            ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileAgePublic" boolean NOT NULL DEFAULT false;
             """,
             cancellationToken);
     }

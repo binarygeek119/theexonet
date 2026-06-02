@@ -1,6 +1,7 @@
 // Exonet / Offworld News is English-only and excluded from Weblate (AI-generated articles).
 import { renderSocialLinksHtml } from "./profile-social.js?v=20260529-login";
 import { API_BASE_URL, readMetaApiBase } from "./config.js";
+import { loadTestingModeEnabled, mergeFriendsListForTesting } from "./admin-testing-mode.js";
 
 const BOOKMARKS = [
   { slug: "home", title: "Exonet Portal", subtitle: "Start here" },
@@ -9,7 +10,7 @@ const BOOKMARKS = [
   { slug: "shipping", title: "Shipping Authority", subtitle: "Refinery and cargo" },
   { slug: "company", title: "Company Exchange", subtitle: "Listed company names" },
   { slug: "friends", title: "Social Directory", subtitle: "Your friends online" },
-  { slug: "profile", title: "Miner Profiles", subtitle: "Search and rankings" },
+  { slug: "profile", title: "Miner Profiles", subtitle: "Browse, search, and rankings" },
   { slug: "docs", title: "RAVA Archives", subtitle: "Official game docs" },
   { slug: "sites/offworld-news", title: "Offworld News", subtitle: "Daily frontier headlines" },
   { slug: "sites/void-corp", title: "VoidCorp", subtitle: "Coming soon", placeholder: true },
@@ -457,7 +458,11 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
 
   async function renderFriends() {
     const friendsResponse = await api.getFriends();
-    const friends = friendsResponse.friends ?? [];
+    const friends = mergeFriendsListForTesting(
+      friendsResponse,
+      loadTestingModeEnabled(),
+      Boolean(getState()?.isStaffAdmin),
+    ).friends ?? [];
 
     if (!friends.length) {
       content.innerHTML = `
@@ -498,6 +503,21 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
 
       content.innerHTML = `
         ${pageHeader("Miner Profiles", "profile")}
+        <div class="exonet-panel">
+          <h3>Browse all miners</h3>
+          <p class="exonet-muted">Scroll public profile summaries — A–Z, who is online, newest and oldest members, and birthdays today (only players who share their birthday). Ages are never shown in lists.</p>
+          <div class="exonet-profile-browse-tabs">
+            ${PROFILE_BROWSE_SORTS.map(
+              (entry) =>
+                `<button type="button" class="btn ghost exonet-profile-browse-tab" data-profile-browse-sort="${escapeHtml(entry.id)}">${escapeHtml(entry.label)}</button>`,
+            ).join("")}
+          </div>
+          <p id="exonet-profile-browse-status" class="exonet-muted">Loading public profiles…</p>
+          <div id="exonet-profile-browse-results"></div>
+          <div class="button-row">
+            <button type="button" class="btn ghost" data-profile-browse-more hidden>Load more</button>
+          </div>
+        </div>
         <div class="exonet-panel">
           <h3>Find an ONN reporter</h3>
           <p class="exonet-muted">Search the public reporter directory by name, handle, beat, or bureau.</p>
@@ -563,6 +583,8 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       });
 
       content.querySelector("[data-nav-reporters]")?.addEventListener("click", () => navigate("sites/offworld-news/reporters"));
+      bindProfileBrowseControls();
+      await refreshProfileBrowsePanel();
       bindProfileResultLinks(content);
       return;
     }
@@ -601,6 +623,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       return;
     }
 
+    const publicInfo = formatProfilePublicInfo(profile);
     content.innerHTML = `
       ${pageHeader(`${profile.username}`, `profile/${profile.username}`)}
       <div class="exonet-panel exonet-profile-card">
@@ -616,6 +639,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
         <p><strong>About</strong><br>${escapeHtml(profile.aboutMe || "No bio published.")}</p>
         <p><strong>Interests</strong><br>${escapeHtml(profile.interests || "Nothing listed.")}</p>
         <p><strong>Music</strong><br>${escapeHtml(profile.music || "Silence in the void.")}</p>
+        ${publicInfo ? `<p class="exonet-muted">${escapeHtml(publicInfo)}</p>` : ""}
         <div>${renderSocialLinksHtml(profile)}</div>
         <p class="exonet-muted">Day ${profile.currentGameDay ?? "—"} · Workers ${profile.workerCount ?? 0} · Zones ${profile.zoneCount ?? 0} · Company value ${formatRaxPlain(profile.companyValue ?? 0)}</p>
       </div>`;
@@ -670,15 +694,24 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       <div class="exonet-grid exonet-profile-results">
         ${results
           .map(
-            (entry) => `
+            (entry) => {
+              const publicBirthday = formatProfileBrowsePublicInfo(entry);
+              const metaParts = [
+                escapeHtml(entry.profileNumber ?? "—"),
+                entry.isReporter ? "" : formatRaxPlain(entry.companyValue ?? 0),
+                publicBirthday,
+              ].filter(Boolean);
+              return `
           <button type="button" class="exonet-tile exonet-profile-result-tile" data-profile="${escapeHtml(entry.username)}">
             ${entry.isReporter || entry.profileImageUrl ? renderProfileAvatarMarkup(entry, entry.username) : ""}
             <div class="exonet-profile-result-copy">
-              <strong>${escapeHtml(entry.username)}${entry.isReporter ? " · ONN" : ""}</strong>
+              <strong>${escapeHtml(entry.username)}${entry.isReporter ? " · ONN" : ""}${renderProfileBrowseBadges(entry)}</strong>
               <span>${escapeHtml(entry.companyName ?? (entry.isReporter ? "Offworld News Network" : "Unknown mine"))}</span>
-              <span>${escapeHtml(entry.profileNumber ?? "—")}${entry.isReporter ? "" : ` · ${formatRaxPlain(entry.companyValue ?? 0)}`}</span>
+              <span>${metaParts.join(" · ")}</span>
+              <span class="exonet-profile-result-mood">${escapeHtml(entry.mood || (entry.isReporter ? "On assignment." : "Ready to mine."))}</span>
             </div>
-          </button>`,
+          </button>`;
+            },
           )
           .join("")}
       </div>`;
@@ -687,6 +720,178 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
   function bindProfileResultLinks(host) {
     host.querySelectorAll("[data-profile]").forEach((button) => {
       button.addEventListener("click", () => navigate(`profile/${button.dataset.profile}`));
+    });
+  }
+
+  const PROFILE_BROWSE_SORTS = [
+    { id: "username", label: "A–Z" },
+    { id: "online", label: "Online now" },
+    { id: "newest", label: "Newest" },
+    { id: "oldest", label: "Oldest" },
+    { id: "birthdaysToday", label: "Birthdays today" },
+  ];
+
+  const PROFILE_BROWSE_PAGE_SIZE = 50;
+  let profileBrowseSort = "username";
+  let profileBrowseOffset = 0;
+  let profileBrowseTotal = 0;
+  let profileBrowseEntries = [];
+
+  function formatProfileMemberSince(value) {
+    if (!value) {
+      return "—";
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
+
+    return date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  function renderProfileBrowseBadges(entry) {
+    const badges = [];
+    if (pickField(entry, "isOnline")) {
+      badges.push('<span class="exonet-profile-badge exonet-profile-badge-online">Online</span>');
+    }
+    if (pickField(entry, "birthdayToday")) {
+      badges.push('<span class="exonet-profile-badge exonet-profile-badge-birthday">Birthday</span>');
+    }
+
+    return badges.length ? `<span class="exonet-profile-badges">${badges.join("")}</span>` : "";
+  }
+
+  function formatProfileBrowsePublicInfo(entry) {
+    const birthday = pickField(entry, "publicBirthday");
+    return birthday ? `Birthday ${escapeHtml(birthday)}` : "";
+  }
+
+  function formatProfilePublicInfo(profile) {
+    const parts = [];
+    const birthday = pickField(profile, "publicBirthday");
+    const age = pickField(profile, "publicAge");
+    if (birthday) {
+      parts.push(`Birthday ${birthday}`);
+    }
+    if (age != null && Number.isFinite(Number(age))) {
+      parts.push(`Age ${age}`);
+    }
+    return parts.join(" · ");
+  }
+
+  function renderProfileBrowseMeta(entry, sort) {
+    const parts = [
+      escapeHtml(pickField(entry, "profileNumber") || "—"),
+      formatRaxPlain(pickField(entry, "companyValue") ?? 0),
+    ];
+    if (sort === "newest" || sort === "oldest") {
+      parts.push(`Joined ${formatProfileMemberSince(pickField(entry, "memberSince"))}`);
+    }
+    const publicBirthday = formatProfileBrowsePublicInfo(entry);
+    if (publicBirthday) {
+      parts.push(publicBirthday);
+    }
+
+    return parts.join(" · ");
+  }
+
+  function renderProfileBrowseList(entries, sort) {
+    if (!entries.length) {
+      return `<p class="exonet-muted">No public profiles in this list yet.</p>`;
+    }
+
+    return `
+      <div class="exonet-grid exonet-profile-results">
+        ${entries
+          .map(
+            (entry) => `
+          <button type="button" class="exonet-tile exonet-profile-result-tile" data-profile="${escapeHtml(pickField(entry, "username"))}">
+            ${renderProfileAvatarMarkup(entry, pickField(entry, "username"))}
+            <div class="exonet-profile-result-copy">
+              <strong>${escapeHtml(pickField(entry, "username"))}${renderProfileBrowseBadges(entry)}</strong>
+              <span>${escapeHtml(pickField(entry, "companyName") || "Unknown mine")}</span>
+              <span>${renderProfileBrowseMeta(entry, sort)}</span>
+              <span class="exonet-profile-result-mood">${escapeHtml(pickField(entry, "mood") || "Ready to mine.")}</span>
+            </div>
+          </button>`,
+          )
+          .join("")}
+      </div>`;
+  }
+
+  async function refreshProfileBrowsePanel({ append = false } = {}) {
+    const statusEl = content.querySelector("#exonet-profile-browse-status");
+    const resultsHost = content.querySelector("#exonet-profile-browse-results");
+    const loadMoreBtn = content.querySelector("[data-profile-browse-more]");
+    if (!resultsHost) {
+      return;
+    }
+
+    if (!append) {
+      profileBrowseOffset = 0;
+      profileBrowseEntries = [];
+    }
+
+    if (statusEl) {
+      statusEl.textContent = "Loading public profiles…";
+    }
+
+    try {
+      const response = await api.browsePublicProfiles(
+        profileBrowseSort,
+        PROFILE_BROWSE_PAGE_SIZE,
+        profileBrowseOffset,
+      );
+      profileBrowseTotal = Number(response.totalCount ?? 0);
+      const pageEntries = response.entries ?? [];
+      profileBrowseEntries = append ? [...profileBrowseEntries, ...pageEntries] : pageEntries;
+
+      content.querySelectorAll("[data-profile-browse-sort]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.profileBrowseSort === profileBrowseSort);
+      });
+
+      if (statusEl) {
+        const sortLabel =
+          PROFILE_BROWSE_SORTS.find((entry) => entry.id === profileBrowseSort)?.label ?? "Profiles";
+        statusEl.textContent =
+          profileBrowseTotal === 0
+            ? `No miners matched ${sortLabel.toLowerCase()}.`
+            : `Showing ${profileBrowseEntries.length} of ${profileBrowseTotal} public profiles · ${sortLabel}`;
+      }
+
+      resultsHost.innerHTML = renderProfileBrowseList(profileBrowseEntries, profileBrowseSort);
+      bindProfileResultLinks(resultsHost);
+
+      if (loadMoreBtn) {
+        const hasMore = profileBrowseEntries.length < profileBrowseTotal;
+        loadMoreBtn.hidden = !hasMore;
+      }
+    } catch (error) {
+      if (statusEl) {
+        statusEl.textContent = error.message;
+      }
+      if (!append) {
+        resultsHost.innerHTML = `<p class="exonet-muted">${escapeHtml(error.message)}</p>`;
+      }
+    }
+  }
+
+  function bindProfileBrowseControls() {
+    content.querySelectorAll("[data-profile-browse-sort]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        profileBrowseSort = button.dataset.profileBrowseSort || "username";
+        await refreshProfileBrowsePanel();
+      });
+    });
+
+    content.querySelector("[data-profile-browse-more]")?.addEventListener("click", async () => {
+      profileBrowseOffset += PROFILE_BROWSE_PAGE_SIZE;
+      await refreshProfileBrowsePanel({ append: true });
     });
   }
 

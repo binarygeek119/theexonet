@@ -264,6 +264,10 @@
   border: 1px solid rgba(120, 180, 255, 0.35);
 }
 
+.admin-testing-dummy-list {
+  margin-top: 16px;
+}
+
 .admin-profile-modal {
   z-index: 3100;
 }

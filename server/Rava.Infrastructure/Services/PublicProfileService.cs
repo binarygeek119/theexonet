@@ -18,6 +18,22 @@ public class PublicProfileService(
     RavaHostingPaths hostingPaths)
 {
     public const string SortCompanyValue = "companyValue";
+    public const string SortUsername = "username";
+    public const string SortNewest = "newest";
+    public const string SortOldest = "oldest";
+    public const string SortOnline = "online";
+    public const string SortBirthdaysToday = "birthdaysToday";
+
+    public static readonly TimeSpan OnlinePresenceWindow = TimeSpan.FromMinutes(15);
+
+    public static readonly IReadOnlyList<string> BrowseSorts =
+    [
+        SortUsername,
+        SortOnline,
+        SortNewest,
+        SortOldest,
+        SortBirthdaysToday,
+    ];
 
     public static readonly IReadOnlyList<string> ComingSoonLeaderboardSorts =
     [
@@ -100,6 +116,40 @@ public class PublicProfileService(
         }
 
         return new PublicProfileLeaderboardResponse(normalizedSort, entries, ComingSoonLeaderboardSorts);
+    }
+
+    public async Task<PublicProfileBrowseResponse> BrowseAsync(
+        string sort,
+        int limit,
+        int offset,
+        CancellationToken ct)
+    {
+        limit = Math.Clamp(limit, 1, 100);
+        offset = Math.Max(0, offset);
+        var normalizedSort = NormalizeBrowseSort(sort);
+        var today = UtcGameClock.Today;
+        var onlineCutoff = DateTime.UtcNow - OnlinePresenceWindow;
+
+        var players = await db.Players.AsNoTracking()
+            .Include(p => p.Inventory)
+            .Include(p => p.Mines.Where(m => m.Status == MineStatus.Active))
+                .ThenInclude(m => m.Workers)
+            .Include(p => p.Mines.Where(m => m.Status == MineStatus.Active))
+                .ThenInclude(m => m.Zones)
+            .ToListAsync(ct);
+
+        var visiblePlayers = await FilterPubliclyVisibleAsync(players, ct);
+        var ordered = OrderPlayersForBrowse(visiblePlayers, normalizedSort, today, onlineCutoff).ToList();
+        var page = ordered.Skip(offset).Take(limit).ToList();
+        var entries = await MapSummariesAsync(page, today, onlineCutoff, ct);
+
+        return new PublicProfileBrowseResponse(
+            normalizedSort,
+            ordered.Count,
+            offset,
+            limit,
+            entries,
+            BrowseSorts);
     }
 
     public async Task<PublicProfileDetailDto?> GetByUsernameAsync(string username, CancellationToken ct)
@@ -315,6 +365,13 @@ public class PublicProfileService(
 
     private async Task<IReadOnlyList<PublicProfileSummaryDto>> MapSummariesAsync(
         IReadOnlyList<PlayerEntity> players,
+        CancellationToken ct) =>
+        await MapSummariesAsync(players, UtcGameClock.Today, DateTime.UtcNow - OnlinePresenceWindow, ct);
+
+    private async Task<IReadOnlyList<PublicProfileSummaryDto>> MapSummariesAsync(
+        IReadOnlyList<PlayerEntity> players,
+        DateOnly today,
+        DateTime onlineCutoff,
         CancellationToken ct)
     {
         if (players.Count == 0)
@@ -345,10 +402,43 @@ public class PublicProfileService(
                 inventoryByPlayer.TryGetValue(player.Id, out var inventory);
                 mineByPlayer.TryGetValue(player.Id, out var mine);
                 player.Inventory = inventory ?? [];
-                return MapSummary(player, mine, ComputeCompanyValue(player, inventory));
+                return MapSummary(
+                    player,
+                    mine,
+                    ComputeCompanyValue(player, inventory),
+                    memberSince: player.CreatedAt,
+                    isOnline: player.LastSeenAtUtc >= onlineCutoff,
+                    birthdayToday: player.ProfileBirthdayPublic
+                        && player.Birthday.HasValue
+                        && BirthdayHelper.IsBirthdayToday(player.Birthday.Value, today));
             })
             .ToList();
     }
+
+    private static IEnumerable<PlayerEntity> OrderPlayersForBrowse(
+        IReadOnlyList<PlayerEntity> players,
+        string sort,
+        DateOnly today,
+        DateTime onlineCutoff) =>
+        sort switch
+        {
+            SortOnline => players
+                .Where(player => player.LastSeenAtUtc >= onlineCutoff)
+                .OrderByDescending(player => player.LastSeenAtUtc)
+                .ThenBy(player => player.Username, StringComparer.OrdinalIgnoreCase),
+            SortNewest => players
+                .OrderByDescending(player => player.CreatedAt)
+                .ThenBy(player => player.Username, StringComparer.OrdinalIgnoreCase),
+            SortOldest => players
+                .OrderBy(player => player.CreatedAt)
+                .ThenBy(player => player.Username, StringComparer.OrdinalIgnoreCase),
+            SortBirthdaysToday => players
+                .Where(player => player.ProfileBirthdayPublic
+                    && player.Birthday.HasValue
+                    && BirthdayHelper.IsBirthdayToday(player.Birthday.Value, today))
+                .OrderBy(player => player.Username, StringComparer.OrdinalIgnoreCase),
+            _ => players.OrderBy(player => player.Username, StringComparer.OrdinalIgnoreCase),
+        };
 
     private async Task<List<PlayerEntity>> FilterPubliclyVisibleAsync(
         IReadOnlyList<PlayerEntity> players,
@@ -391,7 +481,10 @@ public class PublicProfileService(
         PlayerEntity player,
         MineEntity? mine,
         decimal companyValue,
-        int rank = 0) =>
+        int rank = 0,
+        DateTime? memberSince = null,
+        bool isOnline = false,
+        bool birthdayToday = false) =>
         new(
             player.Username,
             player.ProfileNumber,
@@ -406,7 +499,13 @@ public class PublicProfileService(
             mine?.Workers.Count ?? 0,
             mine?.Zones.Count ?? 0,
             companyValue,
-            rank);
+            rank,
+            MemberSince: memberSince ?? player.CreatedAt,
+            IsOnline: isOnline,
+            BirthdayToday: birthdayToday,
+            PublicBirthday: BirthdayHelper.TryFormatPublicBirthday(
+                player.Birthday,
+                player.ProfileBirthdayPublic));
 
     private static PublicProfileDetailDto MapDetail(
         PlayerEntity player,
@@ -438,7 +537,14 @@ public class PublicProfileService(
             PronounSubject: MapPronouns(player).Subject,
             PronounObject: MapPronouns(player).Object,
             PronounPossessive: MapPronouns(player).Possessive,
-            PronounLabel: MapPronouns(player).Label);
+            PronounLabel: MapPronouns(player).Label,
+            PublicBirthday: BirthdayHelper.TryFormatPublicBirthday(
+                player.Birthday,
+                player.ProfileBirthdayPublic),
+            PublicAge: BirthdayHelper.TryComputePublicAge(
+                player.Birthday,
+                player.ProfileAgePublic,
+                UtcGameClock.Today));
 
     private static ProfilePronounSet MapPronouns(PlayerEntity player) =>
         ProfilePronouns.Resolve(player.ProfileGender, player.ProfilePreferredPronouns);
@@ -469,6 +575,20 @@ public class PublicProfileService(
         {
             SortCompanyValue or "company-value" or "company_value" or "value" => SortCompanyValue,
             _ => normalized,
+        };
+    }
+
+    private static string NormalizeBrowseSort(string sort)
+    {
+        var normalized = (sort ?? string.Empty).Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            SortUsername or "alphabetical" or "abc" or "a-z" or "name" => SortUsername,
+            SortNewest or "recent" or "joined" => SortNewest,
+            SortOldest or "veteran" or "founders" => SortOldest,
+            SortOnline or "active" or "live" => SortOnline,
+            SortBirthdaysToday or "birthdays" or "birthday" or "birthdays-today" => SortBirthdaysToday,
+            _ => SortUsername,
         };
     }
 }

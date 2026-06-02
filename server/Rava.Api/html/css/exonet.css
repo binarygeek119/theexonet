@@ -350,6 +350,53 @@
   min-width: 0;
 }
 
+.exonet-profile-result-mood {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.exonet-profile-browse-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.exonet-profile-browse-tab.active {
+  border-color: rgba(120, 180, 255, 0.65);
+  background: rgba(59, 130, 246, 0.18);
+}
+
+.exonet-profile-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.exonet-profile-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.exonet-profile-badge-online {
+  color: #d1fae5;
+  background: rgba(16, 185, 129, 0.22);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.exonet-profile-badge-birthday {
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
 .exonet-profile-avatar-compact {
   width: 48px;
   height: 48px;

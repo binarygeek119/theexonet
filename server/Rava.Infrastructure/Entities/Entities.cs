@@ -15,6 +15,8 @@ public class PlayerEntity
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateOnly? Birthday { get; set; }
     public int? LastBirthdayBonusYear { get; set; }
+    public bool ProfileBirthdayPublic { get; set; }
+    public bool ProfileAgePublic { get; set; }
     public string ProfileMood { get; set; } = PlayerProfileDefaults.Mood;
     public string ProfileAboutMe { get; set; } = PlayerProfileDefaults.AboutMe;
     public string ProfileTheme { get; set; } = PlayerProfileDefaults.Theme;
@@ -34,6 +36,7 @@ public class PlayerEntity
     public string ProfileLocale { get; set; } = string.Empty;
     public string ProfileBackgroundUrl { get; set; } = string.Empty;
     public int ProfileBackgroundRevision { get; set; }
+    public DateTime? LastSeenAtUtc { get; set; }
 
     public ICollection<MineEntity> Mines { get; set; } = [];
     public ICollection<InventoryItemEntity> Inventory { get; set; } = [];

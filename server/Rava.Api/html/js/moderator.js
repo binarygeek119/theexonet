@@ -167,6 +167,7 @@ function showScreen(screen) {
   els.loginScreen.hidden = screen !== "login";
   els.deniedScreen.hidden = screen !== "denied";
   els.portalScreen.hidden = screen !== "portal";
+  document.body.classList.toggle("is-authenticated", screen === "portal");
 }
 
 function prefillLoginUsername() {

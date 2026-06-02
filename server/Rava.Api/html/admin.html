@@ -7,7 +7,7 @@
   <link rel="icon" href="/images/currency.svg" type="image/svg+xml">
   <title>RAVA Admin</title>
   <link rel="stylesheet" href="/css/app.css">
-  <link rel="stylesheet" href="/css/admin.css?v=20260529-reporter-roster">
+  <link rel="stylesheet" href="/css/admin.css?v=20260529-testing-profile">
 </head>
 <body>
   <div id="admin-login-screen" class="screen">
@@ -99,8 +99,9 @@
             <input id="admin-testing-mode-toggle" type="checkbox">
             <span>Enable testing mode</span>
           </label>
-          <p id="admin-testing-mode-hint" class="admin-page-desc" hidden>Testing players are marked <span class="admin-testing-badge">TEST</span> in lists.</p>
+          <p id="admin-testing-mode-hint" class="admin-page-desc" hidden>Testing players are marked <span class="admin-testing-badge">TEST</span> in lists and appear as accepted friends in-game while you are logged in as admin.</p>
           <p id="admin-testing-status" class="status-text"></p>
+          <div id="admin-testing-dummy-list" class="admin-testing-dummy-list"></div>
         </section>
       </section>
 
@@ -542,6 +543,6 @@
     </div>
   </div>
 
-  <script type="module" src="/js/admin.js?v=20260529-reporter-roster"></script>
+  <script type="module" src="/js/admin.js?v=20260529-testing-profile"></script>
 </body>
 </html>

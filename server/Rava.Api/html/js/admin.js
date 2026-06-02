@@ -15,7 +15,9 @@ import {
 } from "./currency.js";
 import { initI18n, applyTranslations, wireLocaleSelectors } from "./i18n.js";
 import {
+  clearRemovedDummyFriendships,
   getDummyPlayerProfile,
+  getDummyPlayerSummaries,
   isDummyPlayerId,
   loadTestingModeEnabled,
   mergePlayersForDisplay,
@@ -86,6 +88,7 @@ const els = {
   testingModeToggle: document.getElementById("admin-testing-mode-toggle"),
   testingModeHint: document.getElementById("admin-testing-mode-hint"),
   testingStatus: document.getElementById("admin-testing-status"),
+  testingDummyList: document.getElementById("admin-testing-dummy-list"),
   profileTestingBanner: document.getElementById("admin-profile-testing-banner"),
   playerSearch: document.getElementById("admin-player-search"),
   playerSearchBtn: document.getElementById("admin-player-search-btn"),
@@ -277,6 +280,7 @@ function showScreen(screen) {
   els.loginScreen.hidden = screen !== "login";
   els.deniedScreen.hidden = screen !== "denied";
   els.portalScreen.hidden = screen !== "portal";
+  document.body.classList.toggle("is-authenticated", screen === "portal");
 }
 
 function prefillLoginUsername() {
@@ -374,12 +378,15 @@ function renderTestingModeUi() {
 function setTestingMode(enabled) {
   state.testingMode = enabled;
   saveTestingModeEnabled(enabled);
+  if (!enabled) {
+    clearRemovedDummyFriendships();
+  }
   renderTestingModeUi();
   if (els.testingStatus) {
     setStatus(
       els.testingStatus,
       enabled
-        ? "Testing mode on — dummy players appear on Players and Rax."
+        ? "Testing mode on — dummy players appear on Players and Rax, and are auto-friended in-game."
         : "Testing mode off.",
     );
   }
@@ -387,6 +394,8 @@ function setTestingMode(enabled) {
     loadPlayers().catch((error) => setStatus(els.playersStatus, error.message, true));
   } else if (state.page === "credits") {
     loadCreditsPage().catch((error) => setStatus(els.creditsStatus, error.message, true));
+  } else if (state.page === "testing") {
+    loadTestingPage();
   }
 }
 
@@ -743,12 +752,23 @@ function closeAdminProfileModal() {
   els.profileModal.hidden = true;
 }
 
+function profileOpenStatusElement() {
+  if (state.page === "credits") {
+    return els.creditsStatus;
+  }
+  if (state.page === "testing") {
+    return els.testingStatus;
+  }
+  return els.playersStatus;
+}
+
 async function openPlayerProfile(playerId) {
+  const statusEl = profileOpenStatusElement();
   try {
     if (isDummyPlayerId(playerId)) {
       const profile = getDummyPlayerProfile(playerId);
       if (!profile) {
-        setStatus(els.playersStatus, "Testing profile not found.", true);
+        setStatus(statusEl, "Testing profile not found.", true);
         return;
       }
 
@@ -787,7 +807,7 @@ async function openPlayerProfile(playerId) {
     await staffPlayerMessaging.loadHistory();
     openAdminProfileModal();
   } catch (error) {
-    setStatus(els.playersStatus, error.message, true);
+    setStatus(statusEl, error.message, true);
   }
 }
 
@@ -867,8 +887,51 @@ async function loadDashboard() {
   renderStats(state.dashboard);
 }
 
+function renderTestingDummyList() {
+  if (!els.testingDummyList) {
+    return;
+  }
+
+  if (!state.testingMode) {
+    els.testingDummyList.innerHTML =
+      `<p class="admin-empty-note">Enable testing mode to preview synthetic player profiles.</p>`;
+    return;
+  }
+
+  const players = getDummyPlayerSummaries();
+  els.testingDummyList.innerHTML = `
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Rax</th>
+          <th>Mines</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${players
+          .map(
+            (player) => `
+          <tr data-player-id="${player.id}" data-testing-dummy="1">
+            <td>${escapeHtml(player.username)}${testingBadgeHtml(player)}</td>
+            <td>${escapeHtml(player.email)}</td>
+            <td class="admin-credits-current">${formatCredits(player.credits)}</td>
+            <td>${player.mineCount}</td>
+            <td>
+              <button type="button" class="btn ghost admin-view-profile-btn">View profile</button>
+            </td>
+          </tr>`,
+          )
+          .join("")}
+      </tbody>
+    </table>`;
+}
+
 function loadTestingPage() {
   renderTestingModeUi();
+  renderTestingDummyList();
   if (els.testingStatus) {
     setStatus(
       els.testingStatus,
@@ -2318,6 +2381,18 @@ if (els.testingModeToggle) {
     setTestingMode(els.testingModeToggle.checked);
   });
 }
+
+els.testingDummyList?.addEventListener("click", async (event) => {
+  const button = event.target.closest(".admin-view-profile-btn");
+  if (!button) {
+    return;
+  }
+
+  const playerId = button.closest("tr")?.dataset.playerId;
+  if (playerId) {
+    await openPlayerProfile(playerId);
+  }
+});
 
 async function startAdminPortal() {
   await initI18n({ namespaces: ["admin"] });

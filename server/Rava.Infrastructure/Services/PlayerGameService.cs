@@ -85,9 +85,12 @@ public class PlayerGameService(
             CurrentGameDay = 1,
             LastProcessedUtcDate = UtcGameClock.Today,
             Birthday = birthday,
+            ProfileBirthdayPublic = request.ProfileBirthdayPublic,
+            ProfileAgePublic = request.ProfileAgePublic,
             ProfileGender = profileGender,
             ProfilePreferredPronouns = profilePreferredPronouns,
             ProfileLocale = profileLocale,
+            ProfileAvatarPreset = ProfileAvatarPresets.FromGender(profileGender),
             ProfileNumber = await profileUpgrader.CreateUniqueProfileNumberAsync(ct)
         };
 
@@ -618,12 +621,6 @@ public class PlayerGameService(
             return (null, error);
         }
 
-        var presetError = ProfileValidator.ValidateAvatarPreset(request.ProfileAvatarPreset);
-        if (presetError is not null)
-        {
-            return (null, presetError);
-        }
-
         if (request.ProfileGender is not null || request.ProfilePreferredPronouns is not null)
         {
             var genderError = ProfileValidator.ValidateGenderAndPronouns(
@@ -657,10 +654,6 @@ public class PlayerGameService(
         player.ProfileTwitter = request.Twitter?.Trim() ?? string.Empty;
         player.ProfileYoutube = request.Youtube?.Trim() ?? string.Empty;
         player.ProfileFacebook = request.Facebook?.Trim() ?? string.Empty;
-        if (request.ProfileAvatarPreset is not null)
-        {
-            player.ProfileAvatarPreset = ProfileAvatarPresets.Normalize(request.ProfileAvatarPreset);
-        }
 
         if (request.ProfileGender is not null)
         {
@@ -673,6 +666,11 @@ public class PlayerGameService(
             else
             {
                 player.ProfilePreferredPronouns = string.Empty;
+            }
+
+            if (!ProfileAvatarPresets.HasCustomUpload(player.ProfileImageUrl))
+            {
+                player.ProfileAvatarPreset = ProfileAvatarPresets.FromGender(player.ProfileGender);
             }
         }
         else if (request.ProfilePreferredPronouns is not null &&
@@ -691,6 +689,16 @@ public class PlayerGameService(
             }
 
             player.ProfileLocale = normalizedLocale;
+        }
+
+        if (request.ProfileBirthdayPublic is not null)
+        {
+            player.ProfileBirthdayPublic = request.ProfileBirthdayPublic.Value;
+        }
+
+        if (request.ProfileAgePublic is not null)
+        {
+            player.ProfileAgePublic = request.ProfileAgePublic.Value;
         }
 
         await profileUpgrader.EnsurePlayerUpgradedAsync(player, ct);
@@ -1082,6 +1090,14 @@ public class PlayerGameService(
                 player.ProfilePreferredPronouns,
                 player.ProfileLocale)
             : new ProfileCompletionStatus(false, []);
+        var today = UtcGameClock.Today;
+        var publicBirthday = BirthdayHelper.TryFormatPublicBirthday(
+            player.Birthday,
+            player.ProfileBirthdayPublic);
+        var publicAge = BirthdayHelper.TryComputePublicAge(
+            player.Birthday,
+            player.ProfileAgePublic,
+            today);
 
         return new PlayerProfileResponse(
             player.Id,
@@ -1131,7 +1147,11 @@ public class PlayerGameService(
             PronounLabel: pronouns.Label,
             RequiresPreferredPronouns: ProfileGender.RequiresPreferredPronouns(player.ProfileGender),
             ProfileCompletionRequired: completion.Required,
-            MissingProfileFields: completion.MissingFields);
+            MissingProfileFields: completion.MissingFields,
+            ProfileBirthdayPublic: isOwner && player.ProfileBirthdayPublic,
+            ProfileAgePublic: isOwner && player.ProfileAgePublic,
+            PublicBirthday: publicBirthday,
+            PublicAge: publicAge);
     }
 
     private static ProfilePronounSet MapPronouns(PlayerEntity player) =>

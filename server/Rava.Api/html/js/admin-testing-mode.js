@@ -1,5 +1,7 @@
 export const TESTING_MODE_STORAGE_KEY = "rava.admin.testingMode";
+export const REMOVED_DUMMY_FRIENDS_KEY = "rava.admin.testingMode.removedFriends";
 export const DUMMY_PLAYER_ID_PREFIX = "aaaaaaaa-aaaa-4aaa-8aaa-";
+export const DUMMY_FRIENDSHIP_ID_PREFIX = "bbbbbbbb-bbbb-4bbb-8bbb-";
 
 const DUMMY_COUNT = 12;
 
@@ -82,6 +84,292 @@ export function dummyPlayerId(index) {
 
 export function isDummyPlayerId(playerId) {
   return String(playerId ?? "").startsWith(DUMMY_PLAYER_ID_PREFIX);
+}
+
+/**
+ * @param {number} index
+ */
+export function dummyFriendshipId(index) {
+  return `${DUMMY_FRIENDSHIP_ID_PREFIX}${String(index).padStart(12, "0")}`;
+}
+
+export function isDummyFriendshipId(friendshipId) {
+  return String(friendshipId ?? "").startsWith(DUMMY_FRIENDSHIP_ID_PREFIX);
+}
+
+export function shouldApplyTestingFriends(testingMode, isStaffAdmin) {
+  return Boolean(testingMode && isStaffAdmin);
+}
+
+export function loadRemovedDummyFriendships() {
+  try {
+    const raw = sessionStorage.getItem(REMOVED_DUMMY_FRIENDS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * @param {string} friendshipId
+ */
+export function saveRemovedDummyFriendship(friendshipId) {
+  const removed = loadRemovedDummyFriendships();
+  removed.add(String(friendshipId));
+  try {
+    sessionStorage.setItem(REMOVED_DUMMY_FRIENDS_KEY, JSON.stringify([...removed]));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearRemovedDummyFriendships() {
+  try {
+    sessionStorage.removeItem(REMOVED_DUMMY_FRIENDS_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function dummyProfileNumber(index) {
+  return String(100_000 + index * 7919).slice(0, 6);
+}
+
+/**
+ * @param {string} username
+ */
+export function getDummyIndexByUsername(username) {
+  const normalized = String(username ?? "").trim().toLowerCase();
+  const index = USERNAMES.findIndex((entry) => entry.toLowerCase() === normalized);
+  return index >= 0 ? index : -1;
+}
+
+/**
+ * @param {string} profileNumber
+ */
+export function getDummyIndexByProfileNumber(profileNumber) {
+  const normalized = String(profileNumber ?? "").trim();
+  for (let index = 0; index < DUMMY_COUNT; index += 1) {
+    if (dummyProfileNumber(index) === normalized) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+/**
+ * @param {number} index
+ */
+function buildDummyProfileFriend(index) {
+  const summary = buildDummyPlayerSummary(index);
+  const seed = `dummy-profile-${index}`;
+  return {
+    playerId: summary.id,
+    username: summary.username,
+    profileNumber: dummyProfileNumber(index),
+    mood: MOODS[pick(`${seed}-mood`, MOODS.length)],
+    publicStatus: "",
+    isReporter: false,
+    reporterSlug: "",
+    isTestingDummy: true,
+  };
+}
+
+/**
+ * @param {object} adminProfile
+ */
+function buildAdminProfileFriend(adminProfile) {
+  return {
+    playerId: adminProfile.playerId,
+    username: adminProfile.username,
+    profileNumber: adminProfile.profileNumber ?? "",
+    mood: adminProfile.mood ?? "",
+    publicStatus: "",
+    isReporter: false,
+    reporterSlug: "",
+  };
+}
+
+/**
+ * @param {number} index
+ */
+function buildDummyFriendSummary(index) {
+  const summary = buildDummyPlayerSummary(index);
+  const seed = `dummy-profile-${index}`;
+  const daysFriends = 1 + pick(`${seed}-friends`, 90);
+
+  return {
+    friendshipId: dummyFriendshipId(index),
+    playerId: summary.id,
+    username: summary.username,
+    profileNumber: dummyProfileNumber(index),
+    mood: MOODS[pick(`${seed}-mood`, MOODS.length)],
+    status: "accepted",
+    since: new Date(Date.now() - daysFriends * 86_400_000).toISOString(),
+    isReporter: false,
+    reporterSlug: "",
+    isTestingDummy: true,
+  };
+}
+
+export function getDummyFriendSummaries() {
+  const removed = loadRemovedDummyFriendships();
+  return Array.from({ length: DUMMY_COUNT }, (_, index) => buildDummyFriendSummary(index)).filter(
+    (friend) => !removed.has(friend.friendshipId),
+  );
+}
+
+/**
+ * @param {object} adminProfile
+ * @param {number} index
+ */
+export function buildDummyGameProfile(index, adminProfile) {
+  const summary = buildDummyPlayerSummary(index);
+  const seed = `dummy-profile-${index}`;
+  const workerCount = 2 + pick(`${seed}-workers`, 48);
+  const zoneCount = 1 + pick(`${seed}-zones`, 12);
+  const gameDay = 1 + pick(`${seed}-day`, 120);
+  const profileNum = dummyProfileNumber(index);
+
+  const month = 1 + pick(`${seed}-bmonth`, 12);
+  const day = 1 + pick(`${seed}-bday`, 28);
+  const birthYear = 1988 + pick(`${seed}-byear`, 20);
+
+  const friends = adminProfile ? [buildAdminProfileFriend(adminProfile)] : [];
+  const friendshipId = dummyFriendshipId(index);
+  const removed = loadRemovedDummyFriendships();
+  const isFriend = !removed.has(friendshipId);
+
+  return {
+    playerId: summary.id,
+    username: summary.username,
+    profileNumber: profileNum,
+    profileImageUrl: "",
+    profileBackgroundUrl: "",
+    companyLogoUrl: "",
+    mood: MOODS[pick(`${seed}-mood`, MOODS.length)],
+    aboutMe: ABOUT_SNIPPETS[pick(`${seed}-about`, ABOUT_SNIPPETS.length)],
+    music: MUSIC[pick(`${seed}-music`, MUSIC.length)],
+    interests: INTERESTS[pick(`${seed}-interests`, INTERESTS.length)],
+    discord: index % 3 === 0 ? summary.username : "",
+    bluesky: index % 4 === 0 ? `${summary.username}.bsky` : "",
+    twitter: "",
+    youtube: index % 5 === 0 ? `@${summary.username}` : "",
+    facebook: "",
+    memberSince: summary.createdAt,
+    currentGameDay: gameDay,
+    credits: summary.credits,
+    mineName: miningCompanyName(seed),
+    workerCount,
+    zoneCount,
+    isOwner: false,
+    friendshipStatus: isFriend ? "accepted" : "none",
+    friendshipId: isFriend ? friendshipId : "",
+    friends: isFriend ? friends : [],
+    isReporter: false,
+    reporterSlug: "",
+    onnProfilePath: "",
+    profileAvatarPreset: "neutral",
+    hasCustomProfilePhoto: false,
+    profileGender: "",
+    profilePreferredPronouns: "",
+    profileLocale: "",
+    pronounSubject: "they",
+    pronounObject: "them",
+    pronounPossessive: "their",
+    pronounLabel: "they/them",
+    requiresPreferredPronouns: false,
+    profileCompletionRequired: false,
+    missingProfileFields: [],
+    reportedLocationsNote: "",
+    isTestingDummy: true,
+  };
+}
+
+/**
+ * @param {string} usernameOrPlayerId
+ * @param {object|null} adminProfile
+ * @param {boolean} testingMode
+ * @param {boolean} isStaffAdmin
+ */
+export function resolveDummyGameProfile(usernameOrPlayerId, adminProfile, testingMode, isStaffAdmin) {
+  if (!shouldApplyTestingFriends(testingMode, isStaffAdmin)) {
+    return null;
+  }
+
+  let index = getDummyIndexByUsername(usernameOrPlayerId);
+  if (index < 0 && isDummyPlayerId(usernameOrPlayerId)) {
+    index = Number.parseInt(String(usernameOrPlayerId).slice(-12), 10);
+  }
+
+  if (!Number.isFinite(index) || index < 0 || index >= DUMMY_COUNT) {
+    return null;
+  }
+
+  return buildDummyGameProfile(index, adminProfile);
+}
+
+/**
+ * @param {object} profile
+ * @param {boolean} testingMode
+ * @param {boolean} isStaffAdmin
+ */
+export function augmentOwnerProfileForTesting(profile, testingMode, isStaffAdmin) {
+  if (!shouldApplyTestingFriends(testingMode, isStaffAdmin) || !profile?.isOwner) {
+    return profile;
+  }
+
+  const removed = loadRemovedDummyFriendships();
+  const dummyFriends = Array.from({ length: DUMMY_COUNT }, (_, index) => buildDummyProfileFriend(index)).filter(
+    (_, index) => !removed.has(dummyFriendshipId(index)),
+  );
+  const existing = profile.friends ?? [];
+  const seen = new Set(existing.map((friend) => String(friend.playerId)));
+  const merged = [...existing];
+
+  for (const dummy of dummyFriends) {
+    if (!seen.has(String(dummy.playerId))) {
+      merged.push(dummy);
+    }
+  }
+
+  merged.sort((left, right) =>
+    left.username.localeCompare(right.username, undefined, { sensitivity: "base" }),
+  );
+
+  return { ...profile, friends: merged };
+}
+
+/**
+ * @param {object|null|undefined} friendsResponse
+ * @param {boolean} testingMode
+ * @param {boolean} isStaffAdmin
+ */
+export function mergeFriendsListForTesting(friendsResponse, testingMode, isStaffAdmin) {
+  if (!shouldApplyTestingFriends(testingMode, isStaffAdmin)) {
+    return friendsResponse ?? { friends: [], incomingRequests: [], outgoingRequests: [] };
+  }
+
+  const realFriends = friendsResponse?.friends ?? [];
+  const seen = new Set(realFriends.map((friend) => String(friend.playerId)));
+  const merged = [...realFriends];
+
+  for (const dummy of getDummyFriendSummaries()) {
+    if (!seen.has(String(dummy.playerId))) {
+      merged.push(dummy);
+    }
+  }
+
+  merged.sort((left, right) =>
+    left.username.localeCompare(right.username, undefined, { sensitivity: "base" }),
+  );
+
+  return {
+    friends: merged,
+    incomingRequests: friendsResponse?.incomingRequests ?? [],
+    outgoingRequests: friendsResponse?.outgoingRequests ?? [],
+  };
 }
 
 export function loadTestingModeEnabled() {

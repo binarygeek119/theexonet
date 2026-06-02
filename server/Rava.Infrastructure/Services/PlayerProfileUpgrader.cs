@@ -84,11 +84,23 @@ public class PlayerProfileUpgrader(AppDbContext db)
             changed = true;
         }
 
-        var normalizedPreset = ProfileAvatarPresets.Normalize(player.ProfileAvatarPreset);
-        if (!string.Equals(player.ProfileAvatarPreset, normalizedPreset, StringComparison.Ordinal))
+        if (!ProfileAvatarPresets.HasCustomUpload(player.ProfileImageUrl))
         {
-            player.ProfileAvatarPreset = normalizedPreset;
-            changed = true;
+            var fromGender = ProfileAvatarPresets.FromGender(player.ProfileGender);
+            if (!string.Equals(player.ProfileAvatarPreset, fromGender, StringComparison.Ordinal))
+            {
+                player.ProfileAvatarPreset = fromGender;
+                changed = true;
+            }
+        }
+        else
+        {
+            var normalizedPreset = ProfileAvatarPresets.Normalize(player.ProfileAvatarPreset);
+            if (!string.Equals(player.ProfileAvatarPreset, normalizedPreset, StringComparison.Ordinal))
+            {
+                player.ProfileAvatarPreset = normalizedPreset;
+                changed = true;
+            }
         }
 
         var normalizedGender = ProfileGender.Normalize(player.ProfileGender);

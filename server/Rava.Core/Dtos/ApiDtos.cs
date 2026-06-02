@@ -10,7 +10,9 @@ public record RegisterRequest(
     string Birthday,
     string ProfileGender = "",
     string? ProfilePreferredPronouns = null,
-    string ProfileLocale = "");
+    string ProfileLocale = "",
+    bool ProfileBirthdayPublic = false,
+    bool ProfileAgePublic = false);
 public record LoginRequest(string Username, string Password);
 public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Token, string NewPassword);
@@ -322,7 +324,11 @@ public record PlayerProfileResponse(
     bool RequiresPreferredPronouns = false,
     bool ProfileCompletionRequired = false,
     IReadOnlyList<ProfileCompletionFieldDto>? MissingProfileFields = null,
-    string ReportedLocationsNote = "");
+    string ReportedLocationsNote = "",
+    bool ProfileBirthdayPublic = false,
+    bool ProfileAgePublic = false,
+    string? PublicBirthday = null,
+    int? PublicAge = null);
 
 public record ProfileCompletionFieldDto(string FieldId);
 
@@ -362,7 +368,20 @@ public record PublicProfileSummaryDto(
     decimal CompanyValue,
     int Rank = 0,
     bool IsReporter = false,
-    string ReporterSlug = "");
+    string ReporterSlug = "",
+    DateTime? MemberSince = null,
+    bool IsOnline = false,
+    bool BirthdayToday = false,
+    string? PublicBirthday = null,
+    int? PublicAge = null);
+
+public record PublicProfileBrowseResponse(
+    string Sort,
+    int TotalCount,
+    int Offset,
+    int Limit,
+    IReadOnlyList<PublicProfileSummaryDto> Entries,
+    IReadOnlyList<string> AvailableSorts);
 
 public record PublicProfileDetailDto(
     string Username,
@@ -391,7 +410,9 @@ public record PublicProfileDetailDto(
     string PronounObject = "them",
     string PronounPossessive = "their",
     string PronounLabel = "they/them",
-    string ReportedLocationsNote = "");
+    string ReportedLocationsNote = "",
+    string? PublicBirthday = null,
+    int? PublicAge = null);
 
 public record PublicProfileSearchResponse(
     string Query,
@@ -425,7 +446,9 @@ public record UpdatePlayerProfileRequest(
     string? ProfileAvatarPreset = null,
     string? ProfileGender = null,
     string? ProfilePreferredPronouns = null,
-    string? ProfileLocale = null);
+    string? ProfileLocale = null,
+    bool? ProfileBirthdayPublic = null,
+    bool? ProfileAgePublic = null);
 
 public record FriendSummaryDto(
     Guid FriendshipId,

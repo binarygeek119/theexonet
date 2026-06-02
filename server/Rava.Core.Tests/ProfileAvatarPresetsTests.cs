@@ -20,4 +20,17 @@ public class ProfileAvatarPresetsTests
         var url = ProfileAvatarPresets.ResolveDisplayUrl("/images/avatars/player.png", 3, "female");
         Assert.Equal("/images/avatars/player.png?v=3", url);
     }
+
+    [Theory]
+    [InlineData(ProfileGender.Male, ProfileAvatarPresets.Male)]
+    [InlineData(ProfileGender.TransMale, ProfileAvatarPresets.Male)]
+    [InlineData(ProfileGender.Female, ProfileAvatarPresets.Female)]
+    [InlineData(ProfileGender.TransFemale, ProfileAvatarPresets.Female)]
+    [InlineData(ProfileGender.NonBinary, ProfileAvatarPresets.Neutral)]
+    [InlineData(ProfileGender.PreferNotToSay, ProfileAvatarPresets.Neutral)]
+    [InlineData("", ProfileAvatarPresets.Neutral)]
+    public void FromGender_maps_to_expected_preset(string gender, string expectedPreset)
+    {
+        Assert.Equal(expectedPreset, ProfileAvatarPresets.FromGender(gender));
+    }
 }

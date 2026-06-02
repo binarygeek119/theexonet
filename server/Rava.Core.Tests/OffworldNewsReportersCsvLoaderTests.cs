@@ -29,7 +29,7 @@ public class OffworldNewsReportersCsvLoaderTests
                 new ReporterAppearance(
                     "Dark brown bob",
                     "Sharp hazel eyes",
-                    "Warm olive skin",
+                    "Latina; warm olive skin",
                     "Lean frame",
                     "None",
                     "Minimal makeup",
@@ -52,7 +52,7 @@ public class OffworldNewsReportersCsvLoaderTests
             Assert.Equal("Ceres Relay ore-spread gallery", loaded[0].NotableLocations[0]);
             Assert.Single(loaded[0].NotableStories);
             Assert.Equal("Dark brown bob", loaded[0].Appearance.Hair);
-            Assert.Equal("Warm olive skin", loaded[0].Appearance.Race);
+            Assert.Equal("Latina; warm olive skin", loaded[0].Appearance.Race);
             Assert.Equal("Silver streak", loaded[0].Appearance.DistinctiveFeatures);
             Assert.Equal(ReporterSpecies.Human, loaded[0].Appearance.Species);
             Assert.True(OffworldNewsReportersCsvLoader.HasSpeciesColumn(path));

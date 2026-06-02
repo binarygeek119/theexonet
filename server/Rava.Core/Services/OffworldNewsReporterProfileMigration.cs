@@ -26,14 +26,17 @@ public static class OffworldNewsReporterProfileMigration
         }
 
         var markerPath = Path.Combine(Path.GetDirectoryName(dataPath)!, MarkerFileName);
-        if (File.Exists(markerPath) && OffworldNewsReportersCsvLoader.HasSpeciesColumn(dataPath))
+        var dataReportersPreview = OffworldNewsReportersCsvLoader.LoadFromFile(dataPath);
+        if (File.Exists(markerPath)
+            && OffworldNewsReportersCsvLoader.HasSpeciesColumn(dataPath)
+            && !dataReportersPreview.Any(NeedsBackfill))
         {
             return;
         }
 
         try
         {
-            var dataReporters = OffworldNewsReportersCsvLoader.LoadFromFile(dataPath).ToDictionary(
+            var dataReporters = dataReportersPreview.ToDictionary(
                 reporter => reporter.Slug,
                 StringComparer.OrdinalIgnoreCase);
             var templateReporters = File.Exists(templatePath)
@@ -113,4 +116,9 @@ public static class OffworldNewsReporterProfileMigration
 
     private static string Pick(string existing, string template) =>
         string.IsNullOrWhiteSpace(existing) ? template.Trim() : existing.Trim();
+
+    private static bool NeedsBackfill(OffworldNewsReporterProfile reporter) =>
+        reporter.NotableLocations.Count == 0
+        || reporter.NotableStories.Count == 0
+        || reporter.Appearance.IsEmpty;
 }

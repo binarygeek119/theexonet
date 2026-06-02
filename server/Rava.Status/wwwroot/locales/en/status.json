@@ -1,11 +1,13 @@
 {
   "meta.pageTitle": "RAVA — Server Status",
   "locale.label": "Language",
+  "locale.en": "English",
   "hero.eyebrow": "Reactive Asteroid Venturing Agency",
   "hero.title": "Server Status",
   "hero.loading": "Loading…",
   "nav.dashboard": "Dashboard",
   "nav.values": "Item values",
+  "nav.ai": "AI",
   "card.api": "Game API",
   "card.database": "PostgreSQL",
   "card.checking": "Checking…",

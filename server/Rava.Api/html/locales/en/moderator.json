@@ -1,6 +1,7 @@
 {
   "meta.pageTitle": "RAVA Moderator",
   "locale.label": "Language",
+  "locale.en": "English",
   "auth.title": "RAVA Moderator",
   "auth.subtitle": "Community oversight portal",
   "auth.checkingApi": "Checking API…",

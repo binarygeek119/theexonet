@@ -50,6 +50,14 @@ public static class OffworldNewsReportersCsvLoader
                 .Where(entry => entry.Length > 0)
                 .ToList();
 
+            var gender = columns.Count >= 12
+                ? OffworldNewsReporterPortraitGender.Normalize(columns[11])
+                : string.Empty;
+            if (gender.Length == 0)
+            {
+                gender = OffworldNewsReporterPortraitGender.InferForSlug(slug);
+            }
+
             reporters.Add(new OffworldNewsReporterProfile(
                 slug,
                 columns[1].Trim(),
@@ -61,7 +69,8 @@ public static class OffworldNewsReportersCsvLoader
                 columns[7].Trim(),
                 columns[8].Trim(),
                 columns[9].Trim(),
-                specialties));
+                specialties,
+                gender));
         }
 
         return reporters;
@@ -71,8 +80,8 @@ public static class OffworldNewsReportersCsvLoader
     {
         var lines = new List<string>
         {
-            "Slug,DisplayName,Title,Beat,Bureau,Personality,WritingVoice,DirectoryBio,OnnBio,StoryKicker,Specialties",
-            "# ONN reporter personalities. Edit in Excel or Google Sheets. Specialties: separate with semicolons (;).",
+            "Slug,DisplayName,Title,Beat,Bureau,Personality,WritingVoice,DirectoryBio,OnnBio,StoryKicker,Specialties,Gender",
+            "# ONN reporter personalities. Edit in Excel or Google Sheets. Specialties: separate with semicolons (;). Gender: male or female (portrait AI).",
         };
 
         foreach (var reporter in reporters)
@@ -89,7 +98,8 @@ public static class OffworldNewsReportersCsvLoader
                 EscapeCsvField(reporter.DirectoryBio),
                 EscapeCsvField(reporter.OnnBio),
                 EscapeCsvField(reporter.StoryKicker),
-                EscapeCsvField(string.Join(';', reporter.Specialties))));
+                EscapeCsvField(string.Join(';', reporter.Specialties)),
+                EscapeCsvField(reporter.Gender)));
         }
 
         File.WriteAllText(path, string.Join(Environment.NewLine, lines) + Environment.NewLine);

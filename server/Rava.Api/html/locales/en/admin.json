@@ -1,6 +1,7 @@
 {
   "meta.pageTitle": "RAVA Admin",
   "locale.label": "Language",
+  "locale.en": "English",
   "auth.title": "RAVA Admin",
   "auth.subtitle": "Operations portal",
   "auth.checkingApi": "Checking API…",

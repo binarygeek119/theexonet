@@ -6,6 +6,8 @@ public static class OpenAiUsageCategories
     public const string StoryGeneration = "story_generation";
     public const string ImageGeneration = "image_generation";
     public const string ReporterPortrait = "reporter_portrait";
+    public const string ReporterAvatar = "reporter_avatar";
+    public const string ReporterBackground = "reporter_background";
     public const string CompanyLogo = "company_logo";
     public const string Other = "other";
 }

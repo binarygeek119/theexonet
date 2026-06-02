@@ -22,12 +22,23 @@ public class OffworldNewsReporterPortraitPromptsTests
     }
 
     [Fact]
-    public void BuildBackgroundPrompt_includes_bureau()
+    public void BuildAvatarPrompt_includes_portrait_gender()
+    {
+        var female = OffworldNewsReporterCatalog.All.First(r => r.Gender == OffworldNewsReporterPortraitGender.Female);
+        var male = OffworldNewsReporterCatalog.All.First(r => r.Gender == OffworldNewsReporterPortraitGender.Male);
+
+        Assert.Contains("clearly female adult woman journalist", OffworldNewsReporterPortraitPrompts.BuildAvatarPrompt(female));
+        Assert.Contains("clearly male adult man journalist", OffworldNewsReporterPortraitPrompts.BuildAvatarPrompt(male));
+    }
+
+    [Fact]
+    public void BuildBackgroundPrompt_includes_bureau_and_location()
     {
         var reporter = OffworldNewsReporterCatalog.All[1];
         var prompt = OffworldNewsReporterPortraitPrompts.BuildBackgroundPrompt(reporter);
 
         Assert.Contains(reporter.Bureau, prompt);
+        Assert.Contains("news location", prompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("no people", prompt, StringComparison.OrdinalIgnoreCase);
     }
 }

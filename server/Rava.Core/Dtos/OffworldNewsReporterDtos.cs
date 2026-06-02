@@ -16,6 +16,7 @@ public record OffworldNewsReporterDto(
     string BackgroundUrl,
     string DirectoryProfilePath,
     string OnnProfilePath,
+    string ReportedLocationsNote,
     string Network = "Offworld News Network");
 
 public record OffworldNewsReporterStoryRefDto(
@@ -57,6 +58,7 @@ public record AdminOffworldNewsReporterRowDto(
     string OnnBio,
     string StoryKicker,
     IReadOnlyList<string> Specialties,
+    string Gender,
     bool InStoryPool,
     string AvatarUrl,
     string BackgroundUrl);
@@ -77,7 +79,8 @@ public record AdminUpdateOffworldNewsReporterRequest(
     string DirectoryBio,
     string OnnBio,
     string StoryKicker,
-    string Specialties);
+    string Specialties,
+    string Gender);
 
 public record AdminUpdateOffworldNewsSettingsRequest(int ReporterPoolSize);
 

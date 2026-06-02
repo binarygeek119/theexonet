@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAVA — AI Status</title>
+  <link rel="stylesheet" href="/css/status.css">
+</head>
+<body>
+  <main class="page ai-page">
+    <header class="hero">
+      <p class="eyebrow">Reactive Asteroid Venturing Agency</p>
+      <h1>AI Status</h1>
+      <p id="ai-updated" class="subtle">Loading…</p>
+      <p class="status-pill checking" id="ai-overall">Checking…</p>
+      <nav class="nav-links" aria-label="Status pages">
+        <a class="nav-link" href="/">Dashboard</a>
+        <a class="nav-link" href="/values.html">Item values</a>
+        <a class="nav-link active" href="/ai.html">AI</a>
+      </nav>
+    </header>
+
+    <section class="openai-summary-grid" aria-live="polite">
+      <article class="card">
+        <h2>API requests</h2>
+        <dl>
+          <div><dt>OpenAI API key</dt><dd id="ai-api-key">—</dd></div>
+          <div><dt>Total calls sent</dt><dd id="ai-total-calls">—</dd></div>
+          <div><dt>Successful</dt><dd id="ai-successful">—</dd></div>
+          <div><dt>Failed</dt><dd id="ai-failed">—</dd></div>
+          <div><dt>Calls today (UTC)</dt><dd id="ai-today-total">—</dd></div>
+          <div><dt>Successful today</dt><dd id="ai-today-success">—</dd></div>
+          <div><dt>Failed today</dt><dd id="ai-today-failed">—</dd></div>
+          <div><dt>Last request (UTC)</dt><dd id="ai-last-request">—</dd></div>
+          <div><dt>RAVA API error</dt><dd id="ai-api-error">—</dd></div>
+        </dl>
+        <p class="card-foot">
+          <a id="link-ai-json" href="#" target="_blank" rel="noopener">Raw JSON — /api/status/openai</a>
+        </p>
+      </article>
+
+      <article class="card">
+        <h2>OpenAI credits</h2>
+        <dl>
+          <div><dt>Prepaid credits granted</dt><dd id="ai-credits-granted">—</dd></div>
+          <div><dt>Prepaid credits remaining</dt><dd id="ai-credits-remaining">—</dd></div>
+          <div><dt>Estimated credits used</dt><dd id="ai-credits-used">—</dd></div>
+          <div><dt>Note</dt><dd id="ai-credits-note">—</dd></div>
+        </dl>
+        <p class="section-hint">Credits used is prepaid granted minus remaining when billing data is available from OpenAI.</p>
+      </article>
+    </section>
+
+    <section class="card table-card">
+      <h2>Calls by AI feature</h2>
+      <p class="section-hint">Every outbound OpenAI HTTP request from this game server, grouped by what generated it.</p>
+      <div class="ai-stats-table-wrap">
+        <table class="ai-stats-table" id="ai-stats-table">
+          <thead>
+            <tr>
+              <th scope="col">Feature</th>
+              <th scope="col">Total calls</th>
+              <th scope="col">Successful</th>
+              <th scope="col">Failed</th>
+            </tr>
+          </thead>
+          <tbody id="ai-stats-rows">
+            <tr><td colspan="4">Loading…</td></tr>
+          </tbody>
+          <tfoot id="ai-stats-foot"></tfoot>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="/js/ai.js"></script>
+</body>
+</html>

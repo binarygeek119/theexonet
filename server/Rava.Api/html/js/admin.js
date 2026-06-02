@@ -1015,6 +1015,17 @@ function onnReporterField(id, label, value, { textarea = false, hint = "", slugI
   return `<label>${escapeHtml(label)}${control}${hintHtml}</label>`;
 }
 
+function onnReporterGenderField(id, gender) {
+  const value = String(gender ?? "female").toLowerCase();
+  return `<label>Portrait gender (AI)
+    <select id="${id}">
+      <option value="female"${value === "female" ? " selected" : ""}>Female</option>
+      <option value="male"${value === "male" ? " selected" : ""}>Male</option>
+    </select>
+    <span class="admin-page-desc">Used when regenerating portrait and banner art.</span>
+  </label>`;
+}
+
 function renderOnnReporters(page) {
   const reporters = pickJson(page, "reporters") ?? [];
   const settings = pickJson(page, "settings") ?? {};
@@ -1045,6 +1056,7 @@ function renderOnnReporters(page) {
             <div class="admin-onn-reporter-fields">
           ${onnReporterField(`${formId}-slug`, "Slug (URL)", slug, { slugInput: true, hint: "Change only when renaming; updates portrait folder and friend links." })}
           ${onnReporterField(`${formId}-name`, "Display name", displayName)}
+          ${onnReporterGenderField(`${formId}-gender`, pickJson(reporter, "gender"))}
           ${onnReporterField(`${formId}-title`, "Title", pickJson(reporter, "title"))}
           ${onnReporterField(`${formId}-beat`, "Beat", beat)}
           ${onnReporterField(`${formId}-bureau`, "Bureau", pickJson(reporter, "bureau"))}
@@ -1106,6 +1118,7 @@ function readOnnReporterForm(form) {
   return {
     newSlug: newSlug !== originalSlug ? newSlug : null,
     displayName: document.getElementById(`${prefix}-name`)?.value.trim() ?? "",
+    gender: document.getElementById(`${prefix}-gender`)?.value.trim() ?? "female",
     title: document.getElementById(`${prefix}-title`)?.value.trim() ?? "",
     beat: document.getElementById(`${prefix}-beat`)?.value.trim() ?? "",
     bureau: document.getElementById(`${prefix}-bureau`)?.value.trim() ?? "",

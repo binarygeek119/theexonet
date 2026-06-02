@@ -41,10 +41,10 @@ public sealed class OffworldNewsReporterPortraitGenerator(
             var folder = OffworldNewsReporterPaths.ReporterFolder(reportersAssetsRoot, reporter.Slug);
             Directory.CreateDirectory(folder);
 
-            foreach (var (prompt, filePath, size) in PortraitJobs(reporter, assets))
+            foreach (var (prompt, filePath, size, category) in PortraitJobs(reporter, assets))
             {
                 attempted++;
-                var (ok, error) = await GenerateAndSaveAsync(prompt, filePath, size, ct);
+                var (ok, error) = await GenerateAndSaveAsync(prompt, filePath, size, category, ct);
                 if (ok)
                 {
                     succeeded++;
@@ -82,7 +82,7 @@ public sealed class OffworldNewsReporterPortraitGenerator(
             .ToList();
     }
 
-    private IEnumerable<(string Prompt, string FilePath, string Size)> PortraitJobs(
+    private IEnumerable<(string Prompt, string FilePath, string Size, string Category)> PortraitJobs(
         OffworldNewsReporterProfile reporter,
         ReporterPortraitAssetKind assets)
     {
@@ -91,7 +91,8 @@ public sealed class OffworldNewsReporterPortraitGenerator(
             yield return (
                 OffworldNewsReporterPortraitPrompts.BuildAvatarPrompt(reporter),
                 OffworldNewsReporterPaths.AvatarFilePath(reportersAssetsRoot, reporter.Slug),
-                "1024x1024");
+                "1024x1024",
+                OpenAiUsageCategories.ReporterAvatar);
         }
 
         if (assets is ReporterPortraitAssetKind.Both or ReporterPortraitAssetKind.Background)
@@ -99,7 +100,8 @@ public sealed class OffworldNewsReporterPortraitGenerator(
             yield return (
                 OffworldNewsReporterPortraitPrompts.BuildBackgroundPrompt(reporter),
                 OffworldNewsReporterPaths.BackgroundFilePath(reportersAssetsRoot, reporter.Slug),
-                "1792x1024");
+                "1792x1024",
+                OpenAiUsageCategories.ReporterBackground);
         }
     }
 
@@ -107,6 +109,7 @@ public sealed class OffworldNewsReporterPortraitGenerator(
         string prompt,
         string filePath,
         string size,
+        string category,
         CancellationToken ct)
     {
         if (prompt.Length > 3900)
@@ -115,7 +118,7 @@ public sealed class OffworldNewsReporterPortraitGenerator(
         }
 
         using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(options.BaseUrl, "/images/generations"));
-        OpenAiUsageLoggingHandler.SetCategory(request, OpenAiUsageCategories.ReporterPortrait);
+        OpenAiUsageLoggingHandler.SetCategory(request, category);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
         request.Content = JsonContent.Create(
             OffworldNewsOpenAiImageRequest.BuildRequestBody(options.ImageModel, prompt, size));

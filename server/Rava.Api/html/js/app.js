@@ -461,6 +461,9 @@ function setAuthMode(mode) {
   setHidden(els.registerProfileGroup, !isRegister);
   if (isRegister) {
     syncRegisterGenderUi();
+    if (els.registerLocaleSelect) {
+      els.registerLocaleSelect.value = getLocale() || "en";
+    }
   }
   els.forgotGroup.hidden = !isForgot;
   els.resetGroup.hidden = !isReset;

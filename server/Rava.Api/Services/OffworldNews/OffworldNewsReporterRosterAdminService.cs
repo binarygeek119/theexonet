@@ -79,7 +79,8 @@ public sealed class OffworldNewsReporterRosterAdminService(
             request.DirectoryBio.Trim(),
             request.OnnBio.Trim(),
             request.StoryKicker.Trim(),
-            ParseSpecialties(request.Specialties));
+            ParseSpecialties(request.Specialties),
+            NormalizeGender(request.Gender, newSlug));
 
         reporters[index] = updated;
         OffworldNewsReportersCsvLoader.SaveToFile(ReportersFilePath, reporters);
@@ -139,6 +140,7 @@ public sealed class OffworldNewsReporterRosterAdminService(
             reporter.OnnBio,
             reporter.StoryKicker,
             reporter.Specialties,
+            reporter.Gender,
             inStoryPool,
             OffworldNewsReporterPaths.ResolveAvatarUrl(reporter.Slug, assetRoots),
             OffworldNewsReporterPaths.ResolveBackgroundUrl(reporter.Slug, assetRoots));
@@ -151,6 +153,14 @@ public sealed class OffworldNewsReporterRosterAdminService(
                 .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Where(entry => entry.Length > 0)
                 .ToList();
+
+    private static string NormalizeGender(string? gender, string slug)
+    {
+        var normalized = OffworldNewsReporterPortraitGender.Normalize(gender);
+        return normalized.Length > 0
+            ? normalized
+            : OffworldNewsReporterPortraitGender.InferForSlug(slug);
+    }
 
     private static string NormalizeSlug(string slug)
     {

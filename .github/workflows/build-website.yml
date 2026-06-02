@@ -86,21 +86,29 @@ jobs:
           node --check Rava.Api/html/js/currency.js
           node --check Rava.Status/wwwroot/js/status.js
           node --check Rava.Status/wwwroot/js/values.js
+          node --check Rava.Status/wwwroot/js/ai.js
+          node --check Rava.Status/wwwroot/js/openai.js
+          node --check Rava.Status/wwwroot/js/ai-content.js
 
       - name: Publish web app
         run: |
-          dotnet publish Rava.Api/Rava.Api.csproj --configuration Release --output ./publish
-          rsync -a Rava.Api/html/ publish/html/
           dotnet publish Rava.Status/Rava.Status.csproj --configuration Release --output ./publish-status
           dotnet publish Rava.Admin/Rava.Admin.csproj --configuration Release --output ./publish-admin
           dotnet publish Rava.Moderator/Rava.Moderator.csproj --configuration Release --output ./publish-moderator
           dotnet publish Rava.Docs/Rava.Docs.csproj --configuration Release --output ./publish-docs
           bash ../scripts/sync-portal-wwwroot.sh Rava.Api/html publish-admin/wwwroot
           bash ../scripts/sync-portal-wwwroot.sh Rava.Api/html publish-moderator/wwwroot
+          mkdir -p publish
           rsync -a publish-status/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
           rsync -a publish-admin/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
           rsync -a publish-moderator/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
           rsync -a publish-docs/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
+          dotnet publish Rava.Api/Rava.Api.csproj --configuration Release --output ./publish-api
+          rsync -a publish-api/ publish/ --exclude 'appsettings.json' --exclude 'appsettings.Development.json'
+          rsync -a Rava.Api/html/ publish/html/
+          test -f publish/Rava.Api.dll
+          test -f publish/Rava.Core.dll
+          test -f publish/Rava.Infrastructure.dll
           test -f publish/Rava.Status.dll
           test -f publish/Rava.Admin.dll
           test -f publish/Rava.Moderator.dll

@@ -31,11 +31,18 @@ public record PublicOpenAiUsageResponse(
     DateTime Utc,
     bool ApiKeyConfigured,
     long TotalRequests,
+    long SuccessfulRequests,
+    long FailedRequests,
     long RequestsToday,
+    long SuccessfulRequestsToday,
+    long FailedRequestsToday,
     IReadOnlyDictionary<string, long> RequestsByCategory,
+    IReadOnlyDictionary<string, long> SuccessfulRequestsByCategory,
+    IReadOnlyDictionary<string, long> FailedRequestsByCategory,
     DateTime? LastRequestUtc,
     decimal? CreditsRemainingUsd,
     decimal? CreditsGrantedUsd,
+    decimal? CreditsUsedUsd,
     string? CreditsNote);
 
 public record PublicOpenAiGameFeatureDto(
@@ -80,11 +87,18 @@ public record PublicOpenAiStatusDetailResponse(
     DateTime Utc,
     bool ApiKeyConfigured,
     long TotalRequests,
+    long SuccessfulRequests,
+    long FailedRequests,
     long RequestsToday,
+    long SuccessfulRequestsToday,
+    long FailedRequestsToday,
     IReadOnlyDictionary<string, long> RequestsByCategory,
+    IReadOnlyDictionary<string, long> SuccessfulRequestsByCategory,
+    IReadOnlyDictionary<string, long> FailedRequestsByCategory,
     DateTime? LastRequestUtc,
     decimal? CreditsRemainingUsd,
     decimal? CreditsGrantedUsd,
+    decimal? CreditsUsedUsd,
     string? CreditsNote,
     PublicOpenAiConfigurationDto Configuration,
     IReadOnlyList<PublicOpenAiGameFeatureDto> GameFeatures,
@@ -307,7 +321,8 @@ public record PlayerProfileResponse(
     string PronounLabel = "they/them",
     bool RequiresPreferredPronouns = false,
     bool ProfileCompletionRequired = false,
-    IReadOnlyList<ProfileCompletionFieldDto>? MissingProfileFields = null);
+    IReadOnlyList<ProfileCompletionFieldDto>? MissingProfileFields = null,
+    string ReportedLocationsNote = "");
 
 public record ProfileCompletionFieldDto(string FieldId);
 
@@ -375,7 +390,8 @@ public record PublicProfileDetailDto(
     string PronounSubject = "they",
     string PronounObject = "them",
     string PronounPossessive = "their",
-    string PronounLabel = "they/them");
+    string PronounLabel = "they/them",
+    string ReportedLocationsNote = "");
 
 public record PublicProfileSearchResponse(
     string Query,

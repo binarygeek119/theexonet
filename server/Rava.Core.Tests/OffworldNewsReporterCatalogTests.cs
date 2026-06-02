@@ -11,6 +11,18 @@ public class OffworldNewsReporterCatalogTests
     }
 
     [Fact]
+    public void All_reporters_have_balanced_portrait_genders()
+    {
+        var femaleCount = OffworldNewsReporterCatalog.All
+            .Count(r => r.Gender == OffworldNewsReporterPortraitGender.Female);
+        var maleCount = OffworldNewsReporterCatalog.All
+            .Count(r => r.Gender == OffworldNewsReporterPortraitGender.Male);
+
+        Assert.Equal(8, femaleCount);
+        Assert.Equal(7, maleCount);
+    }
+
+    [Fact]
     public void All_reporters_have_unique_slugs_and_handles()
     {
         Assert.Equal(15, OffworldNewsReporterCatalog.All.Count);
@@ -73,6 +85,7 @@ public class OffworldNewsReporterCatalogTests
         Assert.False(string.IsNullOrWhiteSpace(dto.DirectoryBio));
         Assert.False(string.IsNullOrWhiteSpace(dto.OnnBio));
         Assert.NotEqual(dto.DirectoryBio, dto.OnnBio);
+        Assert.StartsWith("Noteworthy embeds:", dto.ReportedLocationsNote);
     }
 
     [Fact]

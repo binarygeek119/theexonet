@@ -19,11 +19,12 @@ public sealed class OpenAiUsageTracker(IWebHostEnvironment environment)
         lock (_gate)
         {
             _state = ReadFromDisk();
+            MigrateLegacyCountersLocked();
             ResetTodayIfNeededLocked();
         }
     }
 
-    public void RecordRequest(string? category)
+    public void RecordOutcome(string? category, bool success)
     {
         var bucket = NormalizeCategory(category);
         var now = DateTime.UtcNow;
@@ -36,12 +37,28 @@ public sealed class OpenAiUsageTracker(IWebHostEnvironment environment)
             _state.RequestsToday++;
             _state.TodayUtc = today;
             _state.LastRequestUtc = now;
-            if (!_state.ByCategory.TryGetValue(bucket, out var count))
+
+            if (success)
             {
-                count = 0;
+                _state.SuccessfulRequests++;
+                _state.SuccessfulRequestsToday++;
+            }
+            else
+            {
+                _state.FailedRequests++;
+                _state.FailedRequestsToday++;
             }
 
-            _state.ByCategory[bucket] = count + 1;
+            Increment(_state.ByCategory, bucket);
+            if (success)
+            {
+                Increment(_state.SuccessfulByCategory, bucket);
+            }
+            else
+            {
+                Increment(_state.FailedByCategory, bucket);
+            }
+
             WriteToDiskLocked();
         }
     }
@@ -53,8 +70,14 @@ public sealed class OpenAiUsageTracker(IWebHostEnvironment environment)
             ResetTodayIfNeededLocked();
             return new OpenAiUsageSnapshot(
                 _state.TotalRequests,
+                _state.SuccessfulRequests,
+                _state.FailedRequests,
                 _state.RequestsToday,
+                _state.SuccessfulRequestsToday,
+                _state.FailedRequestsToday,
                 new Dictionary<string, long>(_state.ByCategory),
+                new Dictionary<string, long>(_state.SuccessfulByCategory),
+                new Dictionary<string, long>(_state.FailedByCategory),
                 _state.LastRequestUtc);
         }
     }
@@ -69,6 +92,32 @@ public sealed class OpenAiUsageTracker(IWebHostEnvironment environment)
         return category.Trim().ToLowerInvariant();
     }
 
+    private static void Increment(Dictionary<string, long> bucket, string key)
+    {
+        bucket.TryGetValue(key, out var count);
+        bucket[key] = count + 1;
+    }
+
+    private void MigrateLegacyCountersLocked()
+    {
+        if (_state.SuccessfulRequests > 0 || _state.FailedRequests > 0)
+        {
+            return;
+        }
+
+        if (_state.TotalRequests <= 0)
+        {
+            return;
+        }
+
+        _state.SuccessfulRequests = _state.TotalRequests;
+        _state.SuccessfulRequestsToday = _state.RequestsToday;
+        foreach (var (key, count) in _state.ByCategory)
+        {
+            _state.SuccessfulByCategory[key] = count;
+        }
+    }
+
     private void ResetTodayIfNeededLocked(DateOnly? utcToday = null)
     {
         var today = utcToday ?? DateOnly.FromDateTime(DateTime.UtcNow);
@@ -79,6 +128,8 @@ public sealed class OpenAiUsageTracker(IWebHostEnvironment environment)
 
         _state.TodayUtc = today;
         _state.RequestsToday = 0;
+        _state.SuccessfulRequestsToday = 0;
+        _state.FailedRequestsToday = 0;
     }
 
     private UsageState ReadFromDisk()
@@ -100,12 +151,18 @@ public sealed class OpenAiUsageTracker(IWebHostEnvironment environment)
             return new UsageState
             {
                 TotalRequests = Math.Max(0, record.TotalRequests),
+                SuccessfulRequests = Math.Max(0, record.SuccessfulRequests),
+                FailedRequests = Math.Max(0, record.FailedRequests),
                 RequestsToday = Math.Max(0, record.RequestsToday),
+                SuccessfulRequestsToday = Math.Max(0, record.SuccessfulRequestsToday),
+                FailedRequestsToday = Math.Max(0, record.FailedRequestsToday),
                 TodayUtc = DateOnly.TryParse(record.TodayUtc, out var day)
                     ? day
                     : DateOnly.FromDateTime(DateTime.UtcNow),
                 LastRequestUtc = record.LastRequestUtc,
                 ByCategory = record.ByCategory ?? new Dictionary<string, long>(),
+                SuccessfulByCategory = record.SuccessfulByCategory ?? new Dictionary<string, long>(),
+                FailedByCategory = record.FailedByCategory ?? new Dictionary<string, long>(),
             };
         }
         catch
@@ -125,10 +182,16 @@ public sealed class OpenAiUsageTracker(IWebHostEnvironment environment)
         var record = new UsageRecord
         {
             TotalRequests = _state.TotalRequests,
+            SuccessfulRequests = _state.SuccessfulRequests,
+            FailedRequests = _state.FailedRequests,
             RequestsToday = _state.RequestsToday,
+            SuccessfulRequestsToday = _state.SuccessfulRequestsToday,
+            FailedRequestsToday = _state.FailedRequestsToday,
             TodayUtc = _state.TodayUtc.ToString("yyyy-MM-dd"),
             LastRequestUtc = _state.LastRequestUtc,
             ByCategory = new Dictionary<string, long>(_state.ByCategory),
+            SuccessfulByCategory = new Dictionary<string, long>(_state.SuccessfulByCategory),
+            FailedByCategory = new Dictionary<string, long>(_state.FailedByCategory),
         };
 
         File.WriteAllText(FilePath, JsonSerializer.Serialize(record, JsonOptions) + Environment.NewLine);
@@ -137,24 +200,42 @@ public sealed class OpenAiUsageTracker(IWebHostEnvironment environment)
     private sealed class UsageState
     {
         public long TotalRequests { get; set; }
+        public long SuccessfulRequests { get; set; }
+        public long FailedRequests { get; set; }
         public long RequestsToday { get; set; }
+        public long SuccessfulRequestsToday { get; set; }
+        public long FailedRequestsToday { get; set; }
         public DateOnly TodayUtc { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
         public DateTime? LastRequestUtc { get; set; }
         public Dictionary<string, long> ByCategory { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, long> SuccessfulByCategory { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, long> FailedByCategory { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
     private sealed class UsageRecord
     {
         public long TotalRequests { get; set; }
+        public long SuccessfulRequests { get; set; }
+        public long FailedRequests { get; set; }
         public long RequestsToday { get; set; }
+        public long SuccessfulRequestsToday { get; set; }
+        public long FailedRequestsToday { get; set; }
         public string TodayUtc { get; set; } = "";
         public DateTime? LastRequestUtc { get; set; }
         public Dictionary<string, long>? ByCategory { get; set; }
+        public Dictionary<string, long>? SuccessfulByCategory { get; set; }
+        public Dictionary<string, long>? FailedByCategory { get; set; }
     }
 }
 
 public sealed record OpenAiUsageSnapshot(
     long TotalRequests,
+    long SuccessfulRequests,
+    long FailedRequests,
     long RequestsToday,
+    long SuccessfulRequestsToday,
+    long FailedRequestsToday,
     IReadOnlyDictionary<string, long> RequestsByCategory,
+    IReadOnlyDictionary<string, long> SuccessfulRequestsByCategory,
+    IReadOnlyDictionary<string, long> FailedRequestsByCategory,
     DateTime? LastRequestUtc);

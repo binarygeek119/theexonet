@@ -44,15 +44,32 @@ public sealed class OpenAiStatusDetailService(
             adminSettings.ActivePoolCount(),
             portraitJobService.GetStatus());
 
+        decimal? creditsUsed = null;
+        if (billing.CreditsGrantedUsd is not null && billing.CreditsRemainingUsd is not null)
+        {
+            creditsUsed = billing.CreditsGrantedUsd.Value - billing.CreditsRemainingUsd.Value;
+            if (creditsUsed < 0)
+            {
+                creditsUsed = 0;
+            }
+        }
+
         return new PublicOpenAiStatusDetailResponse(
             DateTime.UtcNow,
             apiKeyConfigured,
             usage.TotalRequests,
+            usage.SuccessfulRequests,
+            usage.FailedRequests,
             usage.RequestsToday,
+            usage.SuccessfulRequestsToday,
+            usage.FailedRequestsToday,
             usage.RequestsByCategory,
+            usage.SuccessfulRequestsByCategory,
+            usage.FailedRequestsByCategory,
             usage.LastRequestUtc,
             billing.CreditsRemainingUsd,
             billing.CreditsGrantedUsd,
+            creditsUsed,
             billing.Note,
             configuration,
             BuildGameFeatures(offworld, logo, apiKeyConfigured),
@@ -82,11 +99,25 @@ public sealed class OpenAiStatusDetailService(
                 aiActive && offworld.MaxImagesPerDay > 0,
                 offworld.ImageModel),
             new PublicOpenAiGameFeatureDto(
-                "reporter-portraits",
-                "Reporter avatars & banners",
-                "Admin can regenerate AI portraits for Offworld News correspondents (avatar + background per reporter).",
-                OpenAiUsageCategories.ReporterPortrait,
+                "reporter-avatars",
+                "Reporter profile pictures",
+                "AI head-and-shoulders portraits for Offworld News correspondents on Exonet.",
+                OpenAiUsageCategories.ReporterAvatar,
                 aiActive,
+                offworld.ImageModel),
+            new PublicOpenAiGameFeatureDto(
+                "reporter-backgrounds",
+                "Reporter profile banners",
+                "AI wide banner backgrounds for ONN bureau profiles (signature news locations).",
+                OpenAiUsageCategories.ReporterBackground,
+                aiActive,
+                offworld.ImageModel),
+            new PublicOpenAiGameFeatureDto(
+                "reporter-portraits-legacy",
+                "Reporter portraits (legacy bucket)",
+                "Older portrait jobs before avatar and banner were tracked separately.",
+                OpenAiUsageCategories.ReporterPortrait,
+                false,
                 offworld.ImageModel),
             new PublicOpenAiGameFeatureDto(
                 "company-logos",

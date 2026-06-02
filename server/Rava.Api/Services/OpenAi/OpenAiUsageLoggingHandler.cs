@@ -11,8 +11,9 @@ public sealed class OpenAiUsageLoggingHandler(OpenAiUsageTracker tracker) : Dele
         CancellationToken cancellationToken)
     {
         var category = request.Options.TryGetValue(CategoryKey, out var value) ? value : null;
-        tracker.RecordRequest(category);
-        return await base.SendAsync(request, cancellationToken);
+        var response = await base.SendAsync(request, cancellationToken);
+        tracker.RecordOutcome(category, response.IsSuccessStatusCode);
+        return response;
     }
 
     public static void SetCategory(HttpRequestMessage request, string category) =>

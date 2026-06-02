@@ -5,7 +5,8 @@ public static class ProfileLocale
 {
     public const string Default = "en";
 
-    public static IReadOnlyList<string> All { get; } = ["en", "es", "fr", "de", "pt"];
+    /// <summary>Enabled player languages. Add es/fr/de/pt when Weblate ships translated locale folders.</summary>
+    public static IReadOnlyList<string> All { get; } = ["en"];
 
     public static string Normalize(string? locale)
     {

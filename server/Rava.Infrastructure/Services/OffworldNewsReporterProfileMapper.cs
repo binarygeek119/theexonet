@@ -58,7 +58,8 @@ public static class OffworldNewsReporterProfileMapper
             CompanyNameReclaimFee: 0,
             IsReporter: true,
             ReporterSlug: reporter.Slug,
-            OnnProfilePath: OffworldNewsReporterCatalog.OnnProfilePath(reporter.Slug));
+            OnnProfilePath: OffworldNewsReporterCatalog.OnnProfilePath(reporter.Slug),
+            ReportedLocationsNote: OffworldNewsReporterBackgroundLocations.ProfileNote(reporter));
     }
 
     public static PublicProfileSummaryDto ToPublicSummary(
@@ -121,7 +122,8 @@ public static class OffworldNewsReporterProfileMapper
             0,
             IsReporter: true,
             ReporterSlug: reporter.Slug,
-            OnnProfilePath: OffworldNewsReporterCatalog.OnnProfilePath(reporter.Slug));
+            OnnProfilePath: OffworldNewsReporterCatalog.OnnProfilePath(reporter.Slug),
+            ReportedLocationsNote: OffworldNewsReporterBackgroundLocations.ProfileNote(reporter));
     }
 
     private static string ResolveAvatarUrl(string slug, string[] reporterAssetRoots) =>

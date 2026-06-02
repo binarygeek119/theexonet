@@ -1,6 +1,7 @@
 {
   "meta.pageTitle": "RAVA — Reactive Asteroid Venturing Agency",
   "locale.label": "Language",
+  "locale.en": "English",
 
   "auth.title": "RAVA",
   "auth.subtitle": "Reactive Asteroid Venturing Agency",

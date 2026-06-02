@@ -22,7 +22,8 @@ public class OffworldNewsReportersCsvLoaderTests
                 "Directory bio with, comma",
                 "ONN bio",
                 "Kicker line",
-                ["ore prices", "Rax flows"]),
+                ["ore prices", "Rax flows"],
+                OffworldNewsReporterPortraitGender.Female),
         };
 
         try
@@ -35,6 +36,7 @@ public class OffworldNewsReportersCsvLoaderTests
             Assert.Equal("Mira Solano", loaded[0].DisplayName);
             Assert.Equal("Directory bio with, comma", loaded[0].DirectoryBio);
             Assert.Equal(2, loaded[0].Specialties.Count);
+            Assert.Equal(OffworldNewsReporterPortraitGender.Female, loaded[0].Gender);
         }
         finally
         {

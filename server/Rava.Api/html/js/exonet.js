@@ -585,6 +585,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
             </div>
           </div>
           <p><strong>About</strong><br>${escapeHtml(profile.aboutMe || "No bio published.")}</p>
+          ${pickField(profile, "reportedLocationsNote") ? `<p><strong>Noteworthy locations</strong><br>${escapeHtml(pickField(profile, "reportedLocationsNote"))}</p>` : ""}
           <p><strong>Beats &amp; specialties</strong><br>${escapeHtml(profile.interests || "Nothing listed.")}</p>
           <p><strong>Desk</strong><br>${escapeHtml(profile.music || "ONN relay desk")}</p>
           <div class="exonet-reporter-directory-actions">
@@ -1206,6 +1207,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       const beat = pickField(reporter, "beat") ?? "";
       const bureau = pickField(reporter, "bureau") ?? "";
       const bio = pickField(reporter, "onnBio") ?? pickField(reporter, "directoryBio") ?? "";
+      const locationsNote = pickField(reporter, "reportedLocationsNote") ?? "";
 
       content.innerHTML = `
         ${pageHeader(displayName, pageSlug)}
@@ -1225,6 +1227,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
                 <p class="exonet-news-reporter-title">${escapeHtml(title)}</p>
                 <p class="exonet-news-reporter-meta">${escapeHtml(beat)} desk · ${escapeHtml(bureau)}</p>
                 <p class="exonet-news-reporter-bio">${escapeHtml(bio)}</p>
+                ${locationsNote ? `<p class="exonet-news-reporter-locations"><strong>Noteworthy locations</strong><br>${escapeHtml(locationsNote)}</p>` : ""}
                 ${specialties ? `<div class="exonet-news-reporter-tags">${specialties}</div>` : ""}
               </div>
             </div>

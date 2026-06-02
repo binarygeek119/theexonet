@@ -143,32 +143,39 @@ export function applyTranslations(root = document) {
   });
 }
 
+function populateLocaleOptions(selectEl) {
+  selectEl.replaceChildren();
+  for (const option of LOCALE_OPTIONS) {
+    const node = document.createElement("option");
+    node.value = option.code;
+    node.textContent = t(`locale.${option.code}`, option.label);
+    selectEl.appendChild(node);
+  }
+}
+
 export function wireLocaleSelector(selectEl) {
   if (!selectEl) {
     return;
   }
 
-  if (!selectEl.options.length) {
-    for (const option of LOCALE_OPTIONS) {
-      const node = document.createElement("option");
-      node.value = option.code;
-      node.textContent = option.label;
-      selectEl.appendChild(node);
-    }
+  if (selectEl.dataset.localeWired === "1") {
+    selectEl.value = activeLocale;
+    return;
   }
 
-  selectEl.value = activeLocale;
+  populateLocaleOptions(selectEl);
+  selectEl.value = activeLocale || DEFAULT_LOCALE;
+  selectEl.dataset.localeWired = "1";
+
+  if (!WEBLATE_LIVE && LOCALE_OPTIONS.length === 1) {
+    selectEl.value = DEFAULT_LOCALE;
+  }
+
   selectEl.addEventListener("change", () => {
     setLocale(selectEl.value).catch((error) => console.error("[i18n]", error));
   });
 }
 
 export function wireLocaleSelectors() {
-  if (!WEBLATE_LIVE) {
-    document.querySelectorAll(".locale-select-label").forEach((el) => {
-      el.hidden = true;
-    });
-    return;
-  }
   document.querySelectorAll("[data-locale-select]").forEach((el) => wireLocaleSelector(el));
 }

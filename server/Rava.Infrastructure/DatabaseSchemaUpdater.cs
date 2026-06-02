@@ -378,6 +378,7 @@ public static class DatabaseSchemaUpdater
             CREATE INDEX IF NOT EXISTS "IX_Players_LastSeenAtUtc" ON "Players" ("LastSeenAtUtc");
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileBirthdayPublic" boolean NOT NULL DEFAULT false;
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileAgePublic" boolean NOT NULL DEFAULT false;
+            ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "AdminTestingModeEnabled" boolean NOT NULL DEFAULT false;
             """,
             cancellationToken);
     }

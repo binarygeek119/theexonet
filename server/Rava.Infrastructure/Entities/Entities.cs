@@ -37,6 +37,7 @@ public class PlayerEntity
     public string ProfileBackgroundUrl { get; set; } = string.Empty;
     public int ProfileBackgroundRevision { get; set; }
     public DateTime? LastSeenAtUtc { get; set; }
+    public bool AdminTestingModeEnabled { get; set; }
 
     public ICollection<MineEntity> Mines { get; set; } = [];
     public ICollection<InventoryItemEntity> Inventory { get; set; } = [];

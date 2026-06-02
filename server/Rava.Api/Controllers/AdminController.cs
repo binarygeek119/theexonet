@@ -488,14 +488,38 @@ public class AdminController(
 
 [ApiController]
 [Route("api/admin")]
-public class AdminAccessController(IOptions<AdminOptions> adminOptions) : ControllerBase
+public class AdminAccessController(
+    IOptions<AdminOptions> adminOptions,
+    AdminService adminService) : ControllerBase
 {
     [Authorize]
     [HttpGet("access")]
-    public ActionResult<AdminMeResponse> Access()
+    public async Task<ActionResult<AdminMeResponse>> Access(CancellationToken ct)
     {
         var username = User.GetUsername() ?? string.Empty;
         var isAdmin = adminOptions.Value.IsAdminUsername(username);
-        return Ok(new AdminMeResponse(username, isAdmin));
+        var response = await adminService.GetAdminAccessAsync(User.GetPlayerId(), username, isAdmin, ct);
+        return Ok(response);
+    }
+
+    [Authorize]
+    [HttpPut("testing-mode")]
+    public async Task<ActionResult<AdminTestingModeResponse>> SetTestingMode(
+        [FromBody] AdminTestingModeRequest request,
+        CancellationToken ct)
+    {
+        var username = User.GetUsername() ?? string.Empty;
+        var isAdmin = adminOptions.Value.IsAdminUsername(username);
+        var (result, error) = await adminService.SetAdminTestingModeAsync(
+            User.GetPlayerId(),
+            isAdmin,
+            request.Enabled,
+            ct);
+        if (error is not null)
+        {
+            return isAdmin ? BadRequest(new { message = error }) : Forbid();
+        }
+
+        return Ok(result);
     }
 }

@@ -1,4 +1,4 @@
-import { RavaApi } from "./api.js?v=20260602-portrait-partial";
+import { RavaApi } from "./api.js?v=20260529-testing-mode-server";
 import { API_BASE_URL, readMetaApiBase } from "./config.js";
 import { initApiStatusMonitor } from "./api-status.js";
 import { initStaffMessaging } from "./staff-messages.js";
@@ -19,9 +19,9 @@ import {
   getDummyPlayerProfile,
   getDummyPlayerSummaries,
   isDummyPlayerId,
-  loadTestingModeEnabled,
   mergePlayersForDisplay,
   saveTestingModeEnabled,
+  setCachedTestingModeEnabled,
 } from "./admin-testing-mode.js";
 
 const api = new RavaApi(API_BASE_URL);
@@ -249,7 +249,7 @@ const state = {
   gameCreditsConfig: null,
   events: [],
   editingEventId: null,
-  testingMode: loadTestingModeEnabled(),
+  testingMode: false,
 };
 
 function setStatus(el, message, isError = false) {
@@ -376,27 +376,35 @@ function renderTestingModeUi() {
 }
 
 function setTestingMode(enabled) {
-  state.testingMode = enabled;
-  saveTestingModeEnabled(enabled);
-  if (!enabled) {
-    clearRemovedDummyFriendships();
-  }
-  renderTestingModeUi();
-  if (els.testingStatus) {
-    setStatus(
-      els.testingStatus,
-      enabled
-        ? "Testing mode on — dummy players appear on Players and Rax, and are auto-friended in-game."
-        : "Testing mode off.",
-    );
-  }
-  if (state.page === "players") {
-    loadPlayers().catch((error) => setStatus(els.playersStatus, error.message, true));
-  } else if (state.page === "credits") {
-    loadCreditsPage().catch((error) => setStatus(els.creditsStatus, error.message, true));
-  } else if (state.page === "testing") {
-    loadTestingPage();
-  }
+  saveTestingModeEnabled(api, enabled)
+    .then((response) => {
+      state.testingMode = Boolean(response?.enabled);
+      if (!state.testingMode) {
+        clearRemovedDummyFriendships();
+      }
+      renderTestingModeUi();
+      if (els.testingStatus) {
+        setStatus(
+          els.testingStatus,
+          state.testingMode
+            ? "Testing mode on — dummy players appear on Players and Rax, and are auto-friended in-game."
+            : "Testing mode off.",
+        );
+      }
+      if (state.page === "players") {
+        loadPlayers().catch((error) => setStatus(els.playersStatus, error.message, true));
+      } else if (state.page === "credits") {
+        loadCreditsPage().catch((error) => setStatus(els.creditsStatus, error.message, true));
+      } else if (state.page === "testing") {
+        loadTestingPage();
+      }
+    })
+    .catch((error) => {
+      if (els.testingStatus) {
+        setStatus(els.testingStatus, error.message, true);
+      }
+      renderTestingModeUi();
+    });
 }
 
 function applyPlayersForDisplay(realPlayers, search) {
@@ -2081,6 +2089,9 @@ async function checkAdminAccess() {
     return false;
   }
 
+  state.testingMode = Boolean(access.testingModeEnabled);
+  setCachedTestingModeEnabled(state.testingMode);
+  renderTestingModeUi();
   els.signedIn.textContent = `Signed in as ${access.username}`;
   showScreen("portal");
   return true;

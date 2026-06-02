@@ -1,3 +1,5 @@
+import { getDummyFriendSummaries, isDummyPlayerId } from "./admin-testing-mode.js";
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -305,6 +307,24 @@ export function initPlayerMessaging({ api, els, setStatus }) {
   }
 
   async function loadMessages() {
+    if (composePlayerId && isDummyPlayerId(composePlayerId)) {
+      showPeerMode();
+      setStatus(els.messagesStatus, "Testing profile");
+      inboxMessages = [];
+      const dummyFriends = getDummyFriendSummaries().filter(
+        (friend) => friend.playerId === composePlayerId,
+      );
+      populateRecipients(dummyFriends);
+      if (els.messageRecipient) {
+        els.messageRecipient.value = composePlayerId;
+      }
+      renderInbox();
+      els.messagesDetail.innerHTML =
+        `<p class="friends-status">Test profile — messages are not saved. This conversation is for UI testing only.</p>`;
+      updateStatusCount();
+      return;
+    }
+
     setStatus(els.messagesStatus, "Loading...");
     const [staffResponse, peerResponse, toStaffResponse, friendsResponse, contactsResponse] =
       await Promise.all([
@@ -370,6 +390,12 @@ export function initPlayerMessaging({ api, els, setStatus }) {
 
     if (!body) {
       setStatus(els.messagesStatus, "Enter a message.", true);
+      return;
+    }
+
+    if (isDummyPlayerId(toPlayerId)) {
+      els.messageBody.value = "";
+      setStatus(els.messagesStatus, "Test profile — messages are not saved.");
       return;
     }
 

@@ -276,4 +276,45 @@ public class AdminService(
 
         return revision > 0 ? $"{url}?v={revision}" : url;
     }
+
+    public async Task<AdminMeResponse> GetAdminAccessAsync(
+        Guid playerId,
+        string username,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        if (!isAdmin)
+        {
+            return new AdminMeResponse(username, false, false);
+        }
+
+        var enabled = await db.Players.AsNoTracking()
+            .Where(p => p.Id == playerId)
+            .Select(p => p.AdminTestingModeEnabled)
+            .FirstOrDefaultAsync(ct);
+
+        return new AdminMeResponse(username, true, enabled);
+    }
+
+    public async Task<(AdminTestingModeResponse? Result, string? Error)> SetAdminTestingModeAsync(
+        Guid playerId,
+        bool isAdmin,
+        bool enabled,
+        CancellationToken ct)
+    {
+        if (!isAdmin)
+        {
+            return (null, "Admin access required.");
+        }
+
+        var player = await db.Players.FirstOrDefaultAsync(p => p.Id == playerId, ct);
+        if (player is null)
+        {
+            return (null, "Player not found.");
+        }
+
+        player.AdminTestingModeEnabled = enabled;
+        await db.SaveChangesAsync(ct);
+        return (new AdminTestingModeResponse(enabled), null);
+    }
 }

@@ -5,6 +5,8 @@ export const DUMMY_FRIENDSHIP_ID_PREFIX = "bbbbbbbb-bbbb-4bbb-8bbb-";
 
 const DUMMY_COUNT = 12;
 
+let cachedTestingModeEnabled = false;
+
 const USERNAMES = [
   "vein_runner",
   "ore_hauler_7",
@@ -373,19 +375,26 @@ export function mergeFriendsListForTesting(friendsResponse, testingMode, isStaff
 }
 
 export function loadTestingModeEnabled() {
+  return cachedTestingModeEnabled;
+}
+
+export function setCachedTestingModeEnabled(enabled) {
+  cachedTestingModeEnabled = Boolean(enabled);
   try {
-    return localStorage.getItem(TESTING_MODE_STORAGE_KEY) === "1";
+    localStorage.removeItem(TESTING_MODE_STORAGE_KEY);
   } catch {
-    return false;
+    /* ignore legacy localStorage */
   }
 }
 
-export function saveTestingModeEnabled(enabled) {
-  try {
-    localStorage.setItem(TESTING_MODE_STORAGE_KEY, enabled ? "1" : "0");
-  } catch {
-    /* ignore */
-  }
+/**
+ * @param {import("./api.js").RavaApi} api
+ * @param {boolean} enabled
+ */
+export async function saveTestingModeEnabled(api, enabled) {
+  const response = await api.setAdminTestingMode(enabled);
+  setCachedTestingModeEnabled(Boolean(response?.enabled));
+  return response;
 }
 
 function miningCompanyName(seed) {

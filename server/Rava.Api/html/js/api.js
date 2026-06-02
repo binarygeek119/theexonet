@@ -505,6 +505,13 @@ export class RavaApi {
     return this.request("/api/admin/access");
   }
 
+  setAdminTestingMode(enabled) {
+    return this.request("/api/admin/testing-mode", {
+      method: "PUT",
+      body: { enabled: Boolean(enabled) },
+    });
+  }
+
   adminDashboard() {
     return this.request("/api/admin/dashboard");
   }

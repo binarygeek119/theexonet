@@ -470,7 +470,11 @@ public record AddFriendRequest(string ProfileNumber);
 
 public record FriendActionResponse(bool Success, string Message);
 
-public record AdminMeResponse(string Username, bool IsAdmin);
+public record AdminMeResponse(string Username, bool IsAdmin, bool TestingModeEnabled = false);
+
+public record AdminTestingModeRequest(bool Enabled);
+
+public record AdminTestingModeResponse(bool Enabled);
 
 public record ModeratorMeResponse(string Username, bool IsModerator, bool IsAdmin);
 

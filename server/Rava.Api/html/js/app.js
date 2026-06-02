@@ -9,15 +9,15 @@ import {
 } from "./currency.js";
 import { initPlayerMessaging } from "./player-messages.js";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
-import { initExonet } from "./exonet.js?v=20260529-profile-browse-list";
+import { initExonet } from "./exonet.js?v=20260529-testing-mode-server";
 import { initI18n, applyTranslations, wireLocaleSelectors, wireLocaleSelector, getLocale, setLocale, t } from "./i18n.js";
 import {
   augmentOwnerProfileForTesting,
   isDummyFriendshipId,
-  loadTestingModeEnabled,
   mergeFriendsListForTesting,
   resolveDummyGameProfile,
   saveRemovedDummyFriendship,
+  setCachedTestingModeEnabled,
 } from "./admin-testing-mode.js";
 
 const api = new RavaApi(API_BASE_URL);
@@ -193,6 +193,7 @@ const state = {
   profile: null,
   accountProfile: null,
   isStaffAdmin: false,
+  testingModeEnabled: false,
   friends: null,
   selectedZoneId: null,
   authMode: "login",
@@ -1931,7 +1932,7 @@ function renderProfileFriendPanel(profile) {
   const status = profile.friendshipStatus ?? "none";
   setHidden(els.profileAddFriendBtn, status !== "none" || profile.isTestingDummy);
   setHidden(els.profileAcceptFriendBtn, status !== "pending_incoming" || profile.isReporter);
-  setHidden(els.profileMessageFriendBtn, status !== "accepted" || profile.isReporter || profile.isTestingDummy);
+  setHidden(els.profileMessageFriendBtn, status !== "accepted" || profile.isReporter || (profile.isTestingDummy && !isTestingFriendsActive()));
   setHidden(els.profileRemoveFriendBtn, !["pending_outgoing", "pending_incoming", "accepted"].includes(status));
 
   switch (status) {
@@ -2018,7 +2019,7 @@ function createFriendItem(
     const actions = document.createElement("div");
     actions.className = "friend-item-actions";
 
-    if (showMessage && !friend.isReporter && !friend.isTestingDummy) {
+    if (showMessage && !friend.isReporter && (!friend.isTestingDummy || isTestingFriendsActive())) {
       const messageBtn = document.createElement("button");
       messageBtn.type = "button";
       messageBtn.className = "btn primary";
@@ -2104,16 +2105,32 @@ function renderFriendsPanel() {
 
 async function loadFriends() {
   const response = await api.getFriends();
-  state.friends = mergeFriendsListForTesting(response, loadTestingModeEnabled(), state.isStaffAdmin);
+  state.friends = mergeFriendsListForTesting(response, state.testingModeEnabled, state.isStaffAdmin);
   renderFriendsPanel();
 }
 
+function isTestingFriendsActive() {
+  return Boolean(state.testingModeEnabled && state.isStaffAdmin);
+}
+
 async function refreshStaffAdminFlag() {
+  const previousTestingMode = state.testingModeEnabled;
   try {
     const access = await api.adminAccess();
     state.isStaffAdmin = Boolean(access?.isAdmin);
+    state.testingModeEnabled = Boolean(access?.testingModeEnabled);
+    setCachedTestingModeEnabled(state.testingModeEnabled);
   } catch {
     state.isStaffAdmin = false;
+    state.testingModeEnabled = false;
+    setCachedTestingModeEnabled(false);
+  }
+
+  if (previousTestingMode !== state.testingModeEnabled) {
+    if (!els.friendsModal?.hidden) {
+      await loadFriends().catch(() => {});
+    }
+    await refreshProfileIfOpen();
   }
 }
 
@@ -2168,7 +2185,7 @@ async function refreshProfileIfOpen() {
     if (state.profile.isOwner) {
       profile = augmentOwnerProfileForTesting(
         await api.getProfile(),
-        loadTestingModeEnabled(),
+        state.testingModeEnabled,
         state.isStaffAdmin,
       );
       state.accountProfile = profile;
@@ -2176,7 +2193,7 @@ async function refreshProfileIfOpen() {
       profile = resolveDummyGameProfile(
         state.profile.username,
         state.accountProfile,
-        loadTestingModeEnabled(),
+        state.testingModeEnabled,
         state.isStaffAdmin,
       );
       if (!profile) {
@@ -2201,7 +2218,7 @@ async function acceptFriendRequest(friendshipId) {
 async function removeFriendRequest(friendshipId) {
   if (
     isDummyFriendshipId(friendshipId) &&
-    loadTestingModeEnabled() &&
+    state.testingModeEnabled &&
     state.isStaffAdmin
   ) {
     saveRemovedDummyFriendship(friendshipId);
@@ -2274,7 +2291,7 @@ async function profileRemoveFriend() {
   try {
     if (
       isDummyFriendshipId(friendshipId) &&
-      loadTestingModeEnabled() &&
+      state.testingModeEnabled &&
       state.isStaffAdmin
     ) {
       saveRemovedDummyFriendship(friendshipId);
@@ -2283,7 +2300,7 @@ async function profileRemoveFriend() {
       const refreshed = resolveDummyGameProfile(
         state.profile.username,
         state.accountProfile,
-        loadTestingModeEnabled(),
+        state.testingModeEnabled,
         state.isStaffAdmin,
       );
       if (refreshed) {
@@ -2338,7 +2355,7 @@ async function closeProfileEdit(refreshProfile = true) {
   try {
     const profile = augmentOwnerProfileForTesting(
       await api.getProfile(),
-      loadTestingModeEnabled(),
+      state.testingModeEnabled,
       state.isStaffAdmin,
     );
     state.accountProfile = profile;
@@ -2366,7 +2383,7 @@ async function openProfile(username) {
       profile = resolveDummyGameProfile(
         username,
         state.accountProfile,
-        loadTestingModeEnabled(),
+        state.testingModeEnabled,
         state.isStaffAdmin,
       );
       if (!profile) {
@@ -2375,7 +2392,7 @@ async function openProfile(username) {
     } else {
       profile = augmentOwnerProfileForTesting(
         await api.getProfile(),
-        loadTestingModeEnabled(),
+        state.testingModeEnabled,
         state.isStaffAdmin,
       );
       state.accountProfile = profile;
@@ -2494,7 +2511,7 @@ async function refreshAll() {
   try {
     const profile = augmentOwnerProfileForTesting(
       await api.getProfile(),
-      loadTestingModeEnabled(),
+      state.testingModeEnabled,
       state.isStaffAdmin,
     );
     state.accountProfile = profile;

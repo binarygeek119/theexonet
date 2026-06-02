@@ -113,6 +113,7 @@ jobs:
           test -f publish/Rava.Admin.dll
           test -f publish/Rava.Moderator.dll
           test -f publish/wwwroot/index.html
+          test -f publish/wwwroot/favicon.svg
           test -f publish/wwwroot/js/status.js
           test -f publish/wwwroot/admin.html
           test -f publish/wwwroot/moderator.html

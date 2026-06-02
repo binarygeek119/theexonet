@@ -34,6 +34,8 @@ app.UseDefaultFiles(new DefaultFilesOptions
 });
 app.UseStaticFiles(new StaticFileOptions { FileProvider = staticFiles });
 
+app.MapGet("/favicon.ico", () => Results.Redirect("/favicon.svg", permanent: false));
+
 app.MapGet("/api/dashboard", async (
     IHttpClientFactory httpClientFactory,
     IOptions<StatusMonitorOptions> options,

@@ -351,6 +351,8 @@ const els = {
   profileEditHeaderBanner: document.getElementById("profile-edit-header-banner"),
   profileEditPreviewUsername: document.getElementById("profile-edit-preview-username"),
   profileEditPreviewMood: document.getElementById("profile-edit-preview-mood"),
+  profileEditPreviewNumber: document.getElementById("profile-edit-preview-number"),
+  profileEditPreviewMemberSince: document.getElementById("profile-edit-preview-member-since"),
   profileEditCompanyLogoSlot: document.getElementById("profile-edit-company-logo-slot"),
   profileEditCompanyLogoPlaceholder: document.getElementById("profile-edit-company-logo-placeholder"),
   profileBanner: document.getElementById("profile-banner"),
@@ -850,6 +852,15 @@ function syncProfileEditHeaderPreview(profile) {
       profile?.mood ||
       (profile?.isReporter ? t("profile.moodReporter") : t("profile.moodDefault"));
     els.profileEditPreviewMood.textContent = mood;
+  }
+  if (els.profileEditPreviewNumber) {
+    els.profileEditPreviewNumber.textContent = profile?.profileNumber || "---";
+  }
+  if (els.profileEditPreviewMemberSince) {
+    const signedUp = formatProfileDate(profile?.memberSince);
+    els.profileEditPreviewMemberSince.textContent = signedUp
+      ? t("profile.memberSince", { date: signedUp })
+      : t("profile.memberSince", { date: "---" });
   }
 }
 

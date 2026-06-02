@@ -79,7 +79,7 @@ dotnet --list-sdks
    | `Rava.Admin.dll` + `wwwroot/` | Same publish bundle |
    | `Rava.Moderator.dll` + `wwwroot/` | Same publish bundle |
    | `Rava.Docs.dll` + `content/` + `wwwroot/` | Same publish bundle |
-   | `credits.csv`, `offworld-news-reporters.csv`, other `*.csv` | Included in publish output; synced to `/var/www/data` via `sync-rava-data` (API also seeds missing files from publish on startup) |
+   | `credits.csv`, `offworld-news-reporters.csv`, other `*.csv` | Included in publish output and CI `data/` bundle; production deploy rsyncs them to `/var/www/data` (overwrites CSVs only; `appsettings.json` stays put). `restart-rava` and `sync-rava-data` also refresh CSVs from `/var/www/publish`. The API seeds missing files from publish on startup but does not overwrite existing data CSVs. |
    | `appsettings.json` | Copy from `appsettings.json.example`, then edit |
 
    Add **`StatusMonitor`**, **`AdminPortal`**, **`ModeratorPortal`**, and **`DocsPortal`** sections to the same `appsettings.json` for the status dashboard (port 6000), admin portal (port 7000), moderator portal (port 7050), and game docs (port 9000). Do **not** add a top-level `"Urls"` key — each systemd service sets its own port via `ASPNETCORE_URLS`.

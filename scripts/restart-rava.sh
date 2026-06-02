@@ -43,17 +43,17 @@ prepare_publish_dir() {
     chown "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}" 2>/dev/null || true
   fi
 
-  if [ ! -f "${DATA_DIR}/credits.csv" ]; then
-    echo "Missing data CSV spreadsheets — syncing to ${DATA_DIR}..."
-    if [ -x /usr/local/bin/sync-rava-data ]; then
-      sync-rava-data || {
-        echo "WARN: sync-rava-data failed. Run: sudo install-rava-scripts (from git checkout)" >&2
-      }
-    elif [ -f /usr/local/lib/rava/scripts/sync-publish-data.sh ]; then
-      bash /usr/local/lib/rava/scripts/sync-publish-data.sh || true
-    else
-      echo "WARN: credits.csv missing and sync-rava-data not installed." >&2
-    fi
+  echo "Syncing data CSV spreadsheets to ${DATA_DIR}..."
+  if [ -x /usr/local/bin/sync-rava-data ]; then
+    sync-rava-data "${PUBLISH_DIR}" || {
+      echo "WARN: sync-rava-data failed. Run: sudo install-rava-scripts (from git checkout)" >&2
+    }
+  elif [ -f /usr/local/lib/rava/scripts/sync-publish-data.sh ]; then
+    bash /usr/local/lib/rava/scripts/sync-publish-data.sh "${PUBLISH_DIR}" || true
+  elif [ -f "${SCRIPT_DIR}/sync-publish-data.sh" ]; then
+    bash "${SCRIPT_DIR}/sync-publish-data.sh" "${PUBLISH_DIR}" || true
+  elif [ ! -f "${DATA_DIR}/credits.csv" ]; then
+    echo "WARN: credits.csv missing and sync-rava-data not installed." >&2
   fi
 
   if [ ! -f "${DATA_DIR}/appsettings.json" ] && [ -f "${PUBLISH_DIR}/appsettings.json" ]; then

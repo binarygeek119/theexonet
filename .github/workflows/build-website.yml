@@ -167,6 +167,7 @@ jobs:
       DEPLOY_MODERATOR_SERVICE: ${{ vars.DEPLOY_MODERATOR_SERVICE || secrets.DEPLOY_MODERATOR_SERVICE || 'rava-moderator' }}
       DEPLOY_DOCS_SERVICE: ${{ vars.DEPLOY_DOCS_SERVICE || secrets.DEPLOY_DOCS_SERVICE || 'rava-docs' }}
       DEPLOY_REPO_PATH: ${{ vars.DEPLOY_REPO_PATH || secrets.DEPLOY_REPO_PATH || '/opt/rava/rava' }}
+      DEPLOY_DATA_PATH: ${{ vars.DEPLOY_DATA_PATH || secrets.DEPLOY_DATA_PATH || '/var/www/data' }}
       GITHUB_REPOSITORY: ${{ github.repository }}
       GITHUB_SHA: ${{ github.sha }}
 
@@ -302,6 +303,10 @@ jobs:
           repo_path="$(normalize_path "$DEPLOY_REPO_PATH")"
           validate_path "DEPLOY_REPO_PATH" "$repo_path"
           echo "DEPLOY_REPO_PATH=$repo_path" >> "$GITHUB_ENV"
+
+          data_path="$(normalize_path "$DEPLOY_DATA_PATH")"
+          validate_path "DEPLOY_DATA_PATH" "$data_path"
+          echo "DEPLOY_DATA_PATH=$data_path" >> "$GITHUB_ENV"
 
           effective_www_host="${www_host:-$host}"
           effective_api_host="${api_host:-$host}"
@@ -517,6 +522,72 @@ jobs:
               "$target"
           fi
 
+      - name: Deploy data CSV spreadsheets
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${api_host}"
+          data_target="${remote}:${DEPLOY_DATA_PATH}/"
+          csv_files=(
+            credits.csv
+            market-items.csv
+            trade-items.csv
+            hate-speech-terms.csv
+            bad-language-terms.csv
+            political-terms.csv
+            sexual-terms.csv
+            offworld-news-reporters.csv
+          )
+
+          run_remote() {
+            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            else
+              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
+                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            fi
+          }
+
+          for file in "${csv_files[@]}"; do
+            if [ ! -f "data/${file}" ]; then
+              echo "ERROR: missing deploy CSV artifact data/${file}" >&2
+              exit 1
+            fi
+          done
+
+          if [ "$DEPLOY_USER" = "root" ]; then
+            mkdir_cmd="mkdir -p '${DEPLOY_DATA_PATH}'"
+            chown_cmd="chown www-data:www-data '${DEPLOY_DATA_PATH}'/*.csv"
+          else
+            mkdir_cmd="sudo mkdir -p '${DEPLOY_DATA_PATH}'"
+            chown_cmd="sudo chown www-data:www-data '${DEPLOY_DATA_PATH}'/*.csv"
+          fi
+
+          echo "Deploying CSV spreadsheets to ${data_target}"
+          run_remote "$mkdir_cmd"
+          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+            rsync -avz \
+              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              "${csv_files[@]/#/data/}" \
+              "$data_target"
+          else
+            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -avz \
+              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+              "${csv_files[@]/#/data/}" \
+              "$data_target"
+          fi
+          run_remote "$chown_cmd" || true
+
+          for file in "${csv_files[@]}"; do
+            if ! run_remote "test -f '${DEPLOY_DATA_PATH}/${file}'"; then
+              echo "ERROR: CSV missing on server after deploy: ${DEPLOY_DATA_PATH}/${file}" >&2
+              exit 1
+            fi
+          done
+          echo "Data CSV spreadsheets updated in ${DEPLOY_DATA_PATH}"
+
       - name: Deploy merged status and portal wwwroot to host
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
@@ -601,8 +672,6 @@ jobs:
           run_remote "test -f '${DEPLOY_REPO_PATH}/server/Rava.Api/Rava.Api.csproj'"
           run_remote "printf '%s\\n' '${GITHUB_SHA}' > '${DEPLOY_REPO_PATH}/.deploy-commit'"
           echo "Server sources updated at ${DEPLOY_REPO_PATH}"
-
-      # /var/www/data is server-managed (appsettings.json + CSVs). Deploy never rsyncs there.
 
       - name: Fix portal wwwroot ownership
         env:

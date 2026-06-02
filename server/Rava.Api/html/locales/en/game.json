@@ -223,7 +223,7 @@
   "profile.edit.bannerHint": "Custom background behind your photo and headline. JPEG, PNG, WebP, or GIF up to 4 MB. Wide images work best.",
   "profile.edit.chooseImage": "Choose Image",
   "profile.edit.removeBackground": "Remove Background",
-  "profile.edit.companyHeaderHint": "Preview matches your public profile header. Upload photo and banner, edit your company name, and manage your logo here.",
+  "profile.edit.companyHeaderHint": "Preview matches your public profile header. Use the controls below to upload photo, banner, company name, and logo.",
   "profile.edit.chooseLogoShort": "Choose logo",
   "profile.edit.uploadLogoShort": "Upload logo",
   "profile.edit.generateLogoShort": "Generate AI logo",

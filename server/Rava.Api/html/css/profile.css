@@ -82,31 +82,77 @@
   gap: 12px;
 }
 
-.profile-edit-photo-row {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  flex-wrap: wrap;
+.profile-edit-media-stage {
+  margin: 8px -12px 0;
 }
 
-.profile-edit-media-stage {
-  margin-top: 4px;
+.profile-edit-company-content {
+  padding-bottom: 12px;
 }
 
 .profile-edit-header-banner {
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 
-.profile-edit-header-banner .profile-edit-avatar {
-  width: 120px;
-  height: 120px;
+.profile-edit-media-toolbar {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border-top: 2px dashed rgba(0, 51, 153, 0.35);
+  background: rgba(255, 255, 255, 0.55);
 }
 
-.profile-edit-header-headline label {
-  display: block;
-  margin: 10px 0 4px;
+.theme-neon .profile-edit-media-toolbar,
+.theme-midnight .profile-edit-media-toolbar {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.theme-solar .profile-edit-media-toolbar {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.profile-edit-media-row {
+  display: grid;
+  grid-template-columns: minmax(88px, 112px) minmax(0, 1fr);
+  gap: 8px 12px;
+  align-items: start;
+}
+
+.profile-edit-media-row-label {
+  margin: 0;
+  padding-top: 7px;
   font-size: 0.78rem;
   font-weight: 700;
+  line-height: 1.3;
+}
+
+.profile-edit-media-row-body {
+  min-width: 0;
+}
+
+.profile-edit-media-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.profile-edit-company-row-actions .profile-edit-company-name-field {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.profile-edit-media-row-actions .profile-media-btn {
+  width: auto;
+  flex: 0 1 auto;
+  min-width: 7rem;
+}
+
+.profile-edit-media-status {
+  margin: 4px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  word-break: break-word;
 }
 
 .profile-edit-company-name-field {
@@ -126,84 +172,6 @@
   color: inherit;
 }
 
-.profile-edit-header-actions {
-  margin-top: 6px;
-}
-
-.profile-edit-header-actions .profile-media-btn {
-  width: auto;
-  flex: 1 1 auto;
-}
-
-.profile-edit-header-status,
-.profile-edit-company-logo-controls .profile-save-status {
-  margin: 4px 0 0;
-  font-size: 0.68rem;
-  line-height: 1.25;
-  word-break: break-word;
-}
-
-.profile-edit-header-company-column {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.profile-edit-company-logo-controls {
-  width: 100%;
-}
-
-.profile-edit-header-avatar-column {
-  align-items: center;
-}
-
-.profile-edit-media-preview {
-  position: relative;
-  min-height: 168px;
-  margin-bottom: 0;
-  display: flex;
-  align-items: flex-end;
-  padding: 12px 14px;
-  overflow: hidden;
-}
-
-.profile-edit-media-preview.has-custom-background::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.62) 0%,
-    rgba(255, 255, 255, 0.38) 45%,
-    rgba(255, 255, 255, 0.38) 55%,
-    rgba(255, 255, 255, 0.62) 100%
-  );
-  pointer-events: none;
-}
-
-.profile-edit-background-controls {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
-  width: min(9.5rem, 42%);
-}
-
-.profile-edit-media-avatar-block {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  max-width: 118px;
-}
-
 .profile-photo-upload-compact {
   width: 100%;
   gap: 4px;
@@ -217,26 +185,12 @@
   min-height: 0;
 }
 
-.profile-edit-background-status {
-  margin: 2px 0 0;
-  font-size: 0.68rem;
-  line-height: 1.25;
-  text-align: center;
-  word-break: break-word;
-}
-
 .profile-photo-upload-compact .profile-save-status {
   margin: 0;
   font-size: 0.68rem;
   line-height: 1.25;
   text-align: center;
   word-break: break-word;
-}
-
-.profile-edit-avatar {
-  width: 96px;
-  height: 96px;
-  flex-shrink: 0;
 }
 
 .profile-edit-save-row {
@@ -411,14 +365,6 @@
 
 .profile-company-logo-slot.has-logo .profile-company-logo-placeholder {
   display: none;
-}
-
-.profile-company-logo-preview {
-  width: 72px;
-  height: 72px;
-  object-fit: contain;
-  background: transparent;
-  border: none;
 }
 
 .profile-company-logo-row {
@@ -1050,29 +996,17 @@
     text-align: center;
   }
 
-  .profile-edit-background-controls {
-    width: min(8.5rem, 46%);
-  }
-
-  .profile-edit-header-banner {
+  .profile-edit-media-row {
     grid-template-columns: 1fr;
-    justify-items: center;
-    text-align: center;
   }
 
-  .profile-edit-header-avatar-column,
-  .profile-edit-header-company-column {
-    justify-self: center;
-    width: 100%;
-    max-width: 140px;
+  .profile-edit-media-row-label {
+    padding-top: 0;
   }
 
-  .profile-edit-header-headline {
-    width: 100%;
-  }
-
-  .profile-edit-header-actions {
-    justify-content: center;
+  .profile-edit-media-row-actions .profile-media-btn {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 0;
   }
 
   .profile-avatar-column,

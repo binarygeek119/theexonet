@@ -1,8 +1,10 @@
 #!/bin/bash
 # Copy required CSV spreadsheets into the live data directory (/var/www/data by default).
-# Run on the server as root after git pull:
+# Overwrites existing CSV files with the newest version from the source directory.
+# Source resolution (when no argument): publish dir, then git checkout Rava.Api, then templates.
+# Run on the server as root after git pull or deploy:
 #   sudo bash scripts/sync-publish-data.sh
-#   sudo bash scripts/sync-publish-data.sh /path/to/rava-1/server/Rava.Api
+#   sudo bash scripts/sync-publish-data.sh /var/www/publish
 #   sudo sync-rava-data
 set -euo pipefail
 
@@ -20,6 +22,11 @@ fi
 resolve_src_dir() {
   if [ -n "${1:-}" ] && [ -d "$1" ]; then
     printf '%s' "$1"
+    return
+  fi
+
+  if [ -f "${PUBLISH_DIR}/credits.csv" ]; then
+    printf '%s' "${PUBLISH_DIR}"
     return
   fi
 
@@ -65,7 +72,7 @@ fi
 mkdir -p "${DEST_DIR}"
 for file in "${files[@]}"; do
   cp -f "${SRC_DIR}/${file}" "${DEST_DIR}/${file}"
-  echo "Installed ${DEST_DIR}/${file}"
+  echo "Updated ${DEST_DIR}/${file} from ${SRC_DIR}/${file}"
 done
 
 if [ -f "${PUBLISH_DIR}/appsettings.json" ] && [ ! -f "${DEST_DIR}/appsettings.json" ]; then

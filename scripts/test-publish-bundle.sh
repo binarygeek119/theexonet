@@ -59,6 +59,11 @@ mkdir -p data
 cp -f Rava.Api/*.csv data/
 require data/credits.csv
 require data/market-items.csv
+require data/trade-items.csv
 require data/hate-speech-terms.csv
+require data/bad-language-terms.csv
+require data/political-terms.csv
+require data/sexual-terms.csv
+require data/offworld-news-reporters.csv
 
 echo "Publish bundle checks passed."

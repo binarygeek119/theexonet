@@ -7,7 +7,7 @@
   <link rel="icon" href="/images/currency.svg" type="image/svg+xml">
   <title>RAVA — Reactive Asteroid Venturing Agency</title>
   <link rel="stylesheet" href="/css/app.css">
-  <link rel="stylesheet" href="/css/profile.css?v=20260529-profile-header-preview">
+  <link rel="stylesheet" href="/css/profile.css?v=20260529-profile-edit-media">
   <link rel="stylesheet" href="/css/exonet.css?v=20260529-profile-browse-list">
 </head>
 <body>
@@ -413,53 +413,79 @@
       <div class="profile-edit-body">
         <section class="profile-box profile-edit-panel profile-edit-company-panel">
           <h4 data-i18n="profile.edit.companyName">Company Name</h4>
-          <div class="profile-box-content">
-            <p class="profile-number-hint" data-i18n="profile.edit.companyHeaderHint">Preview matches your public profile header. Edit photo, banner, company name, and logo here.</p>
-            <div id="profile-edit-header-banner" class="profile-banner profile-edit-header-banner">
-              <div class="profile-edit-background-controls">
-                <input id="profile-background-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
-                <button id="profile-background-choose-btn" type="button" class="btn ghost profile-media-btn" data-i18n="profile.edit.chooseBanner">Choose banner</button>
-                <button id="profile-background-upload-btn" type="button" class="btn ghost profile-media-btn" disabled data-i18n="profile.edit.uploadBanner">Upload banner</button>
-                <button id="profile-background-remove-btn" type="button" class="btn ghost profile-media-btn" hidden data-i18n="profile.edit.removeBackground">Remove</button>
-                <p id="profile-background-status" class="profile-save-status profile-edit-background-status"></p>
+          <div class="profile-box-content profile-edit-company-content">
+            <p class="profile-number-hint" data-i18n="profile.edit.companyHeaderHint">Preview matches your public profile header. Use the controls below to upload photo, banner, company name, and logo.</p>
+            <div class="profile-edit-media-stage">
+              <div id="profile-edit-header-banner" class="profile-banner profile-edit-header-banner">
+                <div class="profile-avatar-column">
+                  <div id="profile-edit-avatar" class="profile-avatar">
+                    <img id="profile-edit-avatar-img" class="profile-avatar-img" alt="" hidden>
+                    <span id="profile-edit-avatar-initials" class="profile-avatar-initials">??</span>
+                  </div>
+                </div>
+                <div class="profile-headline">
+                  <h3 id="profile-edit-preview-username">Commander</h3>
+                  <p id="profile-edit-preview-mood" class="profile-mood-display">Ready to mine.</p>
+                  <p id="profile-edit-preview-number" class="profile-number">---</p>
+                  <p id="profile-edit-preview-member-since" class="profile-member-since">Member since ---</p>
+                </div>
+                <div class="profile-company-column">
+                  <div id="profile-edit-company-logo-slot" class="profile-company-logo-slot">
+                    <img id="profile-company-logo-preview" class="profile-company-logo" alt="" hidden>
+                    <span id="profile-edit-company-logo-placeholder" class="profile-company-logo-placeholder" aria-hidden="true"></span>
+                  </div>
+                </div>
               </div>
 
-              <div class="profile-avatar-column profile-edit-header-avatar-column">
-                <div id="profile-edit-avatar" class="profile-avatar profile-edit-avatar">
-                  <img id="profile-edit-avatar-img" class="profile-avatar-img" alt="" hidden>
-                  <span id="profile-edit-avatar-initials" class="profile-avatar-initials">??</span>
+              <div class="profile-edit-media-toolbar">
+                <div class="profile-edit-media-row">
+                  <span class="profile-edit-media-row-label" data-i18n="profile.edit.photo">Profile Photo</span>
+                  <div class="profile-edit-media-row-body">
+                    <div id="profile-photo-upload" class="profile-edit-media-row-actions">
+                      <input id="profile-photo-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+                      <button id="profile-photo-choose-btn" type="button" class="btn primary profile-media-btn" data-i18n="profile.edit.choosePhotoShort">Choose photo</button>
+                      <button id="profile-photo-btn" type="button" class="btn ghost profile-media-btn" disabled data-i18n="profile.edit.uploadPhotoShort">Upload photo</button>
+                    </div>
+                    <p id="profile-photo-status" class="profile-save-status profile-edit-media-status"></p>
+                  </div>
                 </div>
-                <div id="profile-photo-upload" class="profile-photo-upload profile-photo-upload-compact">
-                  <input id="profile-photo-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
-                  <button id="profile-photo-choose-btn" type="button" class="btn primary profile-media-btn" data-i18n="profile.edit.choosePhotoShort">Choose photo</button>
-                  <button id="profile-photo-btn" type="button" class="btn ghost profile-media-btn" disabled data-i18n="profile.edit.uploadPhotoShort">Upload photo</button>
-                  <p id="profile-photo-status" class="profile-save-status"></p>
-                </div>
-              </div>
 
-              <div class="profile-headline profile-edit-header-headline">
-                <h3 id="profile-edit-preview-username">Commander</h3>
-                <p id="profile-edit-preview-mood" class="profile-mood-display">Ready to mine.</p>
-                <label for="profile-company-name-input" data-i18n="profile.edit.companyName">Company Name</label>
-                <input id="profile-company-name-input" class="profile-edit-company-name-field" type="text" maxlength="48" data-i18n-placeholder="company.namePlaceholder" placeholder="Orion Vein Works 472" autocomplete="off">
-                <div class="profile-company-actions profile-edit-header-actions">
-                  <button id="profile-company-save-btn" type="button" class="btn primary profile-media-btn" data-i18n="profile.edit.saveCompany">Save Company Name</button>
-                  <button id="profile-company-regenerate-btn" type="button" class="btn ghost profile-media-btn" data-i18n="profile.edit.regenerate">Regenerate</button>
+                <div class="profile-edit-media-row">
+                  <span class="profile-edit-media-row-label" data-i18n="profile.edit.banner">Profile Banner</span>
+                  <div class="profile-edit-media-row-body">
+                    <div class="profile-edit-media-row-actions">
+                      <input id="profile-background-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+                      <button id="profile-background-choose-btn" type="button" class="btn ghost profile-media-btn" data-i18n="profile.edit.chooseBanner">Choose banner</button>
+                      <button id="profile-background-upload-btn" type="button" class="btn ghost profile-media-btn" disabled data-i18n="profile.edit.uploadBanner">Upload banner</button>
+                      <button id="profile-background-remove-btn" type="button" class="btn ghost profile-media-btn" hidden data-i18n="profile.edit.removeBackground">Remove</button>
+                    </div>
+                    <p id="profile-background-status" class="profile-save-status profile-edit-media-status"></p>
+                  </div>
                 </div>
-                <p id="profile-company-status" class="profile-save-status profile-edit-header-status"></p>
-              </div>
 
-              <div class="profile-company-column profile-edit-header-company-column">
-                <div id="profile-edit-company-logo-slot" class="profile-company-logo-slot">
-                  <img id="profile-company-logo-preview" class="profile-company-logo" alt="" hidden>
-                  <span id="profile-edit-company-logo-placeholder" class="profile-company-logo-placeholder" aria-hidden="true"></span>
+                <div class="profile-edit-media-row">
+                  <span class="profile-edit-media-row-label" data-i18n="profile.edit.companyName">Company Name</span>
+                  <div class="profile-edit-media-row-body">
+                    <div class="profile-edit-media-row-actions profile-edit-company-row-actions">
+                      <input id="profile-company-name-input" class="profile-edit-company-name-field" type="text" maxlength="48" data-i18n-placeholder="company.namePlaceholder" placeholder="Orion Vein Works 472" autocomplete="off">
+                      <button id="profile-company-save-btn" type="button" class="btn primary profile-media-btn" data-i18n="profile.edit.saveCompany">Save Company Name</button>
+                      <button id="profile-company-regenerate-btn" type="button" class="btn ghost profile-media-btn" data-i18n="profile.edit.regenerate">Regenerate</button>
+                    </div>
+                    <p id="profile-company-status" class="profile-save-status profile-edit-media-status"></p>
+                  </div>
                 </div>
-                <div class="profile-edit-company-logo-controls profile-photo-upload-compact">
-                  <input id="profile-company-logo-input" type="file" accept="image/png" hidden>
-                  <button id="profile-company-logo-choose-btn" type="button" class="btn primary profile-media-btn" data-i18n="profile.edit.chooseLogoShort">Choose logo</button>
-                  <button id="profile-company-logo-upload-btn" type="button" class="btn ghost profile-media-btn" disabled data-i18n="profile.edit.uploadLogoShort">Upload logo</button>
-                  <button id="profile-company-logo-generate-btn" type="button" class="btn ghost profile-media-btn" hidden data-i18n="profile.edit.generateLogoShort">Generate AI logo</button>
-                  <p id="profile-company-logo-status" class="profile-save-status"></p>
+
+                <div class="profile-edit-media-row">
+                  <span class="profile-edit-media-row-label" data-i18n="profile.edit.companyLogo">Company logo</span>
+                  <div class="profile-edit-media-row-body">
+                    <div class="profile-edit-media-row-actions">
+                      <input id="profile-company-logo-input" type="file" accept="image/png" hidden>
+                      <button id="profile-company-logo-choose-btn" type="button" class="btn primary profile-media-btn" data-i18n="profile.edit.chooseLogoShort">Choose logo</button>
+                      <button id="profile-company-logo-upload-btn" type="button" class="btn ghost profile-media-btn" disabled data-i18n="profile.edit.uploadLogoShort">Upload logo</button>
+                      <button id="profile-company-logo-generate-btn" type="button" class="btn ghost profile-media-btn" hidden data-i18n="profile.edit.generateLogoShort">Generate AI logo</button>
+                    </div>
+                    <p id="profile-company-logo-status" class="profile-save-status profile-edit-media-status"></p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -717,6 +743,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260529-profile-edit-no-add-friend"></script>
+<script type="module" src="/js/app.js?v=20260529-profile-edit-media"></script>
 </body>
 </html>

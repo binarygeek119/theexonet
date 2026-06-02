@@ -1081,6 +1081,11 @@
   color: inherit;
 }
 
+.admin-onn-add-reporter {
+  margin-bottom: 1rem;
+  border: 1px solid var(--admin-border, #2a3348);
+}
+
 .admin-onn-reporters-list {
   display: grid;
   gap: 10px;

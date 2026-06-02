@@ -82,6 +82,20 @@ public record AdminUpdateOffworldNewsReporterRequest(
     string Specialties,
     string Gender);
 
+public record AdminCreateOffworldNewsReporterRequest(
+    string Slug,
+    string DisplayName,
+    string Title,
+    string Beat,
+    string Bureau,
+    string Personality,
+    string WritingVoice,
+    string DirectoryBio,
+    string OnnBio,
+    string StoryKicker,
+    string Specialties,
+    string Gender);
+
 public record AdminUpdateOffworldNewsSettingsRequest(int ReporterPoolSize);
 
 public record AdminOffworldNewsReporterPortraitJobDto(

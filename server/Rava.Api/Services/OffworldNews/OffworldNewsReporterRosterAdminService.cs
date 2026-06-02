@@ -35,6 +35,40 @@ public sealed class OffworldNewsReporterRosterAdminService(
             ReportersFilePath);
     }
 
+    public async Task<(AdminOffworldNewsReporterRowDto? Reporter, string? Error)> AddReporterAsync(
+        AdminCreateOffworldNewsReporterRequest request,
+        CancellationToken ct)
+    {
+        _ = ct;
+        var slug = NormalizeSlug(request.Slug);
+        if (slug.Length == 0)
+        {
+            return (null, "Slug is invalid.");
+        }
+
+        var displayName = request.DisplayName.Trim();
+        if (displayName.Length == 0)
+        {
+            return (null, "Display name is required.");
+        }
+
+        var reporters = OffworldNewsReportersCsvLoader.LoadFromFile(ReportersFilePath).ToList();
+        if (reporters.Any(r => r.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase)))
+        {
+            return (null, $"Slug '{slug}' is already used by another reporter.");
+        }
+
+        var created = BuildProfile(slug, request);
+        reporters.Add(created);
+        OffworldNewsReportersCsvLoader.SaveToFile(ReportersFilePath, reporters);
+        OffworldNewsReporterCatalog.Reload();
+
+        var poolSize = settingsStore.ReporterPoolSize;
+        var index = reporters.Count - 1;
+        var inPool = poolSize <= 0 || poolSize >= reporters.Count || index < poolSize;
+        return (ToAdminRow(created, inPool), null);
+    }
+
     public async Task<(AdminOffworldNewsReporterRowDto? Reporter, string? Error)> UpdateReporterAsync(
         string slug,
         AdminUpdateOffworldNewsReporterRequest request,
@@ -68,19 +102,19 @@ public sealed class OffworldNewsReporterRosterAdminService(
         }
 
         var oldSlug = reporters[index].Slug;
-        var updated = new OffworldNewsReporterProfile(
+        var updated = BuildProfile(
             newSlug,
             displayName,
-            request.Title.Trim(),
-            request.Beat.Trim(),
-            request.Bureau.Trim(),
-            request.Personality.Trim(),
-            request.WritingVoice.Trim(),
-            request.DirectoryBio.Trim(),
-            request.OnnBio.Trim(),
-            request.StoryKicker.Trim(),
-            ParseSpecialties(request.Specialties),
-            NormalizeGender(request.Gender, newSlug));
+            request.Title,
+            request.Beat,
+            request.Bureau,
+            request.Personality,
+            request.WritingVoice,
+            request.DirectoryBio,
+            request.OnnBio,
+            request.StoryKicker,
+            request.Specialties,
+            request.Gender);
 
         reporters[index] = updated;
         OffworldNewsReportersCsvLoader.SaveToFile(ReportersFilePath, reporters);
@@ -145,6 +179,67 @@ public sealed class OffworldNewsReporterRosterAdminService(
             OffworldNewsReporterPaths.ResolveAvatarUrl(reporter.Slug, assetRoots),
             OffworldNewsReporterPaths.ResolveBackgroundUrl(reporter.Slug, assetRoots));
     }
+
+    private static OffworldNewsReporterProfile BuildProfile(
+        string slug,
+        AdminCreateOffworldNewsReporterRequest request) =>
+        BuildProfile(
+            slug,
+            request.DisplayName,
+            request.Title,
+            request.Beat,
+            request.Bureau,
+            request.Personality,
+            request.WritingVoice,
+            request.DirectoryBio,
+            request.OnnBio,
+            request.StoryKicker,
+            request.Specialties,
+            request.Gender);
+
+    private static OffworldNewsReporterProfile BuildProfile(
+        string slug,
+        AdminUpdateOffworldNewsReporterRequest request) =>
+        BuildProfile(
+            slug,
+            request.DisplayName,
+            request.Title,
+            request.Beat,
+            request.Bureau,
+            request.Personality,
+            request.WritingVoice,
+            request.DirectoryBio,
+            request.OnnBio,
+            request.StoryKicker,
+            request.Specialties,
+            request.Gender);
+
+    private static OffworldNewsReporterProfile BuildProfile(
+        string slug,
+        string displayName,
+        string title,
+        string beat,
+        string bureau,
+        string personality,
+        string writingVoice,
+        string directoryBio,
+        string onnBio,
+        string storyKicker,
+        string specialties,
+        string gender) =>
+        new(
+            slug,
+            displayName.Trim(),
+            title.Trim(),
+            beat.Trim(),
+            bureau.Trim(),
+            personality.Trim(),
+            writingVoice.Trim(),
+            directoryBio.Trim(),
+            onnBio.Trim(),
+            storyKicker.Trim(),
+            ParseSpecialties(specialties),
+            NormalizeGender(gender, slug));
 
     private static IReadOnlyList<string> ParseSpecialties(string? specialties) =>
         string.IsNullOrWhiteSpace(specialties)

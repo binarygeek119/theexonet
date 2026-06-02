@@ -98,6 +98,20 @@ public class AdminController(
     public ActionResult<AdminOffworldNewsReportersPageDto> GetOffworldNewsReporters() =>
         Ok(offworldNewsReporterRoster.GetPage());
 
+    [HttpPost("offworld-news/reporters")]
+    public async Task<ActionResult<AdminOffworldNewsReporterRowDto>> CreateOffworldNewsReporter(
+        AdminCreateOffworldNewsReporterRequest request,
+        CancellationToken ct)
+    {
+        var (reporter, error) = await offworldNewsReporterRoster.AddReporterAsync(request, ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(reporter);
+    }
+
     [HttpPut("offworld-news/reporters/{slug}")]
     public async Task<ActionResult<AdminOffworldNewsReporterRowDto>> UpdateOffworldNewsReporter(
         string slug,

@@ -1022,8 +1022,38 @@ function onnReporterGenderField(id, gender) {
       <option value="female"${value === "female" ? " selected" : ""}>Female</option>
       <option value="male"${value === "male" ? " selected" : ""}>Male</option>
     </select>
-    <span class="admin-page-desc">Used when regenerating portrait and banner art.</span>
+    <span class="admin-page-desc">Portrait and banner AI use gender, beat, bureau, and personality from this profile.</span>
   </label>`;
+}
+
+function onnReporterAddFormHtml() {
+  const formId = "admin-onn-add-form";
+  return `<details class="admin-onn-reporter admin-onn-add-reporter" open>
+    <summary class="admin-onn-reporter-summary">
+      <span class="admin-onn-reporter-summary-text"><strong>Add reporter</strong></span>
+    </summary>
+    <form id="${formId}" class="admin-onn-reporter-form" data-slug="">
+      <div class="admin-onn-reporter-fields">
+        ${onnReporterField(`${formId}-slug`, "Slug (URL)", "", { slugInput: true, hint: "Lowercase letters, numbers, and hyphens only." })}
+        ${onnReporterField(`${formId}-name`, "Display name", "")}
+        ${onnReporterGenderField(`${formId}-gender`, "female")}
+        ${onnReporterField(`${formId}-title`, "Title", "")}
+        ${onnReporterField(`${formId}-beat`, "Beat", "")}
+        ${onnReporterField(`${formId}-bureau`, "Bureau", "")}
+        ${onnReporterField(`${formId}-personality`, "Personality", "", { textarea: true })}
+        ${onnReporterField(`${formId}-voice`, "Writing voice", "", { textarea: true })}
+        ${onnReporterField(`${formId}-directory-bio`, "Directory bio", "", { textarea: true })}
+        ${onnReporterField(`${formId}-onn-bio`, "ONN bio", "", { textarea: true })}
+        ${onnReporterField(`${formId}-kicker`, "Story kicker", "", { textarea: true })}
+        ${onnReporterField(`${formId}-specialties`, "Specialties", "", { hint: "Separate with semicolons (;)." })}
+        <div class="button-row admin-onn-reporter-actions">
+          <button type="submit" class="btn primary">Add reporter</button>
+          <button type="button" class="btn ghost admin-onn-add-generate-btn" data-onn-assets="both">Add &amp; generate AI portraits</button>
+        </div>
+        <p class="status-text admin-onn-reporter-form-status"></p>
+      </div>
+    </form>
+  </details>`;
 }
 
 function renderOnnReporters(page) {
@@ -1033,7 +1063,9 @@ function renderOnnReporters(page) {
   els.onnReportersPath.textContent = `Roster: ${reportersFilePath}. Story pool: ${pickJson(settings, "activePoolCount") ?? 0} of ${pickJson(settings, "totalReporters") ?? reporters.length} reporters.`;
   els.onnPoolSize.value = pickJson(settings, "reporterPoolSize") ?? 0;
 
-  els.onnReportersList.innerHTML = reporters
+  els.onnReportersList.innerHTML =
+    onnReporterAddFormHtml() +
+    reporters
     .map((reporter) => {
       const slug = String(pickJson(reporter, "slug") ?? "").trim();
       const displayName = pickJson(reporter, "displayName") ?? "";
@@ -1080,7 +1112,23 @@ function renderOnnReporters(page) {
     })
     .join("");
 
+  const addForm = document.getElementById("admin-onn-add-form");
+  addForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    addOnnReporter(addForm, { generatePortraits: false }).catch((error) =>
+      setStatus(addForm.querySelector(".admin-onn-reporter-form-status"), error.message, true),
+    );
+  });
+  addForm?.querySelector(".admin-onn-add-generate-btn")?.addEventListener("click", () => {
+    addOnnReporter(addForm, { generatePortraits: true }).catch((error) =>
+      setStatus(addForm.querySelector(".admin-onn-reporter-form-status"), error.message, true),
+    );
+  });
+
   els.onnReportersList.querySelectorAll(".admin-onn-reporter-form").forEach((form) => {
+    if (form.id === "admin-onn-add-form") {
+      return;
+    }
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       saveOnnReporter(form).catch((error) =>
@@ -1129,6 +1177,83 @@ function readOnnReporterForm(form) {
     storyKicker: document.getElementById(`${prefix}-kicker`)?.value.trim() ?? "",
     specialties: document.getElementById(`${prefix}-specialties`)?.value.trim() ?? "",
   };
+}
+
+function readOnnReporterCreateBody(form) {
+  const body = readOnnReporterForm(form);
+  return {
+    slug: readOnnSlugFromForm(form),
+    displayName: body.displayName,
+    gender: body.gender,
+    title: body.title,
+    beat: body.beat,
+    bureau: body.bureau,
+    personality: body.personality,
+    writingVoice: body.writingVoice,
+    directoryBio: body.directoryBio,
+    onnBio: body.onnBio,
+    storyKicker: body.storyKicker,
+    specialties: body.specialties,
+  };
+}
+
+async function persistOnnReporterProfileForAi(form) {
+  const routeSlug = String(form.dataset.slug ?? "").trim();
+  if (!routeSlug) {
+    throw new Error("Reporter slug is missing. Save the reporter first.");
+  }
+
+  await api.adminUpdateOffworldNewsReporter(routeSlug, readOnnReporterForm(form));
+  const savedSlug = readOnnSlugFromForm(form);
+  if (savedSlug !== routeSlug) {
+    form.dataset.slug = savedSlug;
+  }
+}
+
+async function addOnnReporter(form, { generatePortraits = false } = {}) {
+  const statusEl = form.querySelector(".admin-onn-reporter-form-status");
+  const body = readOnnReporterCreateBody(form);
+  if (!body.slug) {
+    setStatus(statusEl, "Slug is required.", true);
+    return;
+  }
+  if (!body.displayName) {
+    setStatus(statusEl, "Display name is required.", true);
+    return;
+  }
+
+  if (generatePortraits) {
+    const assetLabel = onnPortraitAssetConfirmLabel("both");
+    if (!window.confirm(`Add ${body.displayName} and generate AI ${assetLabel}? This uses OffworldNews.ApiKey.`)) {
+      return;
+    }
+  }
+
+  setStatus(statusEl, generatePortraits ? "Adding reporter…" : "Saving…");
+  form.querySelectorAll("button").forEach((button) => {
+    button.disabled = true;
+  });
+  try {
+    await api.adminCreateOffworldNewsReporter(body);
+    if (generatePortraits) {
+      setStatus(statusEl, "Generating AI portraits from profile…");
+      await api.adminRegenerateOneOffworldNewsReporterPortraits(body.slug, "both");
+      const job = await waitForReporterPortraitJob((message) => setStatus(statusEl, message));
+      const result = formatReporterPortraitJobStatus(job);
+      await loadOnnReporters();
+      setStatus(statusEl, `Reporter added. ${result.text}`, result.isError);
+      return;
+    }
+
+    await loadOnnReporters();
+    setStatus(statusEl, "Reporter added. Generate portraits when ready.");
+  } catch (error) {
+    setStatus(statusEl, error.message, true);
+  } finally {
+    form.querySelectorAll("button").forEach((button) => {
+      button.disabled = false;
+    });
+  }
 }
 
 async function loadOnnReporters() {
@@ -1223,11 +1348,14 @@ async function regenerateOnnReporterPortraits(form, assets = "both") {
     return;
   }
 
-  setStatus(statusEl, "Starting regeneration…");
+  setStatus(statusEl, "Saving profile for AI…");
   form.querySelectorAll("button").forEach((button) => {
     button.disabled = true;
   });
   try {
+    await persistOnnReporterProfileForAi(form);
+    const slug = readOnnSlugFromForm(form);
+    setStatus(statusEl, "Starting regeneration…");
     await api.adminRegenerateOneOffworldNewsReporterPortraits(slug, assets);
     const job = await waitForReporterPortraitJob((message) => setStatus(statusEl, message));
     const result = formatReporterPortraitJobStatus(job);

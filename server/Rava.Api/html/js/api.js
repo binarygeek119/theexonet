@@ -653,6 +653,13 @@ export class RavaApi {
     return this.request("/api/admin/offworld-news/reporters");
   }
 
+  adminCreateOffworldNewsReporter(body) {
+    return this.request("/api/admin/offworld-news/reporters", {
+      method: "POST",
+      body,
+    });
+  }
+
   adminUpdateOffworldNewsReporter(slug, body) {
     return this.request(`/api/admin/offworld-news/reporters/${encodeURIComponent(slug)}`, {
       method: "PUT",

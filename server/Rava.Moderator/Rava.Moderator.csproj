@@ -25,7 +25,7 @@
     <Content Include="..\Rava.Api\html\js\staff-messages.js" Link="wwwroot\js\staff-messages.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\staff-player-inbox.js" Link="wwwroot\js\staff-player-inbox.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\staff-player-messages.js" Link="wwwroot\js\staff-player-messages.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\Rava.Api\html\images\currency.svg" Link="wwwroot\images\currency.svg" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Rava.Api\html\images\currency.png" Link="wwwroot\images\currency.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

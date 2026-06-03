@@ -61,7 +61,7 @@ verify_portal_files() {
     "${PUBLISH_DIR}/wwwroot/moderator.html" \
     "${PUBLISH_DIR}/wwwroot/js/admin-testing-mode.js" \
     "${PUBLISH_DIR}/wwwroot/js/currency.js" \
-    "${PUBLISH_DIR}/wwwroot/images/currency.svg"; do
+    "${PUBLISH_DIR}/wwwroot/images/currency.png"; do
     if [ ! -f "$required" ]; then
       echo "ERROR: missing ${required} after portal deploy." >&2
       exit 1
@@ -78,7 +78,7 @@ restart_portals() {
     curl -sf http://127.0.0.1:7050/moderator.html >/dev/null && echo "Moderator portal: OK" || echo "Moderator portal: unreachable"
     curl -sf http://127.0.0.1:7000/js/currency.js >/dev/null && echo "Admin currency.js: OK" || echo "Admin currency.js: missing"
     curl -sf http://127.0.0.1:7000/js/admin-testing-mode.js >/dev/null && echo "Admin admin-testing-mode.js: OK" || echo "Admin admin-testing-mode.js: missing"
-    curl -sf http://127.0.0.1:7000/images/currency.svg >/dev/null && echo "Admin currency.svg: OK" || echo "Admin currency.svg: missing"
+    curl -sf http://127.0.0.1:7000/images/currency.png >/dev/null && echo "Admin currency.png: OK" || echo "Admin currency.png: missing"
   fi
 }
 
@@ -138,7 +138,7 @@ for required in \
   "${PUBLISH_DIR}/wwwroot/moderator.html" \
   "${PUBLISH_DIR}/wwwroot/js/admin-testing-mode.js" \
   "${PUBLISH_DIR}/wwwroot/js/currency.js" \
-  "${PUBLISH_DIR}/wwwroot/images/currency.svg"; do
+  "${PUBLISH_DIR}/wwwroot/images/currency.png"; do
   if [ ! -f "$required" ]; then
     echo "ERROR: missing ${required} after portal deploy." >&2
     exit 1

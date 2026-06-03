@@ -29,6 +29,7 @@ for script in \
   restart-rava.sh \
   diagnose-api.sh \
   diagnose-portals.sh \
+  diagnose-testing-friends.sh \
   install-systemd-units.sh \
   install-portal-units.sh \
   deploy-html.sh \
@@ -90,6 +91,7 @@ declare -A bin_links=(
   [restart-rava.sh]=restart-rava
   [diagnose-api.sh]=diagnose-rava-api
   [diagnose-portals.sh]=diagnose-rava-portals
+  [diagnose-testing-friends.sh]=diagnose-rava-testing-friends
   [install-systemd-units.sh]=install-rava-systemd
   [install-portal-units.sh]=install-rava-portals
   [install-bin-scripts.sh]=install-rava-scripts

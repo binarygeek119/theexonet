@@ -512,6 +512,12 @@ export class RavaApi {
     });
   }
 
+  ensureTestingDummyAssets() {
+    return this.request("/api/admin/testing-dummy-assets/ensure", {
+      method: "POST",
+    });
+  }
+
   adminDashboard() {
     return this.request("/api/admin/dashboard");
   }

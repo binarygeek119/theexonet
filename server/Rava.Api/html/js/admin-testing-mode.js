@@ -58,6 +58,30 @@ const MINE_SUFFIXES = ["Co.", "Corp", "Works", "Syndicate", "Excavation", "Holdi
 
 const THEMES = ["classic", "ember", "frost", "neon", "slate"];
 
+const TESTING_DUMMY_ASSETS_ROOT = "/exonet/testing-dummy-friends";
+
+/**
+ * @param {number} index
+ * @param {"avatar.jpg"|"background.jpg"|"logo.png"} filename
+ */
+export function dummyAssetUrl(index, filename) {
+  return `${TESTING_DUMMY_ASSETS_ROOT}/${String(index).padStart(2, "0")}/${filename}`;
+}
+
+/**
+ * @param {object} profile
+ * @param {number} index
+ */
+function applyDummyProfileAssets(profile, index) {
+  return {
+    ...profile,
+    profileImageUrl: dummyAssetUrl(index, "avatar.jpg"),
+    profileBackgroundUrl: dummyAssetUrl(index, "background.jpg"),
+    companyLogoUrl: dummyAssetUrl(index, "logo.png"),
+    hasCustomProfilePhoto: true,
+  };
+}
+
 /**
  * @param {string} seed
  */
@@ -243,7 +267,7 @@ export function buildDummyGameProfile(index, adminProfile) {
   const removed = loadRemovedDummyFriendships();
   const isFriend = !removed.has(friendshipId);
 
-  return {
+  return applyDummyProfileAssets({
     playerId: summary.id,
     username: summary.username,
     profileNumber: profileNum,
@@ -286,7 +310,7 @@ export function buildDummyGameProfile(index, adminProfile) {
     missingProfileFields: [],
     reportedLocationsNote: "",
     isTestingDummy: true,
-  };
+  }, index);
 }
 
 /**
@@ -453,12 +477,14 @@ export function getDummyPlayerProfile(playerId) {
   const day = 1 + pick(`${seed}-bday`, 28);
   const birthYear = 1988 + pick(`${seed}-byear`, 20);
 
-  return {
+  return applyDummyProfileAssets({
     id: summary.id,
     username: summary.username,
     email: summary.email,
     profileNumber: profileNum,
     profileImageUrl: "",
+    profileBackgroundUrl: "",
+    companyLogoUrl: "",
     mood: MOODS[pick(`${seed}-mood`, MOODS.length)],
     aboutMe: ABOUT_SNIPPETS[pick(`${seed}-about`, ABOUT_SNIPPETS.length)],
     music: MUSIC[pick(`${seed}-music`, MUSIC.length)],
@@ -487,7 +513,7 @@ export function getDummyPlayerProfile(playerId) {
     warningCount: 0,
     warningHistory: [],
     isTestingDummy: true,
-  };
+  }, index);
 }
 
 export function mergePlayersForDisplay(testingMode, search, realPlayers) {

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Rava.Api.Services;
 using Rava.Api.Services.OffworldNews;
+using Rava.Api.Services.TestingDummyFriends;
 using Rava.Core.Configuration;
 using Rava.Core.Constants;
 using Rava.Core.Dtos;
@@ -490,7 +491,9 @@ public class AdminController(
 [Route("api/admin")]
 public class AdminAccessController(
     IOptions<AdminOptions> adminOptions,
-    AdminService adminService) : ControllerBase
+    AdminService adminService,
+    RavaHostingPaths hostingPaths,
+    TestingDummyFriendsAssetService testingDummyFriendsAssetService) : ControllerBase
 {
     [Authorize]
     [HttpGet("access")]
@@ -520,6 +523,59 @@ public class AdminAccessController(
             return isAdmin ? BadRequest(new { message = error }) : Forbid();
         }
 
+        if (request.Enabled)
+        {
+            testingDummyFriendsAssetService.TryStartEnsureMissing();
+        }
+
         return Ok(result);
+    }
+
+    [Authorize]
+    [HttpPost("testing-dummy-assets/ensure")]
+    public async Task<ActionResult<TestingDummyAssetsEnsureResponse>> EnsureTestingDummyAssets(CancellationToken ct)
+    {
+        var username = User.GetUsername() ?? string.Empty;
+        var isAdmin = adminOptions.Value.IsAdminUsername(username);
+        if (!isAdmin)
+        {
+            return Forbid();
+        }
+
+        var access = await adminService.GetAdminAccessAsync(User.GetPlayerId(), username, true, ct);
+        if (!access.TestingModeEnabled)
+        {
+            return BadRequest(new { message = "Turn on testing mode in the admin portal first." });
+        }
+
+        var missing = TestingDummyFriendsAssetService.CountMissingAssets(hostingPaths.TestingDummyFriendsAssetsRoot);
+        if (missing == 0)
+        {
+            return Ok(new TestingDummyAssetsEnsureResponse(
+                false,
+                testingDummyFriendsAssetService.IsRunning,
+                0,
+                "All testing player profile assets are already present."));
+        }
+
+        if (testingDummyFriendsAssetService.IsRunning)
+        {
+            return Ok(new TestingDummyAssetsEnsureResponse(
+                false,
+                true,
+                missing,
+                "Testing player asset generation is already running."));
+        }
+
+        if (!testingDummyFriendsAssetService.TryStartEnsureMissing())
+        {
+            return BadRequest(new { message = "AI image generation is not configured on this server." });
+        }
+
+        return Ok(new TestingDummyAssetsEnsureResponse(
+            true,
+            false,
+            missing,
+            "Generating missing testing player avatars, banners, and company logos."));
     }
 }

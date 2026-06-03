@@ -17,6 +17,10 @@ public sealed class RavaHostingPaths
     public string OffworldNewsReportersAssetsRoot =>
         Path.Combine(OffworldNewsCacheRoot, "reporters");
 
+    /// <summary>AI-generated testing dummy miner profile assets.</summary>
+    public string TestingDummyFriendsAssetsRoot =>
+        Path.Combine(DataRoot, "exonet", "testing-dummy-friends");
+
     /// <summary>Primary data path plus legacy publish html folder for reporter JPEGs.</summary>
     public string[] ReporterAssetRoots() =>
     [

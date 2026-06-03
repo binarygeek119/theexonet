@@ -825,7 +825,7 @@ jobs:
           verify_file "Admin admin.html" "${DEPLOY_API_PATH}/wwwroot/admin.html"
           verify_file "Admin currency.js" "${DEPLOY_API_PATH}/wwwroot/js/currency.js"
           verify_file "Admin admin-testing-mode.js" "${DEPLOY_API_PATH}/wwwroot/js/admin-testing-mode.js"
-          verify_file "Admin currency.svg" "${DEPLOY_API_PATH}/wwwroot/images/currency.svg"
+          verify_file "Admin currency.png" "${DEPLOY_API_PATH}/wwwroot/images/currency.png"
           verify_file "Status index.html" "${DEPLOY_API_PATH}/status-wwwroot/index.html"
           verify_file "Status ai.html" "${DEPLOY_API_PATH}/status-wwwroot/ai.html"
           verify_file "Status favicon.svg" "${DEPLOY_API_PATH}/status-wwwroot/favicon.svg"

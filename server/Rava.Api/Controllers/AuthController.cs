@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Rava.Api.Services;
+using Rava.Api.Services.TestingDummyFriends;
 using Rava.Core.Configuration;
 using Rava.Core.Dtos;
 using Rava.Core.Interfaces;
@@ -26,6 +27,7 @@ public class AuthController(
     IOptions<EmailOptions> emailOptions,
     IOptions<AdminPortalOptions> adminPortalOptions,
     IOptions<AdminOptions> adminOptions,
+    TestingDummyFriendsAssetService testingDummyFriendsAssetService,
     ILogger<AuthController> logger) : ControllerBase
 {
     [AllowAnonymous]
@@ -67,6 +69,11 @@ public class AuthController(
         var token = tokenService.GenerateToken(player.Id, player.Username);
         var announcements = await specialEventService.GetLoginAnnouncementsAsync(player.Id, ct);
         var (isStaffAdmin, testingModeEnabled) = await GetTestingFlagsAsync(player.Id, player.Username, ct);
+        if (testingModeEnabled)
+        {
+            testingDummyFriendsAssetService.TryStartEnsureMissing();
+        }
+
         return Ok(new AuthResponse(
             token,
             player.Id,

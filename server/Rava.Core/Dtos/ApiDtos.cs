@@ -484,6 +484,12 @@ public record AdminTestingModeRequest(bool Enabled);
 
 public record AdminTestingModeResponse(bool Enabled);
 
+public record TestingDummyAssetsEnsureResponse(
+    bool Started,
+    bool AlreadyRunning,
+    int MissingAssets,
+    string Message);
+
 public record ModeratorMeResponse(string Username, bool IsModerator, bool IsAdmin);
 
 public record AdminDashboardResponse(

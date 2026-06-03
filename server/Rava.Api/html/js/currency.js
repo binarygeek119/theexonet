@@ -1,6 +1,6 @@
-/** Player-facing currency: Rax (icon from /images/currency.svg). */
+/** Player-facing currency: Rax (icon from /images/currency.png). */
 export const RAX_NAME = "Rax";
-export const RAX_ICON_URL = "/images/currency.svg";
+export const RAX_ICON_URL = "/images/currency.png";
 
 export function formatRaxNumber(value, { decimals = 0 } = {}) {
   const n = Number(value);

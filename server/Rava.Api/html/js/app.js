@@ -21,7 +21,7 @@ import {
   resolveDummyGameProfile,
   saveRemovedDummyFriendship,
   setCachedTestingModeEnabled,
-} from "./admin-testing-mode.js?v=20260529-testing-friends-server-2";
+} from "./admin-testing-mode.js?v=20260529-testing-dummy-assets";
 
 const api = new RavaApi(API_BASE_URL);
 
@@ -2134,6 +2134,26 @@ function isTestingFriendsActive() {
   return Boolean(state.testingModeEnabled && state.isStaffAdmin);
 }
 
+let testingDummyAssetsEnsureRequested = false;
+
+async function ensureTestingDummyAssetsIfNeeded() {
+  if (!isTestingFriendsActive()) {
+    testingDummyAssetsEnsureRequested = false;
+    return;
+  }
+
+  if (testingDummyAssetsEnsureRequested) {
+    return;
+  }
+
+  testingDummyAssetsEnsureRequested = true;
+  try {
+    await api.ensureTestingDummyAssets();
+  } catch {
+    testingDummyAssetsEnsureRequested = false;
+  }
+}
+
 function applyTestingFlagsFromAuth(payload) {
   if (payload?.isStaffAdmin !== undefined) {
     state.isStaffAdmin = Boolean(payload.isStaffAdmin);
@@ -2579,6 +2599,7 @@ async function refreshAll() {
   }
   await playerMessaging.refreshUnreadBadge();
   await refreshStaffAdminFlag();
+  await ensureTestingDummyAssetsIfNeeded();
 
   try {
     const rawProfile = await api.getProfile();

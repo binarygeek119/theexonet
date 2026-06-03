@@ -44,13 +44,13 @@ for rel in \
   js/staff-messages.js \
   js/staff-player-inbox.js \
   js/staff-player-messages.js \
-  images/currency.svg; do
+  images/currency.png; do
   copy_file "$rel"
 done
 
 for required in \
   "${WWWROOT_DIR}/js/currency.js" \
-  "${WWWROOT_DIR}/images/currency.svg" \
+  "${WWWROOT_DIR}/images/currency.png" \
   "${WWWROOT_DIR}/admin.html"; do
   if [ ! -f "$required" ]; then
     echo "ERROR: ${required} missing after portal wwwroot sync." >&2

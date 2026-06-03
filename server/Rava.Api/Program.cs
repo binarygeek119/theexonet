@@ -12,6 +12,7 @@ using Rava.Api.Services.Market;
 using Rava.Api.Services.CompanyLogo;
 using Rava.Api.Services.OpenAi;
 using Rava.Api.Services.OffworldNews;
+using Rava.Api.Services.TestingDummyFriends;
 using Rava.Core.Configuration;
 using Rava.Core.Constants;
 using Rava.Core.Interfaces;
@@ -178,6 +179,8 @@ builder.Services.AddHttpClient(OpenAiOffworldNewsGenerator.HttpClientName, clien
     .AddHttpMessageHandler<OpenAiUsageLoggingHandler>();
 builder.Services.AddSingleton<OffworldNewsService>();
 builder.Services.AddSingleton<OffworldNewsReporterPortraitJobService>();
+builder.Services.AddSingleton<TestingDummyFriendsAssetGenerator>();
+builder.Services.AddSingleton<TestingDummyFriendsAssetService>();
 builder.Services.AddSingleton<OffworldNewsAdminSettingsStore>();
 builder.Services.AddScoped<OffworldNewsReporterRosterAdminService>();
 builder.Services.AddHostedService<OffworldNewsSchedulerService>();
@@ -457,6 +460,14 @@ app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new CompositeFileProvider(reporterFileProviders),
     RequestPath = OffworldNewsReporterPaths.PublicReportersPath,
+});
+
+var testingDummyFriendsAssetsRoot = resolvedHostingPaths.TestingDummyFriendsAssetsRoot;
+Directory.CreateDirectory(testingDummyFriendsAssetsRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(testingDummyFriendsAssetsRoot),
+    RequestPath = TestingDummyFriendsPaths.PublicRootPath,
 });
 
 var profileDefaultsRoot = Path.Combine(webRootPath, "images", "profile-defaults");

@@ -11,6 +11,21 @@ require() {
   fi
 }
 
+require_png() {
+  local path="$1"
+  require "$path"
+  if [ "$(wc -c < "$path" | tr -d ' ')" -lt 256 ]; then
+    echo "ERROR: ${path} is too small (likely a Git LFS pointer)." >&2
+    exit 1
+  fi
+  local magic
+  magic="$(head -c 8 "$path" | od -An -tx1 | tr -d ' \n')"
+  if [ "$magic" != "89504e470d0a1a0a" ]; then
+    echo "ERROR: ${path} is not a valid PNG file." >&2
+    exit 1
+  fi
+}
+
 echo "Publishing RAVA web bundle..."
 
 dotnet publish Rava.Status/Rava.Status.csproj --configuration Release --output ./publish-status
@@ -54,6 +69,8 @@ require publish/status-wwwroot/favicon.svg
 require publish/html/images/profile-defaults/female.svg
 require publish/html/images/profile-defaults/male.svg
 require publish/html/images/profile-defaults/neutral.svg
+require_png publish/html/images/currency.png
+require_png publish/wwwroot/images/currency.png
 
 mkdir -p data
 cp -f Rava.Api/*.csv data/

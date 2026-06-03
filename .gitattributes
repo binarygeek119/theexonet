@@ -167,6 +167,10 @@ Packages/packages-lock.json linguist-generated
 *.reason                lfs
 *.rns                   lfs
 
+# Small UI icons — store in Git (not LFS) so web deploy never ships LFS pointer files.
+server/Rava.Api/html/images/currency.png !filter !diff !merge
+Assets/Resources/currency.png !filter !diff !merge
+
 # Spine export file for Unity
 *.skel.bytes            lfs
 

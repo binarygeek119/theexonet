@@ -87,16 +87,38 @@ input:focus {
 
 select {
   width: 100%;
-  padding: 12px 14px;
+  padding: 12px 40px 12px 14px;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: #252b3a;
+  background-color: #252b3a;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 5l4 4 4-4' stroke='%239aa6bf' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px;
   color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  color-scheme: dark;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+select:hover {
+  border-color: #3a4660;
 }
 
 select:focus {
-  outline: 2px solid rgba(51, 115, 179, 0.5);
+  outline: none;
   border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(51, 115, 179, 0.35);
+}
+
+select option,
+select optgroup {
+  background-color: var(--panel);
+  color: var(--text);
 }
 
 .birthday-selects {
@@ -778,9 +800,18 @@ body:not(.is-authenticated) .modal {
   margin-top: 16px;
 }
 
-.player-messages-panel .player-message-actions {
+#player-peer-panel > .player-message-actions {
+  margin-top: 28px;
+  margin-bottom: 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+#player-staff-panel > .player-message-actions {
   margin-top: 0;
   margin-bottom: 16px;
+  padding-top: 0;
+  border-top: none;
 }
 
 .player-staff-intro {
@@ -827,8 +858,18 @@ body:not(.is-authenticated) .modal {
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.2);
   color: inherit;
+}
+
+.player-message-compose select {
+  padding-right: 40px;
+  background-color: #252b3a;
+  color-scheme: dark;
+}
+
+.player-message-compose select option {
+  background-color: var(--panel);
+  color: var(--text);
 }
 
 .player-message-compose textarea {
@@ -910,9 +951,15 @@ body:not(.is-authenticated) .modal {
 .locale-select {
   width: 100%;
   max-width: 14rem;
-  padding: 6px 8px;
+  padding: 6px 32px 6px 8px;
   border-radius: 6px;
   border: 1px solid var(--border);
-  background: var(--panel-2);
+  background-color: var(--panel-2);
+  color: var(--text);
+  color-scheme: dark;
+}
+
+.locale-select option {
+  background-color: var(--panel);
   color: var(--text);
 }

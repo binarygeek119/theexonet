@@ -7,9 +7,9 @@ import {
   setRaxHtml,
   RAX_NAME,
 } from "./currency.js";
-import { initPlayerMessaging } from "./player-messages.js?v=20260529-testing-friends-refresh";
+import { initPlayerMessaging } from "./player-messages.js?v=20260529-testing-friends-server";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
-import { initExonet } from "./exonet.js?v=20260529-testing-friends-refresh";
+import { initExonet } from "./exonet.js?v=20260529-testing-friends-server";
 import { initI18n, applyTranslations, wireLocaleSelectors, wireLocaleSelector, getLocale, setLocale, t } from "./i18n.js";
 import {
   augmentOwnerProfileForTesting,
@@ -18,7 +18,7 @@ import {
   resolveDummyGameProfile,
   saveRemovedDummyFriendship,
   setCachedTestingModeEnabled,
-} from "./admin-testing-mode.js?v=20260529-testing-friends-refresh";
+} from "./admin-testing-mode.js?v=20260529-testing-friends-server";
 
 const api = new RavaApi(API_BASE_URL);
 
@@ -2113,20 +2113,42 @@ function isTestingFriendsActive() {
   return Boolean(state.testingModeEnabled && state.isStaffAdmin);
 }
 
-async function refreshStaffAdminFlag() {
-  const wasTestingFriendsActive = isTestingFriendsActive();
+function applyOwnerTestingFlags(profile) {
+  if (!profile?.isOwner) {
+    return;
+  }
+
+  state.isStaffAdmin = Boolean(profile.isStaffAdmin);
+  state.testingModeEnabled = Boolean(profile.testingModeEnabled);
+  setCachedTestingModeEnabled(state.testingModeEnabled);
+}
+
+async function syncTestingFlagsFromServer() {
   try {
     const access = await api.adminAccess();
     state.isStaffAdmin = Boolean(access?.isAdmin);
     state.testingModeEnabled = Boolean(access?.testingModeEnabled);
     setCachedTestingModeEnabled(state.testingModeEnabled);
+    return;
   } catch (error) {
     if (error?.status === 401 || error?.status === 403) {
       state.isStaffAdmin = false;
       state.testingModeEnabled = false;
       setCachedTestingModeEnabled(false);
+      return;
     }
   }
+
+  try {
+    applyOwnerTestingFlags(await api.getProfile());
+  } catch {
+    /* keep existing flags on transient failures */
+  }
+}
+
+async function refreshStaffAdminFlag() {
+  const wasTestingFriendsActive = isTestingFriendsActive();
+  await syncTestingFlagsFromServer();
 
   if (wasTestingFriendsActive !== isTestingFriendsActive()) {
     if (!els.friendsModal?.hidden) {
@@ -2513,8 +2535,10 @@ async function refreshAll() {
   await refreshStaffAdminFlag();
 
   try {
+    const rawProfile = await api.getProfile();
+    applyOwnerTestingFlags(rawProfile);
     const profile = augmentOwnerProfileForTesting(
-      await api.getProfile(),
+      rawProfile,
       state.testingModeEnabled,
       state.isStaffAdmin,
     );

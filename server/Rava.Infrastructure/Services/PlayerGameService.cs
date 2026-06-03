@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Rava.Core.Configuration;
 using Rava.Core.Constants;
 using Rava.Core.Dtos;
@@ -34,10 +35,12 @@ public class PlayerGameService(
     SpecialEventService specialEventService,
     IGameCreditsConfig gameCreditsConfig,
     ReporterFriendshipService reporterFriendshipService,
-    RavaHostingPaths hostingPaths)
+    RavaHostingPaths hostingPaths,
+    IOptionsMonitor<AdminOptions> adminOptions)
 {
     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> DayProcessLocks = new();
     private IGameCreditsConfig Credits => gameCreditsConfig;
+    private AdminOptions AdminOptions => adminOptions.CurrentValue;
 
     public const string PasswordResetSentMessage =
         "If an account exists for that email, a password reset link has been sent.";
@@ -935,6 +938,16 @@ public class PlayerGameService(
             .OrderBy(f => f.Username, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        var viewer = await db.Players.AsNoTracking()
+            .Where(p => p.Id == playerId)
+            .Select(p => new { p.Username, p.AdminTestingModeEnabled })
+            .FirstOrDefaultAsync(ct);
+
+        if (viewer is not null && ShouldMergeTestingDummyFriends(viewer.Username, viewer.AdminTestingModeEnabled))
+        {
+            mergedFriends = TestingDummyFriends.MergeFriendSummaries(mergedFriends).ToList();
+        }
+
         return new FriendsListResponse(
             mergedFriends,
             incoming.OrderBy(f => f.Username, StringComparer.OrdinalIgnoreCase).ToList(),
@@ -1069,6 +1082,11 @@ public class PlayerGameService(
         }
 
         var friends = await GetProfileFriendsAsync(player.Id, ct);
+        if (isOwner && ShouldMergeTestingDummyFriends(player.Username, player.AdminTestingModeEnabled))
+        {
+            friends = TestingDummyFriends.MergeProfileFriends(friends);
+        }
+
         Guid? mineId = null;
         bool companyNameListed = false;
         Guid? companyNameListingId = null;
@@ -1151,8 +1169,13 @@ public class PlayerGameService(
             ProfileBirthdayPublic: isOwner && player.ProfileBirthdayPublic,
             ProfileAgePublic: isOwner && player.ProfileAgePublic,
             PublicBirthday: publicBirthday,
-            PublicAge: publicAge);
+            PublicAge: publicAge,
+            IsStaffAdmin: isOwner && AdminOptions.IsAdminUsername(player.Username),
+            TestingModeEnabled: isOwner && player.AdminTestingModeEnabled);
     }
+
+    private bool ShouldMergeTestingDummyFriends(string username, bool adminTestingModeEnabled) =>
+        adminTestingModeEnabled && AdminOptions.IsAdminUsername(username);
 
     private static ProfilePronounSet MapPronouns(PlayerEntity player) =>
         ProfilePronouns.Resolve(player.ProfileGender, player.ProfilePreferredPronouns);

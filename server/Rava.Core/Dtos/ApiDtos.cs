@@ -328,7 +328,9 @@ public record PlayerProfileResponse(
     bool ProfileBirthdayPublic = false,
     bool ProfileAgePublic = false,
     string? PublicBirthday = null,
-    int? PublicAge = null);
+    int? PublicAge = null,
+    bool IsStaffAdmin = false,
+    bool TestingModeEnabled = false);
 
 public record ProfileCompletionFieldDto(string FieldId);
 
@@ -431,7 +433,8 @@ public record ProfileFriendDto(
     string Mood,
     string PublicStatus,
     bool IsReporter = false,
-    string ReporterSlug = "");
+    string ReporterSlug = "",
+    bool IsTestingDummy = false);
 
 public record UpdatePlayerProfileRequest(
     string Mood,
@@ -459,7 +462,8 @@ public record FriendSummaryDto(
     string Status,
     DateTime Since,
     bool IsReporter = false,
-    string ReporterSlug = "");
+    string ReporterSlug = "",
+    bool IsTestingDummy = false);
 
 public record FriendsListResponse(
     IReadOnlyList<FriendSummaryDto> Friends,

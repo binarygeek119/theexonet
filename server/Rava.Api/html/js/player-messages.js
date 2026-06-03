@@ -94,36 +94,32 @@ export function initPlayerMessaging({ api, els, setStatus }) {
     );
   }
 
+  function getInboxEl() {
+    return messageViewMode === "staff" ? els.staffMessagesInbox : els.messagesInbox;
+  }
+
+  function getDetailEl() {
+    return messageViewMode === "staff" ? els.staffMessagesDetail : els.messagesDetail;
+  }
+
   function showPeerMode() {
     messageViewMode = "peer";
-    if (els.peerCompose) {
-      els.peerCompose.hidden = false;
+    if (els.peerPanel) {
+      els.peerPanel.hidden = false;
     }
-    if (els.staffCompose) {
-      els.staffCompose.hidden = true;
-    }
-    if (els.staffToggleBtn) {
-      els.staffToggleBtn.hidden = false;
-    }
-    if (els.peerToggleBtn) {
-      els.peerToggleBtn.hidden = true;
+    if (els.staffPanel) {
+      els.staffPanel.hidden = true;
     }
     selectFirstVisibleMessage();
   }
 
   function showStaffMode() {
     messageViewMode = "staff";
-    if (els.peerCompose) {
-      els.peerCompose.hidden = true;
+    if (els.peerPanel) {
+      els.peerPanel.hidden = true;
     }
-    if (els.staffCompose) {
-      els.staffCompose.hidden = false;
-    }
-    if (els.staffToggleBtn) {
-      els.staffToggleBtn.hidden = true;
-    }
-    if (els.peerToggleBtn) {
-      els.peerToggleBtn.hidden = false;
+    if (els.staffPanel) {
+      els.staffPanel.hidden = false;
     }
     selectFirstVisibleMessage();
     els.staffRecipient?.focus();
@@ -176,16 +172,22 @@ export function initPlayerMessaging({ api, els, setStatus }) {
   }
 
   function renderInbox() {
+    const inboxEl = getInboxEl();
+    const detailEl = getDetailEl();
+    if (!inboxEl || !detailEl) {
+      return;
+    }
+
     const visible = getVisibleMessages();
     if (!visible.length) {
       const emptyLabel =
         messageViewMode === "staff" ? "No staff messages yet." : "No friend messages yet.";
-      els.messagesInbox.innerHTML = `<p class="friends-status">${emptyLabel}</p>`;
-      els.messagesDetail.innerHTML = `<p class="friends-status">Select a message to read it.</p>`;
+      inboxEl.innerHTML = `<p class="friends-status">${emptyLabel}</p>`;
+      detailEl.innerHTML = `<p class="friends-status">Select a message to read it.</p>`;
       return;
     }
 
-    els.messagesInbox.innerHTML = visible
+    inboxEl.innerHTML = visible
       .map((message) => {
         const key = getMessageKey(message);
         const active = key === `${selectedMessageKind}:${selectedMessageId}`;
@@ -205,8 +207,13 @@ export function initPlayerMessaging({ api, els, setStatus }) {
   }
 
   function renderDetail(message) {
+    const detailEl = getDetailEl();
+    if (!detailEl) {
+      return;
+    }
+
     if (!message) {
-      els.messagesDetail.innerHTML = `<p class="friends-status">Select a message to read it.</p>`;
+      detailEl.innerHTML = `<p class="friends-status">Select a message to read it.</p>`;
       return;
     }
 
@@ -229,7 +236,7 @@ export function initPlayerMessaging({ api, els, setStatus }) {
       heading = `From ${message.fromUsername}`;
     }
 
-    els.messagesDetail.innerHTML = `
+    detailEl.innerHTML = `
       <header class="staff-message-detail-top">
         <h3>${escapeHtml(heading)}</h3>
         <p class="staff-message-detail-meta">${escapeHtml(meta)}</p>
@@ -319,7 +326,7 @@ export function initPlayerMessaging({ api, els, setStatus }) {
         els.messageRecipient.value = composePlayerId;
       }
       renderInbox();
-      els.messagesDetail.innerHTML =
+      getDetailEl().innerHTML =
         `<p class="friends-status">Test profile — messages are not saved. This conversation is for UI testing only.</p>`;
       updateStatusCount();
       return;
@@ -478,7 +485,10 @@ export function initPlayerMessaging({ api, els, setStatus }) {
 
   showPeerMode();
 
-  els.messagesInbox.addEventListener("click", (event) => {
+  els.messagesInbox?.addEventListener("click", handleInboxClick);
+  els.staffMessagesInbox?.addEventListener("click", handleInboxClick);
+
+  function handleInboxClick(event) {
     const button = event.target.closest(".staff-message-item");
     if (!button) {
       return;
@@ -491,7 +501,7 @@ export function initPlayerMessaging({ api, els, setStatus }) {
         setStatus(els.messagesStatus, error.message, true)
       );
     }
-  });
+  }
 
-  return { loadMessages, refreshUnreadBadge, openToPlayer };
+  return { loadMessages, refreshUnreadBadge, openToPlayer, showPeerMode };
 }

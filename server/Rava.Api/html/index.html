@@ -630,45 +630,54 @@
         <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
       <p id="messages-status" class="friends-status"></p>
-      <div class="player-message-actions">
-        <button id="player-staff-toggle-btn" type="button" class="btn ghost" data-i18n="messages.staffToggle">Message staff</button>
-        <button id="player-peer-toggle-btn" type="button" class="btn ghost" hidden data-i18n="messages.peerToggle">Back to friends</button>
-      </div>
-      <section id="player-staff-compose" class="player-message-compose" hidden>
-        <div class="player-message-compose-head">
-          <h3 data-i18n="messages.staffHeading">Message staff</h3>
+      <div id="player-peer-panel" class="player-messages-panel">
+        <section id="player-peer-compose" class="player-message-compose">
+          <h3 data-i18n="messages.peerHeading">Send to friend</h3>
+          <label for="player-message-recipient" data-i18n="messages.peerTo">To</label>
+          <select id="player-message-recipient">
+            <option value="" data-i18n="messages.peerSelect">Select friend…</option>
+          </select>
+          <label for="player-message-body" data-i18n="messages.body">Message</label>
+          <textarea
+            id="player-message-body"
+            maxlength="4000"
+            rows="3"
+            data-i18n-placeholder="messages.peerPlaceholder"
+            placeholder="Write a message to a friend..."></textarea>
+          <button id="player-message-send-btn" type="button" class="btn primary" data-i18n="messages.send">Send</button>
+        </section>
+        <div class="staff-message-layout">
+          <div id="player-messages-inbox" class="staff-message-inbox"></div>
+          <div id="player-messages-detail" class="staff-message-detail"></div>
         </div>
-        <label for="player-staff-recipient" data-i18n="messages.staffTo">To</label>
-        <select id="player-staff-recipient">
-          <option value="" data-i18n="messages.staffSelect">Select staff member…</option>
-        </select>
-        <label for="player-staff-body" data-i18n="messages.body">Message</label>
-        <textarea
-          id="player-staff-body"
-          maxlength="4000"
-          rows="3"
-          data-i18n-placeholder="messages.staffPlaceholder"
-          placeholder="Write a message to an admin or moderator…"></textarea>
-        <button id="player-staff-send-btn" type="button" class="btn accent" data-i18n="messages.staffSend">Send to staff</button>
-      </section>
-      <section id="player-peer-compose" class="player-message-compose">
-        <h3 data-i18n="messages.peerHeading">Send to friend</h3>
-        <label for="player-message-recipient" data-i18n="messages.peerTo">To</label>
-        <select id="player-message-recipient">
-          <option value="" data-i18n="messages.peerSelect">Select friend…</option>
-        </select>
-        <label for="player-message-body" data-i18n="messages.body">Message</label>
-        <textarea
-          id="player-message-body"
-          maxlength="4000"
-          rows="3"
-          data-i18n-placeholder="messages.peerPlaceholder"
-          placeholder="Write a message to a friend..."></textarea>
-        <button id="player-message-send-btn" type="button" class="btn primary" data-i18n="messages.send">Send</button>
-      </section>
-      <div class="staff-message-layout">
-        <div id="player-messages-inbox" class="staff-message-inbox"></div>
-        <div id="player-messages-detail" class="staff-message-detail"></div>
+        <div class="player-message-actions">
+          <button id="player-staff-toggle-btn" type="button" class="btn ghost" data-i18n="messages.staffToggle">Message staff</button>
+        </div>
+      </div>
+      <div id="player-staff-panel" class="player-messages-panel" hidden>
+        <div class="player-message-actions">
+          <button id="player-peer-toggle-btn" type="button" class="btn ghost" data-i18n="messages.peerToggle">Back to friends</button>
+        </div>
+        <p class="player-staff-intro" data-i18n="messages.staffIntro">For issues, reports, and appeals to moderators or admins—not for chatting with friends.</p>
+        <section id="player-staff-compose" class="player-message-compose">
+          <h3 data-i18n="messages.staffHeading">Report to staff</h3>
+          <label for="player-staff-recipient" data-i18n="messages.staffTo">To</label>
+          <select id="player-staff-recipient">
+            <option value="" data-i18n="messages.staffSelect">Select staff member…</option>
+          </select>
+          <label for="player-staff-body" data-i18n="messages.body">Message</label>
+          <textarea
+            id="player-staff-body"
+            maxlength="4000"
+            rows="3"
+            data-i18n-placeholder="messages.staffPlaceholder"
+            placeholder="Describe the issue or report…"></textarea>
+          <button id="player-staff-send-btn" type="button" class="btn accent" data-i18n="messages.staffSend">Send to staff</button>
+        </section>
+        <div class="staff-message-layout">
+          <div id="player-staff-messages-inbox" class="staff-message-inbox"></div>
+          <div id="player-staff-messages-detail" class="staff-message-detail"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -743,6 +752,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260529-testing-friends-server-2"></script>
+<script type="module" src="/js/app.js?v=20260529-messages-staff-panel"></script>
 </body>
 </html>

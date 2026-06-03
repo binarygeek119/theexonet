@@ -775,7 +775,23 @@ body:not(.is-authenticated) .modal {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 16px;
+}
+
+.player-messages-panel .player-message-actions {
+  margin-top: 0;
   margin-bottom: 16px;
+}
+
+.player-staff-intro {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.player-messages-panel .staff-message-layout {
+  margin-top: 0;
 }
 
 .player-message-compose-head {

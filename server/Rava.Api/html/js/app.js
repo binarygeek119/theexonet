@@ -7,7 +7,7 @@ import {
   setRaxHtml,
   RAX_NAME,
 } from "./currency.js";
-import { initPlayerMessaging } from "./player-messages.js?v=20260529-testing-friends-server-2";
+import { initPlayerMessaging } from "./player-messages.js?v=20260529-messages-staff-panel";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
 import { initExonet } from "./exonet.js?v=20260529-testing-friends-server-2";
 import { initI18n, applyTranslations, wireLocaleSelectors, wireLocaleSelector, getLocale, setLocale, t } from "./i18n.js";
@@ -166,6 +166,8 @@ const playerMessaging = initPlayerMessaging({
     messagesStatus: document.getElementById("messages-status"),
     messagesInbox: document.getElementById("player-messages-inbox"),
     messagesDetail: document.getElementById("player-messages-detail"),
+    staffMessagesInbox: document.getElementById("player-staff-messages-inbox"),
+    staffMessagesDetail: document.getElementById("player-staff-messages-detail"),
     messagesNavBadge: document.getElementById("messages-nav-badge"),
     messageRecipient: document.getElementById("player-message-recipient"),
     messageBody: document.getElementById("player-message-body"),
@@ -173,8 +175,8 @@ const playerMessaging = initPlayerMessaging({
     staffRecipient: document.getElementById("player-staff-recipient"),
     staffBody: document.getElementById("player-staff-body"),
     staffSendBtn: document.getElementById("player-staff-send-btn"),
-    peerCompose: document.getElementById("player-peer-compose"),
-    staffCompose: document.getElementById("player-staff-compose"),
+    peerPanel: document.getElementById("player-peer-panel"),
+    staffPanel: document.getElementById("player-staff-panel"),
     staffToggleBtn: document.getElementById("player-staff-toggle-btn"),
     peerToggleBtn: document.getElementById("player-peer-toggle-btn"),
   },

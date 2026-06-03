@@ -808,10 +808,14 @@ body:not(.is-authenticated) .modal {
 }
 
 #player-staff-panel > .player-message-actions {
-  margin-top: 0;
+  margin-top: 12px;
   margin-bottom: 16px;
   padding-top: 0;
   border-top: none;
+}
+
+#messages-modal #messages-status {
+  margin: 0 0 4px;
 }
 
 .player-staff-intro {
@@ -939,13 +943,6 @@ body:not(.is-authenticated) .modal {
 
 .login-card .locale-select-label {
   margin-bottom: 14px;
-}
-
-.game-locale-label {
-  width: 100%;
-  margin-bottom: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
 }
 
 .locale-select {

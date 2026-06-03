@@ -101,6 +101,19 @@
           </label>
           <p id="admin-testing-mode-hint" class="admin-page-desc" hidden>Testing players are marked <span class="admin-testing-badge">TEST</span> in lists and appear as accepted friends in-game while you are logged in as admin.</p>
           <p id="admin-testing-status" class="status-text"></p>
+          <div id="admin-testing-actions" class="admin-testing-actions" hidden>
+            <h3 class="admin-subheading">Test actions</h3>
+            <p class="admin-page-desc">Run real moderation and messaging flows as a selected testing player. Records are saved to the database and appear on Messages, Flagged messages, and Ban appeals.</p>
+            <label for="admin-testing-dummy-select">Testing player</label>
+            <select id="admin-testing-dummy-select" class="admin-testing-dummy-select"></select>
+            <div class="button-row admin-testing-action-buttons">
+              <button id="admin-testing-staff-message-btn" type="button" class="btn primary">Send test message to staff</button>
+              <button id="admin-testing-peer-message-btn" type="button" class="btn ghost">Send test message to you</button>
+              <button id="admin-testing-flagged-message-btn" type="button" class="btn ghost">Flag player message</button>
+              <button id="admin-testing-ban-appeal-btn" type="button" class="btn ghost">Ask for ban appeal</button>
+            </div>
+            <p id="admin-testing-actions-status" class="status-text"></p>
+          </div>
           <div id="admin-testing-dummy-list" class="admin-testing-dummy-list"></div>
         </section>
       </section>
@@ -543,6 +556,6 @@
     </div>
   </div>
 
-  <script type="module" src="/js/admin.js?v=20260529-testing-mode-server-2"></script>
+  <script type="module" src="/js/admin.js?v=20260529-testing-actions"></script>
 </body>
 </html>

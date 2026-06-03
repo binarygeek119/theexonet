@@ -492,6 +492,7 @@ public class AdminController(
 public class AdminAccessController(
     IOptions<AdminOptions> adminOptions,
     AdminService adminService,
+    AdminTestingActionsService adminTestingActionsService,
     RavaHostingPaths hostingPaths,
     TestingDummyFriendsAssetService testingDummyFriendsAssetService) : ControllerBase
 {
@@ -577,5 +578,88 @@ public class AdminAccessController(
             false,
             missing,
             "Generating missing testing player avatars, banners, and company logos."));
+    }
+
+    [Authorize]
+    [HttpPost("testing-actions/staff-message")]
+    public async Task<ActionResult<AdminTestingActionResponse>> TestingActionStaffMessage(
+        [FromBody] AdminTestingDummyActionRequest request,
+        CancellationToken ct) =>
+        await RunTestingActionAsync(
+            request.DummyIndex,
+            (playerId, username) => adminTestingActionsService.SendStaffMessageAsync(
+                request.DummyIndex,
+                playerId,
+                username,
+                ct),
+            ct);
+
+    [Authorize]
+    [HttpPost("testing-actions/peer-message")]
+    public async Task<ActionResult<AdminTestingActionResponse>> TestingActionPeerMessage(
+        [FromBody] AdminTestingDummyActionRequest request,
+        CancellationToken ct) =>
+        await RunTestingActionAsync(
+            request.DummyIndex,
+            (playerId, username) => adminTestingActionsService.SendPeerMessageToAdminAsync(
+                request.DummyIndex,
+                playerId,
+                username,
+                ct),
+            ct);
+
+    [Authorize]
+    [HttpPost("testing-actions/flagged-message")]
+    public async Task<ActionResult<AdminTestingActionResponse>> TestingActionFlaggedMessage(
+        [FromBody] AdminTestingDummyActionRequest request,
+        CancellationToken ct) =>
+        await RunTestingActionAsync(
+            request.DummyIndex,
+            (playerId, username) => adminTestingActionsService.SendFlaggedMessageAsync(
+                request.DummyIndex,
+                playerId,
+                username,
+                ct),
+            ct);
+
+    [Authorize]
+    [HttpPost("testing-actions/ban-appeal")]
+    public async Task<ActionResult<AdminTestingActionResponse>> TestingActionBanAppeal(
+        [FromBody] AdminTestingDummyActionRequest request,
+        CancellationToken ct) =>
+        await RunTestingActionAsync(
+            request.DummyIndex,
+            (playerId, username) => adminTestingActionsService.SubmitBanAppealAsync(
+                request.DummyIndex,
+                playerId,
+                username,
+                ct),
+            ct);
+
+    private async Task<ActionResult<AdminTestingActionResponse>> RunTestingActionAsync(
+        int dummyIndex,
+        Func<Guid, string, Task<(AdminTestingActionResponse? Result, string? Error)>> action,
+        CancellationToken ct)
+    {
+        var username = User.GetUsername() ?? string.Empty;
+        var isAdmin = adminOptions.Value.IsAdminUsername(username);
+        if (!isAdmin)
+        {
+            return Forbid();
+        }
+
+        var access = await adminService.GetAdminAccessAsync(User.GetPlayerId(), username, true, ct);
+        if (!access.TestingModeEnabled)
+        {
+            return BadRequest(new { message = "Turn on testing mode in the admin portal first." });
+        }
+
+        var (result, error) = await action(User.GetPlayerId(), username);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(result);
     }
 }

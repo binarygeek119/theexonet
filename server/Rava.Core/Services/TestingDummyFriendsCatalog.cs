@@ -24,6 +24,7 @@ public static class TestingDummyFriendsCatalog
 {
     public const int DummyCount = 12;
     private const string DummyPlayerIdPrefix = "aaaaaaaa-aaaa-4aaa-8aaa-";
+    private const string DummyFriendshipIdPrefix = "bbbbbbbb-bbbb-4bbb-8bbb-";
 
     private static readonly string[] Usernames =
     [
@@ -141,6 +142,18 @@ public static class TestingDummyFriendsCatalog
 
     public static IEnumerable<TestingDummyFriendsProfile> All() =>
         Enumerable.Range(0, DummyCount).Select(Get);
+
+    public static Guid DummyFriendshipId(int index)
+    {
+        if (index < 0 || index >= DummyCount)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index));
+        }
+
+        return Guid.Parse($"{DummyFriendshipIdPrefix}{index:D12}");
+    }
+
+    public static bool IsValidIndex(int index) => index >= 0 && index < DummyCount;
 
     private static string DummyProfileNumber(int index) =>
         (100_000 + index * 7919).ToString(CultureInfo.InvariantCulture)[..6];

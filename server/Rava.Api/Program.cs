@@ -144,6 +144,7 @@ builder.Services.AddScoped<PlayerGameService>();
 builder.Services.AddScoped<CompanyLogoQueueService>();
 builder.Services.AddScoped<ICompanyLogoGenerator, CompanyLogoGenerator>();
 builder.Services.AddScoped<AdminService>();
+builder.Services.AddScoped<AdminTestingActionsService>();
 builder.Services.AddScoped<PlayerBanService>();
 builder.Services.AddScoped<StaffModerationPolicy>();
 builder.Services.AddScoped<BanAppealService>();

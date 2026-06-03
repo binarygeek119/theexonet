@@ -1,4 +1,4 @@
-import { RavaApi } from "./api.js?v=20260529-testing-mode-server";
+import { RavaApi } from "./api.js?v=20260529-testing-actions";
 import { API_BASE_URL, readMetaApiBase } from "./config.js";
 import { initApiStatusMonitor } from "./api-status.js";
 import { initStaffMessaging } from "./staff-messages.js";
@@ -89,6 +89,13 @@ const els = {
   testingModeHint: document.getElementById("admin-testing-mode-hint"),
   testingStatus: document.getElementById("admin-testing-status"),
   testingDummyList: document.getElementById("admin-testing-dummy-list"),
+  testingActions: document.getElementById("admin-testing-actions"),
+  testingDummySelect: document.getElementById("admin-testing-dummy-select"),
+  testingActionsStatus: document.getElementById("admin-testing-actions-status"),
+  testingStaffMessageBtn: document.getElementById("admin-testing-staff-message-btn"),
+  testingPeerMessageBtn: document.getElementById("admin-testing-peer-message-btn"),
+  testingFlaggedMessageBtn: document.getElementById("admin-testing-flagged-message-btn"),
+  testingBanAppealBtn: document.getElementById("admin-testing-ban-appeal-btn"),
   profileTestingBanner: document.getElementById("admin-profile-testing-banner"),
   playerSearch: document.getElementById("admin-player-search"),
   playerSearchBtn: document.getElementById("admin-player-search-btn"),
@@ -893,6 +900,66 @@ async function loadDashboard() {
   renderStats(state.dashboard);
 }
 
+function renderTestingDummySelect() {
+  if (!els.testingDummySelect) {
+    return;
+  }
+
+  if (!state.testingMode) {
+    els.testingDummySelect.innerHTML = "";
+    return;
+  }
+
+  const players = getDummyPlayerSummaries();
+  els.testingDummySelect.innerHTML = players
+    .map((player, index) => {
+      const profileNumber = String(100_000 + index * 7919).slice(0, 6);
+      return `<option value="${index}">${escapeHtml(player.username)} (#${profileNumber})</option>`;
+    })
+    .join("");
+}
+
+function getSelectedTestingDummyIndex() {
+  const value = Number.parseInt(els.testingDummySelect?.value ?? "", 10);
+  return Number.isFinite(value) ? value : 0;
+}
+
+async function runTestingAction(label, request) {
+  if (!state.testingMode) {
+    setStatus(els.testingActionsStatus, "Turn on testing mode first.", true);
+    return;
+  }
+
+  const dummyIndex = getSelectedTestingDummyIndex();
+  const buttons = [
+    els.testingStaffMessageBtn,
+    els.testingPeerMessageBtn,
+    els.testingFlaggedMessageBtn,
+    els.testingBanAppealBtn,
+  ];
+
+  buttons.forEach((button) => {
+    if (button) {
+      button.disabled = true;
+    }
+  });
+
+  setStatus(els.testingActionsStatus, `${label}…`);
+
+  try {
+    const response = await request(dummyIndex);
+    setStatus(els.testingActionsStatus, response?.message ?? `${label} completed.`);
+  } catch (error) {
+    setStatus(els.testingActionsStatus, error.message, true);
+  } finally {
+    buttons.forEach((button) => {
+      if (button) {
+        button.disabled = false;
+      }
+    });
+  }
+}
+
 function renderTestingDummyList() {
   if (!els.testingDummyList) {
     return;
@@ -937,7 +1004,14 @@ function renderTestingDummyList() {
 
 function loadTestingPage() {
   renderTestingModeUi();
+  renderTestingDummySelect();
   renderTestingDummyList();
+  if (els.testingActions) {
+    els.testingActions.hidden = !state.testingMode;
+  }
+  if (els.testingActionsStatus && !state.testingMode) {
+    setStatus(els.testingActionsStatus, "");
+  }
   if (els.testingStatus) {
     setStatus(
       els.testingStatus,
@@ -2390,6 +2464,22 @@ if (els.testingModeToggle) {
     setTestingMode(els.testingModeToggle.checked);
   });
 }
+
+els.testingStaffMessageBtn?.addEventListener("click", () => {
+  runTestingAction("Sending staff message", (dummyIndex) => api.adminTestingStaffMessage(dummyIndex));
+});
+
+els.testingPeerMessageBtn?.addEventListener("click", () => {
+  runTestingAction("Sending peer message", (dummyIndex) => api.adminTestingPeerMessage(dummyIndex));
+});
+
+els.testingFlaggedMessageBtn?.addEventListener("click", () => {
+  runTestingAction("Sending flagged message", (dummyIndex) => api.adminTestingFlaggedMessage(dummyIndex));
+});
+
+els.testingBanAppealBtn?.addEventListener("click", () => {
+  runTestingAction("Submitting ban appeal", (dummyIndex) => api.adminTestingBanAppeal(dummyIndex));
+});
 
 els.testingDummyList?.addEventListener("click", async (event) => {
   const button = event.target.closest(".admin-view-profile-btn");

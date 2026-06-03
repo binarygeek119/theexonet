@@ -518,6 +518,34 @@ export class RavaApi {
     });
   }
 
+  adminTestingStaffMessage(dummyIndex) {
+    return this.request("/api/admin/testing-actions/staff-message", {
+      method: "POST",
+      body: { dummyIndex },
+    });
+  }
+
+  adminTestingPeerMessage(dummyIndex) {
+    return this.request("/api/admin/testing-actions/peer-message", {
+      method: "POST",
+      body: { dummyIndex },
+    });
+  }
+
+  adminTestingFlaggedMessage(dummyIndex) {
+    return this.request("/api/admin/testing-actions/flagged-message", {
+      method: "POST",
+      body: { dummyIndex },
+    });
+  }
+
+  adminTestingBanAppeal(dummyIndex) {
+    return this.request("/api/admin/testing-actions/ban-appeal", {
+      method: "POST",
+      body: { dummyIndex },
+    });
+  }
+
   adminDashboard() {
     return this.request("/api/admin/dashboard");
   }

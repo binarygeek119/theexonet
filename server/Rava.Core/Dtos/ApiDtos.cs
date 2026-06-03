@@ -490,6 +490,13 @@ public record TestingDummyAssetsEnsureResponse(
     int MissingAssets,
     string Message);
 
+public record AdminTestingDummyActionRequest(int DummyIndex);
+
+public record AdminTestingActionResponse(
+    string Message,
+    Guid? ResourceId = null,
+    string? Channel = null);
+
 public record ModeratorMeResponse(string Username, bool IsModerator, bool IsAdmin);
 
 public record AdminDashboardResponse(

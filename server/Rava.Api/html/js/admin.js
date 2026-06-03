@@ -379,9 +379,7 @@ function setTestingMode(enabled) {
   saveTestingModeEnabled(api, enabled)
     .then((response) => {
       state.testingMode = Boolean(response?.enabled);
-      if (!state.testingMode) {
-        clearRemovedDummyFriendships();
-      }
+      clearRemovedDummyFriendships();
       renderTestingModeUi();
       if (els.testingStatus) {
         setStatus(

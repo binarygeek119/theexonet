@@ -66,7 +66,16 @@ public class AuthController(
 
         var token = tokenService.GenerateToken(player.Id, player.Username);
         var announcements = await specialEventService.GetLoginAnnouncementsAsync(player.Id, ct);
-        return Ok(new AuthResponse(token, player.Id, mineId.Value, player.Username, FeatureFlags.Phase1, announcements));
+        var (isStaffAdmin, testingModeEnabled) = await GetTestingFlagsAsync(player.Id, player.Username, ct);
+        return Ok(new AuthResponse(
+            token,
+            player.Id,
+            mineId.Value,
+            player.Username,
+            FeatureFlags.Phase1,
+            announcements,
+            isStaffAdmin,
+            testingModeEnabled));
     }
 
     [AllowAnonymous]
@@ -151,7 +160,33 @@ public class AuthController(
         }
 
         var announcements = await specialEventService.GetLoginAnnouncementsAsync(playerId, ct);
-        return Ok(new SessionResponse(playerId, mineId.Value, User.GetUsername() ?? string.Empty, announcements));
+        var username = User.GetUsername() ?? string.Empty;
+        var (isStaffAdmin, testingModeEnabled) = await GetTestingFlagsAsync(playerId, username, ct);
+        return Ok(new SessionResponse(
+            playerId,
+            mineId.Value,
+            username,
+            announcements,
+            isStaffAdmin,
+            testingModeEnabled));
+    }
+
+    private async Task<(bool IsStaffAdmin, bool TestingModeEnabled)> GetTestingFlagsAsync(
+        Guid playerId,
+        string username,
+        CancellationToken ct)
+    {
+        if (!adminOptions.Value.IsAdminUsername(username))
+        {
+            return (false, false);
+        }
+
+        var enabled = await db.Players.AsNoTracking()
+            .Where(p => p.Id == playerId)
+            .Select(p => p.AdminTestingModeEnabled)
+            .FirstOrDefaultAsync(ct);
+
+        return (true, enabled);
     }
 
     [AllowAnonymous]

@@ -182,13 +182,17 @@ public record AuthResponse(
     Guid MineId,
     string Username,
     FeatureFlags Features,
-    IReadOnlyList<LoginEventAnnouncementDto>? EventAnnouncements = null);
+    IReadOnlyList<LoginEventAnnouncementDto>? EventAnnouncements = null,
+    bool IsStaffAdmin = false,
+    bool TestingModeEnabled = false);
 
 public record SessionResponse(
     Guid PlayerId,
     Guid MineId,
     string Username,
-    IReadOnlyList<LoginEventAnnouncementDto>? EventAnnouncements = null);
+    IReadOnlyList<LoginEventAnnouncementDto>? EventAnnouncements = null,
+    bool IsStaffAdmin = false,
+    bool TestingModeEnabled = false);
 
 public record AssignWorkerRequest(Guid WorkerId, string? ZoneId);
 public record BuySupplyRequest(SupplyTypeDto SupplyType, decimal Quantity);

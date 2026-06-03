@@ -7,18 +7,21 @@ import {
   setRaxHtml,
   RAX_NAME,
 } from "./currency.js";
-import { initPlayerMessaging } from "./player-messages.js?v=20260529-testing-friends-server";
+import { initPlayerMessaging } from "./player-messages.js?v=20260529-testing-friends-server-2";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
-import { initExonet } from "./exonet.js?v=20260529-testing-friends-server";
+import { initExonet } from "./exonet.js?v=20260529-testing-friends-server-2";
 import { initI18n, applyTranslations, wireLocaleSelectors, wireLocaleSelector, getLocale, setLocale, t } from "./i18n.js";
 import {
   augmentOwnerProfileForTesting,
+  clearRemovedDummyFriendships,
+  getDummyFriendSummaries,
   isDummyFriendshipId,
+  isDummyPlayerId,
   mergeFriendsListForTesting,
   resolveDummyGameProfile,
   saveRemovedDummyFriendship,
   setCachedTestingModeEnabled,
-} from "./admin-testing-mode.js?v=20260529-testing-friends-server";
+} from "./admin-testing-mode.js?v=20260529-testing-friends-server-2";
 
 const api = new RavaApi(API_BASE_URL);
 
@@ -2105,7 +2108,25 @@ function renderFriendsPanel() {
 
 async function loadFriends() {
   const response = await api.getFriends();
-  state.friends = mergeFriendsListForTesting(response, state.testingModeEnabled, state.isStaffAdmin);
+  const apiFriends = response?.friends ?? [];
+  const hasServerTestingDummies = apiFriends.some(
+    (friend) => friend.isTestingDummy || isDummyPlayerId(friend.playerId),
+  );
+
+  let merged = hasServerTestingDummies
+    ? response
+    : mergeFriendsListForTesting(response, state.testingModeEnabled, state.isStaffAdmin);
+
+  if (
+    isTestingFriendsActive()
+    && (merged?.friends ?? []).length === 0
+    && getDummyFriendSummaries().length === 0
+  ) {
+    clearRemovedDummyFriendships();
+    merged = mergeFriendsListForTesting(response, state.testingModeEnabled, state.isStaffAdmin);
+  }
+
+  state.friends = merged;
   renderFriendsPanel();
 }
 
@@ -2113,23 +2134,40 @@ function isTestingFriendsActive() {
   return Boolean(state.testingModeEnabled && state.isStaffAdmin);
 }
 
+function applyTestingFlagsFromAuth(payload) {
+  if (payload?.isStaffAdmin !== undefined) {
+    state.isStaffAdmin = Boolean(payload.isStaffAdmin);
+  }
+  if (payload?.testingModeEnabled !== undefined) {
+    state.testingModeEnabled = Boolean(payload.testingModeEnabled);
+  }
+  if (isTestingFriendsActive()) {
+    clearRemovedDummyFriendships();
+  }
+  setCachedTestingModeEnabled(state.testingModeEnabled);
+}
+
 function applyOwnerTestingFlags(profile) {
   if (!profile?.isOwner) {
     return;
   }
 
-  state.isStaffAdmin = Boolean(profile.isStaffAdmin);
-  state.testingModeEnabled = Boolean(profile.testingModeEnabled);
+  if (profile.isStaffAdmin !== undefined) {
+    state.isStaffAdmin = Boolean(profile.isStaffAdmin);
+  }
+  if (profile.testingModeEnabled !== undefined) {
+    state.testingModeEnabled = Boolean(profile.testingModeEnabled);
+  }
+  if (isTestingFriendsActive()) {
+    clearRemovedDummyFriendships();
+  }
   setCachedTestingModeEnabled(state.testingModeEnabled);
 }
 
 async function syncTestingFlagsFromServer() {
+  let access = null;
   try {
-    const access = await api.adminAccess();
-    state.isStaffAdmin = Boolean(access?.isAdmin);
-    state.testingModeEnabled = Boolean(access?.testingModeEnabled);
-    setCachedTestingModeEnabled(state.testingModeEnabled);
-    return;
+    access = await api.adminAccess();
   } catch (error) {
     if (error?.status === 401 || error?.status === 403) {
       state.isStaffAdmin = false;
@@ -2139,10 +2177,18 @@ async function syncTestingFlagsFromServer() {
     }
   }
 
+  if (access) {
+    state.isStaffAdmin = Boolean(access.isAdmin);
+    state.testingModeEnabled = Boolean(access.testingModeEnabled);
+  }
+
   try {
     applyOwnerTestingFlags(await api.getProfile());
   } catch {
-    /* keep existing flags on transient failures */
+    if (isTestingFriendsActive()) {
+      clearRemovedDummyFriendships();
+    }
+    setCachedTestingModeEnabled(state.testingModeEnabled);
   }
 }
 
@@ -2569,6 +2615,7 @@ async function tryAutoLogin() {
   try {
     const session = await api.getSession();
     api.applySession(session);
+    applyTestingFlagsFromAuth(session);
     if (!api.mineId) {
       throw new Error(t("auth.sessionIncomplete"));
     }
@@ -3345,6 +3392,7 @@ async function authenticate(register) {
 
     const response = await api.login(username, password);
     api.saveAuth(response);
+    applyTestingFlagsFromAuth(response);
     hideAuthToast();
     showLoginStatus("");
     showScreen("game");

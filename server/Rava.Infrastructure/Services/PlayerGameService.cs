@@ -943,7 +943,7 @@ public class PlayerGameService(
             .Select(p => new { p.Username, p.AdminTestingModeEnabled })
             .FirstOrDefaultAsync(ct);
 
-        if (viewer is not null && ShouldMergeTestingDummyFriends(viewer.Username, viewer.AdminTestingModeEnabled))
+        if (viewer is not null && viewer.AdminTestingModeEnabled)
         {
             mergedFriends = TestingDummyFriends.MergeFriendSummaries(mergedFriends).ToList();
         }
@@ -1082,7 +1082,7 @@ public class PlayerGameService(
         }
 
         var friends = await GetProfileFriendsAsync(player.Id, ct);
-        if (isOwner && ShouldMergeTestingDummyFriends(player.Username, player.AdminTestingModeEnabled))
+        if (isOwner && player.AdminTestingModeEnabled)
         {
             friends = TestingDummyFriends.MergeProfileFriends(friends);
         }
@@ -1173,9 +1173,6 @@ public class PlayerGameService(
             IsStaffAdmin: isOwner && AdminOptions.IsAdminUsername(player.Username),
             TestingModeEnabled: isOwner && player.AdminTestingModeEnabled);
     }
-
-    private bool ShouldMergeTestingDummyFriends(string username, bool adminTestingModeEnabled) =>
-        adminTestingModeEnabled && AdminOptions.IsAdminUsername(username);
 
     private static ProfilePronounSet MapPronouns(PlayerEntity player) =>
         ProfilePronouns.Resolve(player.ProfileGender, player.ProfilePreferredPronouns);

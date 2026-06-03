@@ -15,18 +15,21 @@ public class RavaDataFileBootstrapTests
         File.WriteAllText(Path.Combine(publish, "offworld-news-reporters.csv"), "Slug,DisplayName\na,A");
 
         var previous = Environment.GetEnvironmentVariable(RavaDataPaths.EnvironmentVariable);
-        Environment.SetEnvironmentVariable(RavaDataPaths.EnvironmentVariable, data);
-        try
+        lock (ReporterCatalogTestSupport.DataDirGate)
         {
-            var resolved = RavaDataFileBootstrap.EnsureFromPublish(publish, "offworld-news-reporters.csv");
-            Assert.Equal(Path.Combine(data, "offworld-news-reporters.csv"), resolved);
-            Assert.True(File.Exists(resolved));
-            Assert.Equal("Slug,DisplayName", File.ReadAllLines(resolved)[0]);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(RavaDataPaths.EnvironmentVariable, previous);
-            Directory.Delete(root, recursive: true);
+            Environment.SetEnvironmentVariable(RavaDataPaths.EnvironmentVariable, data);
+            try
+            {
+                var resolved = RavaDataFileBootstrap.EnsureFromPublish(publish, "offworld-news-reporters.csv");
+                Assert.Equal(Path.Combine(data, "offworld-news-reporters.csv"), resolved);
+                Assert.True(File.Exists(resolved));
+                Assert.Equal("Slug,DisplayName", File.ReadAllLines(resolved)[0]);
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(RavaDataPaths.EnvironmentVariable, previous);
+                Directory.Delete(root, recursive: true);
+            }
         }
     }
 
@@ -42,16 +45,19 @@ public class RavaDataFileBootstrapTests
         File.WriteAllText(Path.Combine(data, "offworld-news-reporters.csv"), "from,data");
 
         var previous = Environment.GetEnvironmentVariable(RavaDataPaths.EnvironmentVariable);
-        Environment.SetEnvironmentVariable(RavaDataPaths.EnvironmentVariable, data);
-        try
+        lock (ReporterCatalogTestSupport.DataDirGate)
         {
-            var resolved = RavaDataFileBootstrap.EnsureFromPublish(publish, "offworld-news-reporters.csv");
-            Assert.Equal("from,data", File.ReadAllText(resolved));
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(RavaDataPaths.EnvironmentVariable, previous);
-            Directory.Delete(root, recursive: true);
+            Environment.SetEnvironmentVariable(RavaDataPaths.EnvironmentVariable, data);
+            try
+            {
+                var resolved = RavaDataFileBootstrap.EnsureFromPublish(publish, "offworld-news-reporters.csv");
+                Assert.Equal("from,data", File.ReadAllText(resolved));
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(RavaDataPaths.EnvironmentVariable, previous);
+                Directory.Delete(root, recursive: true);
+            }
         }
     }
 }

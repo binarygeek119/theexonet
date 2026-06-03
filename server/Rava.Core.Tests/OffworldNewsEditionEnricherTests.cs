@@ -7,8 +7,7 @@ public class OffworldNewsEditionEnricherTests
 {
     public OffworldNewsEditionEnricherTests()
     {
-        var csvPath = Path.Combine(AppContext.BaseDirectory, "offworld-news-reporters.csv");
-        OffworldNewsReporterCatalog.Configure(AppContext.BaseDirectory, Path.GetFileName(csvPath));
+        ReporterCatalogTestSupport.ConfigureFromTestOutput();
     }
 
     [Fact]

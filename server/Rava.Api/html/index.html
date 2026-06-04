@@ -20,11 +20,13 @@
 
       <div id="register-tos-gate" class="register-tos-gate" hidden>
         <p class="register-tos-intro" data-i18n="auth.tos.intro">Before you create an account, please read our Terms of Service.</p>
-        <button id="register-tos-open-btn" type="button" class="btn ghost register-tos-open-btn" data-i18n="auth.tos.open">Read Terms of Service</button>
-        <label class="register-tos-accept-label">
-          <input id="register-tos-accept" type="checkbox" disabled>
-          <span data-i18n="auth.tos.acceptLabel">I have read and agree to the Terms of Service</span>
-        </label>
+        <div class="register-tos-open-control">
+          <label class="register-tos-open-check">
+            <input id="register-tos-accept" type="checkbox" disabled data-i18n-aria-label="auth.tos.acceptLabel">
+            <span class="sr-only" data-i18n="auth.tos.acceptLabel">I have read and agree to the Terms of Service</span>
+          </label>
+          <button id="register-tos-open-btn" type="button" class="btn ghost register-tos-open-btn" data-i18n="auth.tos.open">Read Terms of Service</button>
+        </div>
         <button id="register-tos-continue-btn" type="button" class="btn primary" disabled data-i18n="auth.tos.continue">Continue to sign up</button>
       </div>
 
@@ -783,6 +785,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260529-register-tos"></script>
+<script type="module" src="/js/app.js?v=20260529-tos-fix"></script>
 </body>
 </html>

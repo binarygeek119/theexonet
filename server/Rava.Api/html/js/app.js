@@ -557,9 +557,14 @@ function markRegisterTosViewed() {
 }
 
 function openRegisterTosModal() {
+  if (state.authMode !== "register" || state.registerTosFormUnlocked) {
+    return;
+  }
+
   renderRegisterTosBody();
   if (els.registerTosModal) {
     els.registerTosModal.hidden = false;
+    els.registerTosOpenBtn?.focus();
   }
 }
 
@@ -601,6 +606,7 @@ function setAuthMode(mode) {
     resetRegisterTosGate();
   } else {
     state.registerTosFormUnlocked = false;
+    closeRegisterTosModal(false);
   }
 
   els.usernameGroup.hidden = isForgot || isReset || (isRegister && !state.registerTosFormUnlocked);

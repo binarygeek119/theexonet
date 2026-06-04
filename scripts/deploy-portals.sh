@@ -60,6 +60,10 @@ verify_portal_files() {
     "${PUBLISH_DIR}/wwwroot/admin.html" \
     "${PUBLISH_DIR}/wwwroot/moderator.html" \
     "${PUBLISH_DIR}/wwwroot/js/admin-testing-mode.js" \
+    "${PUBLISH_DIR}/wwwroot/js/i18n.js" \
+    "${PUBLISH_DIR}/wwwroot/js/ban-reason-ui.js" \
+    "${PUBLISH_DIR}/wwwroot/js/status-feedback.js" \
+    "${PUBLISH_DIR}/wwwroot/js/admin-messages-hub.js" \
     "${PUBLISH_DIR}/wwwroot/js/currency.js" \
     "${PUBLISH_DIR}/wwwroot/images/currency.png"; do
     if [ ! -f "$required" ]; then
@@ -77,6 +81,9 @@ restart_portals() {
     curl -sf http://127.0.0.1:7000/admin.html >/dev/null && echo "Admin portal: OK" || echo "Admin portal: unreachable"
     curl -sf http://127.0.0.1:7050/moderator.html >/dev/null && echo "Moderator portal: OK" || echo "Moderator portal: unreachable"
     curl -sf http://127.0.0.1:7000/js/currency.js >/dev/null && echo "Admin currency.js: OK" || echo "Admin currency.js: missing"
+    curl -sf http://127.0.0.1:7000/js/i18n.js >/dev/null && echo "Admin i18n.js: OK" || echo "Admin i18n.js: missing"
+    curl -sf http://127.0.0.1:7000/js/ban-reason-ui.js >/dev/null && echo "Admin ban-reason-ui.js: OK" || echo "Admin ban-reason-ui.js: missing"
+    curl -sf http://127.0.0.1:7000/js/status-feedback.js >/dev/null && echo "Admin status-feedback.js: OK" || echo "Admin status-feedback.js: missing"
     curl -sf http://127.0.0.1:7000/js/admin-testing-mode.js >/dev/null && echo "Admin admin-testing-mode.js: OK" || echo "Admin admin-testing-mode.js: missing"
     curl -sf http://127.0.0.1:7000/images/currency.png >/dev/null && echo "Admin currency.png: OK" || echo "Admin currency.png: missing"
   fi

@@ -158,6 +158,17 @@ export function wireLocaleSelector(selectEl) {
     return;
   }
 
+  const label = selectEl.closest(".locale-select-label");
+  const hidePicker = !WEBLATE_LIVE && LOCALE_OPTIONS.length <= 1;
+  if (hidePicker) {
+    if (label) {
+      label.hidden = true;
+    } else {
+      selectEl.hidden = true;
+    }
+    return;
+  }
+
   if (selectEl.dataset.localeWired === "1") {
     selectEl.value = activeLocale;
     return;
@@ -166,10 +177,6 @@ export function wireLocaleSelector(selectEl) {
   populateLocaleOptions(selectEl);
   selectEl.value = activeLocale || DEFAULT_LOCALE;
   selectEl.dataset.localeWired = "1";
-
-  if (!WEBLATE_LIVE && LOCALE_OPTIONS.length === 1) {
-    selectEl.value = DEFAULT_LOCALE;
-  }
 
   selectEl.addEventListener("change", () => {
     setLocale(selectEl.value).catch((error) => console.error("[i18n]", error));

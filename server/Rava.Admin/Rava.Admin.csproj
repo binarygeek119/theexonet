@@ -25,6 +25,11 @@
     <Content Include="..\Rava.Api\html\js\staff-messages.js" Link="wwwroot\js\staff-messages.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\staff-player-inbox.js" Link="wwwroot\js\staff-player-inbox.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\js\staff-player-messages.js" Link="wwwroot\js\staff-player-messages.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Rava.Api\html\js\admin-messages-hub.js" Link="wwwroot\js\admin-messages-hub.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Rava.Api\html\js\ban-reason-ui.js" Link="wwwroot\js\ban-reason-ui.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Rava.Api\html\js\i18n.js" Link="wwwroot\js\i18n.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Rava.Api\html\js\status-feedback.js" Link="wwwroot\js\status-feedback.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Rava.Api\html\locales\**\*" Link="wwwroot\locales\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\Rava.Api\html\images\currency.png" Link="wwwroot\images\currency.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 

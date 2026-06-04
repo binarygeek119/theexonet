@@ -11,7 +11,7 @@ if [ ! -d "$HTML_DIR" ]; then
   exit 1
 fi
 
-mkdir -p "${WWWROOT_DIR}/css" "${WWWROOT_DIR}/js" "${WWWROOT_DIR}/images"
+mkdir -p "${WWWROOT_DIR}/css" "${WWWROOT_DIR}/js" "${WWWROOT_DIR}/images" "${WWWROOT_DIR}/locales/en"
 
 copy_file() {
   local rel="$1"
@@ -25,6 +25,18 @@ copy_file() {
   cp -f "$src" "$dest"
 }
 
+copy_tree() {
+  local rel="$1"
+  local src="${HTML_DIR}/${rel}"
+  local dest="${WWWROOT_DIR}/${rel}"
+  if [ ! -d "$src" ]; then
+    echo "Missing ${src}" >&2
+    exit 1
+  fi
+  mkdir -p "$dest"
+  cp -a "${src}/." "$dest/"
+}
+
 for rel in \
   admin.html \
   moderator.html \
@@ -34,7 +46,10 @@ for rel in \
   js/admin.js \
   js/admin-messages-hub.js \
   js/admin-testing-mode.js \
+  js/ban-reason-ui.js \
+  js/i18n.js \
   js/moderator.js \
+  js/status-feedback.js \
   js/api.js \
   js/api-status.js \
   js/config.js \
@@ -48,8 +63,16 @@ for rel in \
   copy_file "$rel"
 done
 
+copy_tree "locales"
+
 for required in \
   "${WWWROOT_DIR}/js/currency.js" \
+  "${WWWROOT_DIR}/js/i18n.js" \
+  "${WWWROOT_DIR}/js/ban-reason-ui.js" \
+  "${WWWROOT_DIR}/js/status-feedback.js" \
+  "${WWWROOT_DIR}/js/admin-messages-hub.js" \
+  "${WWWROOT_DIR}/locales/en/admin.json" \
+  "${WWWROOT_DIR}/locales/en/moderator.json" \
   "${WWWROOT_DIR}/images/currency.png" \
   "${WWWROOT_DIR}/admin.html"; do
   if [ ! -f "$required" ]; then

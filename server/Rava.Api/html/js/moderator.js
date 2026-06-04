@@ -18,8 +18,7 @@ import {
   setRaxHtml,
   RAX_NAME,
 } from "./currency.js";
-
-const api = new RavaApi(API_BASE_URL);
+import { initI18n, applyTranslations, wireLocaleSelectors } from "./i18n.js";
 
 const els = {
   loginScreen: document.getElementById("mod-login-screen"),

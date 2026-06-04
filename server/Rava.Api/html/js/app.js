@@ -40,6 +40,14 @@ function genderLabel(gender) {
   return key ? t(key) : gender;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
 function profileGenderRequiresPronouns(gender) {
   return gender === "non-binary" || gender === "prefer-not-to-say";
 }
@@ -571,9 +579,13 @@ function openRegisterTosPanel() {
     return;
   }
 
-  renderRegisterTosBody();
   els.registerTosPanel.hidden = false;
   els.registerTosOpenBtn?.setAttribute("aria-expanded", "true");
+  try {
+    renderRegisterTosBody();
+  } catch (error) {
+    console.error("[rava] failed to render Terms of Service", error);
+  }
   els.registerTosPanel.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
@@ -3805,10 +3817,9 @@ els.toggleMode.addEventListener("click", () => {
   setAuthMode(state.authMode === "register" ? "login" : "register");
 });
 els.registerGenderInput?.addEventListener("change", syncRegisterGenderUi);
-els.registerTosGate?.addEventListener("click", (event) => {
-  if (event.target.closest("#register-tos-open-btn")) {
-    toggleRegisterTosPanel();
-  }
+els.registerTosOpenBtn?.addEventListener("click", (event) => {
+  event.preventDefault();
+  toggleRegisterTosPanel();
 });
 document.querySelector(".register-tos-open-check")?.addEventListener("click", (event) => {
   if (!els.registerTosAccept?.disabled) {

@@ -235,11 +235,10 @@ const els = {
   registerTosGate: document.getElementById("register-tos-gate"),
   registerFormShell: document.getElementById("register-form-shell"),
   registerTosOpenBtn: document.getElementById("register-tos-open-btn"),
+  registerTosPanel: document.getElementById("register-tos-panel"),
   registerTosAccept: document.getElementById("register-tos-accept"),
   registerTosContinueBtn: document.getElementById("register-tos-continue-btn"),
-  registerTosModal: document.getElementById("register-tos-modal"),
   registerTosBody: document.getElementById("register-tos-body"),
-  registerTosCloseBtn: document.getElementById("register-tos-close-btn"),
   registerTosDoneBtn: document.getElementById("register-tos-done-btn"),
   birthdayMonth: document.getElementById("birthday-month"),
   birthdayDay: document.getElementById("birthday-day"),
@@ -503,6 +502,7 @@ function showAuthToast(message, variant = "success") {
 function resetRegisterTosGate() {
   state.registerTosViewed = false;
   state.registerTosFormUnlocked = false;
+  closeRegisterTosPanel();
   if (els.registerTosAccept) {
     els.registerTosAccept.checked = false;
     els.registerTosAccept.disabled = true;
@@ -557,24 +557,35 @@ function markRegisterTosViewed() {
   syncRegisterTosContinueButton();
 }
 
-function openRegisterTosModal() {
-  if (state.authMode !== "register" || state.registerTosFormUnlocked) {
+function closeRegisterTosPanel() {
+  if (els.registerTosPanel) {
+    els.registerTosPanel.hidden = true;
+  }
+  if (els.registerTosOpenBtn) {
+    els.registerTosOpenBtn.setAttribute("aria-expanded", "false");
+  }
+}
+
+function openRegisterTosPanel() {
+  if (state.registerTosFormUnlocked || !els.registerTosPanel) {
     return;
   }
 
   renderRegisterTosBody();
-  if (els.registerTosModal) {
-    els.registerTosModal.hidden = false;
-    els.registerTosOpenBtn?.focus();
-  }
+  els.registerTosPanel.hidden = false;
+  els.registerTosOpenBtn?.setAttribute("aria-expanded", "true");
+  els.registerTosPanel.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
-function closeRegisterTosModal(markViewed = true) {
-  if (els.registerTosModal) {
-    els.registerTosModal.hidden = true;
+function toggleRegisterTosPanel() {
+  if (state.registerTosFormUnlocked || !els.registerTosPanel) {
+    return;
   }
-  if (markViewed) {
-    markRegisterTosViewed();
+
+  if (els.registerTosPanel.hidden) {
+    openRegisterTosPanel();
+  } else {
+    closeRegisterTosPanel();
   }
 }
 
@@ -609,7 +620,7 @@ function setAuthMode(mode) {
     resetRegisterTosGate();
   } else {
     state.registerTosFormUnlocked = false;
-    closeRegisterTosModal(false);
+    closeRegisterTosPanel();
   }
 
   els.usernameGroup.hidden = isForgot || isReset || (isRegister && !state.registerTosFormUnlocked);
@@ -3787,16 +3798,30 @@ for (const input of [
   els.confirmPassword,
   els.banAppealMessage,
 ]) {
-  input.addEventListener("keydown", handleAuthEnter);
+  input?.addEventListener("keydown", handleAuthEnter);
 }
 
 els.toggleMode.addEventListener("click", () => {
   setAuthMode(state.authMode === "register" ? "login" : "register");
 });
 els.registerGenderInput?.addEventListener("change", syncRegisterGenderUi);
-els.registerTosOpenBtn?.addEventListener("click", openRegisterTosModal);
-els.registerTosCloseBtn?.addEventListener("click", () => closeRegisterTosModal(true));
-els.registerTosDoneBtn?.addEventListener("click", () => closeRegisterTosModal(true));
+els.registerTosGate?.addEventListener("click", (event) => {
+  if (event.target.closest("#register-tos-open-btn")) {
+    toggleRegisterTosPanel();
+  }
+});
+document.querySelector(".register-tos-open-check")?.addEventListener("click", (event) => {
+  if (!els.registerTosAccept?.disabled) {
+    return;
+  }
+
+  event.preventDefault();
+  openRegisterTosPanel();
+});
+els.registerTosDoneBtn?.addEventListener("click", () => {
+  markRegisterTosViewed();
+  closeRegisterTosPanel();
+});
 els.registerTosAccept?.addEventListener("change", syncRegisterTosContinueButton);
 els.registerTosContinueBtn?.addEventListener("click", () => {
   if (!state.registerTosViewed) {
@@ -3810,11 +3835,6 @@ els.registerTosContinueBtn?.addEventListener("click", () => {
 
   state.registerTosFormUnlocked = true;
   setAuthMode("register");
-});
-els.registerTosModal?.addEventListener("click", (event) => {
-  if (event.target === els.registerTosModal) {
-    closeRegisterTosModal(true);
-  }
 });
 els.loginBtn.addEventListener("click", () => authenticate(false));
 els.registerBtn.addEventListener("click", () => authenticate(true));

@@ -14,6 +14,7 @@ const els = {
   ravaApiKey: document.getElementById("rava-api-key"),
   ravaCreditsRemaining: document.getElementById("rava-credits-remaining"),
   ravaCreditsGranted: document.getElementById("rava-credits-granted"),
+  ravaCreditsUsed: document.getElementById("rava-credits-used"),
   ravaCreditsNote: document.getElementById("rava-credits-note"),
   ravaRequestsTotal: document.getElementById("rava-requests-total"),
   ravaRequestsToday: document.getElementById("rava-requests-today"),
@@ -202,6 +203,7 @@ function renderRava(rava, ravaError, apiPublicUrl, gameUrl) {
   els.ravaApiKey.textContent = formatYesNo(rava.apiKeyConfigured);
   els.ravaCreditsRemaining.textContent = formatUsd(rava.creditsRemainingUsd);
   els.ravaCreditsGranted.textContent = formatUsd(rava.creditsGrantedUsd);
+  els.ravaCreditsUsed.textContent = formatUsd(rava.creditsUsedUsd);
   els.ravaCreditsNote.textContent = rava.creditsNote || "—";
   els.ravaRequestsTotal.textContent = formatCount(rava.totalRequests);
   els.ravaRequestsToday.textContent = formatCount(rava.requestsToday);

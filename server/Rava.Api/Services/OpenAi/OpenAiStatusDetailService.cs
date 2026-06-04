@@ -53,6 +53,10 @@ public sealed class OpenAiStatusDetailService(
                 creditsUsed = 0;
             }
         }
+        else if (billing.MonthToDateSpendUsd is not null)
+        {
+            creditsUsed = billing.MonthToDateSpendUsd;
+        }
 
         return new PublicOpenAiStatusDetailResponse(
             DateTime.UtcNow,

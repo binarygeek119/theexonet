@@ -6,7 +6,7 @@
   <meta name="rava-api-base" content="https://ravaapi.binarygeek119.duckdns.org">
   <link rel="icon" href="/images/currency.png" type="image/png">
   <title>RAVA — Reactive Asteroid Venturing Agency</title>
-  <link rel="stylesheet" href="/css/app.css?v=20260529-tos-gate">
+  <link rel="stylesheet" href="/css/app.css?v=20260529-tos-inline">
   <link rel="stylesheet" href="/css/profile.css?v=20260529-profile-edit-media">
   <link rel="stylesheet" href="/css/exonet.css?v=20260529-profile-browse-list">
 </head>
@@ -25,7 +25,12 @@
             <input id="register-tos-accept" type="checkbox" disabled data-i18n-aria-label="auth.tos.acceptLabel">
             <span class="sr-only" data-i18n="auth.tos.acceptLabel">I have read and agree to the Terms of Service</span>
           </label>
-          <button id="register-tos-open-btn" type="button" class="btn ghost register-tos-open-btn" data-i18n="auth.tos.open">Read Terms of Service</button>
+          <button id="register-tos-open-btn" type="button" class="btn ghost register-tos-open-btn" aria-expanded="false" aria-controls="register-tos-panel" data-i18n="auth.tos.open">Read Terms of Service</button>
+        </div>
+        <div id="register-tos-panel" class="register-tos-panel" hidden>
+          <h2 class="register-tos-panel-title" data-i18n="auth.tos.title">Terms of Service</h2>
+          <div id="register-tos-body" class="register-tos-body"></div>
+          <button id="register-tos-done-btn" type="button" class="btn primary register-tos-done-btn" data-i18n="auth.tos.done">I've read this</button>
         </div>
         <button id="register-tos-continue-btn" type="button" class="btn primary" disabled data-i18n="auth.tos.continue">Continue to sign up</button>
       </div>
@@ -749,17 +754,6 @@
     </div>
   </div>
 
-  <div id="register-tos-modal" class="modal register-tos-modal" hidden role="dialog" aria-modal="true" aria-labelledby="register-tos-title">
-    <div class="modal-card register-tos-modal-card">
-      <div class="modal-header">
-        <h2 id="register-tos-title" data-i18n="auth.tos.title">Terms of Service</h2>
-        <button id="register-tos-close-btn" type="button" class="btn ghost" data-i18n="modal.close">Close</button>
-      </div>
-      <div id="register-tos-body" class="register-tos-body"></div>
-      <button id="register-tos-done-btn" type="button" class="btn primary" data-i18n="auth.tos.done">I've read this</button>
-    </div>
-  </div>
-
   <div id="exonet-modal" class="modal exonet-modal" hidden>
     <div class="exonet-shell">
       <header class="exonet-chrome">
@@ -785,6 +779,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260529-tos-gate"></script>
+<script type="module" src="/js/app.js?v=20260529-tos-inline"></script>
 </body>
 </html>

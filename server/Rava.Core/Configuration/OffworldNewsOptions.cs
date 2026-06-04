@@ -9,6 +9,12 @@ public class OffworldNewsOptions
     /// <summary>OpenAI (or compatible) API key. When empty, template headlines are used instead.</summary>
     public string ApiKey { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Optional OpenAI organization admin key (sk-admin-...) for month-to-date spend on the status dashboard.
+    /// Cannot be used for game AI calls. Create under Organization settings → Admin keys.
+    /// </summary>
+    public string AdminApiKey { get; set; } = string.Empty;
+
     public string BaseUrl { get; set; } = "https://api.openai.com/v1";
 
     public string TextModel { get; set; } = "gpt-4o-mini";

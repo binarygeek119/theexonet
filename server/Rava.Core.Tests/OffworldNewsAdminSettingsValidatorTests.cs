@@ -25,4 +25,14 @@ public class OffworldNewsAdminSettingsValidatorTests
 
         Assert.Equal("Minimum stories per day cannot exceed the target.", error);
     }
+
+    [Fact]
+    public void Validate_accepts_high_maximum_stories_per_day()
+    {
+        var (values, error) = OffworldNewsAdminSettingsValidator.Validate(
+            new AdminUpdateOffworldNewsSettingsRequest(0, 15, 5, 10, 25));
+
+        Assert.Null(error);
+        Assert.Equal(25, values!.MaxStoriesPerDay);
+    }
 }

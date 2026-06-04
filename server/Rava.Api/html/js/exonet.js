@@ -1680,7 +1680,6 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
           <div class="exonet-lws-stats">
             <span class="exonet-lws-stat reporting"><strong>${reporting}</strong> reporting</span>
             <span class="exonet-lws-stat offline"><strong>${offline}</strong> offline</span>
-            <span class="exonet-lws-stat">Target ~${escapeHtml(String(bulletin.targetOperationalCount ?? 30))} ± fuzzy</span>
           </div>
         </header>
         <div class="exonet-lws-toolbar">

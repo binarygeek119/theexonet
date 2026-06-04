@@ -108,10 +108,10 @@ public sealed class OffworldNewsAdminSettingsStore(
     private static OffworldNewsAdminSettingsRecord FromDefaults(OffworldNewsOptions config) =>
         new(
             0,
-            Math.Clamp(config.StoriesPerDay, 1, OffworldNewsAdminSettingsValidator.AbsoluteMaxStoriesPerDay),
+            Math.Max(1, config.StoriesPerDay),
             Math.Max(0, config.StoriesPerDayVariance),
-            Math.Clamp(config.MinStoriesPerDay, 1, OffworldNewsAdminSettingsValidator.AbsoluteMaxStoriesPerDay),
-            Math.Clamp(config.MaxStoriesPerDay, 1, OffworldNewsAdminSettingsValidator.AbsoluteMaxStoriesPerDay));
+            Math.Max(1, config.MinStoriesPerDay),
+            Math.Max(1, config.MaxStoriesPerDay));
 
     private AdminOffworldNewsSettingsDto ToDto(OffworldNewsAdminSettingsRecord record)
     {

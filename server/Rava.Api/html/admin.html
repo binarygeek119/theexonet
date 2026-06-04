@@ -141,23 +141,23 @@
 
         <section class="admin-panel">
           <h2>Daily story count</h2>
-          <p class="admin-page-desc">Each UTC midnight the edition includes a date-seeded fuzzy number of stories (up to 10). Changes apply on the next generation or when you regenerate today's stories.</p>
+          <p class="admin-page-desc">Each UTC midnight the edition includes a date-seeded fuzzy number of stories between your minimum and maximum. Changes apply on the next generation or when you regenerate today's stories.</p>
           <form id="admin-onn-stories-form" class="admin-onn-pool-form">
             <label>
               Target stories per day
-              <input id="admin-onn-stories-target" type="number" min="1" max="10" step="1" value="5">
+              <input id="admin-onn-stories-target" type="number" min="1" step="1" value="5">
             </label>
             <label>
               Story count variance (±)
-              <input id="admin-onn-stories-variance" type="number" min="0" max="9" step="1" value="3">
+              <input id="admin-onn-stories-variance" type="number" min="0" step="1" value="3">
             </label>
             <label>
               Minimum stories per day
-              <input id="admin-onn-stories-min" type="number" min="1" max="10" step="1" value="1">
+              <input id="admin-onn-stories-min" type="number" min="1" step="1" value="1">
             </label>
             <label>
               Maximum stories per day
-              <input id="admin-onn-stories-max" type="number" min="1" max="10" step="1" value="10">
+              <input id="admin-onn-stories-max" type="number" min="1" step="1" value="10">
             </label>
             <button id="admin-onn-stories-save-btn" type="submit" class="btn ghost">Save story settings</button>
             <p id="admin-onn-stories-status" class="status-text"></p>

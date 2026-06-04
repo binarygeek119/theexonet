@@ -25,21 +25,21 @@ public class OffworldNewsStoryCountSelectorTests
     }
 
     [Fact]
-    public void ResolveStoryCount_never_exceeds_max_of_ten()
+    public void ResolveStoryCount_respects_admin_configured_maximum()
     {
-        var highTarget = new OffworldNewsOptions
+        var options = new OffworldNewsOptions
         {
-            StoriesPerDay = 10,
-            StoriesPerDayVariance = 3,
-            MinStoriesPerDay = 1,
-            MaxStoriesPerDay = 10,
+            StoriesPerDay = 20,
+            StoriesPerDayVariance = 5,
+            MinStoriesPerDay = 12,
+            MaxStoriesPerDay = 25,
         };
 
         for (var day = 0; day < 90; day++)
         {
             var date = new DateOnly(2026, 3, 1).AddDays(day);
-            var count = OffworldNewsStoryCountSelector.ResolveStoryCount(date, highTarget);
-            Assert.InRange(count, 7, 10);
+            var count = OffworldNewsStoryCountSelector.ResolveStoryCount(date, options);
+            Assert.InRange(count, 12, 25);
         }
     }
 

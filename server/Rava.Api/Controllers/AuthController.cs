@@ -20,6 +20,7 @@ public class AuthController(
     PlayerGameService gameService,
     PlayerBanService playerBanService,
     PlayerWarningService playerWarningService,
+    StaffModerationPolicy staffModerationPolicy,
     BanAppealService banAppealService,
     SpecialEventService specialEventService,
     AppDbContext db,
@@ -55,15 +56,19 @@ public class AuthController(
             return Unauthorized(new { message = error });
         }
 
-        var ban = await playerBanService.GetActiveBanAsync(player!.Id, ct);
-        if (ban is not null)
+        var isStaffAccount = staffModerationPolicy.IsStaffUsername(player!.Username);
+        if (!isStaffAccount)
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new
+            var ban = await playerBanService.GetActiveBanAsync(player.Id, ct);
+            if (ban is not null)
             {
-                message = PlayerBanService.FormatMessage(ban),
-                code = "banned",
-                ban
-            });
+                return StatusCode(StatusCodes.Status403Forbidden, new
+                {
+                    message = PlayerBanService.FormatMessage(ban),
+                    code = "banned",
+                    ban
+                });
+            }
         }
 
         var mineId = await gameService.GetPrimaryMineIdAsync(player.Id, ct);
@@ -163,26 +168,30 @@ public class AuthController(
             return Unauthorized(new { message = "Session expired. Sign in again." });
         }
 
-        var ban = await playerBanService.GetActiveBanAsync(playerId, ct);
-        if (ban is not null)
+        var username = User.GetUsername() ?? string.Empty;
+        if (!staffModerationPolicy.IsStaffUsername(username))
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new
+            var ban = await playerBanService.GetActiveBanAsync(playerId, ct);
+            if (ban is not null)
             {
-                message = PlayerBanService.FormatMessage(ban),
-                code = "banned",
-                ban
-            });
-        }
+                return StatusCode(StatusCodes.Status403Forbidden, new
+                {
+                    message = PlayerBanService.FormatMessage(ban),
+                    code = "banned",
+                    ban
+                });
+            }
 
-        var pendingWarnings = await playerWarningService.GetUnacknowledgedWarningsAsync(playerId, ct);
-        if (pendingWarnings.Count > 0)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new
+            var pendingWarnings = await playerWarningService.GetUnacknowledgedWarningsAsync(playerId, ct);
+            if (pendingWarnings.Count > 0)
             {
-                message = "You must acknowledge your account warning before continuing. Please sign in again.",
-                code = "warning_required",
-                warnings = pendingWarnings
-            });
+                return StatusCode(StatusCodes.Status403Forbidden, new
+                {
+                    message = "You must acknowledge your account warning before continuing. Please sign in again.",
+                    code = "warning_required",
+                    warnings = pendingWarnings
+                });
+            }
         }
 
         var mineId = await gameService.GetPrimaryMineIdAsync(playerId, ct);
@@ -192,7 +201,6 @@ public class AuthController(
         }
 
         var announcements = await specialEventService.GetLoginAnnouncementsAsync(playerId, ct);
-        var username = User.GetUsername() ?? string.Empty;
         var (isStaffAdmin, testingModeEnabled) = await GetTestingFlagsAsync(playerId, username, ct);
         return Ok(new SessionResponse(
             playerId,

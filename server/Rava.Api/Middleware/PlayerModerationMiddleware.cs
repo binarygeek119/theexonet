@@ -7,12 +7,14 @@ public class PlayerModerationMiddleware(RequestDelegate next)
 {
     private static readonly PathString AdminPrefix = new("/api/admin");
     private static readonly PathString ModeratorPrefix = new("/api/moderator");
+    private static readonly PathString StaffPrefix = new("/api/staff");
     private static readonly PathString AcknowledgeWarningPrefix = new("/api/auth/acknowledge-warning");
 
     public async Task InvokeAsync(
         HttpContext context,
         PlayerBanService playerBanService,
-        PlayerWarningService playerWarningService)
+        PlayerWarningService playerWarningService,
+        StaffModerationPolicy staffModerationPolicy)
     {
         if (context.User.Identity?.IsAuthenticated != true)
         {
@@ -23,7 +25,15 @@ public class PlayerModerationMiddleware(RequestDelegate next)
         var path = context.Request.Path;
         if (path.StartsWithSegments(AdminPrefix)
             || path.StartsWithSegments(ModeratorPrefix)
+            || path.StartsWithSegments(StaffPrefix)
             || path.StartsWithSegments(AcknowledgeWarningPrefix))
+        {
+            await next(context);
+            return;
+        }
+
+        var username = context.User.GetUsername();
+        if (staffModerationPolicy.IsStaffUsername(username))
         {
             await next(context);
             return;

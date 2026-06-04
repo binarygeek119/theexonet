@@ -28,4 +28,7 @@ public class StaffModerationPolicy(
 
     public bool IsModeratorAccount(string? username) =>
         moderatorOptions.CurrentValue.IsModeratorUsername(username);
+
+    public bool IsStaffUsername(string? username) =>
+        IsProtectedAdmin(username) || IsModeratorAccount(username);
 }

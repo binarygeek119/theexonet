@@ -91,6 +91,8 @@ export class RavaApi {
     if (!response.ok) {
       let message = formatHttpError(response, path);
       let code = null;
+      let ban = null;
+      let warnings = null;
       try {
         const error = await response.json();
         if (error?.message) {
@@ -104,10 +106,10 @@ export class RavaApi {
           code = error.code;
         }
         if (error?.ban) {
-          err.ban = error.ban;
+          ban = error.ban;
         }
         if (error?.warnings) {
-          err.warnings = error.warnings;
+          warnings = error.warnings;
         }
       } catch {
         // ignore parse errors
@@ -115,6 +117,12 @@ export class RavaApi {
       const err = new Error(message);
       err.code = code;
       err.status = response.status;
+      if (ban) {
+        err.ban = ban;
+      }
+      if (warnings) {
+        err.warnings = warnings;
+      }
       throw err;
     }
 

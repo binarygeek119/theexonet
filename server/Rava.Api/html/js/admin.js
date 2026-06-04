@@ -2310,7 +2310,9 @@ async function checkAdminAccess() {
 
 function isAuthError(error) {
   const message = (error?.message ?? "").toLowerCase();
-  return message.includes("session expired")
+  return error?.code === "banned"
+    || error?.code === "warning_required"
+    || message.includes("session expired")
     || message.includes("invalid username or password")
     || message.includes("unauthorized");
 }

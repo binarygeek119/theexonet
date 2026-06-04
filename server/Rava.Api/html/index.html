@@ -6,14 +6,14 @@
   <meta name="rava-api-base" content="https://ravaapi.binarygeek119.duckdns.org">
   <link rel="icon" href="/images/currency.png" type="image/png">
   <title>RAVA — Reactive Asteroid Venturing Agency</title>
-  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/app.css?v=20260529-tos-gate">
   <link rel="stylesheet" href="/css/profile.css?v=20260529-profile-edit-media">
   <link rel="stylesheet" href="/css/exonet.css?v=20260529-profile-browse-list">
 </head>
 <body>
   <div id="login-screen" class="screen">
     <div id="auth-toast" class="auth-toast" hidden role="status" aria-live="polite"></div>
-    <div class="login-card">
+    <div class="login-card" id="login-card" data-auth-mode="login">
       <h1 data-i18n="auth.title">RAVA</h1>
       <p class="subtitle" data-i18n="auth.subtitle">Reactive Asteroid Venturing Agency</p>
       <p class="tagline" data-i18n="auth.tagline">Point-and-click asteroid mining</p>
@@ -785,6 +785,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260529-tos-fix"></script>
+<script type="module" src="/js/app.js?v=20260529-tos-gate"></script>
 </body>
 </html>

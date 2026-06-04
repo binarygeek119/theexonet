@@ -218,6 +218,7 @@ const eventModalQueue = [];
 
 const els = {
   loginScreen: document.getElementById("login-screen"),
+  loginCard: document.getElementById("login-card"),
   gameScreen: document.getElementById("game-screen"),
   usernameGroup: document.getElementById("username-group"),
   username: document.getElementById("username"),
@@ -584,6 +585,7 @@ function updateRegisterSignupVisibility() {
 
   if (els.registerTosGate) {
     els.registerTosGate.hidden = !showGate;
+    els.registerTosGate.classList.toggle("register-tos-gate--visible", showGate);
   }
   if (els.registerFormShell) {
     els.registerFormShell.hidden = !showForm;
@@ -596,6 +598,7 @@ function updateRegisterSignupVisibility() {
 
 function setAuthMode(mode) {
   state.authMode = mode;
+  els.loginCard?.setAttribute("data-auth-mode", mode);
   const isLogin = mode === "login";
   const isRegister = mode === "register";
   const isForgot = mode === "forgot";

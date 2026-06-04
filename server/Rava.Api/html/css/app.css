@@ -305,18 +305,26 @@ select optgroup {
   justify-content: flex-end;
 }
 
-.register-tos-gate[hidden] {
-  display: none !important;
-}
-
 .register-tos-gate {
-  display: grid;
+  display: none !important;
   gap: 14px;
   margin: 8px 0 4px;
   padding: 14px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.18);
+}
+
+.register-tos-gate.register-tos-gate--visible {
+  display: grid !important;
+}
+
+.login-card[data-auth-mode="register"] .register-tos-gate.register-tos-gate--visible {
+  display: grid !important;
+}
+
+.login-card:not([data-auth-mode="register"]) .register-tos-gate {
+  display: none !important;
 }
 
 .register-tos-intro {

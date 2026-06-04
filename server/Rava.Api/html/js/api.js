@@ -299,6 +299,15 @@ export class RavaApi {
     );
   }
 
+  getLunarWeather(date) {
+    const params = date ? `?date=${encodeURIComponent(date)}` : "";
+    return this.request(`/api/public/lunar-weather${params}`, { auth: false });
+  }
+
+  getLunarWeatherArchives() {
+    return this.request("/api/public/lunar-weather/archives", { auth: false });
+  }
+
   getTradeItems() {
     return this.request("/api/trade/items", { auth: false });
   }
@@ -754,10 +763,32 @@ export class RavaApi {
     });
   }
 
-  adminUpdateOffworldNewsSettings(reporterPoolSize) {
+  adminGetOffworldNewsSettings() {
+    return this.request("/api/admin/offworld-news/settings");
+  }
+
+  adminUpdateOffworldNewsSettings(body) {
     return this.request("/api/admin/offworld-news/settings", {
       method: "PUT",
-      body: { reporterPoolSize },
+      body,
+    });
+  }
+
+  adminGetLunarWeatherSettings() {
+    return this.request("/api/admin/lunar-weather/settings");
+  }
+
+  adminUpdateLunarWeatherSettings(body) {
+    return this.request("/api/admin/lunar-weather/settings", {
+      method: "PUT",
+      body,
+    });
+  }
+
+  adminRegenerateLunarWeatherBulletin() {
+    return this.request("/api/admin/lunar-weather/regenerate-bulletin", {
+      method: "POST",
+      body: {},
     });
   }
 

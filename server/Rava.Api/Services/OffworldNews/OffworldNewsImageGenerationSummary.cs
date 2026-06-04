@@ -9,6 +9,6 @@ public sealed record OffworldNewsImageGenerationSummary(
 
     public string DescribeFailure() =>
         string.IsNullOrWhiteSpace(LastError)
-            ? "All AI image requests failed. Check OffworldNews.ApiKey, ImageModel, billing, and API logs."
+            ? "All AI image requests failed. Check OpenAi.ApiKey, ImageModel, billing, and API logs."
             : LastError;
 }

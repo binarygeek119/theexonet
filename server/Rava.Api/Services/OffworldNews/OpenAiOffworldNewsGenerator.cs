@@ -11,7 +11,9 @@ using Rava.Core.Services;
 namespace Rava.Api.Services.OffworldNews;
 
 public sealed class OpenAiOffworldNewsGenerator(
-    OffworldNewsOptions options,
+    OffworldNewsOptions generationOptions,
+    OffworldNewsOptions featureOptions,
+    OpenAiConnectionResolver openAi,
     HttpClient httpClient,
     ILogger logger)
 {
@@ -23,7 +25,7 @@ public sealed class OpenAiOffworldNewsGenerator(
         OffworldNewsCompanyContext? companyContext,
         CancellationToken ct)
     {
-        var storyCount = Math.Clamp(options.StoriesPerDay, 1, 10);
+        var storyCount = OffworldNewsStoryCountSelector.ResolveStoryCount(editionDate, generationOptions);
         var drafts = await GenerateStoriesAsync(editionDate, storyCount, companyContext, ct);
         var (updatedDrafts, _) = await ApplyImagesToDraftsAsync(drafts, editionDate, cacheRoot, ct);
 
@@ -73,9 +75,9 @@ public sealed class OpenAiOffworldNewsGenerator(
         CancellationToken ct,
         IReadOnlyList<int>? storyIndices = null)
     {
-        var imageCap = options.MaxImagesPerDay <= 0
+        var imageCap = featureOptions.MaxImagesPerDay <= 0
             ? drafts.Count
-            : Math.Clamp(options.MaxImagesPerDay, 1, drafts.Count);
+            : Math.Clamp(featureOptions.MaxImagesPerDay, 1, drafts.Count);
 
         var indices = storyIndices is { Count: > 0 }
             ? storyIndices.Where(index => index >= 0 && index < drafts.Count).Distinct().OrderBy(index => index).ToList()
@@ -225,12 +227,12 @@ public sealed class OpenAiOffworldNewsGenerator(
             }
             """;
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(options.BaseUrl, "/chat/completions"));
+        using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(openAi.BaseUrl, "/chat/completions"));
         OpenAiUsageLoggingHandler.SetCategory(request, OpenAiUsageCategories.StoryGeneration);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", openAi.ApiKey);
         request.Content = JsonContent.Create(new
         {
-            model = options.TextModel,
+            model = openAi.TextModel,
             temperature = 0.9,
             response_format = new { type = "json_object" },
             messages = new object[]
@@ -322,11 +324,11 @@ public sealed class OpenAiOffworldNewsGenerator(
             imagePrompt = imagePrompt[..3900];
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(options.BaseUrl, "/images/generations"));
+        using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(openAi.BaseUrl, "/images/generations"));
         OpenAiUsageLoggingHandler.SetCategory(request, OpenAiUsageCategories.ImageGeneration);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", openAi.ApiKey);
         request.Content = JsonContent.Create(
-            OffworldNewsOpenAiImageRequest.BuildRequestBody(options.ImageModel, imagePrompt, aspect.ApiSize));
+            OffworldNewsOpenAiImageRequest.BuildRequestBody(openAi.ImageModel, imagePrompt, aspect.ApiSize));
 
         using var response = await httpClient.SendAsync(request, ct);
         var payload = await response.Content.ReadAsStringAsync(ct);
@@ -335,7 +337,7 @@ public sealed class OpenAiOffworldNewsGenerator(
             var error = DescribeApiFailure((int)response.StatusCode, payload);
             logger.LogWarning(
                 "OpenAI image generation failed for model {ImageModel}: {Error}",
-                options.ImageModel,
+                openAi.ImageModel,
                 error);
             return (null, error);
         }

@@ -11,6 +11,7 @@ using Rava.Api.Services;
 using Rava.Api.Services.Market;
 using Rava.Api.Services.CompanyLogo;
 using Rava.Api.Services.OpenAi;
+using Rava.Api.Services.LunarWeather;
 using Rava.Api.Services.OffworldNews;
 using Rava.Api.Services.TestingDummyFriends;
 using Rava.Core.Configuration;
@@ -100,15 +101,24 @@ var offworldNewsCacheRoot = RavaDataPaths.ResolveOffworldNewsCacheRoot(
     contentRootPath,
     webRootPath,
     offworldNewsOptionsForPaths.CacheDirectory);
+var lunarWeatherOptionsForPaths =
+    builder.Configuration.GetSection(LunarWeatherOptions.SectionName).Get<LunarWeatherOptions>()
+    ?? new LunarWeatherOptions();
+var lunarWeatherCacheRoot = RavaDataPaths.ResolveOffworldNewsCacheRoot(
+    contentRootPath,
+    webRootPath,
+    lunarWeatherOptionsForPaths.CacheDirectory);
 var hostingPaths = new RavaHostingPaths
 {
     DataRoot = dataRootPath,
     ImagesRoot = imagesRootPath,
     OffworldNewsCacheRoot = offworldNewsCacheRoot,
+    LunarWeatherCacheRoot = lunarWeatherCacheRoot,
     WebRoot = webRootPath,
 };
 RavaDataFileBootstrap.EnsureFromPublish(contentRootPath, offworldNewsOptionsForPaths.ReportersFile);
 OffworldNewsReporterCatalog.Configure(contentRootPath, offworldNewsOptionsForPaths.ReportersFile);
+LunarWeatherRelayCatalog.Configure(contentRootPath, lunarWeatherOptionsForPaths.RelaysFile);
 builder.Services.AddSingleton(hostingPaths);
 
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
@@ -121,7 +131,10 @@ builder.Services.Configure<HateSpeechOptions>(builder.Configuration.GetSection(H
 builder.Services.Configure<ModeratorPortalOptions>(builder.Configuration.GetSection(ModeratorPortalOptions.SectionName));
 builder.Services.Configure<AdminPortalOptions>(builder.Configuration.GetSection(AdminPortalOptions.SectionName));
 builder.Services.Configure<HostingOptions>(builder.Configuration.GetSection(HostingOptions.SectionName));
+builder.Services.Configure<OpenAiOptions>(builder.Configuration.GetSection(OpenAiOptions.SectionName));
 builder.Services.Configure<OffworldNewsOptions>(builder.Configuration.GetSection(OffworldNewsOptions.SectionName));
+builder.Services.Configure<LunarWeatherOptions>(builder.Configuration.GetSection(LunarWeatherOptions.SectionName));
+builder.Services.AddSingleton<OpenAiConnectionResolver>();
 builder.Services.Configure<CompanyLogoOptions>(builder.Configuration.GetSection(CompanyLogoOptions.SectionName));
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -186,6 +199,9 @@ builder.Services.AddSingleton<TestingDummyFriendsAssetService>();
 builder.Services.AddSingleton<OffworldNewsAdminSettingsStore>();
 builder.Services.AddScoped<OffworldNewsReporterRosterAdminService>();
 builder.Services.AddHostedService<OffworldNewsSchedulerService>();
+builder.Services.AddSingleton<LunarWeatherAdminSettingsStore>();
+builder.Services.AddSingleton<LunarWeatherService>();
+builder.Services.AddHostedService<LunarWeatherSchedulerService>();
 builder.Services.AddSingleton<IProfileAvatarStorage>(sp =>
     new LocalProfileAvatarStorage(new ProfileAvatarStorageOptions
     {
@@ -281,6 +297,7 @@ catch (Exception ex)
 }
 
 app.Services.GetRequiredService<OffworldNewsAdminSettingsStore>().Load();
+app.Services.GetRequiredService<LunarWeatherAdminSettingsStore>().Load();
 app.Services.GetRequiredService<OpenAiUsageTracker>().Load();
 
 var offworldNewsStartupOptions =

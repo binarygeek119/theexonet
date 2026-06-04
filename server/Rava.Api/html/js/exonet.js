@@ -14,17 +14,13 @@ const BOOKMARKS = [
   { slug: "docs", title: "RAVA Archives", subtitle: "Official game docs" },
   { slug: "sites/offworld-news", title: "Offworld News", subtitle: "Daily frontier headlines" },
   { slug: "sites/void-corp", title: "VoidCorp", subtitle: "Coming soon", placeholder: true },
-  { slug: "sites/lunar-weather", title: "Lunar Weather", subtitle: "Coming soon", placeholder: true },
+  { slug: "sites/lunar-weather", title: "Lunar Weather", subtitle: "Relay network space forecasts" },
 ];
 
 const PLACEHOLDER_SITES = {
   "sites/void-corp": {
     title: "VoidCorp Holdings",
     tagline: "Corporate portal under reconstruction in orbit.",
-  },
-  "sites/lunar-weather": {
-    title: "Lunar Weather Service",
-    tagline: "Forecast arrays offline for scheduled maintenance.",
   },
 };
 
@@ -270,6 +266,8 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
         await renderDocs(currentSlug.split("/").slice(1)[0] || "index");
       } else if (currentSlug === "sites/offworld-news" || currentSlug.startsWith("sites/offworld-news/")) {
         await renderOffworldNews(parseOffworldNewsSlug(currentSlug));
+      } else if (currentSlug === "sites/lunar-weather" || currentSlug.startsWith("sites/lunar-weather/")) {
+        await renderLunarWeather(currentSlug);
       } else if (PLACEHOLDER_SITES[currentSlug]) {
         renderPlaceholder(currentSlug);
       } else {
@@ -1632,6 +1630,131 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     content.querySelectorAll("[data-doc]").forEach((button) => {
       button.addEventListener("click", () => navigate(`docs/${button.dataset.doc}`));
     });
+  }
+
+  const LWS_ALERT_LABELS = {
+    nominal: "Nominal",
+    caution: "Caution",
+    advisory: "Advisory",
+    warning: "Warning",
+    severe: "Severe",
+  };
+
+  function lwsAlertClass(level) {
+    const key = String(level ?? "caution").toLowerCase();
+    return `lws-alert lws-alert-${key}`;
+  }
+
+  function formatLwsObserved(iso) {
+    if (!iso) {
+      return "—";
+    }
+    try {
+      return new Date(iso).toUTCString();
+    } catch {
+      return iso;
+    }
+  }
+
+  async function renderLunarWeather(slug) {
+    const segments = slug.split("/");
+    const dateParam =
+      segments.length >= 4 && segments[2] === "archives" ? segments[3] : segments[2] || "";
+
+    setStatus("Fetching Lunar Weather relay bulletin…");
+    const bulletin = await api.getLunarWeather(dateParam || undefined);
+    const editionLabel = bulletin.bulletinDate ?? "today";
+    const sourceLabel =
+      bulletin.source === "openai" ? "AI relay synthesis" : "Template fallback bulletin";
+    const reporting = bulletin.operationalCount ?? bulletin.readings?.length ?? 0;
+    const offline = bulletin.outageCount ?? bulletin.outages?.length ?? 0;
+    const pool = bulletin.relayPoolSize ?? 100;
+
+    content.innerHTML = `
+      ${pageHeader("Lunar Weather Service", slug)}
+      <div class="exonet-lws-site">
+        <header class="exonet-lws-masthead">
+          <div class="exonet-lws-brand">LUNAR WEATHER SERVICE</div>
+          <p class="exonet-lws-tagline">Hard-vacuum forecasts from ${pool} belt and deep-space relays</p>
+          <p class="exonet-lws-edition">Edition ${escapeHtml(editionLabel)} · ${escapeHtml(sourceLabel)}</p>
+          <div class="exonet-lws-stats">
+            <span class="exonet-lws-stat reporting"><strong>${reporting}</strong> reporting</span>
+            <span class="exonet-lws-stat offline"><strong>${offline}</strong> offline</span>
+            <span class="exonet-lws-stat">Target ~${escapeHtml(String(bulletin.targetOperationalCount ?? 30))} ± fuzzy</span>
+          </div>
+        </header>
+        <div class="exonet-lws-toolbar">
+          <button type="button" class="btn ghost active" data-lws-tab="reporting">Reporting relays</button>
+          <button type="button" class="btn ghost" data-lws-tab="offline">Offline relays</button>
+        </div>
+        <section class="exonet-lws-panel" data-lws-panel="reporting">
+          <div class="exonet-lws-grid">
+            ${(bulletin.readings ?? [])
+              .map(
+                (reading) => `
+              <article class="exonet-lws-card">
+                <div class="exonet-lws-card-head">
+                  <h3>${escapeHtml(reading.relayName)}</h3>
+                  <span class="${lwsAlertClass(reading.alertLevel)}">${escapeHtml(LWS_ALERT_LABELS[reading.alertLevel] ?? reading.alertLevel)}</span>
+                </div>
+                <p class="exonet-lws-meta">${escapeHtml(reading.region)} · ${escapeHtml(reading.sector)} · ${escapeHtml(reading.relayId)}</p>
+                <p class="exonet-lws-summary">${escapeHtml(reading.summary)}</p>
+                <ul class="exonet-lws-conditions">
+                  ${(reading.conditions ?? []).map((c) => `<li>${escapeHtml(c)}</li>`).join("")}
+                </ul>
+                <dl class="exonet-lws-metrics">
+                  ${reading.particleFlux ? `<div><dt>Particle flux</dt><dd>${escapeHtml(reading.particleFlux)}</dd></div>` : ""}
+                  ${reading.radiationIndex ? `<div><dt>Radiation</dt><dd>${escapeHtml(reading.radiationIndex)}</dd></div>` : ""}
+                  ${reading.visibility ? `<div><dt>Optics</dt><dd>${escapeHtml(reading.visibility)}</dd></div>` : ""}
+                  ${reading.pressureNote ? `<div><dt>Vacuum / exosphere</dt><dd>${escapeHtml(reading.pressureNote)}</dd></div>` : ""}
+                </dl>
+                <p class="exonet-lws-observed">Observed ${escapeHtml(formatLwsObserved(reading.observedAt))}</p>
+              </article>`,
+              )
+              .join("")}
+          </div>
+        </section>
+        <section class="exonet-lws-panel" data-lws-panel="offline" hidden>
+          <table class="exonet-table exonet-lws-outage-table">
+            <thead>
+              <tr>
+                <th>Relay</th>
+                <th>Region</th>
+                <th>Issue</th>
+                <th>Detail</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(bulletin.outages ?? [])
+                .map(
+                  (outage) => `
+                <tr>
+                  <td><strong>${escapeHtml(outage.relayName)}</strong><br><span class="exonet-muted">${escapeHtml(outage.relayId)}</span></td>
+                  <td>${escapeHtml(outage.region)}</td>
+                  <td>${escapeHtml(outage.issue)}</td>
+                  <td>${escapeHtml(outage.detail ?? "—")}</td>
+                </tr>`,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </section>
+      </div>`;
+
+    content.querySelectorAll("[data-lws-tab]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const tab = button.dataset.lwsTab;
+        content.querySelectorAll("[data-lws-tab]").forEach((node) => {
+          node.classList.toggle("active", node.dataset.lwsTab === tab);
+        });
+        content.querySelectorAll("[data-lws-panel]").forEach((panel) => {
+          const show = panel.dataset.lwsPanel === tab;
+          panel.hidden = !show;
+        });
+      });
+    });
+
+    setStatus(`LWS · ${reporting}/${pool} relays reporting · ${offline} offline`);
   }
 
   function renderPlaceholder(slug) {

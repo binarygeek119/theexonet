@@ -78,7 +78,11 @@ public record AdminOffworldNewsReporterRowDto(
 public record AdminOffworldNewsSettingsDto(
     int ReporterPoolSize,
     int TotalReporters,
-    int ActivePoolCount);
+    int ActivePoolCount,
+    int StoriesPerDay,
+    int StoriesPerDayVariance,
+    int MinStoriesPerDay,
+    int MaxStoriesPerDay);
 
 public record AdminUpdateOffworldNewsReporterRequest(
     string? NewSlug,
@@ -128,7 +132,12 @@ public record AdminCreateOffworldNewsReporterRequest(
     string DistinctiveFeatures,
     string Species);
 
-public record AdminUpdateOffworldNewsSettingsRequest(int ReporterPoolSize);
+public record AdminUpdateOffworldNewsSettingsRequest(
+    int ReporterPoolSize,
+    int StoriesPerDay,
+    int StoriesPerDayVariance,
+    int MinStoriesPerDay,
+    int MaxStoriesPerDay);
 
 public record AdminOffworldNewsReporterPortraitJobDto(
     string Status,

@@ -9,7 +9,7 @@ using Rava.Core.Services;
 namespace Rava.Api.Services.OffworldNews;
 
 public sealed class OffworldNewsReporterPortraitGenerator(
-    OffworldNewsOptions options,
+    OpenAiConnectionResolver openAi,
     HttpClient httpClient,
     string reportersAssetsRoot,
     ILogger logger)
@@ -24,9 +24,9 @@ public sealed class OffworldNewsReporterPortraitGenerator(
         ReporterPortraitAssetKind assets = ReporterPortraitAssetKind.Both,
         CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(options.ApiKey))
+        if (!openAi.IsApiKeyConfigured)
         {
-            return OffworldNewsReporterPortraitGenerationSummary.Failed("OffworldNews.ApiKey is not configured.");
+            return OffworldNewsReporterPortraitGenerationSummary.Failed("OpenAi.ApiKey is not configured.");
         }
 
         Directory.CreateDirectory(reportersAssetsRoot);
@@ -117,11 +117,11 @@ public sealed class OffworldNewsReporterPortraitGenerator(
             prompt = prompt[..3900];
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(options.BaseUrl, "/images/generations"));
+        using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(openAi.BaseUrl, "/images/generations"));
         OpenAiUsageLoggingHandler.SetCategory(request, category);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", openAi.ApiKey);
         request.Content = JsonContent.Create(
-            OffworldNewsOpenAiImageRequest.BuildRequestBody(options.ImageModel, prompt, size));
+            OffworldNewsOpenAiImageRequest.BuildRequestBody(openAi.ImageModel, prompt, size));
 
         using var response = await httpClient.SendAsync(request, ct);
         var payload = await response.Content.ReadAsStringAsync(ct);

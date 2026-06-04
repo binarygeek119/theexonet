@@ -6,13 +6,11 @@ public class CompanyLogoOptions
 
     public bool Enabled { get; set; } = true;
 
-    /// <summary>When empty, falls back to OffworldNews:ApiKey.</summary>
-    public string ApiKey { get; set; } = string.Empty;
-
+    /// <summary>When empty, uses <see cref="OpenAiOptions.BaseUrl"/>.</summary>
     public string BaseUrl { get; set; } = string.Empty;
 
-    /// <summary>GPT image models recommended for transparent PNG output.</summary>
-    public string ImageModel { get; set; } = "gpt-image-1";
+    /// <summary>When empty, uses <see cref="OpenAiOptions.ImageModel"/>.</summary>
+    public string ImageModel { get; set; } = string.Empty;
 
     /// <summary>Delay between queued logo generations to reduce API rate pressure.</summary>
     public int SecondsBetweenGenerations { get; set; } = 8;

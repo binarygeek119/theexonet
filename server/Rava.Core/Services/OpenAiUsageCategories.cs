@@ -4,6 +4,7 @@ namespace Rava.Core.Services;
 public static class OpenAiUsageCategories
 {
     public const string StoryGeneration = "story_generation";
+    public const string LunarWeather = "lunar_weather";
     public const string ImageGeneration = "image_generation";
     public const string ReporterPortrait = "reporter_portrait";
     public const string ReporterAvatar = "reporter_avatar";

@@ -1043,6 +1043,172 @@
   font-family: Georgia, "Times New Roman", serif;
 }
 
+.exonet-lws-site {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.exonet-lws-masthead {
+  padding: 16px 18px;
+  border: 1px solid rgba(140, 200, 255, 0.25);
+  border-radius: 12px;
+  background: rgba(8, 16, 32, 0.72);
+}
+
+.exonet-lws-brand {
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  font-size: 0.78rem;
+  color: #9fd4ff;
+}
+
+.exonet-lws-tagline,
+.exonet-lws-edition {
+  margin: 6px 0 0;
+  color: rgba(220, 235, 255, 0.78);
+  font-size: 0.92rem;
+}
+
+.exonet-lws-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: 12px;
+}
+
+.exonet-lws-stat {
+  font-size: 0.88rem;
+  color: rgba(200, 220, 255, 0.85);
+}
+
+.exonet-lws-stat.reporting strong {
+  color: #7dffb2;
+}
+
+.exonet-lws-stat.offline strong {
+  color: #ffb07d;
+}
+
+.exonet-lws-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.exonet-lws-toolbar .btn.active {
+  border-color: rgba(120, 190, 255, 0.55);
+  background: rgba(40, 90, 150, 0.35);
+}
+
+.exonet-lws-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.exonet-lws-card {
+  padding: 14px;
+  border: 1px solid rgba(120, 180, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(6, 12, 24, 0.65);
+}
+
+.exonet-lws-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.exonet-lws-card-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #eef6ff;
+}
+
+.exonet-lws-meta,
+.exonet-lws-observed {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: rgba(180, 200, 230, 0.75);
+}
+
+.exonet-lws-summary {
+  margin: 10px 0 8px;
+  color: #d8e8ff;
+  line-height: 1.45;
+}
+
+.exonet-lws-conditions {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  color: #b8d4ff;
+  font-size: 0.86rem;
+}
+
+.exonet-lws-metrics {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.exonet-lws-metrics div {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+}
+
+.exonet-lws-metrics dt {
+  margin: 0;
+  color: rgba(160, 190, 230, 0.7);
+}
+
+.exonet-lws-metrics dd {
+  margin: 0;
+  color: #dcecff;
+}
+
+.lws-alert {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.lws-alert-nominal {
+  background: rgba(60, 160, 100, 0.25);
+  color: #9dffc8;
+}
+
+.lws-alert-caution {
+  background: rgba(200, 170, 60, 0.22);
+  color: #ffe59a;
+}
+
+.lws-alert-advisory {
+  background: rgba(200, 130, 50, 0.22);
+  color: #ffcc88;
+}
+
+.lws-alert-warning {
+  background: rgba(200, 80, 50, 0.25);
+  color: #ffaa88;
+}
+
+.lws-alert-severe {
+  background: rgba(180, 40, 60, 0.3);
+  color: #ff8aa0;
+}
+
+.exonet-lws-outage-table td {
+  vertical-align: top;
+}
+
 @media (max-width: 860px) {
   .exonet-shell {
     grid-template-columns: 1fr;

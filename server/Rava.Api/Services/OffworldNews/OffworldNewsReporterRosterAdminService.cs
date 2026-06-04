@@ -126,26 +126,14 @@ public sealed class OffworldNewsReporterRosterAdminService(
         return (ToAdminRow(updated, inPool), null);
     }
 
-    public (AdminOffworldNewsSettingsDto? Settings, string? Error) SaveSettings(int reporterPoolSize)
+    public (AdminOffworldNewsSettingsDto? Settings, string? Error) SaveSettings(
+        AdminUpdateOffworldNewsSettingsRequest request)
     {
-        var (poolSize, error) = settingsStore.SaveReporterPoolSize(reporterPoolSize);
-        if (error is not null)
-        {
-            return (null, error);
-        }
-
-        _ = poolSize;
-        return (BuildSettingsDto(), null);
+        var (settings, error) = settingsStore.Save(request);
+        return error is not null ? (null, error) : (settings, null);
     }
 
-    private AdminOffworldNewsSettingsDto BuildSettingsDto()
-    {
-        var total = OffworldNewsReporterCatalog.All.Count;
-        return new AdminOffworldNewsSettingsDto(
-            settingsStore.ReporterPoolSize,
-            total,
-            settingsStore.ActivePoolCount());
-    }
+    private AdminOffworldNewsSettingsDto BuildSettingsDto() => settingsStore.GetSettings();
 
     private AdminOffworldNewsReporterRowDto ToAdminRow(
         OffworldNewsReporterProfile reporter,

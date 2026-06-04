@@ -57,6 +57,18 @@ const els = {
   pageCredits: document.getElementById("admin-page-credits"),
   pageEvents: document.getElementById("admin-page-events"),
   pageOffworldNews: document.getElementById("admin-page-offworld-news"),
+  pageLunarWeather: document.getElementById("admin-page-lunar-weather"),
+  lunarWeatherSummary: document.getElementById("admin-lunar-weather-summary"),
+  lunarWeatherStatus: document.getElementById("admin-lunar-weather-status"),
+  lunarWeatherRegenBtn: document.getElementById("admin-lunar-weather-regen-btn"),
+  lwsSettingsForm: document.getElementById("admin-lunar-weather-settings-form"),
+  lwsRelayPool: document.getElementById("admin-lws-relay-pool"),
+  lwsTarget: document.getElementById("admin-lws-target"),
+  lwsVariance: document.getElementById("admin-lws-variance"),
+  lwsMin: document.getElementById("admin-lws-min"),
+  lwsMax: document.getElementById("admin-lws-max"),
+  lwsSaveBtn: document.getElementById("admin-lws-save-btn"),
+  lwsSettingsStatus: document.getElementById("admin-lws-settings-status"),
   eventsStatus: document.getElementById("admin-events-status"),
   eventsList: document.getElementById("admin-events-list"),
   eventsNewBtn: document.getElementById("admin-events-new-btn"),
@@ -91,6 +103,13 @@ const els = {
   onnPoolSize: document.getElementById("admin-onn-pool-size"),
   onnPoolSaveBtn: document.getElementById("admin-onn-pool-save-btn"),
   onnPoolStatus: document.getElementById("admin-onn-pool-status"),
+  onnStoriesForm: document.getElementById("admin-onn-stories-form"),
+  onnStoriesTarget: document.getElementById("admin-onn-stories-target"),
+  onnStoriesVariance: document.getElementById("admin-onn-stories-variance"),
+  onnStoriesMin: document.getElementById("admin-onn-stories-min"),
+  onnStoriesMax: document.getElementById("admin-onn-stories-max"),
+  onnStoriesSaveBtn: document.getElementById("admin-onn-stories-save-btn"),
+  onnStoriesStatus: document.getElementById("admin-onn-stories-status"),
   onnReportersStatus: document.getElementById("admin-onn-reporters-status"),
   onnReportersList: document.getElementById("admin-onn-reporters-list"),
   testingModeToggle: document.getElementById("admin-testing-mode-toggle"),
@@ -1112,6 +1131,122 @@ async function loadOffworldNewsPage() {
   await Promise.all([loadOffworldNewsSummary(), loadOnnReporters()]);
 }
 
+function renderLunarWeatherSummary(bulletin) {
+  if (!bulletin) {
+    els.lunarWeatherSummary.textContent = "No bulletin loaded for today.";
+    return;
+  }
+
+  const date = bulletin.bulletinDate ?? "today";
+  const source = bulletin.source ?? "unknown";
+  const reporting = bulletin.operationalCount ?? bulletin.readings?.length ?? 0;
+  const offline = bulletin.outageCount ?? bulletin.outages?.length ?? 0;
+  const pool = bulletin.relayPoolSize ?? 100;
+  const target = bulletin.targetOperationalCount ?? 30;
+  els.lunarWeatherSummary.textContent =
+    `Today (${date}): ${reporting} relays reporting, ${offline} offline (${pool} in pool, target ~${target}, source ${source}).`;
+}
+
+async function loadLunarWeatherSummary() {
+  try {
+    const bulletin = await api.getLunarWeather();
+    renderLunarWeatherSummary(bulletin);
+  } catch (error) {
+    els.lunarWeatherSummary.textContent = "Could not load today's Lunar Weather bulletin.";
+    setStatus(els.lunarWeatherStatus, error.message, true);
+  }
+}
+
+function applyLunarWeatherSettingsForm(settings) {
+  if (!settings) {
+    return;
+  }
+
+  els.lwsRelayPool.value = String(pickJson(settings, "relayPoolSize") ?? 100);
+  els.lwsTarget.value = String(pickJson(settings, "targetOperationalCount") ?? 30);
+  els.lwsVariance.value = String(pickJson(settings, "operationalVariance") ?? 5);
+  els.lwsMin.value = String(pickJson(settings, "minOperationalCount") ?? 22);
+  els.lwsMax.value = String(pickJson(settings, "maxOperationalCount") ?? 38);
+
+  const catalogTotal = pickJson(settings, "totalRelaysInCatalog") ?? 100;
+  if (els.lwsRelayPool) {
+    els.lwsRelayPool.max = String(catalogTotal);
+  }
+}
+
+async function loadLunarWeatherSettings() {
+  setStatus(els.lwsSettingsStatus, "Loading settings…");
+  try {
+    const settings = await api.adminGetLunarWeatherSettings();
+    applyLunarWeatherSettingsForm(settings);
+    setStatus(els.lwsSettingsStatus, "");
+  } catch (error) {
+    setStatus(els.lwsSettingsStatus, error.message, true);
+  }
+}
+
+async function loadLunarWeatherPage() {
+  await Promise.all([loadLunarWeatherSummary(), loadLunarWeatherSettings()]);
+}
+
+async function saveLunarWeatherSettings(event) {
+  event.preventDefault();
+  const body = {
+    relayPoolSize: Number.parseInt(els.lwsRelayPool.value, 10),
+    targetOperationalCount: Number.parseInt(els.lwsTarget.value, 10),
+    operationalVariance: Number.parseInt(els.lwsVariance.value, 10),
+    minOperationalCount: Number.parseInt(els.lwsMin.value, 10),
+    maxOperationalCount: Number.parseInt(els.lwsMax.value, 10),
+  };
+
+  if (
+    Object.values(body).some((value) => !Number.isFinite(value))
+  ) {
+    setStatus(els.lwsSettingsStatus, "Enter valid numbers for all fields.", true);
+    return;
+  }
+
+  setStatus(els.lwsSettingsStatus, "Saving…");
+  els.lwsSaveBtn.disabled = true;
+  try {
+    const settings = await api.adminUpdateLunarWeatherSettings(body);
+    applyLunarWeatherSettingsForm(settings);
+    setStatus(
+      els.lwsSettingsStatus,
+      `Saved. Pool ${pickJson(settings, "relayPoolSize")}, target ${pickJson(settings, "targetOperationalCount")} ±${pickJson(settings, "operationalVariance")} (${pickJson(settings, "minOperationalCount")}–${pickJson(settings, "maxOperationalCount")}).`,
+    );
+  } catch (error) {
+    setStatus(els.lwsSettingsStatus, error.message, true);
+  } finally {
+    els.lwsSaveBtn.disabled = false;
+  }
+}
+
+async function regenerateLunarWeatherBulletin() {
+  if (
+    !window.confirm(
+      "Regenerate today's Lunar Weather bulletin? This replaces the cached edition for today (AI if OpenAi.ApiKey is set).",
+    )
+  ) {
+    return;
+  }
+
+  setStatus(els.lunarWeatherStatus, "Regenerating bulletin…");
+  els.lunarWeatherRegenBtn.disabled = true;
+  try {
+    const result = await api.adminRegenerateLunarWeatherBulletin();
+    await loadLunarWeatherSummary();
+    setStatus(
+      els.lunarWeatherStatus,
+      `${result.message} ${result.operationalCount} reporting, ${result.outageCount} offline.`,
+    );
+  } catch (error) {
+    setStatus(els.lunarWeatherStatus, error.message, true);
+  } finally {
+    els.lunarWeatherRegenBtn.disabled = false;
+  }
+}
+
 function countOffworldNewsAiImages(stories) {
   return (stories ?? []).filter((story) => String(story.imageUrl ?? "").includes("/images/")).length;
 }
@@ -1327,12 +1462,44 @@ function onnReporterAddFormHtml() {
   </details>`;
 }
 
+function applyOnnAdminSettingsForm(settings) {
+  if (!settings) {
+    return;
+  }
+
+  if (els.onnPoolSize) {
+    els.onnPoolSize.value = String(pickJson(settings, "reporterPoolSize") ?? 0);
+  }
+
+  if (els.onnStoriesTarget) {
+    els.onnStoriesTarget.value = String(pickJson(settings, "storiesPerDay") ?? 5);
+    els.onnStoriesVariance.value = String(pickJson(settings, "storiesPerDayVariance") ?? 3);
+    els.onnStoriesMin.value = String(pickJson(settings, "minStoriesPerDay") ?? 1);
+    els.onnStoriesMax.value = String(pickJson(settings, "maxStoriesPerDay") ?? 10);
+  }
+}
+
+function readOnnAdminSettingsBody() {
+  return {
+    reporterPoolSize: Number.parseInt(els.onnPoolSize?.value ?? "0", 10),
+    storiesPerDay: Number.parseInt(els.onnStoriesTarget?.value ?? "5", 10),
+    storiesPerDayVariance: Number.parseInt(els.onnStoriesVariance?.value ?? "3", 10),
+    minStoriesPerDay: Number.parseInt(els.onnStoriesMin?.value ?? "1", 10),
+    maxStoriesPerDay: Number.parseInt(els.onnStoriesMax?.value ?? "10", 10),
+  };
+}
+
 function renderOnnReporters(page) {
   const reporters = pickJson(page, "reporters") ?? [];
   const settings = pickJson(page, "settings") ?? {};
   const reportersFilePath = pickJson(page, "reportersFilePath") ?? "";
-  els.onnReportersPath.textContent = `Roster: ${reportersFilePath}. Story pool: ${pickJson(settings, "activePoolCount") ?? 0} of ${pickJson(settings, "totalReporters") ?? reporters.length} reporters.`;
-  els.onnPoolSize.value = pickJson(settings, "reporterPoolSize") ?? 0;
+  const target = pickJson(settings, "storiesPerDay") ?? 5;
+  const variance = pickJson(settings, "storiesPerDayVariance") ?? 3;
+  const minStories = pickJson(settings, "minStoriesPerDay") ?? 1;
+  const maxStories = pickJson(settings, "maxStoriesPerDay") ?? 10;
+  els.onnReportersPath.textContent =
+    `Roster: ${reportersFilePath}. Reporters in story pool: ${pickJson(settings, "activePoolCount") ?? 0} of ${pickJson(settings, "totalReporters") ?? reporters.length}. Stories per day: target ${target} ±${variance} (${minStories}–${maxStories}).`;
+  applyOnnAdminSettingsForm(settings);
 
   els.onnReportersList.innerHTML =
     onnReporterAddFormHtml() +
@@ -1521,7 +1688,7 @@ async function addOnnReporter(form, { generatePortraits = false } = {}) {
 
   if (generatePortraits) {
     const assetLabel = onnPortraitAssetConfirmLabel("both");
-    if (!window.confirm(`Add ${body.displayName} and generate AI ${assetLabel}? This uses OffworldNews.ApiKey.`)) {
+    if (!window.confirm(`Add ${body.displayName} and generate AI ${assetLabel}? This uses OpenAi.ApiKey.`)) {
       return;
     }
   }
@@ -1641,7 +1808,7 @@ async function regenerateOnnReporterPortraits(form, assets = "both") {
   }
 
   const assetLabel = onnPortraitAssetConfirmLabel(assets);
-  if (!window.confirm(`Regenerate AI ${assetLabel} for ${name}? This uses OffworldNews.ApiKey.`)) {
+  if (!window.confirm(`Regenerate AI ${assetLabel} for ${name}? This uses OpenAi.ApiKey.`)) {
     return;
   }
 
@@ -1667,36 +1834,60 @@ async function regenerateOnnReporterPortraits(form, assets = "both") {
   }
 }
 
-async function saveOnnPoolSize(event) {
-  event.preventDefault();
-  const size = Number.parseInt(els.onnPoolSize.value, 10);
-  if (!Number.isFinite(size) || size < 0) {
-    setStatus(els.onnPoolStatus, "Enter a non-negative pool size.", true);
+async function saveOnnAdminSettings(statusEl, saveBtn) {
+  const body = readOnnAdminSettingsBody();
+  if (
+    Object.values(body).some((value) => !Number.isFinite(value))
+  ) {
+    setStatus(statusEl, "Enter valid numbers for all settings.", true);
     return;
   }
 
-  setStatus(els.onnPoolStatus, "Saving…");
-  els.onnPoolSaveBtn.disabled = true;
+  if (body.reporterPoolSize < 0) {
+    setStatus(statusEl, "Reporter pool size cannot be negative.", true);
+    return;
+  }
+
+  setStatus(statusEl, "Saving…");
+  if (saveBtn) {
+    saveBtn.disabled = true;
+  }
+
   try {
-    const settings = await api.adminUpdateOffworldNewsSettings(size);
+    const settings = await api.adminUpdateOffworldNewsSettings(body);
+    applyOnnAdminSettingsForm(settings);
     await loadOnnReporters();
     const poolSize = pickJson(settings, "reporterPoolSize") ?? 0;
     const activeCount = pickJson(settings, "activePoolCount") ?? 0;
+    const target = pickJson(settings, "storiesPerDay") ?? 5;
+    const variance = pickJson(settings, "storiesPerDayVariance") ?? 3;
     setStatus(
-      els.onnPoolStatus,
-      `Story pool set to ${poolSize === 0 ? "all reporters" : poolSize} (${activeCount} active).`,
+      statusEl,
+      `Saved. Reporters: ${poolSize === 0 ? "all" : poolSize} active (${activeCount}). Stories: target ${target} ±${variance}.`,
     );
   } catch (error) {
-    setStatus(els.onnPoolStatus, error.message, true);
+    setStatus(statusEl, error.message, true);
   } finally {
-    els.onnPoolSaveBtn.disabled = false;
+    if (saveBtn) {
+      saveBtn.disabled = false;
+    }
   }
+}
+
+async function saveOnnPoolSize(event) {
+  event.preventDefault();
+  await saveOnnAdminSettings(els.onnPoolStatus, els.onnPoolSaveBtn);
+}
+
+async function saveOnnStoriesSettings(event) {
+  event.preventDefault();
+  await saveOnnAdminSettings(els.onnStoriesStatus, els.onnStoriesSaveBtn);
 }
 
 async function regenerateOffworldNewsReporterPortraits() {
   if (
     !window.confirm(
-      "Regenerate AI portrait and banner JPEGs for all 15 ONN reporters? This uses OffworldNews.ApiKey and may take several minutes.",
+      "Regenerate AI portrait and banner JPEGs for all 15 ONN reporters? This uses OpenAi.ApiKey and may take several minutes.",
     )
   ) {
     return;
@@ -2204,6 +2395,8 @@ async function loadPortal() {
     await loadEventsPage();
   } else if (state.page === "offworld-news") {
     await loadOffworldNewsPage();
+  } else if (state.page === "lunar-weather") {
+    await loadLunarWeatherPage();
   } else if (state.page === "testing") {
     loadTestingPage();
   }
@@ -2220,6 +2413,10 @@ async function loadCurrentPage() {
   }
   if (state.page === "offworld-news") {
     await loadOffworldNewsPage();
+    return;
+  }
+  if (state.page === "lunar-weather") {
+    await loadLunarWeatherPage();
     return;
   }
   if (state.page === "players") {
@@ -2407,6 +2604,8 @@ els.navButtons.forEach((button) => {
         setStatus(els.eventsStatus, error.message, true);
       } else if (state.page === "offworld-news") {
         setStatus(els.offworldNewsStatus, error.message, true);
+      } else if (state.page === "lunar-weather") {
+        setStatus(els.lunarWeatherStatus, error.message, true);
       } else if (state.page === "testing") {
         setStatus(els.testingStatus, error.message, true);
       }
@@ -2560,6 +2759,18 @@ els.offworldNewsRegenReporterPortraitsBtn.addEventListener("click", () => {
 
 els.onnPoolForm?.addEventListener("submit", (event) => {
   saveOnnPoolSize(event).catch((error) => setStatus(els.onnPoolStatus, error.message, true));
+});
+
+els.onnStoriesForm?.addEventListener("submit", (event) => {
+  saveOnnStoriesSettings(event).catch((error) => setStatus(els.onnStoriesStatus, error.message, true));
+});
+
+els.lwsSettingsForm?.addEventListener("submit", (event) => {
+  saveLunarWeatherSettings(event).catch((error) => setStatus(els.lwsSettingsStatus, error.message, true));
+});
+
+els.lunarWeatherRegenBtn?.addEventListener("click", () => {
+  regenerateLunarWeatherBulletin().catch((error) => setStatus(els.lunarWeatherStatus, error.message, true));
 });
 
 els.messageLogSearchBtn.addEventListener("click", () => {

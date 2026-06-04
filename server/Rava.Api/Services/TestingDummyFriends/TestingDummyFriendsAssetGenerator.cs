@@ -12,7 +12,7 @@ using Rava.Core.Services;
 namespace Rava.Api.Services.TestingDummyFriends;
 
 public sealed class TestingDummyFriendsAssetGenerator(
-    IOptions<OffworldNewsOptions> offworldNewsOptions,
+    OpenAiConnectionResolver openAi,
     IOptions<CompanyLogoOptions> companyLogoOptions,
     IHttpClientFactory httpClientFactory,
     ILogger<TestingDummyFriendsAssetGenerator> logger)
@@ -22,7 +22,7 @@ public sealed class TestingDummyFriendsAssetGenerator(
         PropertyNameCaseInsensitive = true,
     };
 
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(ResolveApiKey());
+    public bool IsConfigured => openAi.IsApiKeyConfigured;
 
     public async Task<(int Attempted, int Succeeded, string? LastError)> EnsureProfileAssetsAsync(
         TestingDummyFriendsProfile profile,
@@ -31,7 +31,7 @@ public sealed class TestingDummyFriendsAssetGenerator(
     {
         if (!IsConfigured)
         {
-            return (0, 0, "OffworldNews.ApiKey is not configured.");
+            return (0, 0, "OpenAi.ApiKey is not configured.");
         }
 
         Directory.CreateDirectory(TestingDummyFriendsPaths.ProfileFolder(assetsRoot, profile.Index));
@@ -112,13 +112,12 @@ public sealed class TestingDummyFriendsAssetGenerator(
             prompt = prompt[..3900];
         }
 
-        var options = offworldNewsOptions.Value;
         var httpClient = httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName);
-        using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(options.BaseUrl, "/images/generations"));
+        using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(openAi.BaseUrl, "/images/generations"));
         OpenAiUsageLoggingHandler.SetCategory(request, category);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ResolveApiKey());
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", openAi.ApiKey);
         request.Content = JsonContent.Create(
-            OffworldNewsOpenAiImageRequest.BuildRequestBody(options.ImageModel, prompt, size));
+            OffworldNewsOpenAiImageRequest.BuildRequestBody(openAi.ImageModel, prompt, size));
 
         using var response = await httpClient.SendAsync(request, ct);
         var payload = await response.Content.ReadAsStringAsync(ct);
@@ -167,17 +166,13 @@ public sealed class TestingDummyFriendsAssetGenerator(
             prompt = prompt[..3900];
         }
 
-        var baseUrl = string.IsNullOrWhiteSpace(logoOptions.BaseUrl)
-            ? offworldNewsOptions.Value.BaseUrl
-            : logoOptions.BaseUrl;
-        var imageModel = string.IsNullOrWhiteSpace(logoOptions.ImageModel)
-            ? offworldNewsOptions.Value.ImageModel
-            : logoOptions.ImageModel;
+        var baseUrl = openAi.BaseUrlForCompanyLogo(logoOptions);
+        var imageModel = openAi.ImageModelForCompanyLogo(logoOptions);
 
         var httpClient = httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName);
         using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(baseUrl, "/images/generations"));
         OpenAiUsageLoggingHandler.SetCategory(request, OpenAiUsageCategories.TestingDummyLogo);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ResolveApiKey());
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", openAi.ApiKey);
         request.Content = JsonContent.Create(CompanyLogoOpenAiImageRequest.BuildRequestBody(imageModel, prompt));
 
         using var response = await httpClient.SendAsync(request, ct);
@@ -237,16 +232,6 @@ public sealed class TestingDummyFriendsAssetGenerator(
         }
 
         return null;
-    }
-
-    private string? ResolveApiKey()
-    {
-        if (!string.IsNullOrWhiteSpace(offworldNewsOptions.Value.ApiKey))
-        {
-            return offworldNewsOptions.Value.ApiKey;
-        }
-
-        return companyLogoOptions.Value.ApiKey;
     }
 
     private static string CombineUrl(string baseUrl, string path)

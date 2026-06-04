@@ -14,7 +14,7 @@ namespace Rava.Api.Services.CompanyLogo;
 
 public sealed class CompanyLogoGenerator(
     IOptions<CompanyLogoOptions> companyLogoOptions,
-    IOptions<OffworldNewsOptions> offworldNewsOptions,
+    OpenAiConnectionResolver openAi,
     IHttpClientFactory httpClientFactory,
     ILogger<CompanyLogoGenerator> logger) : ICompanyLogoGenerator
 {
@@ -23,7 +23,7 @@ public sealed class CompanyLogoGenerator(
         PropertyNameCaseInsensitive = true,
     };
 
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(ResolveApiKey());
+    public bool IsConfigured => openAi.IsApiKeyConfigured;
 
     public async Task<(byte[]? PngBytes, string? Error)> GenerateAsync(
         string companyName,
@@ -34,7 +34,7 @@ public sealed class CompanyLogoGenerator(
         string music,
         CancellationToken cancellationToken = default)
     {
-        var apiKey = ResolveApiKey();
+        var apiKey = openAi.ApiKey;
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             return (null, "AI logo generation is not configured on this server.");
@@ -52,12 +52,8 @@ public sealed class CompanyLogoGenerator(
             prompt = prompt[..3900];
         }
 
-        var baseUrl = string.IsNullOrWhiteSpace(options.BaseUrl)
-            ? offworldNewsOptions.Value.BaseUrl
-            : options.BaseUrl;
-        var imageModel = string.IsNullOrWhiteSpace(options.ImageModel)
-            ? offworldNewsOptions.Value.ImageModel
-            : options.ImageModel;
+        var baseUrl = openAi.BaseUrlForCompanyLogo(options);
+        var imageModel = openAi.ImageModelForCompanyLogo(options);
 
         var httpClient = httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName);
         using var request = new HttpRequestMessage(HttpMethod.Post, CombineUrl(baseUrl, "/images/generations"));
@@ -119,17 +115,6 @@ public sealed class CompanyLogoGenerator(
         {
             return (null, $"Failed to process logo image: {ex.Message}");
         }
-    }
-
-    private string? ResolveApiKey()
-    {
-        var key = companyLogoOptions.Value.ApiKey?.Trim();
-        if (!string.IsNullOrWhiteSpace(key))
-        {
-            return key;
-        }
-
-        return offworldNewsOptions.Value.ApiKey?.Trim();
     }
 
     private static string CombineUrl(string baseUrl, string path)

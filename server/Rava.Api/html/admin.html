@@ -80,6 +80,7 @@
       <button type="button" class="admin-nav-btn" data-admin-page="credits">Rax</button>
       <button type="button" class="admin-nav-btn" data-admin-page="events">Events</button>
       <button type="button" class="admin-nav-btn" data-admin-page="offworld-news">Offworld News</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="lunar-weather">Lunar Weather</button>
     </nav>
 
     <main class="admin-main">
@@ -138,6 +139,31 @@
           <p id="admin-offworld-news-status" class="status-text"></p>
         </section>
 
+        <section class="admin-panel">
+          <h2>Daily story count</h2>
+          <p class="admin-page-desc">Each UTC midnight the edition includes a date-seeded fuzzy number of stories (up to 10). Changes apply on the next generation or when you regenerate today's stories.</p>
+          <form id="admin-onn-stories-form" class="admin-onn-pool-form">
+            <label>
+              Target stories per day
+              <input id="admin-onn-stories-target" type="number" min="1" max="10" step="1" value="5">
+            </label>
+            <label>
+              Story count variance (±)
+              <input id="admin-onn-stories-variance" type="number" min="0" max="9" step="1" value="3">
+            </label>
+            <label>
+              Minimum stories per day
+              <input id="admin-onn-stories-min" type="number" min="1" max="10" step="1" value="1">
+            </label>
+            <label>
+              Maximum stories per day
+              <input id="admin-onn-stories-max" type="number" min="1" max="10" step="1" value="10">
+            </label>
+            <button id="admin-onn-stories-save-btn" type="submit" class="btn ghost">Save story settings</button>
+            <p id="admin-onn-stories-status" class="status-text"></p>
+          </form>
+        </section>
+
         <section class="admin-panel admin-onn-reporters">
           <h2>Reporter roster</h2>
           <p class="admin-page-desc">Manage ONN correspondent personalities, names, portraits, and which reporters appear in the daily story pool.</p>
@@ -148,11 +174,57 @@
               <input id="admin-onn-pool-size" type="number" min="0" step="1" value="0">
             </label>
             <span class="admin-page-desc">0 = use all reporters in CSV order.</span>
-            <button id="admin-onn-pool-save-btn" type="submit" class="btn ghost">Save pool size</button>
+            <button id="admin-onn-pool-save-btn" type="submit" class="btn ghost">Save reporter pool</button>
             <p id="admin-onn-pool-status" class="status-text"></p>
           </form>
           <p id="admin-onn-reporters-status" class="status-text"></p>
           <div id="admin-onn-reporters-list" class="admin-onn-reporters-list"></div>
+        </section>
+      </section>
+
+      <section id="admin-page-lunar-weather" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Lunar Weather Service</h2>
+              <p class="admin-page-desc">Configure the relay network and fuzzy daily reporting count. Changes apply to the next bulletin generation (UTC midnight or manual regenerate).</p>
+            </div>
+          </div>
+          <p id="admin-lunar-weather-summary" class="admin-page-desc">Loading today's bulletin…</p>
+          <div class="button-row">
+            <button id="admin-lunar-weather-regen-btn" type="button" class="btn primary">Regenerate today's bulletin</button>
+          </div>
+          <p id="admin-lunar-weather-status" class="status-text"></p>
+        </section>
+
+        <section class="admin-panel">
+          <h2>Relay network</h2>
+          <p class="admin-page-desc">The catalog holds up to 100 relays. Pool size limits how many relays participate each day; the rest are not used until you raise the pool.</p>
+          <form id="admin-lunar-weather-settings-form" class="admin-onn-pool-form admin-lunar-weather-form">
+            <label>
+              Relay pool size
+              <input id="admin-lws-relay-pool" type="number" min="1" max="100" step="1" value="100">
+            </label>
+            <label>
+              Target operational relays
+              <input id="admin-lws-target" type="number" min="1" max="100" step="1" value="30">
+            </label>
+            <span class="admin-page-desc">Midnight reporting aims for this count (date-seeded fuzzy variance below).</span>
+            <label>
+              Operational variance (±)
+              <input id="admin-lws-variance" type="number" min="0" max="50" step="1" value="5">
+            </label>
+            <label>
+              Minimum operational relays
+              <input id="admin-lws-min" type="number" min="1" max="100" step="1" value="22">
+            </label>
+            <label>
+              Maximum operational relays
+              <input id="admin-lws-max" type="number" min="1" max="100" step="1" value="38">
+            </label>
+            <button id="admin-lws-save-btn" type="submit" class="btn ghost">Save settings</button>
+            <p id="admin-lws-settings-status" class="status-text"></p>
+          </form>
         </section>
       </section>
 

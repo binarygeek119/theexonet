@@ -5,10 +5,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using Rava.Core.Configuration;
+using Rava.Core.Services;
 
 namespace Rava.Api.Services.OpenAi;
 
-public sealed class OpenAiBillingProbe(IOptions<OffworldNewsOptions> offworldNewsOptions)
+public sealed class OpenAiBillingProbe(OpenAiConnectionResolver openAi)
 {
     private const string BillingDashboardUrl = "https://platform.openai.com/settings/organization/billing";
 
@@ -52,9 +53,8 @@ public sealed class OpenAiBillingProbe(IOptions<OffworldNewsOptions> offworldNew
 
     private async Task<OpenAiBillingSnapshot> FetchCreditsAsync(CancellationToken cancellationToken)
     {
-        var options = offworldNewsOptions.Value;
-        var hasApiKey = !string.IsNullOrWhiteSpace(options.ApiKey);
-        var hasAdminKey = !string.IsNullOrWhiteSpace(options.AdminApiKey);
+        var hasApiKey = openAi.IsApiKeyConfigured;
+        var hasAdminKey = !string.IsNullOrWhiteSpace(openAi.AdminApiKey);
 
         if (!hasApiKey && !hasAdminKey)
         {
@@ -64,7 +64,7 @@ public sealed class OpenAiBillingProbe(IOptions<OffworldNewsOptions> offworldNew
         OpenAiBillingSnapshot? prepaidSnapshot = null;
         if (hasApiKey)
         {
-            prepaidSnapshot = await TryFetchPrepaidCreditsAsync(options, cancellationToken);
+            prepaidSnapshot = await TryFetchPrepaidCreditsAsync(cancellationToken);
             if (prepaidSnapshot.CreditsRemainingUsd is not null)
             {
                 return prepaidSnapshot;
@@ -73,7 +73,7 @@ public sealed class OpenAiBillingProbe(IOptions<OffworldNewsOptions> offworldNew
 
         if (hasAdminKey)
         {
-            var spendSnapshot = await TryFetchMonthToDateSpendAsync(options, cancellationToken);
+            var spendSnapshot = await TryFetchMonthToDateSpendAsync(cancellationToken);
             if (spendSnapshot is not null)
             {
                 return spendSnapshot;
@@ -85,18 +85,16 @@ public sealed class OpenAiBillingProbe(IOptions<OffworldNewsOptions> offworldNew
                 "Could not load billing details. View balance on the OpenAI billing dashboard.");
     }
 
-    private static async Task<OpenAiBillingSnapshot> TryFetchPrepaidCreditsAsync(
-        OffworldNewsOptions options,
-        CancellationToken cancellationToken)
+    private async Task<OpenAiBillingSnapshot> TryFetchPrepaidCreditsAsync(CancellationToken cancellationToken)
     {
-        var baseUrl = ResolveBaseUrl(options.BaseUrl);
+        var baseUrl = ResolveBaseUrl(openAi.BaseUrl);
         var billingUrl = $"{baseUrl}/dashboard/billing/credit_grants";
 
         try
         {
             using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(12) };
             using var request = new HttpRequestMessage(HttpMethod.Get, billingUrl);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", openAi.ApiKey);
 
             using var response = await client.SendAsync(request, cancellationToken);
             var payload = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -133,11 +131,9 @@ public sealed class OpenAiBillingProbe(IOptions<OffworldNewsOptions> offworldNew
         }
     }
 
-    private static async Task<OpenAiBillingSnapshot?> TryFetchMonthToDateSpendAsync(
-        OffworldNewsOptions options,
-        CancellationToken cancellationToken)
+    private async Task<OpenAiBillingSnapshot?> TryFetchMonthToDateSpendAsync(CancellationToken cancellationToken)
     {
-        var baseUrl = ResolveBaseUrl(options.BaseUrl);
+        var baseUrl = ResolveBaseUrl(openAi.BaseUrl);
         var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var startUnix = new DateTimeOffset(monthStart).ToUnixTimeSeconds();
         var endUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -148,7 +144,7 @@ public sealed class OpenAiBillingProbe(IOptions<OffworldNewsOptions> offworldNew
         {
             using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(12) };
             using var request = new HttpRequestMessage(HttpMethod.Get, costsUrl);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.AdminApiKey);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", openAi.AdminApiKey);
 
             using var response = await client.SendAsync(request, cancellationToken);
             var payload = await response.Content.ReadAsStringAsync(cancellationToken);

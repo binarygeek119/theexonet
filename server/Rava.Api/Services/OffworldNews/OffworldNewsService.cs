@@ -12,6 +12,8 @@ namespace Rava.Api.Services.OffworldNews;
 
 public sealed class OffworldNewsService(
     IOptions<OffworldNewsOptions> options,
+    OffworldNewsAdminSettingsStore adminSettings,
+    OpenAiConnectionResolver openAi,
     RavaHostingPaths hostingPaths,
     IHttpClientFactory httpClientFactory,
     IServiceScopeFactory scopeFactory,
@@ -35,7 +37,7 @@ public sealed class OffworldNewsService(
 
         if (!_options.Enabled)
         {
-            return OffworldNewsTemplateGenerator.Generate(date, _options.StoriesPerDay);
+            return OffworldNewsTemplateGenerator.Generate(date, ResolveStoryCount(date));
         }
 
         var cached = TryLoadEdition(date);
@@ -54,7 +56,7 @@ public sealed class OffworldNewsService(
 
         var companyContext = await LoadCompanyContextAsync(ct);
         return EnrichEditionAuthors(
-            OffworldNewsTemplateGenerator.Generate(date, _options.StoriesPerDay, companyContext));
+            OffworldNewsTemplateGenerator.Generate(date, ResolveStoryCount(date), companyContext));
     }
 
     public OffworldNewsArchivesDto ListArchives()
@@ -162,9 +164,9 @@ public sealed class OffworldNewsService(
             return (null, "Offworld News is disabled in configuration.");
         }
 
-        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        if (!openAi.IsApiKeyConfigured)
         {
-            return (null, "OffworldNews.ApiKey is not configured.");
+            return (null, "OpenAi.ApiKey is not configured.");
         }
 
         if (slugs is { Count: > 0 } && slugs.All(slug => OffworldNewsReporterCatalog.TryGetBySlug(slug) is null))
@@ -173,7 +175,7 @@ public sealed class OffworldNewsService(
         }
 
         var generator = new OffworldNewsReporterPortraitGenerator(
-            _options,
+            openAi,
             httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
             hostingPaths.OffworldNewsReportersAssetsRoot,
             logger);
@@ -273,7 +275,7 @@ public sealed class OffworldNewsService(
             if (existing is not null)
             {
                 if (!string.Equals(existing.Source, "openai", StringComparison.OrdinalIgnoreCase)
-                    && !string.IsNullOrWhiteSpace(_options.ApiKey))
+                    && openAi.IsApiKeyConfigured)
                 {
                     QueueBackgroundAiUpgrade(date);
                 }
@@ -297,7 +299,7 @@ public sealed class OffworldNewsService(
             }
 
             var companyContext = await LoadCompanyContextAsync(ct);
-            var template = OffworldNewsTemplateGenerator.Generate(date, _options.StoriesPerDay, companyContext);
+            var template = OffworldNewsTemplateGenerator.Generate(date, ResolveStoryCount(date), companyContext);
             TrySaveEdition(template);
 
             logger.LogInformation(
@@ -305,7 +307,7 @@ public sealed class OffworldNewsService(
                 date,
                 forceRegenerate);
 
-            if (!string.IsNullOrWhiteSpace(_options.ApiKey))
+            if (openAi.IsApiKeyConfigured)
             {
                 QueueBackgroundAiUpgrade(date);
             }
@@ -406,17 +408,19 @@ public sealed class OffworldNewsService(
     {
         var companyContext = await LoadCompanyContextAsync(ct);
         OffworldNewsEditionDto edition;
-        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        if (!openAi.IsApiKeyConfigured)
         {
             logger.LogInformation(
-                "OffworldNews.ApiKey not configured; using template edition for {Date}",
+                "OpenAi.ApiKey not configured; using template edition for {Date}",
                 date);
-            edition = OffworldNewsTemplateGenerator.Generate(date, _options.StoriesPerDay, companyContext);
+            edition = OffworldNewsTemplateGenerator.Generate(date, ResolveStoryCount(date), companyContext);
         }
         else
         {
             var generator = new OpenAiOffworldNewsGenerator(
+                GenerationOptions,
                 _options,
+                openAi,
                 httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
                 logger);
             edition = await generator.GenerateAsync(date, GetCacheRoot(), companyContext, ct);
@@ -429,7 +433,7 @@ public sealed class OffworldNewsService(
 
     private void QueueBackgroundAiUpgrade(DateOnly date)
     {
-        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        if (!openAi.IsApiKeyConfigured)
         {
             return;
         }
@@ -497,6 +501,11 @@ public sealed class OffworldNewsService(
 
     private string GetCacheRoot() => _cacheRoot;
 
+    private OffworldNewsOptions GenerationOptions => adminSettings.ToGenerationOptions();
+
+    private int ResolveStoryCount(DateOnly editionDate) =>
+        OffworldNewsStoryCountSelector.ResolveStoryCount(editionDate, GenerationOptions);
+
     public async Task<(OffworldNewsEditionDto? Edition, string? Error)> RegenerateTodayEditionAsync(CancellationToken ct = default)
     {
         if (!_options.Enabled)
@@ -540,9 +549,9 @@ public sealed class OffworldNewsService(
             return (null, "Offworld News is disabled in configuration.");
         }
 
-        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        if (!openAi.IsApiKeyConfigured)
         {
-            return (null, "OffworldNews.ApiKey is not configured; AI images are unavailable.");
+            return (null, "OpenAi.ApiKey is not configured; AI images are unavailable.");
         }
 
         var date = UtcGameClock.Today;
@@ -577,7 +586,9 @@ public sealed class OffworldNewsService(
             TrySaveEdition(existing);
 
             var generator = new OpenAiOffworldNewsGenerator(
+                GenerationOptions,
                 _options,
+                openAi,
                 httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
                 logger);
             var (edition, imageSummary) = await generator.RegenerateImagesAsync(

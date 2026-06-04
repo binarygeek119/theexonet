@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Rava.Api.Services;
+using Rava.Api.Services.LunarWeather;
 using Rava.Api.Services.OffworldNews;
 using Rava.Api.Services.TestingDummyFriends;
 using Rava.Core.Configuration;
@@ -27,6 +28,8 @@ public class AdminController(
     OffworldNewsReporterPortraitJobService offworldNewsReporterPortraitJob,
     OffworldNewsReporterRosterAdminService offworldNewsReporterRoster,
     OffworldNewsAdminSettingsStore offworldNewsAdminSettings,
+    LunarWeatherService lunarWeatherService,
+    LunarWeatherAdminSettingsStore lunarWeatherAdminSettings,
     IEmailService emailService,
     IOptions<EmailOptions> emailOptions,
     IOptions<AdminOptions> adminOptions,
@@ -155,22 +158,51 @@ public class AdminController(
 
     [HttpGet("offworld-news/settings")]
     public ActionResult<AdminOffworldNewsSettingsDto> GetOffworldNewsSettings() =>
-        Ok(new AdminOffworldNewsSettingsDto(
-            offworldNewsAdminSettings.ReporterPoolSize,
-            OffworldNewsReporterCatalog.All.Count,
-            offworldNewsAdminSettings.ActivePoolCount()));
+        Ok(offworldNewsAdminSettings.GetSettings());
 
     [HttpPut("offworld-news/settings")]
     public ActionResult<AdminOffworldNewsSettingsDto> UpdateOffworldNewsSettings(
         AdminUpdateOffworldNewsSettingsRequest request)
     {
-        var (settings, error) = offworldNewsReporterRoster.SaveSettings(request.ReporterPoolSize);
+        var (settings, error) = offworldNewsReporterRoster.SaveSettings(request);
         if (error is not null)
         {
             return BadRequest(new { message = error });
         }
 
         return Ok(settings);
+    }
+
+    [HttpGet("lunar-weather/settings")]
+    public ActionResult<AdminLunarWeatherSettingsDto> GetLunarWeatherSettings() =>
+        Ok(lunarWeatherAdminSettings.GetSettings());
+
+    [HttpPut("lunar-weather/settings")]
+    public ActionResult<AdminLunarWeatherSettingsDto> UpdateLunarWeatherSettings(
+        AdminUpdateLunarWeatherSettingsRequest request)
+    {
+        var (settings, error) = lunarWeatherAdminSettings.Save(request);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(settings);
+    }
+
+    [HttpPost("lunar-weather/regenerate-bulletin")]
+    public async Task<ActionResult<AdminLunarWeatherRegenerateResponse>> RegenerateLunarWeatherBulletin(
+        CancellationToken ct)
+    {
+        var today = UtcGameClock.Today;
+        await lunarWeatherService.EnsureBulletinAsync(today, forceRegenerate: true, ct);
+        var bulletin = await lunarWeatherService.GetBulletinAsync(today, ct);
+        return Ok(new AdminLunarWeatherRegenerateResponse(
+            "Today's Lunar Weather bulletin regenerated.",
+            bulletin.BulletinDate,
+            bulletin.Source,
+            bulletin.OperationalCount,
+            bulletin.OutageCount));
     }
 
     [HttpGet("players")]

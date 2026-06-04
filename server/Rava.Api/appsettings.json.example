@@ -77,5 +77,27 @@
     "GameUrl": "https://rava.binarygeek119.duckdns.org/",
     "ContentPath": "content",
     "SiteTitle": "RAVA Game Docs"
+  },
+  "OpenAi": {
+    "ApiKey": "",
+    "AdminApiKey": "",
+    "BaseUrl": "https://api.openai.com/v1",
+    "TextModel": "gpt-4o-mini",
+    "ImageModel": "dall-e-3"
+  },
+  "OffworldNews": {
+    "Enabled": true,
+    "MaxImagesPerDay": 5,
+    "CacheDirectory": "offworld-news",
+    "ReportersFile": "offworld-news-reporters.csv"
+  },
+  "LunarWeather": {
+    "Enabled": true,
+    "CacheDirectory": "lunar-weather",
+    "RelaysFile": "weather-relays.csv"
+  },
+  "CompanyLogo": {
+    "Enabled": true,
+    "SecondsBetweenGenerations": 8
   }
 }

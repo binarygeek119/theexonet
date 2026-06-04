@@ -696,6 +696,32 @@ jobs:
               ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$chown_cmd"
           fi
 
+      - name: Fix publish permissions for www-data
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${api_host}"
+          if [ "$DEPLOY_USER" = "root" ]; then
+            sudo_prefix=""
+          else
+            sudo_prefix="sudo "
+          fi
+          run_remote() {
+            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            else
+              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
+                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            fi
+          }
+          if run_remote "command -v fix-rava-permissions >/dev/null 2>&1"; then
+            run_remote "${sudo_prefix}fix-rava-permissions -q"
+          else
+            run_remote "${sudo_prefix}chmod a+rx '${DEPLOY_API_PATH}' && ${sudo_prefix}find '${DEPLOY_API_PATH}' -maxdepth 1 -type f \\( -name '*.dll' -o -name '*.json' \\) -exec chmod a+r {} +"
+          fi
+
       - name: Restart services
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
@@ -805,6 +831,11 @@ jobs:
           set -euo pipefail
           api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
           remote="${DEPLOY_USER}@${api_host}"
+          if [ "$DEPLOY_USER" = "root" ]; then
+            sudo_prefix=""
+          else
+            sudo_prefix="sudo "
+          fi
 
           run_remote() {
             if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
@@ -837,6 +868,36 @@ jobs:
           verify_file "Docs docs.css" "${DEPLOY_API_PATH}/wwwroot/css/docs.css"
           verify_file "Docs content index" "${DEPLOY_API_PATH}/content/index.md"
 
+          wait_for_active() {
+            local unit="$1"
+            local attempt=1
+            while [ "$attempt" -le 24 ]; do
+              local state
+              state="$(run_remote "systemctl is-active ${unit} 2>/dev/null || true")"
+              if [ "$state" = "active" ]; then
+                echo "${unit}: active"
+                return 0
+              fi
+              if [ "$state" = "failed" ]; then
+                echo "ERROR: ${unit} failed to start" >&2
+                run_remote "${sudo_prefix}journalctl -u ${unit} -n 40 --no-pager 2>&1 || true"
+                return 1
+              fi
+              echo "${unit}: ${state:-unknown} (attempt ${attempt}/24)..."
+              sleep 5
+              attempt=$((attempt + 1))
+            done
+            echo "ERROR: ${unit} did not reach active state" >&2
+            run_remote "${sudo_prefix}journalctl -u ${unit} -n 40 --no-pager 2>&1 || true"
+            return 1
+          }
+
+          for unit in "${DEPLOY_ADMIN_SERVICE}" "${DEPLOY_MODERATOR_SERVICE}" "${DEPLOY_DOCS_SERVICE}"; do
+            if [ -n "$unit" ]; then
+              wait_for_active "$unit" || exit 1
+            fi
+          done
+
           verify_http() {
             local label="$1"
             local url="$2"
@@ -846,12 +907,13 @@ jobs:
                 echo "${label}: HTTP OK"
                 return 0
               fi
-              echo "${label}: waiting for service (attempt ${attempt}/12)..."
+              echo "${label}: waiting for HTTP (attempt ${attempt}/12)..."
               sleep 5
               attempt=$((attempt + 1))
             done
             echo "ERROR: ${label} not served at ${url}" >&2
-            run_remote "systemctl is-active ${DEPLOY_ADMIN_SERVICE} ${DEPLOY_MODERATOR_SERVICE} 2>&1 || true"
+            run_remote "systemctl is-active ${DEPLOY_ADMIN_SERVICE} ${DEPLOY_MODERATOR_SERVICE} ${DEPLOY_DOCS_SERVICE} 2>&1 || true"
+            run_remote "command -v diagnose-rava-portals >/dev/null 2>&1 && ${sudo_prefix}diagnose-rava-portals || ${sudo_prefix}journalctl -u ${DEPLOY_ADMIN_SERVICE} -n 25 --no-pager 2>&1 || true"
             exit 1
           }
 

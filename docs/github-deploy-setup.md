@@ -261,3 +261,25 @@ Ensure `/var/www/publish/appsettings.json` includes **`AdminPortal`** and **`Mod
 After units exist, re-run the GitHub workflow or `sudo restart-rava`.
 
 On the latest workflow, missing units log a **WARNING** and are skipped instead of failing the deploy. The workflow installs helpers to `/usr/local/bin` automatically.
+
+### Portal files on disk but HTTP verify fails (`activating` / `currency.js`)
+
+Static files under `/var/www/publish/wwwroot/` are present, but `rava-admin` or `rava-moderator` is not listening on port 7000/7050.
+
+**On the server:**
+
+```bash
+sudo diagnose-rava-portals
+sudo journalctl -u rava-admin -n 50 --no-pager
+dotnet --list-runtimes | grep -E 'Microsoft.NETCore.App 10'
+sudo fix-rava-permissions
+sudo install-rava-systemd   # refresh unit files (portals no longer wait on rava-api)
+sudo restart-rava
+curl -sf http://127.0.0.1:7000/js/currency.js && echo OK
+```
+
+Common causes:
+
+- **Missing .NET 10 runtime** after a deploy built with `net10.0` (install the same runtime the CI publish uses).
+- **DLL permissions** — rsync leaves `*.dll` unreadable by `www-data`; `sudo fix-rava-permissions` adds world-read on publish assemblies.
+- **`/var/www/data/appsettings.json`** — add an **`OpenAi`** block (see `server/Rava.Api/appsettings.json.example`); move any legacy `OffworldNews:ApiKey` / `BaseUrl` / `TextModel` / `ImageModel` keys there.

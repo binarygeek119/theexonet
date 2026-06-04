@@ -58,6 +58,14 @@ fix_publish_tree() {
     find "$www_assets" -type f -exec chmod 644 {} +
     say "OK  ${www_assets} (644/755, ${SERVICE_USER})"
   done
+
+  # Deploy rsync often leaves DLLs owned by the SSH user; www-data must read them to run portals/API.
+  if [ -d "${PUBLISH_DIR}" ]; then
+    chmod a+rx "${PUBLISH_DIR}" 2>/dev/null || true
+    find "${PUBLISH_DIR}" -maxdepth 1 -type f \( -name '*.dll' -o -name '*.json' -o -name '*.deps.json' \) \
+      -exec chmod a+r {} + 2>/dev/null || true
+    say "OK  publish assemblies world-readable"
+  fi
 }
 
 fix_data_tree() {

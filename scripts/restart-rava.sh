@@ -246,6 +246,8 @@ if systemctl is-active --quiet "${PERMISSIONS_SERVICE}" 2>/dev/null; then
   echo "${PERMISSIONS_SERVICE}: running"
 fi
 
+admin_ok=1
+moderator_ok=1
 if command -v curl >/dev/null 2>&1; then
   curl -sf http://127.0.0.1:5000/api/status >/dev/null && echo "API health: OK" || echo "API health: unreachable"
   curl -sf --max-time 15 http://127.0.0.1:5000/api/public/offworld-news >/dev/null \
@@ -256,6 +258,11 @@ if command -v curl >/dev/null 2>&1; then
   probe_http "Admin portal" "http://127.0.0.1:7000/admin.html" && admin_ok=1 || show_portal_failure "${ADMIN_SERVICE}"
   probe_http "Moderator portal" "http://127.0.0.1:7050/moderator.html" && moderator_ok=1 || show_portal_failure "${MODERATOR_SERVICE}"
   curl -sf http://127.0.0.1:9000/ >/dev/null && echo "Docs portal: OK" || echo "Docs portal: unreachable"
+fi
+
+if [ "$admin_ok" -eq 0 ] || [ "$moderator_ok" -eq 0 ]; then
+  echo "ERROR: One or more portal HTTP checks failed. Run: sudo diagnose-rava-portals" >&2
+  exit 1
 fi
 
 echo "Done."

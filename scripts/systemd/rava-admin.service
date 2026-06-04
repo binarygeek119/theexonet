@@ -1,6 +1,6 @@
 [Unit]
 Description=RAVA Admin Portal
-After=network.target rava-api.service
+After=network.target
 
 [Service]
 WorkingDirectory=/var/www/publish

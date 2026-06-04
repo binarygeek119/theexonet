@@ -10,7 +10,7 @@ import {
 import { initApiStatusMonitor } from "./api-status.js";
 import { initStaffMessaging } from "./staff-messages.js";
 import { initStaffPlayerMessaging } from "./staff-player-messages.js";
-import { initStaffPlayerInbox } from "./staff-player-inbox.js";
+import { initAdminMessagesHub } from "./admin-messages-hub.js";
 import { initFlaggedMessages } from "./flagged-messages.js?v=20260529-flagged-action-feedback";
 import { renderSocialLinksHtml } from "./profile-social.js";
 import {
@@ -18,7 +18,9 @@ import {
   setRaxHtml,
   RAX_NAME,
 } from "./currency.js";
-import { initI18n, applyTranslations, wireLocaleSelectors } from "./i18n.js";
+import { initI18n, applyTranslations, wireLocaleSelectors } from "./i18n.js?v=20260529-locale-fix";
+
+const api = new RavaApi(API_BASE_URL);
 
 const els = {
   loginScreen: document.getElementById("mod-login-screen"),
@@ -33,11 +35,39 @@ const els = {
   signedIn: document.getElementById("mod-signed-in"),
   adminLink: document.getElementById("mod-admin-link"),
   logoutBtn: document.getElementById("mod-logout-btn"),
+  navButtons: document.querySelectorAll("[data-mod-page]"),
   stats: document.getElementById("mod-stats"),
   playerSearch: document.getElementById("mod-player-search"),
   playerSearchBtn: document.getElementById("mod-player-search-btn"),
   playersStatus: document.getElementById("mod-players-status"),
   playersBody: document.getElementById("mod-players-body"),
+  bansSearch: document.getElementById("mod-bans-search"),
+  bansActiveOnly: document.getElementById("mod-bans-active-only"),
+  bansSearchBtn: document.getElementById("mod-bans-search-btn"),
+  bansRefreshBtn: document.getElementById("mod-bans-refresh-btn"),
+  bansStatus: document.getElementById("mod-bans-status"),
+  bansBody: document.getElementById("mod-bans-body"),
+  appealsStatus: document.getElementById("mod-appeals-status"),
+  appealsList: document.getElementById("mod-appeals-list"),
+  appealsRefreshBtn: document.getElementById("mod-appeals-refresh-btn"),
+  messagesStatus: document.getElementById("mod-messages-status"),
+  messagesRecipient: document.getElementById("mod-messages-recipient"),
+  messagesBody: document.getElementById("mod-messages-body"),
+  messagesSendBtn: document.getElementById("mod-messages-send-btn"),
+  messagesRefreshBtn: document.getElementById("mod-messages-refresh-btn"),
+  messagesUnifiedInbox: document.getElementById("mod-messages-unified-inbox"),
+  messagesUnifiedDetail: document.getElementById("mod-messages-unified-detail"),
+  messagesFilterButtons: document.querySelectorAll("[data-message-filter]"),
+  messagesNavBadge: document.getElementById("mod-messages-nav-badge"),
+  messageLogSearch: document.getElementById("mod-message-log-search"),
+  messageLogChannel: document.getElementById("mod-message-log-channel"),
+  messageLogSearchBtn: document.getElementById("mod-message-log-search-btn"),
+  messageLogRefreshBtn: document.getElementById("mod-message-log-refresh-btn"),
+  messageLogStatus: document.getElementById("mod-message-log-status"),
+  messageLogBody: document.getElementById("mod-message-log-body"),
+  flaggedStatus: document.getElementById("mod-flagged-status"),
+  flaggedRefreshBtn: document.getElementById("mod-flagged-refresh-btn"),
+  flaggedNavBadge: document.getElementById("mod-flagged-nav-badge"),
   profileModal: document.getElementById("mod-profile-modal"),
   profileCloseBtn: document.getElementById("mod-profile-close-btn"),
   profileAvatar: document.getElementById("mod-profile-avatar"),
@@ -93,48 +123,52 @@ const els = {
 };
 
 const state = {
+  page: "dashboard",
   profilePlayerId: null,
   banLevels: [],
   banReasonPresets: [],
 };
 
+let messagesHub;
+
 const staffMessaging = initStaffMessaging({
   api,
   els: {
-    messagesStatus: document.getElementById("mod-messages-status"),
-    messagesRecipient: document.getElementById("mod-messages-recipient"),
-    messagesBody: document.getElementById("mod-messages-body"),
-    messagesSendBtn: document.getElementById("mod-messages-send-btn"),
-    messagesRefreshBtn: document.getElementById("mod-messages-refresh-btn"),
-    messagesInbox: document.getElementById("mod-messages-inbox"),
-    messagesDetail: document.getElementById("mod-messages-detail"),
-    messagesNavBadge: null,
+    messagesStatus: els.messagesStatus,
+    messagesRecipient: els.messagesRecipient,
+    messagesBody: els.messagesBody,
+    messagesSendBtn: els.messagesSendBtn,
+    messagesRefreshBtn: els.messagesRefreshBtn,
+    messagesNavBadge: els.messagesNavBadge,
   },
   setStatus,
+  skipInboxRender: true,
+  onInboxUpdated: () => messagesHub?.syncDisplay(),
+  onRefresh: () => messagesHub?.refresh(),
 });
 
-const staffPlayerInbox = initStaffPlayerInbox({
+messagesHub = initAdminMessagesHub({
   api,
   els: {
-    status: document.getElementById("mod-player-inbox-status"),
-    refreshBtn: document.getElementById("mod-player-inbox-refresh-btn"),
-    inbox: document.getElementById("mod-player-inbox"),
-    detail: document.getElementById("mod-player-inbox-detail"),
+    status: els.messagesStatus,
+    inbox: els.messagesUnifiedInbox,
+    detail: els.messagesUnifiedDetail,
+    filterButtons: els.messagesFilterButtons,
   },
   setStatus,
-  onUnreadChange: () => staffMessaging.refreshUnreadBadge(),
+  staffMessaging,
 });
 
 const flaggedMessaging = initFlaggedMessages({
   api,
   apiPrefix: "moderator",
   els: {
-    status: document.getElementById("mod-flagged-status"),
+    status: els.flaggedStatus,
     actionStatus: document.getElementById("mod-flagged-action-status"),
-    refreshBtn: document.getElementById("mod-flagged-refresh-btn"),
+    refreshBtn: els.flaggedRefreshBtn,
     list: document.getElementById("mod-flagged-inbox"),
     detail: document.getElementById("mod-flagged-detail"),
-    navBadge: null,
+    navBadge: els.flaggedNavBadge,
   },
   setStatus,
   getBanLevels: () => ensureBanLevelsLoaded().then(() => state.banLevels),
@@ -183,6 +217,23 @@ function prefillLoginUsername() {
   if (!els.username.value && api.username) {
     els.username.value = api.username;
   }
+}
+
+const modPages = () => document.querySelectorAll("#mod-portal-screen .admin-page");
+
+function showPage(page) {
+  state.page = page;
+  const activeId = `mod-page-${page}`;
+
+  modPages().forEach((section) => {
+    const isActive = section.id === activeId;
+    section.classList.toggle("admin-page-active", isActive);
+    section.hidden = !isActive;
+  });
+
+  els.navButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.modPage === page);
+  });
 }
 
 function renderStats(dashboard) {
@@ -317,6 +368,40 @@ function formatPlayerBanStatus(player) {
     return '<span class="admin-ban-badge permanent">Life ban</span>';
   }
   return `<span class="admin-ban-badge">Until ${formatDate(ban.expiresAt)}</span>`;
+}
+
+function formatBanRecordStatus(ban) {
+  if (!ban) {
+    return "—";
+  }
+  if (ban.isActive) {
+    if (ban.isPermanent) {
+      return '<span class="admin-ban-badge permanent">Active · life ban</span>';
+    }
+    return `<span class="admin-ban-badge">Active · until ${formatDate(ban.expiresAt)}</span>`;
+  }
+  if (ban.liftedAt) {
+    return `<span class="admin-ban-badge lifted">Lifted ${formatDate(ban.liftedAt)}</span>`;
+  }
+  if (ban.expiresAt) {
+    return `<span class="admin-ban-badge expired">Expired ${formatDate(ban.expiresAt)}</span>`;
+  }
+  return '<span class="admin-ban-badge expired">Inactive</span>';
+}
+
+function formatBanReason(reason) {
+  const text = String(reason ?? "").trim();
+  return text ? escapeHtml(text) : '<span class="admin-page-desc">No reason provided</span>';
+}
+
+function formatAppealBanSummary(ban) {
+  if (!ban) {
+    return "No active ban";
+  }
+  if (ban.isPermanent) {
+    return "Life ban";
+  }
+  return `${ban.banLevelLabel} until ${formatDate(ban.expiresAt)}`;
 }
 
 async function ensureBanLevelsLoaded() {
@@ -670,19 +755,242 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
-async function loadPortal() {
-  await ensureBanLevelsLoaded();
-  setStatus(els.playersStatus, "Loading…");
-  const [dashboard, players] = await Promise.all([
-    api.moderatorDashboard(),
-    api.moderatorPlayers(els.playerSearch.value.trim()),
-    staffMessaging.loadMessages(),
-    staffPlayerInbox.loadMessages(),
-    flaggedMessaging.loadReviews(),
-  ]);
+function renderAppeals(appeals) {
+  if (!appeals.length) {
+    els.appealsList.innerHTML = `<p class="admin-empty-note">No pending ban appeals.</p>`;
+    return;
+  }
+
+  els.appealsList.innerHTML = appeals
+    .map(
+      (appeal) => `
+        <article class="admin-appeal-card" data-appeal-id="${appeal.id}" data-player-id="${appeal.playerId}">
+          <header class="admin-appeal-top">
+            <div>
+              <h3>${escapeHtml(appeal.username)}</h3>
+              <p class="admin-appeal-meta">${escapeHtml(appeal.email)} · ${formatDate(appeal.createdAt)}</p>
+            </div>
+            <button type="button" class="btn ghost mod-view-profile-btn">View profile</button>
+          </header>
+          <p class="admin-appeal-ban">${escapeHtml(formatAppealBanSummary(appeal.activeBan))}</p>
+          <p class="admin-appeal-message">${escapeHtml(appeal.message)}</p>
+          <div class="admin-appeal-actions">
+            <button type="button" class="btn ghost mod-dismiss-appeal-btn">Mark reviewed</button>
+            <span class="admin-appeal-row-status"></span>
+          </div>
+        </article>`
+    )
+    .join("");
+}
+
+async function loadAppealsPage() {
+  setStatus(els.appealsStatus, "Loading…");
+  const response = await api.moderatorBanAppeals();
+  const appeals = response.appeals ?? [];
+  renderAppeals(appeals);
+  setStatus(els.appealsStatus, `${appeals.length} pending appeal(s)`);
+}
+
+function renderBansTable(bans) {
+  if (!bans.length) {
+    els.bansBody.innerHTML = `<tr><td colspan="9">No bans found.</td></tr>`;
+    return;
+  }
+
+  els.bansBody.innerHTML = bans
+    .map((entry) => {
+      const ban = entry.ban ?? {};
+      const expiresLabel = ban.isPermanent
+        ? "Permanent"
+        : ban.expiresAt
+          ? formatDate(ban.expiresAt)
+          : "—";
+      return `
+        <tr data-player-id="${entry.playerId}">
+          <td>${escapeHtml(entry.username)}</td>
+          <td>${escapeHtml(entry.email)}</td>
+          <td>${escapeHtml(ban.banLevelLabel ?? ban.banLevel ?? "—")}</td>
+          <td class="admin-ban-reason">${formatBanReason(ban.reason)}</td>
+          <td>${escapeHtml(ban.bannedByUsername ?? "—")}</td>
+          <td>${ban.createdAt ? formatDate(ban.createdAt) : "—"}</td>
+          <td>${expiresLabel}</td>
+          <td>${formatBanRecordStatus(ban)}</td>
+          <td>
+            <button type="button" class="btn ghost mod-view-profile-btn">View profile</button>
+          </td>
+        </tr>`;
+    })
+    .join("");
+}
+
+async function loadBansPage() {
+  setStatus(els.bansStatus, "Loading…");
+  const search = els.bansSearch.value.trim();
+  const activeOnly = els.bansActiveOnly.checked;
+  const response = await api.moderatorBans(search, activeOnly);
+  const bans = response.bans ?? [];
+  renderBansTable(bans);
+  const scope = activeOnly ? "active ban(s)" : "ban record(s)";
+  setStatus(els.bansStatus, `${bans.length} ${scope}`);
+}
+
+async function dismissAppeal(appealId, statusEl, username) {
+  setStatus(statusEl, "Updating…");
+  try {
+    await api.moderatorDismissBanAppeal(appealId);
+    await loadAppealsPage();
+    const message = `Appeal from ${username} marked reviewed.`;
+    setStatus(els.appealsStatus, message, false);
+    setStatus(statusEl, message, false);
+  } catch (error) {
+    setStatus(statusEl, error.message, true);
+    setStatus(els.appealsStatus, error.message, true);
+  }
+}
+
+async function loadMessagesPage() {
+  await messagesHub.refresh();
+}
+
+const MESSAGE_LOG_CHANNEL_LABELS = {
+  "staff-to-staff": "Staff → staff",
+  "staff-to-player": "Staff → player",
+  "player-to-staff": "Player → staff",
+  peer: "Player → player",
+  "ban-appeal": "Ban appeal",
+};
+
+function formatMessageLogChannel(channel) {
+  return MESSAGE_LOG_CHANNEL_LABELS[channel] ?? channel;
+}
+
+function truncateMessageBody(body, maxLength = 120) {
+  const text = String(body ?? "");
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return `${text.slice(0, maxLength)}…`;
+}
+
+function renderMessageLog(entries) {
+  if (!entries.length) {
+    els.messageLogBody.innerHTML = `<tr><td colspan="6" class="admin-empty-note">No messages found.</td></tr>`;
+    return;
+  }
+
+  els.messageLogBody.innerHTML = entries
+    .map(
+      (entry) => `
+        <tr>
+          <td>${escapeHtml(formatDate(entry.createdAt))}</td>
+          <td>${escapeHtml(formatMessageLogChannel(entry.channel))}</td>
+          <td>${escapeHtml(entry.fromLabel)}</td>
+          <td>${escapeHtml(entry.toLabel)}</td>
+          <td title="${escapeHtml(entry.body)}">${escapeHtml(truncateMessageBody(entry.body))}</td>
+          <td>${entry.isRead ? "Yes" : "No"}</td>
+        </tr>`
+    )
+    .join("");
+}
+
+async function loadMessageLogPage() {
+  setStatus(els.messageLogStatus, "Loading…");
+  const response = await api.moderatorMessageLog(
+    els.messageLogSearch.value.trim(),
+    els.messageLogChannel.value,
+    100
+  );
+  const entries = response.entries ?? [];
+  renderMessageLog(entries);
+  setStatus(els.messageLogStatus, `${entries.length} message(s)`);
+}
+
+async function loadDashboard() {
+  const dashboard = await api.moderatorDashboard();
   renderStats(dashboard);
+}
+
+async function loadPlayers() {
+  setStatus(els.playersStatus, "Loading…");
+  const players = await api.moderatorPlayers(els.playerSearch.value.trim());
   renderPlayers(players.players ?? []);
   setStatus(els.playersStatus, `${players.players?.length ?? 0} player(s) shown`);
+}
+
+async function loadFlaggedPage() {
+  await flaggedMessaging.loadReviews();
+}
+
+async function loadPortal() {
+  await ensureBanLevelsLoaded();
+  await loadDashboard();
+  await staffMessaging.refreshUnreadBadge();
+  await flaggedMessaging.refreshBadge();
+  if (state.page === "players") {
+    await loadPlayers();
+  } else if (state.page === "bans") {
+    await loadBansPage();
+  } else if (state.page === "appeals") {
+    await loadAppealsPage();
+  } else if (state.page === "messages") {
+    await loadMessagesPage();
+  } else if (state.page === "message-log") {
+    await loadMessageLogPage();
+  } else if (state.page === "flagged") {
+    await loadFlaggedPage();
+  }
+}
+
+async function loadCurrentPage() {
+  if (state.page === "dashboard") {
+    await loadDashboard();
+    return;
+  }
+  if (state.page === "players") {
+    await loadPlayers();
+    return;
+  }
+  if (state.page === "bans") {
+    await loadBansPage();
+    return;
+  }
+  if (state.page === "appeals") {
+    await loadAppealsPage();
+    return;
+  }
+  if (state.page === "messages") {
+    await loadMessagesPage();
+    return;
+  }
+  if (state.page === "message-log") {
+    await loadMessageLogPage();
+    return;
+  }
+  if (state.page === "flagged") {
+    await loadFlaggedPage();
+  }
+}
+
+function pageStatusEl(page) {
+  if (page === "players") {
+    return els.playersStatus;
+  }
+  if (page === "bans") {
+    return els.bansStatus;
+  }
+  if (page === "appeals") {
+    return els.appealsStatus;
+  }
+  if (page === "messages") {
+    return els.messagesStatus;
+  }
+  if (page === "message-log") {
+    return els.messageLogStatus;
+  }
+  if (page === "flagged") {
+    return els.flaggedStatus;
+  }
+  return null;
 }
 
 async function checkModeratorAccess() {
@@ -790,12 +1098,96 @@ els.password.addEventListener("keydown", (event) => {
 });
 els.logoutBtn.addEventListener("click", portalLogout);
 els.deniedLogoutBtn.addEventListener("click", signOutCompletely);
+
+els.navButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    showPage(button.dataset.modPage);
+    loadCurrentPage().catch((error) => {
+      const statusEl = pageStatusEl(state.page);
+      if (statusEl) {
+        setStatus(statusEl, error.message, true);
+      }
+    });
+  });
+});
+
 els.playerSearchBtn.addEventListener("click", () => {
-  loadPortal().catch((error) => setStatus(els.playersStatus, error.message, true));
+  loadPlayers().catch((error) => setStatus(els.playersStatus, error.message, true));
 });
 els.playerSearch.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
-    loadPortal().catch((error) => setStatus(els.playersStatus, error.message, true));
+    loadPlayers().catch((error) => setStatus(els.playersStatus, error.message, true));
+  }
+});
+
+els.appealsRefreshBtn.addEventListener("click", () => {
+  loadAppealsPage().catch((error) => setStatus(els.appealsStatus, error.message, true));
+});
+
+els.bansSearchBtn.addEventListener("click", () => {
+  loadBansPage().catch((error) => setStatus(els.bansStatus, error.message, true));
+});
+
+els.bansRefreshBtn.addEventListener("click", () => {
+  loadBansPage().catch((error) => setStatus(els.bansStatus, error.message, true));
+});
+
+els.bansActiveOnly.addEventListener("change", () => {
+  loadBansPage().catch((error) => setStatus(els.bansStatus, error.message, true));
+});
+
+els.bansSearch.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") {
+    return;
+  }
+  event.preventDefault();
+  loadBansPage().catch((error) => setStatus(els.bansStatus, error.message, true));
+});
+
+els.bansBody.addEventListener("click", async (event) => {
+  const profileButton = event.target.closest(".mod-view-profile-btn");
+  if (!profileButton) {
+    return;
+  }
+  const playerId = profileButton.closest("tr")?.dataset.playerId;
+  if (playerId) {
+    await openPlayerProfile(playerId);
+  }
+});
+
+els.messageLogSearchBtn.addEventListener("click", () => {
+  loadMessageLogPage().catch((error) => setStatus(els.messageLogStatus, error.message, true));
+});
+
+els.messageLogRefreshBtn.addEventListener("click", () => {
+  loadMessageLogPage().catch((error) => setStatus(els.messageLogStatus, error.message, true));
+});
+
+els.messageLogSearch.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    loadMessageLogPage().catch((error) => setStatus(els.messageLogStatus, error.message, true));
+  }
+});
+
+els.appealsList.addEventListener("click", async (event) => {
+  const dismissButton = event.target.closest(".mod-dismiss-appeal-btn");
+  if (dismissButton) {
+    const card = dismissButton.closest(".admin-appeal-card");
+    const appealId = card?.dataset.appealId;
+    const statusEl = card?.querySelector(".admin-appeal-row-status");
+    const username = card?.querySelector("h3")?.textContent?.trim() ?? "player";
+    if (appealId) {
+      await dismissAppeal(appealId, statusEl, username);
+    }
+    return;
+  }
+
+  const profileButton = event.target.closest(".mod-view-profile-btn");
+  if (profileButton) {
+    const playerId = profileButton.closest(".admin-appeal-card")?.dataset.playerId;
+    if (playerId) {
+      await openPlayerProfile(playerId);
+    }
   }
 });
 
@@ -841,6 +1233,7 @@ async function startModeratorPortal() {
   wireLocaleSelectors();
   document.addEventListener("rava:localechange", () => applyTranslations(document));
   initApiStatusMonitor(api);
+  showPage("dashboard");
   tryRestoreSession();
 }
 

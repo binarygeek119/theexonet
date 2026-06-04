@@ -13,7 +13,7 @@ import {
   RAX_NAME,
   formatRewardAmount,
 } from "./currency.js";
-import { initI18n, applyTranslations, wireLocaleSelectors } from "./i18n.js";
+import { initI18n, applyTranslations, wireLocaleSelectors } from "./i18n.js?v=20260529-locale-fix";
 import {
   clearRemovedDummyFriendships,
   getDummyPlayerProfile,

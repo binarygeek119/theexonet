@@ -14,7 +14,9 @@
     <div class="login-card admin-login-card">
       <label class="locale-select-label" for="locale-select-admin">
         <span data-i18n="locale.label">Language</span>
-        <select id="locale-select-admin" data-locale-select class="locale-select" aria-label="Language"></select>
+        <select id="locale-select-admin" data-locale-select class="locale-select" aria-label="Language">
+          <option value="en">English</option>
+        </select>
       </label>
       <h1 data-i18n="auth.title">RAVA Admin</h1>
       <p class="subtitle" data-i18n="auth.subtitle">Operations portal</p>
@@ -604,6 +606,6 @@
     </div>
   </div>
 
-  <script type="module" src="/js/admin.js?v=20260529-admin-i18n"></script>
+  <script type="module" src="/js/admin.js?v=20260529-locale-fix"></script>
 </body>
 </html>

@@ -148,7 +148,8 @@ function populateLocaleOptions(selectEl) {
   for (const option of LOCALE_OPTIONS) {
     const node = document.createElement("option");
     node.value = option.code;
-    node.textContent = t(`locale.${option.code}`, option.label);
+    const labelKey = `locale.${option.code}`;
+    node.textContent = messages[labelKey] || option.label;
     selectEl.appendChild(node);
   }
 }
@@ -158,19 +159,9 @@ export function wireLocaleSelector(selectEl) {
     return;
   }
 
-  const label = selectEl.closest(".locale-select-label");
-  const hidePicker = !WEBLATE_LIVE && LOCALE_OPTIONS.length <= 1;
-  if (hidePicker) {
-    if (label) {
-      label.hidden = true;
-    } else {
-      selectEl.hidden = true;
-    }
-    return;
-  }
-
   if (selectEl.dataset.localeWired === "1") {
     selectEl.value = activeLocale;
+    populateLocaleOptions(selectEl);
     return;
   }
 

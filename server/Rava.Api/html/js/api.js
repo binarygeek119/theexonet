@@ -822,6 +822,28 @@ export class RavaApi {
     return this.request("/api/moderator/ban-appeals");
   }
 
+  moderatorBans(search = "", activeOnly = true, limit = 100) {
+    const params = new URLSearchParams();
+    if (search) {
+      params.set("search", search);
+    }
+    params.set("activeOnly", activeOnly ? "true" : "false");
+    params.set("limit", String(limit));
+    return this.request(`/api/moderator/bans?${params.toString()}`);
+  }
+
+  moderatorMessageLog(search = "", channel = "", limit = 100) {
+    const params = new URLSearchParams();
+    if (search) {
+      params.set("search", search);
+    }
+    if (channel) {
+      params.set("channel", channel);
+    }
+    params.set("limit", String(limit));
+    return this.request(`/api/moderator/message-log?${params.toString()}`);
+  }
+
   moderatorDismissBanAppeal(appealId) {
     return this.request(`/api/moderator/ban-appeals/${appealId}/dismiss`, {
       method: "POST",

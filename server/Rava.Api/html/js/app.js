@@ -244,7 +244,6 @@ const els = {
   registerFormShell: document.getElementById("register-form-shell"),
   registerTosOpenBtn: document.getElementById("register-tos-open-btn"),
   registerTosPanel: document.getElementById("register-tos-panel"),
-  registerTosAccept: document.getElementById("register-tos-accept"),
   registerTosContinueBtn: document.getElementById("register-tos-continue-btn"),
   registerTosBody: document.getElementById("register-tos-body"),
   registerTosDoneBtn: document.getElementById("register-tos-done-btn"),
@@ -511,10 +510,6 @@ function resetRegisterTosGate() {
   state.registerTosViewed = false;
   state.registerTosFormUnlocked = false;
   closeRegisterTosPanel();
-  if (els.registerTosAccept) {
-    els.registerTosAccept.checked = false;
-    els.registerTosAccept.disabled = true;
-  }
   if (els.registerTosContinueBtn) {
     els.registerTosContinueBtn.disabled = true;
   }
@@ -549,19 +544,15 @@ function renderRegisterTosBody() {
 }
 
 function syncRegisterTosContinueButton() {
-  if (!els.registerTosContinueBtn || !els.registerTosAccept) {
+  if (!els.registerTosContinueBtn) {
     return;
   }
 
-  els.registerTosContinueBtn.disabled =
-    !state.registerTosViewed || !els.registerTosAccept.checked;
+  els.registerTosContinueBtn.disabled = !state.registerTosViewed;
 }
 
 function markRegisterTosViewed() {
   state.registerTosViewed = true;
-  if (els.registerTosAccept) {
-    els.registerTosAccept.disabled = false;
-  }
   syncRegisterTosContinueButton();
 }
 
@@ -3821,26 +3812,13 @@ els.registerTosOpenBtn?.addEventListener("click", (event) => {
   event.preventDefault();
   toggleRegisterTosPanel();
 });
-document.querySelector(".register-tos-open-check")?.addEventListener("click", (event) => {
-  if (!els.registerTosAccept?.disabled) {
-    return;
-  }
-
-  event.preventDefault();
-  openRegisterTosPanel();
-});
 els.registerTosDoneBtn?.addEventListener("click", () => {
   markRegisterTosViewed();
   closeRegisterTosPanel();
 });
-els.registerTosAccept?.addEventListener("change", syncRegisterTosContinueButton);
 els.registerTosContinueBtn?.addEventListener("click", () => {
   if (!state.registerTosViewed) {
     showLoginStatus(t("auth.tos.mustOpen"), "error");
-    return;
-  }
-  if (!els.registerTosAccept?.checked) {
-    showLoginStatus(t("auth.tos.mustAccept"), "error");
     return;
   }
 

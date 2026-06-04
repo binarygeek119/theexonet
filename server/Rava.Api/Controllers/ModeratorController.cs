@@ -17,6 +17,7 @@ public class ModeratorController(
     AdminService adminService,
     BanAppealService banAppealService,
     MessageModerationService messageModerationService,
+    MessageLogService messageLogService,
     IEmailService emailService,
     IOptions<EmailOptions> emailOptions,
     ILogger<ModeratorController> logger) : ControllerBase
@@ -163,6 +164,22 @@ public class ModeratorController(
     [HttpGet("ban-appeals")]
     public async Task<ActionResult<BanAppealsResponse>> BanAppeals(CancellationToken ct) =>
         Ok(new BanAppealsResponse(await banAppealService.GetPendingAppealsAsync(ct)));
+
+    [HttpGet("bans")]
+    public async Task<ActionResult<AdminBansResponse>> Bans(
+        [FromQuery] string? search,
+        [FromQuery] bool activeOnly = true,
+        [FromQuery] int limit = 100,
+        CancellationToken ct = default) =>
+        Ok(await adminService.GetBansAsync(search, activeOnly, limit, ct));
+
+    [HttpGet("message-log")]
+    public async Task<ActionResult<MessageLogResponse>> MessageLog(
+        [FromQuery] string? search,
+        [FromQuery] string? channel,
+        [FromQuery] int limit = 100,
+        CancellationToken ct = default) =>
+        Ok(await messageLogService.GetLogAsync(search, channel, limit, ct));
 
     [HttpPost("ban-appeals/{appealId:guid}/dismiss")]
     public async Task<ActionResult<BanAppealDto>> DismissBanAppeal(Guid appealId, CancellationToken ct)

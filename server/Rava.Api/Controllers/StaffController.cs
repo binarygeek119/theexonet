@@ -75,6 +75,19 @@ public class StaffController(
         return Ok(message);
     }
 
+    [HttpDelete("messages/{messageId:guid}")]
+    public async Task<ActionResult<MessageResponse>> DeleteMessage(Guid messageId, CancellationToken ct)
+    {
+        var username = User.GetUsername() ?? string.Empty;
+        var error = await staffMessageService.DeleteAsync(messageId, username, ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(new MessageResponse("Message deleted."));
+    }
+
     [HttpGet("players/{playerId:guid}/messages")]
     public async Task<ActionResult<PlayerMessagesResponse>> PlayerMessages(Guid playerId, CancellationToken ct) =>
         Ok(new PlayerMessagesResponse(await playerMessageService.GetSentToPlayerAsync(playerId, ct)));
@@ -113,6 +126,19 @@ public class StaffController(
         }
 
         return Ok(message);
+    }
+
+    [HttpDelete("player-inbox/{messageId:guid}")]
+    public async Task<ActionResult<MessageResponse>> DeletePlayerInboxMessage(Guid messageId, CancellationToken ct)
+    {
+        var username = User.GetUsername() ?? string.Empty;
+        var error = await playerToStaffMessageService.DeleteByStaffAsync(messageId, username, ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(new MessageResponse("Message deleted."));
     }
 
     private IReadOnlyList<StaffMemberDto> GetConfiguredStaff()

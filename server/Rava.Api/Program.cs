@@ -145,6 +145,7 @@ builder.Services.AddScoped<CompanyLogoQueueService>();
 builder.Services.AddScoped<ICompanyLogoGenerator, CompanyLogoGenerator>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<AdminTestingActionsService>();
+builder.Services.AddScoped<IPlayerModerationNotifier, PlayerModerationEmailNotifier>();
 builder.Services.AddScoped<PlayerBanService>();
 builder.Services.AddScoped<StaffModerationPolicy>();
 builder.Services.AddScoped<BanAppealService>();
@@ -537,7 +538,7 @@ else
 
 app.UseAuthentication();
 app.UseMiddleware<Rava.Api.Middleware.PlayerActivityMiddleware>();
-app.UseMiddleware<Rava.Api.Middleware.PlayerBanMiddleware>();
+app.UseMiddleware<Rava.Api.Middleware.PlayerModerationMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 

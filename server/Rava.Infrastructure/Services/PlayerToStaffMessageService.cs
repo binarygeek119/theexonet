@@ -58,7 +58,7 @@ public class PlayerToStaffMessageService(
     public async Task<IReadOnlyList<PlayerToStaffMessageDto>> GetSentByPlayerAsync(Guid playerId, CancellationToken ct)
     {
         var messages = await db.PlayerToStaffMessages.AsNoTracking()
-            .Where(m => m.PlayerId == playerId)
+            .Where(m => m.PlayerId == playerId && m.HiddenForPlayerAt == null)
             .OrderByDescending(m => m.CreatedAt)
             .Take(50)
             .ToListAsync(ct);
@@ -70,7 +70,9 @@ public class PlayerToStaffMessageService(
     {
         var normalized = staffUsername.Trim();
         var messages = await db.PlayerToStaffMessages.AsNoTracking()
-            .Where(m => m.ToStaffUsername.ToLower() == normalized.ToLower())
+            .Where(m =>
+                m.ToStaffUsername.ToLower() == normalized.ToLower()
+                && m.HiddenForStaffAt == null)
             .OrderByDescending(m => m.CreatedAt)
             .Take(100)
             .ToListAsync(ct);
@@ -95,7 +97,9 @@ public class PlayerToStaffMessageService(
         var normalized = staffUsername.Trim();
         return await db.PlayerToStaffMessages.AsNoTracking()
             .CountAsync(
-                m => m.ToStaffUsername.ToLower() == normalized.ToLower() && m.ReadAt == null,
+                m => m.ToStaffUsername.ToLower() == normalized.ToLower()
+                     && m.ReadAt == null
+                     && m.HiddenForStaffAt == null,
                 ct);
     }
 
@@ -186,6 +190,11 @@ public class PlayerToStaffMessageService(
             return (null, "You can only mark messages sent to you as read.");
         }
 
+        if (message.HiddenForStaffAt is not null)
+        {
+            return (null, "Message not found.");
+        }
+
         if (message.ReadAt is null)
         {
             message.ReadAt = DateTime.UtcNow;
@@ -198,6 +207,52 @@ public class PlayerToStaffMessageService(
             .FirstOrDefaultAsync(ct) ?? "Unknown";
 
         return (MapInboxMessage(message, username), null);
+    }
+
+    public async Task<string?> DeleteByPlayerAsync(Guid messageId, Guid playerId, CancellationToken ct)
+    {
+        var message = await db.PlayerToStaffMessages.FirstOrDefaultAsync(m => m.Id == messageId, ct);
+        if (message is null)
+        {
+            return "Message not found.";
+        }
+
+        if (message.PlayerId != playerId)
+        {
+            return "You can only delete messages you sent.";
+        }
+
+        if (message.HiddenForPlayerAt is not null)
+        {
+            return null;
+        }
+
+        message.HiddenForPlayerAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return null;
+    }
+
+    public async Task<string?> DeleteByStaffAsync(Guid messageId, string staffUsername, CancellationToken ct)
+    {
+        var message = await db.PlayerToStaffMessages.FirstOrDefaultAsync(m => m.Id == messageId, ct);
+        if (message is null)
+        {
+            return "Message not found.";
+        }
+
+        if (!string.Equals(message.ToStaffUsername, staffUsername.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return "You can only delete messages sent to you.";
+        }
+
+        if (message.HiddenForStaffAt is not null)
+        {
+            return null;
+        }
+
+        message.HiddenForStaffAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return null;
     }
 
     private bool IsAllowedStaffUsername(string username) =>

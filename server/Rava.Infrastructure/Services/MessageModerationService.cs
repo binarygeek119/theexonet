@@ -227,6 +227,8 @@ public class MessageModerationService(
             activeCountsByPlayer[playerId] = await playerWarningService.GetActiveWarningCountAsync(playerId, ct);
         }
 
+        var sources = await LoadSourceSnapshotsAsync(flags, ct);
+
         return flags.Select(flag =>
         {
             var playerUsername = flag.PlayerId.HasValue
@@ -238,22 +240,201 @@ public class MessageModerationService(
             var activeCount = flag.PlayerId.HasValue
                 ? activeCountsByPlayer.GetValueOrDefault(flag.PlayerId.Value, 0)
                 : 0;
+            var source = sources.GetValueOrDefault(flag.SourceMessageId);
+            var body = !string.IsNullOrWhiteSpace(flag.Body)
+                ? flag.Body
+                : source?.Body ?? string.Empty;
+            var fromLabel = source?.FromLabel ?? flag.FromLabel;
+            var toLabel = source?.ToLabel ?? flag.ToLabel;
+            var sentAt = source?.SentAt ?? flag.CreatedAt;
+            var sourceDeleted = source is null;
+
             return new FlaggedMessageReviewDto(
                 flag.Id,
                 flag.PlayerId,
                 playerUsername,
                 flag.Channel,
                 flag.SourceMessageId,
-                flag.FromLabel,
-                flag.ToLabel,
-                flag.Body,
+                fromLabel,
+                toLabel,
+                body,
                 flag.MatchedTerms,
                 flag.Status,
                 flag.CreatedAt,
                 string.IsNullOrWhiteSpace(flag.ReviewedByUsername) ? null : flag.ReviewedByUsername,
                 flag.ReviewedAt,
                 activeCount,
-                warnings);
+                warnings,
+                sentAt,
+                sourceDeleted);
         }).ToList();
+    }
+
+    private sealed record SourceSnapshot(
+        string Body,
+        DateTime SentAt,
+        string FromLabel,
+        string ToLabel);
+
+    private async Task<Dictionary<Guid, SourceSnapshot>> LoadSourceSnapshotsAsync(
+        IReadOnlyList<FlaggedMessageEntity> flags,
+        CancellationToken ct)
+    {
+        var snapshots = new Dictionary<Guid, SourceSnapshot>();
+        if (flags.Count == 0)
+        {
+            return snapshots;
+        }
+
+        foreach (var group in flags.GroupBy(flag => flag.Channel))
+        {
+            var ids = group.Select(flag => flag.SourceMessageId).Distinct().ToList();
+            switch (group.Key)
+            {
+                case MessageLogChannels.Peer:
+                    await LoadPeerSnapshotsAsync(ids, snapshots, ct);
+                    break;
+                case MessageLogChannels.PlayerToStaff:
+                    await LoadPlayerToStaffSnapshotsAsync(ids, snapshots, ct);
+                    break;
+                case MessageLogChannels.BanAppeal:
+                    await LoadBanAppealSnapshotsAsync(ids, snapshots, ct);
+                    break;
+                case MessageLogChannels.StaffToPlayer:
+                    await LoadStaffToPlayerSnapshotsAsync(ids, snapshots, ct);
+                    break;
+                case MessageLogChannels.StaffToStaff:
+                    await LoadStaffToStaffSnapshotsAsync(ids, snapshots, ct);
+                    break;
+            }
+        }
+
+        return snapshots;
+    }
+
+    private async Task LoadPeerSnapshotsAsync(
+        IReadOnlyList<Guid> ids,
+        Dictionary<Guid, SourceSnapshot> snapshots,
+        CancellationToken ct)
+    {
+        var messages = await db.PeerMessages.AsNoTracking()
+            .Where(message => ids.Contains(message.Id))
+            .ToListAsync(ct);
+        if (messages.Count == 0)
+        {
+            return;
+        }
+
+        var playerIds = messages
+            .SelectMany(message => new[] { message.FromPlayerId, message.ToPlayerId })
+            .Distinct()
+            .ToList();
+        var usernames = await db.Players.AsNoTracking()
+            .Where(player => playerIds.Contains(player.Id))
+            .ToDictionaryAsync(player => player.Id, player => player.Username, ct);
+
+        foreach (var message in messages)
+        {
+            snapshots[message.Id] = new SourceSnapshot(
+                message.Body,
+                message.CreatedAt,
+                usernames.GetValueOrDefault(message.FromPlayerId, "Unknown"),
+                usernames.GetValueOrDefault(message.ToPlayerId, "Unknown"));
+        }
+    }
+
+    private async Task LoadPlayerToStaffSnapshotsAsync(
+        IReadOnlyList<Guid> ids,
+        Dictionary<Guid, SourceSnapshot> snapshots,
+        CancellationToken ct)
+    {
+        var messages = await db.PlayerToStaffMessages.AsNoTracking()
+            .Where(message => ids.Contains(message.Id))
+            .ToListAsync(ct);
+        if (messages.Count == 0)
+        {
+            return;
+        }
+
+        var playerIds = messages.Select(message => message.PlayerId).Distinct().ToList();
+        var usernames = await db.Players.AsNoTracking()
+            .Where(player => playerIds.Contains(player.Id))
+            .ToDictionaryAsync(player => player.Id, player => player.Username, ct);
+
+        foreach (var message in messages)
+        {
+            snapshots[message.Id] = new SourceSnapshot(
+                message.Body,
+                message.CreatedAt,
+                usernames.GetValueOrDefault(message.PlayerId, "Unknown"),
+                message.ToStaffUsername);
+        }
+    }
+
+    private async Task LoadBanAppealSnapshotsAsync(
+        IReadOnlyList<Guid> ids,
+        Dictionary<Guid, SourceSnapshot> snapshots,
+        CancellationToken ct)
+    {
+        var appeals = await db.BanAppeals.AsNoTracking()
+            .Include(appeal => appeal.Player)
+            .Where(appeal => ids.Contains(appeal.Id))
+            .ToListAsync(ct);
+
+        foreach (var appeal in appeals)
+        {
+            snapshots[appeal.Id] = new SourceSnapshot(
+                appeal.Message,
+                appeal.CreatedAt,
+                appeal.Player.Username,
+                "admins");
+        }
+    }
+
+    private async Task LoadStaffToPlayerSnapshotsAsync(
+        IReadOnlyList<Guid> ids,
+        Dictionary<Guid, SourceSnapshot> snapshots,
+        CancellationToken ct)
+    {
+        var messages = await db.PlayerMessages.AsNoTracking()
+            .Where(message => ids.Contains(message.Id))
+            .ToListAsync(ct);
+        if (messages.Count == 0)
+        {
+            return;
+        }
+
+        var playerIds = messages.Select(message => message.PlayerId).Distinct().ToList();
+        var usernames = await db.Players.AsNoTracking()
+            .Where(player => playerIds.Contains(player.Id))
+            .ToDictionaryAsync(player => player.Id, player => player.Username, ct);
+
+        foreach (var message in messages)
+        {
+            snapshots[message.Id] = new SourceSnapshot(
+                message.Body,
+                message.CreatedAt,
+                message.FromStaffUsername,
+                usernames.GetValueOrDefault(message.PlayerId, "Unknown"));
+        }
+    }
+
+    private async Task LoadStaffToStaffSnapshotsAsync(
+        IReadOnlyList<Guid> ids,
+        Dictionary<Guid, SourceSnapshot> snapshots,
+        CancellationToken ct)
+    {
+        var messages = await db.StaffMessages.AsNoTracking()
+            .Where(message => ids.Contains(message.Id))
+            .ToListAsync(ct);
+
+        foreach (var message in messages)
+        {
+            snapshots[message.Id] = new SourceSnapshot(
+                message.Body,
+                message.CreatedAt,
+                message.FromUsername,
+                message.ToUsername);
+        }
     }
 }

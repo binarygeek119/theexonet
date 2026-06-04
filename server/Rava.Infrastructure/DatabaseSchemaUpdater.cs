@@ -219,6 +219,11 @@ public static class DatabaseSchemaUpdater
             SET "ExpiresAt" = "CreatedAt" + INTERVAL '30 days'
             WHERE "ExpiresAt" IS NULL;
             CREATE INDEX IF NOT EXISTS "IX_PlayerWarnings_ExpiresAt" ON "PlayerWarnings" ("ExpiresAt");
+            ALTER TABLE "PlayerWarnings" ADD COLUMN IF NOT EXISTS "AcknowledgedAt" timestamp with time zone NULL;
+            UPDATE "PlayerWarnings"
+            SET "AcknowledgedAt" = "CreatedAt"
+            WHERE "AcknowledgedAt" IS NULL;
+            CREATE INDEX IF NOT EXISTS "IX_PlayerWarnings_AcknowledgedAt" ON "PlayerWarnings" ("AcknowledgedAt");
             CREATE TABLE IF NOT EXISTS "SpecialEvents" (
                 "Id" uuid NOT NULL,
                 "Title" text NOT NULL DEFAULT '',
@@ -379,6 +384,11 @@ public static class DatabaseSchemaUpdater
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileBirthdayPublic" boolean NOT NULL DEFAULT false;
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileAgePublic" boolean NOT NULL DEFAULT false;
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "AdminTestingModeEnabled" boolean NOT NULL DEFAULT false;
+            ALTER TABLE "PlayerMessages" ADD COLUMN IF NOT EXISTS "HiddenForPlayerAt" timestamp with time zone NULL;
+            ALTER TABLE "PeerMessages" ADD COLUMN IF NOT EXISTS "HiddenForSenderAt" timestamp with time zone NULL;
+            ALTER TABLE "PeerMessages" ADD COLUMN IF NOT EXISTS "HiddenForRecipientAt" timestamp with time zone NULL;
+            ALTER TABLE "PlayerToStaffMessages" ADD COLUMN IF NOT EXISTS "HiddenForPlayerAt" timestamp with time zone NULL;
+            ALTER TABLE "PlayerToStaffMessages" ADD COLUMN IF NOT EXISTS "HiddenForStaffAt" timestamp with time zone NULL;
             """,
             cancellationToken);
     }

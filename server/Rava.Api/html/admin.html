@@ -64,6 +64,7 @@
       <button type="button" class="admin-nav-btn active" data-admin-page="dashboard">Dashboard</button>
       <button type="button" class="admin-nav-btn" data-admin-page="testing">Testing</button>
       <button type="button" class="admin-nav-btn" data-admin-page="players">Players</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="bans">Bans</button>
       <button type="button" class="admin-nav-btn" data-admin-page="appeals">Ban appeals</button>
       <button type="button" class="admin-nav-btn" data-admin-page="messages">
         Messages
@@ -182,6 +183,45 @@
         </section>
       </section>
 
+      <section id="admin-page-bans" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Bans</h2>
+              <p class="admin-page-desc">All active player bans with level, reason, and staff notes.</p>
+            </div>
+            <div class="admin-search-row">
+              <input id="admin-bans-search" type="search" placeholder="Search username, email, reason, staff…">
+              <label class="admin-bans-filter">
+                <input id="admin-bans-active-only" type="checkbox" checked>
+                Active only
+              </label>
+              <button id="admin-bans-search-btn" type="button" class="btn primary">Search</button>
+              <button id="admin-bans-refresh-btn" type="button" class="btn ghost">Refresh</button>
+            </div>
+          </div>
+          <p id="admin-bans-status" class="status-text"></p>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Email</th>
+                  <th>Ban level</th>
+                  <th>Reason</th>
+                  <th>Banned by</th>
+                  <th>Banned at</th>
+                  <th>Expires</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="admin-bans-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
       <section id="admin-page-appeals" class="admin-page" hidden>
         <section class="admin-panel">
           <div class="admin-panel-head">
@@ -240,7 +280,11 @@
             <button id="admin-flagged-refresh-btn" type="button" class="btn primary">Refresh</button>
           </div>
           <p id="admin-flagged-status" class="status-text"></p>
-          <div id="admin-flagged-list" class="admin-flagged-list"></div>
+          <div class="staff-message-layout admin-flagged-layout">
+            <div id="admin-flagged-inbox" class="staff-message-inbox admin-flagged-inbox"></div>
+            <div id="admin-flagged-detail" class="staff-message-detail admin-flagged-detail"></div>
+          </div>
+          <p id="admin-flagged-action-status" class="status-text admin-flagged-action-status"></p>
         </section>
       </section>
 
@@ -525,12 +569,16 @@
         </div>
         <label for="admin-profile-ban-level">Ban level</label>
         <select id="admin-profile-ban-level" class="admin-select"></select>
-        <label for="admin-profile-ban-reason">Reason (optional)</label>
+        <label for="admin-profile-ban-reason-preset">Ban reason</label>
+        <select id="admin-profile-ban-reason-preset" class="admin-select"></select>
+        <label for="admin-profile-ban-reason" id="admin-profile-ban-reason-label" hidden>Custom reason</label>
         <textarea
           id="admin-profile-ban-reason"
           maxlength="2000"
           rows="3"
-          placeholder="Optional note about why this ban was applied"></textarea>
+          hidden
+          placeholder="Explain why this player is banned…"></textarea>
+        <p class="admin-page-desc">The reason is shown to the player when they try to log in.</p>
         <div class="admin-profile-ban-actions">
           <button id="admin-profile-ban-btn" type="button" class="btn accent">Apply ban</button>
           <button id="admin-profile-unban-btn" type="button" class="btn ghost">Lift ban</button>
@@ -556,6 +604,6 @@
     </div>
   </div>
 
-  <script type="module" src="/js/admin.js?v=20260529-testing-actions"></script>
+  <script type="module" src="/js/admin.js?v=20260529-ban-reasons"></script>
 </body>
 </html>

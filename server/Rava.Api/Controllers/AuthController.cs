@@ -19,6 +19,7 @@ namespace Rava.Api.Controllers;
 public class AuthController(
     PlayerGameService gameService,
     PlayerBanService playerBanService,
+    PlayerWarningService playerWarningService,
     BanAppealService banAppealService,
     SpecialEventService specialEventService,
     AppDbContext db,
@@ -54,10 +55,15 @@ public class AuthController(
             return Unauthorized(new { message = error });
         }
 
-        var banMessage = await playerBanService.GetActiveBanMessageAsync(player!.Id, ct);
-        if (banMessage is not null)
+        var ban = await playerBanService.GetActiveBanAsync(player!.Id, ct);
+        if (ban is not null)
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = banMessage, code = "banned" });
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                message = PlayerBanService.FormatMessage(ban),
+                code = "banned",
+                ban
+            });
         }
 
         var mineId = await gameService.GetPrimaryMineIdAsync(player.Id, ct);
@@ -74,6 +80,8 @@ public class AuthController(
             testingDummyFriendsAssetService.TryStartEnsureMissing();
         }
 
+        var pendingWarnings = await playerWarningService.GetUnacknowledgedWarningsAsync(player.Id, ct);
+
         return Ok(new AuthResponse(
             token,
             player.Id,
@@ -82,7 +90,8 @@ public class AuthController(
             FeatureFlags.Phase1,
             announcements,
             isStaffAdmin,
-            testingModeEnabled));
+            testingModeEnabled,
+            pendingWarnings));
     }
 
     [AllowAnonymous]
@@ -154,10 +163,26 @@ public class AuthController(
             return Unauthorized(new { message = "Session expired. Sign in again." });
         }
 
-        var banMessage = await playerBanService.GetActiveBanMessageAsync(playerId, ct);
-        if (banMessage is not null)
+        var ban = await playerBanService.GetActiveBanAsync(playerId, ct);
+        if (ban is not null)
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = banMessage, code = "banned" });
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                message = PlayerBanService.FormatMessage(ban),
+                code = "banned",
+                ban
+            });
+        }
+
+        var pendingWarnings = await playerWarningService.GetUnacknowledgedWarningsAsync(playerId, ct);
+        if (pendingWarnings.Count > 0)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                message = "You must acknowledge your account warning before continuing. Please sign in again.",
+                code = "warning_required",
+                warnings = pendingWarnings
+            });
         }
 
         var mineId = await gameService.GetPrimaryMineIdAsync(playerId, ct);
@@ -176,6 +201,28 @@ public class AuthController(
             announcements,
             isStaffAdmin,
             testingModeEnabled));
+    }
+
+    [Authorize]
+    [HttpPost("acknowledge-warning/{warningId:guid}")]
+    public async Task<ActionResult<AcknowledgeWarningResponse>> AcknowledgeWarning(
+        Guid warningId,
+        CancellationToken ct)
+    {
+        var playerId = User.GetPlayerId();
+        if (playerId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Session expired. Sign in again." });
+        }
+
+        var (_, error) = await playerWarningService.AcknowledgeWarningAsync(warningId, playerId, ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        var remaining = await playerWarningService.GetUnacknowledgedWarningsAsync(playerId, ct);
+        return Ok(new AcknowledgeWarningResponse(remaining.Count, remaining));
     }
 
     private async Task<(bool IsStaffAdmin, bool TestingModeEnabled)> GetTestingFlagsAsync(

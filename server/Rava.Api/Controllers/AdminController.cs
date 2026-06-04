@@ -324,6 +324,10 @@ public class AdminController(
     public async Task<ActionResult<IReadOnlyList<BanLevelOptionDto>>> BanLevels(CancellationToken ct) =>
         Ok(await adminService.GetBanLevelOptions());
 
+    [HttpGet("ban-reasons")]
+    public async Task<ActionResult<BanReasonPresetsResponse>> BanReasons(CancellationToken ct) =>
+        Ok(await adminService.GetBanReasonPresets());
+
     [HttpPost("players/{playerId:guid}/ban")]
     public async Task<ActionResult<PlayerBanActionResponse>> BanPlayer(
         Guid playerId,
@@ -387,6 +391,14 @@ public class AdminController(
             warning!,
             $"Warning issued ({activeCount}/{ModerationWarningLimits.MaxWarningsBeforeBan} active). Expires in {ModerationWarningLimits.WarningDurationDays} days. Player was not notified."));
     }
+
+    [HttpGet("bans")]
+    public async Task<ActionResult<AdminBansResponse>> Bans(
+        [FromQuery] string? search,
+        [FromQuery] bool activeOnly = true,
+        [FromQuery] int limit = 100,
+        CancellationToken ct = default) =>
+        Ok(await adminService.GetBansAsync(search, activeOnly, limit, ct));
 
     [HttpGet("ban-appeals")]
     public async Task<ActionResult<BanAppealsResponse>> BanAppeals(CancellationToken ct) =>

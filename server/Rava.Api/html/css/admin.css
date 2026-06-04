@@ -640,6 +640,53 @@
   color: #ffc9c9;
 }
 
+.admin-ban-badge.lifted {
+  background: rgba(108, 117, 125, 0.25);
+  color: #cfd4da;
+}
+
+.admin-ban-badge.expired {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffe08a;
+}
+
+.admin-bans-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.92rem;
+  color: var(--admin-muted, #b8c0cc);
+  white-space: nowrap;
+}
+
+.admin-ban-reason {
+  max-width: 280px;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.admin-flagged-layout {
+  margin-top: 12px;
+}
+
+.admin-flagged-inbox {
+  max-height: 560px;
+}
+
+.admin-flagged-detail {
+  max-height: 560px;
+  overflow: auto;
+}
+
+.admin-flagged-detail .admin-flagged-review {
+  padding: 4px 2px;
+}
+
+.admin-flagged-body-full {
+  max-height: none;
+  overflow: visible;
+}
+
 .admin-flagged-list {
   display: grid;
   gap: 16px;
@@ -665,11 +712,28 @@
 }
 
 .admin-flagged-meta,
-.admin-flagged-route,
 .admin-flagged-match {
   color: var(--muted);
   font-size: 0.9rem;
   margin: 0 0 8px;
+}
+
+.admin-flagged-section-label {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.admin-flagged-as-sent {
+  margin: 12px 0;
+}
+
+.admin-flagged-as-sent .staff-message-detail-top h4 {
+  margin: 0 0 4px;
+  font-size: 1rem;
 }
 
 .admin-flagged-body {
@@ -677,7 +741,14 @@
   padding: 12px 14px;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.18);
-  margin: 10px 0;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-flagged-term {
+  padding: 0 2px;
+  border-radius: 3px;
+  color: #1a1200;
+  background: #ffd666;
 }
 
 .admin-flagged-warnings {
@@ -694,24 +765,44 @@
   align-items: center;
 }
 
+.admin-flagged-action-status {
+  margin-top: 12px;
+}
+
+.admin-flagged-row-status {
+  flex: 1 1 100%;
+  min-height: 1.25rem;
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.admin-flagged-row-status.info {
+  color: #c8d4f0;
+  background: rgba(51, 115, 179, 0.12);
+  border-color: rgba(51, 115, 179, 0.35);
+}
+
+.admin-flagged-row-status.error {
+  color: var(--danger);
+  background: rgba(220, 53, 69, 0.12);
+  border-color: rgba(220, 53, 69, 0.35);
+}
+
+.admin-flagged-row-status.success {
+  color: var(--success);
+  background: rgba(40, 167, 69, 0.12);
+  border-color: rgba(40, 167, 69, 0.35);
+}
+
 .admin-flagged-ban-label {
   display: inline-flex;
   flex-direction: column;
   gap: 4px;
   font-size: 0.85rem;
-}
-
-.admin-flagged-row-status {
-  font-size: 0.88rem;
-  color: var(--muted);
-}
-
-.admin-flagged-row-status.error {
-  color: var(--danger);
-}
-
-.admin-flagged-row-status.success {
-  color: var(--success);
 }
 
 .admin-message-log-table td:nth-child(5) {
@@ -768,6 +859,14 @@
 .admin-appeal-row-status {
   font-size: 0.88rem;
   color: var(--muted);
+}
+
+.admin-appeal-row-status.success {
+  color: #9fd9ad;
+}
+
+.admin-appeal-row-status.error {
+  color: #ffb3aa;
 }
 
 .admin-nav-badge {
@@ -909,6 +1008,17 @@
 
 .staff-message-detail-top h3 {
   margin: 0 0 6px;
+}
+
+.staff-message-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.staff-message-detail-head .btn {
+  flex-shrink: 0;
 }
 
 .staff-message-detail-body {

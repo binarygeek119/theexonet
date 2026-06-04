@@ -60,6 +60,52 @@ public class SmtpEmailService(IOptions<EmailOptions> options, ILogger<SmtpEmailS
         logger.LogInformation("Ban appeal email sent to admin {Email}", toEmail);
     }
 
+    public async Task SendAccountBanAsync(
+        string toEmail,
+        string username,
+        string banLevelLabel,
+        string reason,
+        bool isPermanent,
+        DateTime? expiresAtUtc,
+        string loginUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var settings = options.Value;
+        var message = BuildAccountBanMessage(
+            settings,
+            toEmail,
+            username,
+            banLevelLabel,
+            reason,
+            isPermanent,
+            expiresAtUtc,
+            loginUrl);
+
+        await SendAsync(settings, message, cancellationToken);
+        logger.LogInformation("Account ban email sent to {Email}", toEmail);
+    }
+
+    public async Task SendAccountWarningAsync(
+        string toEmail,
+        string username,
+        string reason,
+        DateTime expiresAtUtc,
+        string loginUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var settings = options.Value;
+        var message = BuildAccountWarningMessage(
+            settings,
+            toEmail,
+            username,
+            reason,
+            expiresAtUtc,
+            loginUrl);
+
+        await SendAsync(settings, message, cancellationToken);
+        logger.LogInformation("Account warning email sent to {Email}", toEmail);
+    }
+
     private async Task SendAsync(EmailOptions settings, MimeMessage message, CancellationToken cancellationToken)
     {
         using var client = new SmtpClient();
@@ -195,6 +241,92 @@ public class SmtpEmailService(IOptions<EmailOptions> options, ILogger<SmtpEmailS
         mimeMessage.Body = new TextPart("plain") { Text = body };
         return mimeMessage;
     }
+
+    private static MimeMessage BuildAccountBanMessage(
+        EmailOptions settings,
+        string toEmail,
+        string username,
+        string banLevelLabel,
+        string reason,
+        bool isPermanent,
+        DateTime? expiresAtUtc,
+        string loginUrl)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(settings.FromName, settings.FromAddress));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = "Your RAVA account has been banned";
+
+        var durationLine = isPermanent
+            ? "Duration: Permanent (life ban)"
+            : expiresAtUtc is null
+                ? "Duration: Banned"
+                : $"Duration: {banLevelLabel} — banned until {expiresAtUtc.Value:yyyy-MM-dd HH:mm} UTC";
+
+        var reasonLine = string.IsNullOrWhiteSpace(reason)
+            ? "Reason: No reason was provided."
+            : $"Reason: {reason.Trim()}";
+
+        var body = $"""
+            Hi {username},
+
+            Your Reactive Asteroid Venturing Agency (RAVA) account has been banned.
+
+            {durationLine}
+            {reasonLine}
+
+            You will not be able to sign in or play until the ban ends. When you try to log in, you will see this ban notice in the game.
+
+            Sign in page:
+            {loginUrl}
+
+            If you believe this ban was a mistake, you can submit a ban appeal from the login screen after signing in with your username and password.
+
+            — RAVA Command
+            """;
+
+        message.Body = new TextPart("plain") { Text = body };
+        return message;
+    }
+
+    private static MimeMessage BuildAccountWarningMessage(
+        EmailOptions settings,
+        string toEmail,
+        string username,
+        string reason,
+        DateTime expiresAtUtc,
+        string loginUrl)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(settings.FromName, settings.FromAddress));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = "Account warning on RAVA";
+
+        var reasonLine = string.IsNullOrWhiteSpace(reason)
+            ? "Reason: No reason was provided."
+            : $"Reason: {reason.Trim()}";
+
+        var body = $"""
+            Hi {username},
+
+            Your Reactive Asteroid Venturing Agency (RAVA) account received a moderation warning.
+
+            {reasonLine}
+            Warning expires: {expiresAtUtc:yyyy-MM-dd HH:mm} UTC
+
+            The next time you sign in, you must read and acknowledge this warning before you can continue playing.
+
+            Sign in page:
+            {loginUrl}
+
+            Further violations may result in a temporary or permanent account ban.
+
+            — RAVA Command
+            """;
+
+        message.Body = new TextPart("plain") { Text = body };
+        return message;
+    }
 }
 
 public class LoggingEmailService(ILogger<LoggingEmailService> logger) : IEmailService
@@ -247,6 +379,44 @@ public class LoggingEmailService(ILogger<LoggingEmailService> logger) : IEmailSe
             toEmail,
             message,
             adminPortalUrl);
+        return Task.CompletedTask;
+    }
+
+    public Task SendAccountBanAsync(
+        string toEmail,
+        string username,
+        string banLevelLabel,
+        string reason,
+        bool isPermanent,
+        DateTime? expiresAtUtc,
+        string loginUrl,
+        CancellationToken cancellationToken = default)
+    {
+        logger.LogWarning(
+            "Email not configured. Account ban for {Username} ({Email}): {BanLevel} — {Reason} — {LoginUrl}",
+            username,
+            toEmail,
+            banLevelLabel,
+            reason,
+            loginUrl);
+        return Task.CompletedTask;
+    }
+
+    public Task SendAccountWarningAsync(
+        string toEmail,
+        string username,
+        string reason,
+        DateTime expiresAtUtc,
+        string loginUrl,
+        CancellationToken cancellationToken = default)
+    {
+        logger.LogWarning(
+            "Email not configured. Account warning for {Username} ({Email}): {Reason} — expires {ExpiresAt} — {LoginUrl}",
+            username,
+            toEmail,
+            reason,
+            expiresAtUtc,
+            loginUrl);
         return Task.CompletedTask;
     }
 }

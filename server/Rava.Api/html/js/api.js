@@ -103,6 +103,12 @@ export class RavaApi {
         if (error?.code) {
           code = error.code;
         }
+        if (error?.ban) {
+          err.ban = error.ban;
+        }
+        if (error?.warnings) {
+          err.warnings = error.warnings;
+        }
       } catch {
         // ignore parse errors
       }
@@ -155,6 +161,13 @@ export class RavaApi {
 
   getSession() {
     return this.request("/api/auth/session");
+  }
+
+  acknowledgeWarning(warningId) {
+    return this.request(`/api/auth/acknowledge-warning/${warningId}`, {
+      method: "POST",
+      body: {},
+    });
   }
 
   async getStatus() {
@@ -616,6 +629,10 @@ export class RavaApi {
     return this.request("/api/admin/ban-levels");
   }
 
+  adminBanReasonPresets() {
+    return this.request("/api/admin/ban-reasons");
+  }
+
   adminBanPlayer(playerId, banLevel, reason = "") {
     return this.request(`/api/admin/players/${playerId}/ban`, {
       method: "POST",
@@ -639,6 +656,16 @@ export class RavaApi {
 
   adminBanAppeals() {
     return this.request("/api/admin/ban-appeals");
+  }
+
+  adminBans(search = "", activeOnly = true, limit = 100) {
+    const params = new URLSearchParams();
+    if (search) {
+      params.set("search", search);
+    }
+    params.set("activeOnly", activeOnly ? "true" : "false");
+    params.set("limit", String(limit));
+    return this.request(`/api/admin/bans?${params.toString()}`);
   }
 
   adminMessageLog(search = "", channel = "", limit = 100) {
@@ -758,6 +785,10 @@ export class RavaApi {
     return this.request("/api/moderator/ban-levels");
   }
 
+  moderatorBanReasonPresets() {
+    return this.request("/api/moderator/ban-reasons");
+  }
+
   moderatorBanPlayer(playerId, banLevel, reason = "") {
     return this.request(`/api/moderator/players/${playerId}/ban`, {
       method: "POST",
@@ -816,6 +847,12 @@ export class RavaApi {
     });
   }
 
+  staffDeleteMessage(messageId) {
+    return this.request(`/api/staff/messages/${messageId}`, {
+      method: "DELETE",
+    });
+  }
+
   staffPlayerInbox() {
     return this.request("/api/staff/player-inbox");
   }
@@ -824,6 +861,12 @@ export class RavaApi {
     return this.request(`/api/staff/player-inbox/${messageId}/read`, {
       method: "POST",
       body: {},
+    });
+  }
+
+  staffDeletePlayerInboxMessage(messageId) {
+    return this.request(`/api/staff/player-inbox/${messageId}`, {
+      method: "DELETE",
     });
   }
 
@@ -853,6 +896,12 @@ export class RavaApi {
     });
   }
 
+  deletePlayerMessage(messageId) {
+    return this.request(`/api/player/messages/${messageId}`, {
+      method: "DELETE",
+    });
+  }
+
   peerMessages() {
     return this.request("/api/player/peer-messages");
   }
@@ -871,6 +920,12 @@ export class RavaApi {
     });
   }
 
+  deletePeerMessage(messageId) {
+    return this.request(`/api/player/peer-messages/${messageId}`, {
+      method: "DELETE",
+    });
+  }
+
   playerStaffContacts() {
     return this.request("/api/player/staff-contacts");
   }
@@ -883,6 +938,12 @@ export class RavaApi {
     return this.request("/api/player/staff-messages", {
       method: "POST",
       body: { toStaffUsername, body },
+    });
+  }
+
+  deletePlayerStaffMessage(messageId) {
+    return this.request(`/api/player/staff-messages/${messageId}`, {
+      method: "DELETE",
     });
   }
 }

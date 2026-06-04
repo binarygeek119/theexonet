@@ -28,6 +28,13 @@ public class AdminService(
             gameCreditsConfig.BirthdayBonus);
     }
 
+    public Task<AdminBansResponse> GetBansAsync(
+        string? search,
+        bool activeOnly,
+        int limit,
+        CancellationToken ct) =>
+        playerBanService.GetAdminBanListAsync(search, activeOnly, limit, ct);
+
     public async Task<AdminPlayersResponse> GetPlayersAsync(string? search, int limit, CancellationToken ct)
     {
         limit = Math.Clamp(limit, 1, 200);
@@ -174,6 +181,9 @@ public class AdminService(
 
     public Task<IReadOnlyList<BanLevelOptionDto>> GetBanLevelOptions() =>
         Task.FromResult<IReadOnlyList<BanLevelOptionDto>>(playerBanService.GetBanLevelOptions());
+
+    public Task<BanReasonPresetsResponse> GetBanReasonPresets() =>
+        Task.FromResult(new BanReasonPresetsResponse(playerBanService.GetBanReasonPresets()));
 
     public Task<(PlayerBanDto? Ban, string? Error)> SetPlayerBanAsync(
         Guid playerId,

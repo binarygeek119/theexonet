@@ -238,8 +238,13 @@ export function initPlayerMessaging({ api, els, setStatus }) {
 
     detailEl.innerHTML = `
       <header class="staff-message-detail-top">
-        <h3>${escapeHtml(heading)}</h3>
-        <p class="staff-message-detail-meta">${escapeHtml(meta)}</p>
+        <div class="staff-message-detail-head">
+          <div>
+            <h3>${escapeHtml(heading)}</h3>
+            <p class="staff-message-detail-meta">${escapeHtml(meta)}</p>
+          </div>
+          <button type="button" class="btn ghost danger staff-message-delete-btn">Remove</button>
+        </div>
       </header>
       <div class="staff-message-detail-body">${escapeHtml(message.body)}</div>`;
   }
@@ -386,6 +391,42 @@ export function initPlayerMessaging({ api, els, setStatus }) {
     await refreshUnreadBadge();
   }
 
+  async function deleteSelectedMessage() {
+    if (!selectedMessageKind || !selectedMessageId) {
+      return;
+    }
+
+    if (composePlayerId && isDummyPlayerId(composePlayerId)) {
+      setStatus(els.messagesStatus, "Test profile — messages are not saved.");
+      return;
+    }
+
+    const message = findMessage(selectedMessageKind, selectedMessageId);
+    if (!message) {
+      return;
+    }
+
+    if (!window.confirm("Remove this message from your inbox? The other person can still see it.")) {
+      return;
+    }
+
+    setStatus(els.messagesStatus, "Removing...");
+    try {
+      if (message.kind === "staff") {
+        await api.deletePlayerMessage(message.id);
+      } else if (message.kind === "to-staff") {
+        await api.deletePlayerStaffMessage(message.id);
+      } else {
+        await api.deletePeerMessage(message.id);
+      }
+
+      setStatus(els.messagesStatus, "Message removed.");
+      await loadMessages();
+    } catch (error) {
+      setStatus(els.messagesStatus, error.message, true);
+    }
+  }
+
   async function sendMessage() {
     const toPlayerId = els.messageRecipient.value;
     const body = els.messageBody.value.trim();
@@ -485,8 +526,18 @@ export function initPlayerMessaging({ api, els, setStatus }) {
 
   showPeerMode();
 
+  function handleDetailClick(event) {
+    if (event.target.closest(".staff-message-delete-btn")) {
+      deleteSelectedMessage().catch((error) =>
+        setStatus(els.messagesStatus, error.message, true)
+      );
+    }
+  }
+
   els.messagesInbox?.addEventListener("click", handleInboxClick);
   els.staffMessagesInbox?.addEventListener("click", handleInboxClick);
+  els.messagesDetail?.addEventListener("click", handleDetailClick);
+  els.staffMessagesDetail?.addEventListener("click", handleDetailClick);
 
   function handleInboxClick(event) {
     const button = event.target.closest(".staff-message-item");

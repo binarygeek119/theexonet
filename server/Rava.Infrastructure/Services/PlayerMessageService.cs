@@ -12,7 +12,7 @@ public class PlayerMessageService(AppDbContext db, ILogger<PlayerMessageService>
     public async Task<IReadOnlyList<PlayerMessageDto>> GetInboxAsync(Guid playerId, CancellationToken ct)
     {
         var messages = await db.PlayerMessages.AsNoTracking()
-            .Where(m => m.PlayerId == playerId)
+            .Where(m => m.PlayerId == playerId && m.HiddenForPlayerAt == null)
             .OrderByDescending(m => m.CreatedAt)
             .Take(100)
             .ToListAsync(ct);
@@ -33,7 +33,7 @@ public class PlayerMessageService(AppDbContext db, ILogger<PlayerMessageService>
 
     public async Task<int> GetUnreadCountAsync(Guid playerId, CancellationToken ct) =>
         await db.PlayerMessages.AsNoTracking()
-            .CountAsync(m => m.PlayerId == playerId && m.ReadAt == null, ct);
+            .CountAsync(m => m.PlayerId == playerId && m.ReadAt == null && m.HiddenForPlayerAt == null, ct);
 
     public async Task<(PlayerMessageDto? Message, string? Error)> SendToPlayerAsync(
         string fromStaffUsername,
@@ -103,6 +103,11 @@ public class PlayerMessageService(AppDbContext db, ILogger<PlayerMessageService>
             return (null, "You can only mark your own messages as read.");
         }
 
+        if (message.HiddenForPlayerAt is not null)
+        {
+            return (null, "Message not found.");
+        }
+
         if (message.ReadAt is null)
         {
             message.ReadAt = DateTime.UtcNow;
@@ -110,6 +115,29 @@ public class PlayerMessageService(AppDbContext db, ILogger<PlayerMessageService>
         }
 
         return (MapMessage(message), null);
+    }
+
+    public async Task<string?> DeleteAsync(Guid messageId, Guid playerId, CancellationToken ct)
+    {
+        var message = await db.PlayerMessages.FirstOrDefaultAsync(m => m.Id == messageId, ct);
+        if (message is null)
+        {
+            return "Message not found.";
+        }
+
+        if (message.PlayerId != playerId)
+        {
+            return "You can only delete your own messages.";
+        }
+
+        if (message.HiddenForPlayerAt is not null)
+        {
+            return null;
+        }
+
+        message.HiddenForPlayerAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return null;
     }
 
     private static PlayerMessageDto MapMessage(PlayerMessageEntity message) =>

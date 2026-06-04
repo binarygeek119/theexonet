@@ -73,8 +73,13 @@ export function initStaffMessaging({
 
     els.messagesDetail.innerHTML = `
       <header class="staff-message-detail-top">
-        <h3>From ${escapeHtml(message.fromUsername)}</h3>
-        <p class="staff-message-detail-meta">${formatMessageDate(message.createdAt)}</p>
+        <div class="staff-message-detail-head">
+          <div>
+            <h3>From ${escapeHtml(message.fromUsername)}</h3>
+            <p class="staff-message-detail-meta">${formatMessageDate(message.createdAt)}</p>
+          </div>
+          <button type="button" class="btn ghost danger staff-message-delete-btn">Delete</button>
+        </div>
       </header>
       <div class="staff-message-detail-body">${escapeHtml(message.body)}</div>`;
   }
@@ -126,8 +131,11 @@ export function initStaffMessaging({
     }
   }
 
-  async function loadMessages() {
-    setStatus(els.messagesStatus, "Loading…");
+  async function loadMessages(options = {}) {
+    const { successMessage } = options;
+    if (!successMessage) {
+      setStatus(els.messagesStatus, "Loading…");
+    }
     const [membersResponse, messagesResponse] = await Promise.all([
       api.staffMembers(),
       api.staffMessages(),
@@ -146,7 +154,9 @@ export function initStaffMessaging({
       }
     }
 
-    if (!skipInboxRender) {
+    if (successMessage) {
+      setStatus(els.messagesStatus, successMessage, false);
+    } else if (!skipInboxRender) {
       setStatus(els.messagesStatus, `${inboxMessages.length} message(s)`);
     }
     await refreshUnreadBadge();
@@ -159,6 +169,22 @@ export function initStaffMessaging({
     inboxMessages = inboxMessages.map((item) => (item.id === updated.id ? updated : item));
     if (onInboxUpdated) {
       onInboxUpdated();
+    }
+  }
+
+  async function deleteMessage(messageId) {
+    if (!window.confirm("Delete this message? This cannot be undone.")) {
+      return;
+    }
+
+    setStatus(els.messagesStatus, "Deleting…");
+    try {
+      const result = await api.staffDeleteMessage(messageId);
+      await loadMessages({
+        successMessage: result.message ?? "Message deleted.",
+      });
+    } catch (error) {
+      setStatus(els.messagesStatus, error.message, true);
     }
   }
 
@@ -181,8 +207,9 @@ export function initStaffMessaging({
     try {
       const result = await api.staffSendMessage(toUsername, body);
       els.messagesBody.value = "";
-      setStatus(els.messagesStatus, result.statusMessage ?? "Message sent.");
-      await loadMessages();
+      await loadMessages({
+        successMessage: result.statusMessage ?? `Message sent to ${toUsername}.`,
+      });
     } catch (error) {
       setStatus(els.messagesStatus, error.message, true);
     } finally {
@@ -212,6 +239,18 @@ export function initStaffMessaging({
       if (messageId) {
         selectMessage(messageId).catch((error) => setStatus(els.messagesStatus, error.message, true));
       }
+    });
+  }
+
+  if (els.messagesDetail) {
+    els.messagesDetail.addEventListener("click", (event) => {
+      if (!event.target.closest(".staff-message-delete-btn") || !selectedMessageId) {
+        return;
+      }
+
+      deleteMessage(selectedMessageId).catch((error) =>
+        setStatus(els.messagesStatus, error.message, true)
+      );
     });
   }
 

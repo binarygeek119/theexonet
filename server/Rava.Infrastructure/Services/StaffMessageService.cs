@@ -125,6 +125,27 @@ public class StaffMessageService(AppDbContext db, ILogger<StaffMessageService> l
         return (MapMessage(message), null);
     }
 
+    public async Task<string?> DeleteAsync(Guid messageId, string username, CancellationToken ct)
+    {
+        var message = await db.StaffMessages.FirstOrDefaultAsync(m => m.Id == messageId, ct);
+        if (message is null)
+        {
+            return "Message not found.";
+        }
+
+        var normalized = username.Trim();
+        var isParticipant = string.Equals(message.FromUsername, normalized, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(message.ToUsername, normalized, StringComparison.OrdinalIgnoreCase);
+        if (!isParticipant)
+        {
+            return "You can only delete messages you sent or received.";
+        }
+
+        db.StaffMessages.Remove(message);
+        await db.SaveChangesAsync(ct);
+        return null;
+    }
+
     private static bool IsAllowedStaffUsername(string username, IReadOnlySet<string> allowedStaffUsernames) =>
         allowedStaffUsernames.Contains(username);
 

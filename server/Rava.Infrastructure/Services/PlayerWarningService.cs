@@ -1,18 +1,37 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Rava.Core.Constants;
 using Rava.Core.Dtos;
+using Rava.Core.Interfaces;
 using Rava.Infrastructure.Data;
 using Rava.Infrastructure.Entities;
 
 namespace Rava.Infrastructure.Services;
 
-public class PlayerWarningService(AppDbContext db, StaffModerationPolicy staffModerationPolicy)
+public class PlayerWarningService(
+    AppDbContext db,
+    StaffModerationPolicy staffModerationPolicy,
+    IPlayerModerationNotifier moderationNotifier,
+    ILogger<PlayerWarningService> logger)
 {
     public async Task<int> GetActiveWarningCountAsync(Guid playerId, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
         return await db.PlayerWarnings.AsNoTracking()
             .CountAsync(w => w.PlayerId == playerId && w.ExpiresAt > now, ct);
+    }
+
+    public async Task<IReadOnlyList<PlayerModerationWarningDto>> GetUnacknowledgedWarningsAsync(
+        Guid playerId,
+        CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var warnings = await db.PlayerWarnings.AsNoTracking()
+            .Where(w => w.PlayerId == playerId && w.ExpiresAt > now && w.AcknowledgedAt == null)
+            .OrderBy(w => w.CreatedAt)
+            .ToListAsync(ct);
+
+        return warnings.Select(MapModerationWarning).ToList();
     }
 
     public async Task<IReadOnlyList<PlayerWarningDto>> GetWarningHistoryAsync(Guid playerId, CancellationToken ct)
@@ -24,6 +43,34 @@ public class PlayerWarningService(AppDbContext db, StaffModerationPolicy staffMo
             .ToListAsync(ct);
 
         return warnings.Select(MapWarning).ToList();
+    }
+
+    public async Task<(bool Success, string? Error)> AcknowledgeWarningAsync(
+        Guid warningId,
+        Guid playerId,
+        CancellationToken ct)
+    {
+        var warning = await db.PlayerWarnings
+            .FirstOrDefaultAsync(w => w.Id == warningId && w.PlayerId == playerId, ct);
+        if (warning is null)
+        {
+            return (false, "Warning not found.");
+        }
+
+        if (warning.AcknowledgedAt is not null)
+        {
+            return (true, null);
+        }
+
+        var now = DateTime.UtcNow;
+        if (warning.ExpiresAt <= now)
+        {
+            return (false, "This warning has expired.");
+        }
+
+        warning.AcknowledgedAt = now;
+        await db.SaveChangesAsync(ct);
+        return (true, null);
     }
 
     public async Task<(PlayerWarningDto? Warning, string? Error)> IssueWarningAsync(
@@ -83,14 +130,50 @@ public class PlayerWarningService(AppDbContext db, StaffModerationPolicy staffMo
             Reason = reason,
             IssuedByUsername = staffUsername.Trim(),
             CreatedAt = now,
-            ExpiresAt = now.AddDays(ModerationWarningLimits.WarningDurationDays)
+            ExpiresAt = now.AddDays(ModerationWarningLimits.WarningDurationDays),
+            AcknowledgedAt = null
         };
 
         db.PlayerWarnings.Add(warning);
         await db.SaveChangesAsync(ct);
 
-        return (MapWarning(warning), null);
+        var warningDto = MapWarning(warning);
+        await TryNotifyWarningAsync(player, warningDto, ct);
+        return (warningDto, null);
     }
+
+    private async Task TryNotifyWarningAsync(PlayerEntity player, PlayerWarningDto warning, CancellationToken ct)
+    {
+        if (ModerationEmailPolicy.ShouldSkipNotification(warning.Reason)
+            || string.IsNullOrWhiteSpace(player.Email))
+        {
+            return;
+        }
+
+        try
+        {
+            await moderationNotifier.NotifyWarningAsync(player.Email, player.Username, warning, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Account warning email failed for {Username} ({Email})",
+                player.Username,
+                player.Email);
+        }
+    }
+
+    public static string FormatWarningMessage(PlayerModerationWarningDto warning) =>
+        $"You have received an account warning. Reason: {warning.Reason.Trim()}";
+
+    public static PlayerModerationWarningDto MapModerationWarning(PlayerWarningEntity warning) =>
+        new(
+            warning.Id,
+            warning.Reason,
+            warning.IssuedByUsername,
+            warning.CreatedAt,
+            warning.ExpiresAt);
 
     public static PlayerWarningDto MapWarning(PlayerWarningEntity warning)
     {
@@ -102,6 +185,7 @@ public class PlayerWarningService(AppDbContext db, StaffModerationPolicy staffMo
             warning.IssuedByUsername,
             warning.CreatedAt,
             warning.ExpiresAt,
-            warning.ExpiresAt > now);
+            warning.ExpiresAt > now,
+            warning.AcknowledgedAt is not null);
     }
 }

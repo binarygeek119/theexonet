@@ -184,7 +184,8 @@ public record AuthResponse(
     FeatureFlags Features,
     IReadOnlyList<LoginEventAnnouncementDto>? EventAnnouncements = null,
     bool IsStaffAdmin = false,
-    bool TestingModeEnabled = false);
+    bool TestingModeEnabled = false,
+    IReadOnlyList<PlayerModerationWarningDto>? PendingWarnings = null);
 
 public record SessionResponse(
     Guid PlayerId,
@@ -193,6 +194,17 @@ public record SessionResponse(
     IReadOnlyList<LoginEventAnnouncementDto>? EventAnnouncements = null,
     bool IsStaffAdmin = false,
     bool TestingModeEnabled = false);
+
+public record PlayerModerationWarningDto(
+    Guid Id,
+    string Reason,
+    string IssuedByUsername,
+    DateTime CreatedAt,
+    DateTime ExpiresAt);
+
+public record AcknowledgeWarningResponse(
+    int RemainingCount,
+    IReadOnlyList<PlayerModerationWarningDto> RemainingWarnings);
 
 public record AssignWorkerRequest(Guid WorkerId, string? ZoneId);
 public record BuySupplyRequest(SupplyTypeDto SupplyType, decimal Quantity);
@@ -580,7 +592,8 @@ public record PlayerWarningDto(
     string IssuedByUsername,
     DateTime CreatedAt,
     DateTime ExpiresAt,
-    bool IsActive);
+    bool IsActive,
+    bool IsAcknowledged);
 
 public record IssuePlayerWarningRequest(string Reason);
 
@@ -601,7 +614,9 @@ public record FlaggedMessageReviewDto(
     string? ReviewedByUsername,
     DateTime? ReviewedAt,
     int PlayerWarningCount,
-    IReadOnlyList<PlayerWarningDto> PlayerWarnings);
+    IReadOnlyList<PlayerWarningDto> PlayerWarnings,
+    DateTime SentAt,
+    bool SourceMessageDeleted);
 
 public record FlaggedMessagesResponse(IReadOnlyList<FlaggedMessageReviewDto> Messages);
 
@@ -618,6 +633,8 @@ public record FlaggedMessageBanResponse(
     string Message);
 
 public record BanLevelOptionDto(string Code, string Label);
+
+public record BanReasonPresetsResponse(IReadOnlyList<string> Presets);
 
 public record PlayerBanDto(
     Guid Id,
@@ -650,6 +667,16 @@ public record BanAppealDto(
     PlayerBanDto? ActiveBan);
 
 public record BanAppealsResponse(IReadOnlyList<BanAppealDto> Appeals);
+
+public record AdminBanListItemDto(
+    Guid BanId,
+    Guid PlayerId,
+    string Username,
+    string Email,
+    string ProfileNumber,
+    PlayerBanDto Ban);
+
+public record AdminBansResponse(IReadOnlyList<AdminBanListItemDto> Bans);
 
 public record StaffMemberDto(string Username, bool IsAdmin, bool IsModerator);
 

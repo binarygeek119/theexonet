@@ -4,7 +4,7 @@ import { initApiStatusMonitor } from "./api-status.js";
 import { initStaffMessaging } from "./staff-messages.js";
 import { initStaffPlayerMessaging } from "./staff-player-messages.js";
 import { initAdminMessagesHub } from "./admin-messages-hub.js";
-import { initFlaggedMessages } from "./flagged-messages.js";
+import { initFlaggedMessages } from "./flagged-messages.js?v=20260529-flagged-action-feedback";
 import { renderSocialLinksHtml } from "./profile-social.js";
 import {
   formatRaxHtml,
@@ -23,6 +23,13 @@ import {
   saveTestingModeEnabled,
   setCachedTestingModeEnabled,
 } from "./admin-testing-mode.js?v=20260529-testing-mode-server";
+import { setActionStatus } from "./status-feedback.js?v=20260529-action-feedback";
+import {
+  getResolvedBanReason,
+  populateBanReasonPresets,
+  resetBanReasonForm,
+  wireBanReasonForm,
+} from "./ban-reason-ui.js?v=20260529-ban-reasons";
 
 const api = new RavaApi(API_BASE_URL);
 
@@ -42,6 +49,7 @@ const els = {
   pageDashboard: document.getElementById("admin-page-dashboard"),
   pageTesting: document.getElementById("admin-page-testing"),
   pagePlayers: document.getElementById("admin-page-players"),
+  pageBans: document.getElementById("admin-page-bans"),
   pageAppeals: document.getElementById("admin-page-appeals"),
   pageMessages: document.getElementById("admin-page-messages"),
   pageMessageLog: document.getElementById("admin-page-message-log"),
@@ -148,6 +156,8 @@ const els = {
   profileActiveBanSummary: document.getElementById("admin-profile-active-ban-summary"),
   profileActiveBanMeta: document.getElementById("admin-profile-active-ban-meta"),
   profileBanLevel: document.getElementById("admin-profile-ban-level"),
+  profileBanReasonPreset: document.getElementById("admin-profile-ban-reason-preset"),
+  profileBanReasonLabel: document.getElementById("admin-profile-ban-reason-label"),
   profileBanReason: document.getElementById("admin-profile-ban-reason"),
   profileBanBtn: document.getElementById("admin-profile-ban-btn"),
   profileUnbanBtn: document.getElementById("admin-profile-unban-btn"),
@@ -161,6 +171,12 @@ const els = {
   appealsStatus: document.getElementById("admin-appeals-status"),
   appealsList: document.getElementById("admin-appeals-list"),
   appealsRefreshBtn: document.getElementById("admin-appeals-refresh-btn"),
+  bansSearch: document.getElementById("admin-bans-search"),
+  bansActiveOnly: document.getElementById("admin-bans-active-only"),
+  bansSearchBtn: document.getElementById("admin-bans-search-btn"),
+  bansRefreshBtn: document.getElementById("admin-bans-refresh-btn"),
+  bansStatus: document.getElementById("admin-bans-status"),
+  bansBody: document.getElementById("admin-bans-body"),
   messagesStatus: document.getElementById("admin-messages-status"),
   messagesRecipient: document.getElementById("admin-messages-recipient"),
   messagesBody: document.getElementById("admin-messages-body"),
@@ -222,8 +238,10 @@ const flaggedMessaging = initFlaggedMessages({
   apiPrefix: "admin",
   els: {
     status: document.getElementById("admin-flagged-status"),
+    actionStatus: document.getElementById("admin-flagged-action-status"),
     refreshBtn: document.getElementById("admin-flagged-refresh-btn"),
-    list: document.getElementById("admin-flagged-list"),
+    list: document.getElementById("admin-flagged-inbox"),
+    detail: document.getElementById("admin-flagged-detail"),
     navBadge: document.getElementById("admin-flagged-nav-badge"),
   },
   setStatus,
@@ -253,6 +271,7 @@ const state = {
   players: [],
   profilePlayerId: null,
   banLevels: [],
+  banReasonPresets: [],
   gameCreditsConfig: null,
   events: [],
   editingEventId: null,
@@ -260,8 +279,7 @@ const state = {
 };
 
 function setStatus(el, message, isError = false) {
-  el.textContent = message ?? "";
-  el.style.color = isError ? "var(--danger)" : "";
+  setActionStatus(el, message, isError);
 }
 
 function formatCredits(value) {
@@ -502,6 +520,30 @@ function formatPlayerBanStatus(player) {
   return `<span class="admin-ban-badge">Until ${formatDate(ban.expiresAt)}</span>`;
 }
 
+function formatBanRecordStatus(ban) {
+  if (!ban) {
+    return "—";
+  }
+  if (ban.isActive) {
+    if (ban.isPermanent) {
+      return '<span class="admin-ban-badge permanent">Active · life ban</span>';
+    }
+    return `<span class="admin-ban-badge">Active · until ${formatDate(ban.expiresAt)}</span>`;
+  }
+  if (ban.liftedAt) {
+    return `<span class="admin-ban-badge lifted">Lifted ${formatDate(ban.liftedAt)}</span>`;
+  }
+  if (ban.expiresAt) {
+    return `<span class="admin-ban-badge expired">Expired ${formatDate(ban.expiresAt)}</span>`;
+  }
+  return '<span class="admin-ban-badge expired">Inactive</span>';
+}
+
+function formatBanReason(reason) {
+  const text = String(reason ?? "").trim();
+  return text ? escapeHtml(text) : '<span class="admin-page-desc">No reason provided</span>';
+}
+
 async function ensureBanLevelsLoaded() {
   if (state.banLevels.length) {
     return;
@@ -514,6 +556,26 @@ async function ensureBanLevelsLoaded() {
         `<option value="${escapeHtml(level.code)}">${escapeHtml(level.label)}</option>`
     )
     .join("");
+}
+
+async function ensureBanReasonPresetsLoaded() {
+  if (state.banReasonPresets.length) {
+    return;
+  }
+
+  const response = await api.adminBanReasonPresets();
+  state.banReasonPresets = response.presets ?? [];
+  populateBanReasonPresets(els.profileBanReasonPreset, state.banReasonPresets);
+  wireBanReasonForm(
+    els.profileBanReasonPreset,
+    els.profileBanReason,
+    els.profileBanReasonLabel,
+  );
+}
+
+async function ensureBanFormLoaded() {
+  await ensureBanLevelsLoaded();
+  await ensureBanReasonPresetsLoaded();
 }
 
 function renderProfileBans(profile) {
@@ -585,19 +647,32 @@ async function submitProfileBan() {
     return;
   }
 
+  const reason = getResolvedBanReason(els.profileBanReasonPreset, els.profileBanReason);
+  if (!reason) {
+    setProfileBanStatus("Select or enter a ban reason for the player.", true);
+    return;
+  }
+
   els.profileBanBtn.disabled = true;
   setProfileBanStatus("Applying ban...");
   try {
     const result = await api.adminBanPlayer(
       state.profilePlayerId,
       banLevel,
-      els.profileBanReason.value.trim()
+      reason
     );
-    els.profileBanReason.value = "";
+    resetBanReasonForm(
+      els.profileBanReasonPreset,
+      els.profileBanReason,
+      els.profileBanReasonLabel,
+    );
     setProfileBanStatus(result.message, false);
     const profile = await api.adminPlayerProfile(state.profilePlayerId);
     renderAdminProfile(profile);
     await loadPlayers();
+    if (state.page === "bans") {
+      await loadBansPage();
+    }
   } catch (error) {
     setProfileBanStatus(error.message, true);
   } finally {
@@ -618,6 +693,9 @@ async function liftProfileBan() {
     const profile = await api.adminPlayerProfile(state.profilePlayerId);
     renderAdminProfile(profile);
     await loadPlayers();
+    if (state.page === "bans") {
+      await loadBansPage();
+    }
   } catch (error) {
     setProfileBanStatus(error.message, true);
   } finally {
@@ -787,7 +865,11 @@ async function openPlayerProfile(playerId) {
 
       state.profilePlayerId = playerId;
       els.profileFlagCommentInput.value = "";
-      els.profileBanReason.value = "";
+      resetBanReasonForm(
+        els.profileBanReasonPreset,
+        els.profileBanReason,
+        els.profileBanReasonLabel,
+      );
       staffPlayerMessaging.clearForm();
       setProfileFlagStatus("");
       setProfileWarningStatus("");
@@ -804,10 +886,14 @@ async function openPlayerProfile(playerId) {
       return;
     }
 
-    await ensureBanLevelsLoaded();
+    await ensureBanFormLoaded();
     state.profilePlayerId = playerId;
     els.profileFlagCommentInput.value = "";
-    els.profileBanReason.value = "";
+    resetBanReasonForm(
+      els.profileBanReasonPreset,
+      els.profileBanReason,
+      els.profileBanReasonLabel,
+    );
     staffPlayerMessaging.clearForm();
     setProfileFlagStatus("");
     setProfileWarningStatus("");
@@ -1976,13 +2062,60 @@ async function loadAppealsPage() {
   setStatus(els.appealsStatus, `${appeals.length} pending appeal(s)`);
 }
 
-async function dismissAppeal(appealId, statusEl) {
+function renderBansTable(bans) {
+  if (!bans.length) {
+    els.bansBody.innerHTML = `<tr><td colspan="9">No bans found.</td></tr>`;
+    return;
+  }
+
+  els.bansBody.innerHTML = bans
+    .map((entry) => {
+      const ban = entry.ban ?? {};
+      const expiresLabel = ban.isPermanent
+        ? "Permanent"
+        : ban.expiresAt
+          ? formatDate(ban.expiresAt)
+          : "—";
+      return `
+        <tr data-player-id="${entry.playerId}">
+          <td>${escapeHtml(entry.username)}</td>
+          <td>${escapeHtml(entry.email)}</td>
+          <td>${escapeHtml(ban.banLevelLabel ?? ban.banLevel ?? "—")}</td>
+          <td class="admin-ban-reason">${formatBanReason(ban.reason)}</td>
+          <td>${escapeHtml(ban.bannedByUsername ?? "—")}</td>
+          <td>${ban.createdAt ? formatDate(ban.createdAt) : "—"}</td>
+          <td>${expiresLabel}</td>
+          <td>${formatBanRecordStatus(ban)}</td>
+          <td>
+            <button type="button" class="btn ghost admin-view-profile-btn">View profile</button>
+          </td>
+        </tr>`;
+    })
+    .join("");
+}
+
+async function loadBansPage() {
+  setStatus(els.bansStatus, "Loading…");
+  const search = els.bansSearch.value.trim();
+  const activeOnly = els.bansActiveOnly.checked;
+  const response = await api.adminBans(search, activeOnly);
+  const bans = response.bans ?? [];
+  renderBansTable(bans);
+  const scope = activeOnly ? "active ban(s)" : "ban record(s)";
+  setStatus(els.bansStatus, `${bans.length} ${scope}`);
+}
+
+async function dismissAppeal(appealId, statusEl, username) {
   setStatus(statusEl, "Updating…");
   try {
     await api.adminDismissBanAppeal(appealId);
     await loadAppealsPage();
+    const message = `Appeal from ${username} marked reviewed.`;
+    setStatus(els.appealsStatus, message, false);
+    setStatus(statusEl, message, false);
   } catch (error) {
     setStatus(statusEl, error.message, true);
+    setStatus(els.appealsStatus, error.message, true);
   }
 }
 
@@ -2055,6 +2188,8 @@ async function loadPortal() {
   await flaggedMessaging.refreshBadge();
   if (state.page === "players") {
     await loadPlayers();
+  } else if (state.page === "bans") {
+    await loadBansPage();
   } else if (state.page === "appeals") {
     await loadAppealsPage();
   } else if (state.page === "messages") {
@@ -2089,6 +2224,10 @@ async function loadCurrentPage() {
   }
   if (state.page === "players") {
     await loadPlayers();
+    return;
+  }
+  if (state.page === "bans") {
+    await loadBansPage();
     return;
   }
   if (state.page === "appeals") {
@@ -2252,6 +2391,8 @@ els.navButtons.forEach((button) => {
         setStatus(els.creditsStatus, error.message, true);
       } else if (state.page === "players") {
         setStatus(els.playersStatus, error.message, true);
+      } else if (state.page === "bans") {
+        setStatus(els.bansStatus, error.message, true);
       } else if (state.page === "appeals") {
         setStatus(els.appealsStatus, error.message, true);
       } else if (state.page === "messages") {
@@ -2370,6 +2511,37 @@ els.appealsRefreshBtn.addEventListener("click", () => {
   loadAppealsPage().catch((error) => setStatus(els.appealsStatus, error.message, true));
 });
 
+els.bansSearchBtn.addEventListener("click", () => {
+  loadBansPage().catch((error) => setStatus(els.bansStatus, error.message, true));
+});
+
+els.bansRefreshBtn.addEventListener("click", () => {
+  loadBansPage().catch((error) => setStatus(els.bansStatus, error.message, true));
+});
+
+els.bansActiveOnly.addEventListener("change", () => {
+  loadBansPage().catch((error) => setStatus(els.bansStatus, error.message, true));
+});
+
+els.bansSearch.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") {
+    return;
+  }
+  event.preventDefault();
+  loadBansPage().catch((error) => setStatus(els.bansStatus, error.message, true));
+});
+
+els.bansBody.addEventListener("click", async (event) => {
+  const profileButton = event.target.closest(".admin-view-profile-btn");
+  if (!profileButton) {
+    return;
+  }
+  const playerId = profileButton.closest("tr")?.dataset.playerId;
+  if (playerId) {
+    await openPlayerProfile(playerId);
+  }
+});
+
 els.offworldNewsRegenEditionBtn.addEventListener("click", () => {
   regenerateOffworldNewsEdition().catch((error) => setStatus(els.offworldNewsStatus, error.message, true));
 });
@@ -2408,8 +2580,9 @@ els.appealsList.addEventListener("click", async (event) => {
     const card = dismissButton.closest(".admin-appeal-card");
     const appealId = card?.dataset.appealId;
     const statusEl = card?.querySelector(".admin-appeal-row-status");
+    const username = card?.querySelector("h3")?.textContent?.trim() ?? "player";
     if (appealId) {
-      await dismissAppeal(appealId, statusEl);
+      await dismissAppeal(appealId, statusEl, username);
     }
     return;
   }

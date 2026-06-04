@@ -1,11 +1,17 @@
 import { RavaApi } from "./api.js";
 import { API_BASE_URL } from "./config.js";
-import { initI18n, applyTranslations, wireLocaleSelectors } from "./i18n.js";
+import { setActionStatus } from "./status-feedback.js?v=20260529-action-feedback";
+import {
+  getResolvedBanReason,
+  populateBanReasonPresets,
+  resetBanReasonForm,
+  wireBanReasonForm,
+} from "./ban-reason-ui.js?v=20260529-ban-reasons";
 import { initApiStatusMonitor } from "./api-status.js";
 import { initStaffMessaging } from "./staff-messages.js";
 import { initStaffPlayerMessaging } from "./staff-player-messages.js";
 import { initStaffPlayerInbox } from "./staff-player-inbox.js";
-import { initFlaggedMessages } from "./flagged-messages.js";
+import { initFlaggedMessages } from "./flagged-messages.js?v=20260529-flagged-action-feedback";
 import { renderSocialLinksHtml } from "./profile-social.js";
 import {
   formatRaxHtml,
@@ -73,6 +79,8 @@ const els = {
   profileActiveBanSummary: document.getElementById("mod-profile-active-ban-summary"),
   profileActiveBanMeta: document.getElementById("mod-profile-active-ban-meta"),
   profileBanLevel: document.getElementById("mod-profile-ban-level"),
+  profileBanReasonPreset: document.getElementById("mod-profile-ban-reason-preset"),
+  profileBanReasonLabel: document.getElementById("mod-profile-ban-reason-label"),
   profileBanReason: document.getElementById("mod-profile-ban-reason"),
   profileBanBtn: document.getElementById("mod-profile-ban-btn"),
   profileUnbanBtn: document.getElementById("mod-profile-unban-btn"),
@@ -88,6 +96,7 @@ const els = {
 const state = {
   profilePlayerId: null,
   banLevels: [],
+  banReasonPresets: [],
 };
 
 const staffMessaging = initStaffMessaging({
@@ -122,8 +131,10 @@ const flaggedMessaging = initFlaggedMessages({
   apiPrefix: "moderator",
   els: {
     status: document.getElementById("mod-flagged-status"),
+    actionStatus: document.getElementById("mod-flagged-action-status"),
     refreshBtn: document.getElementById("mod-flagged-refresh-btn"),
-    list: document.getElementById("mod-flagged-list"),
+    list: document.getElementById("mod-flagged-inbox"),
+    detail: document.getElementById("mod-flagged-detail"),
     navBadge: null,
   },
   setStatus,
@@ -148,8 +159,7 @@ const staffPlayerMessaging = initStaffPlayerMessaging({
 });
 
 function setStatus(el, message, isError = false) {
-  el.textContent = message ?? "";
-  el.style.color = isError ? "var(--danger)" : "";
+  setActionStatus(el, message, isError);
 }
 
 function formatCredits(value) {
@@ -324,6 +334,26 @@ async function ensureBanLevelsLoaded() {
     .join("");
 }
 
+async function ensureBanReasonPresetsLoaded() {
+  if (state.banReasonPresets.length) {
+    return;
+  }
+
+  const response = await api.moderatorBanReasonPresets();
+  state.banReasonPresets = response.presets ?? [];
+  populateBanReasonPresets(els.profileBanReasonPreset, state.banReasonPresets);
+  wireBanReasonForm(
+    els.profileBanReasonPreset,
+    els.profileBanReason,
+    els.profileBanReasonLabel,
+  );
+}
+
+async function ensureBanFormLoaded() {
+  await ensureBanLevelsLoaded();
+  await ensureBanReasonPresetsLoaded();
+}
+
 function renderProfileBans(profile) {
   const activeBan = profile.activeBan;
   if (activeBan?.isActive) {
@@ -393,15 +423,25 @@ async function submitProfileBan() {
     return;
   }
 
+  const reason = getResolvedBanReason(els.profileBanReasonPreset, els.profileBanReason);
+  if (!reason) {
+    setProfileBanStatus("Select or enter a ban reason for the player.", true);
+    return;
+  }
+
   els.profileBanBtn.disabled = true;
   setProfileBanStatus("Applying ban...");
   try {
     const result = await api.moderatorBanPlayer(
       state.profilePlayerId,
       banLevel,
-      els.profileBanReason.value.trim()
+      reason
     );
-    els.profileBanReason.value = "";
+    resetBanReasonForm(
+      els.profileBanReasonPreset,
+      els.profileBanReason,
+      els.profileBanReasonLabel,
+    );
     setProfileBanStatus(result.message, false);
     const profile = await api.moderatorPlayerProfile(state.profilePlayerId);
     renderPlayerProfile(profile);
@@ -575,10 +615,14 @@ function closeProfileModal() {
 
 async function openPlayerProfile(playerId) {
   try {
-    await ensureBanLevelsLoaded();
+    await ensureBanFormLoaded();
     state.profilePlayerId = playerId;
     els.profileFlagCommentInput.value = "";
-    els.profileBanReason.value = "";
+    resetBanReasonForm(
+      els.profileBanReasonPreset,
+      els.profileBanReason,
+      els.profileBanReasonLabel,
+    );
     staffPlayerMessaging.clearForm();
     setProfileFlagStatus("");
     setProfileWarningStatus("");

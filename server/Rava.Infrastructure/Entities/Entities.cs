@@ -286,6 +286,7 @@ public class PlayerMessageEntity
     public string Body { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ReadAt { get; set; }
+    public DateTime? HiddenForPlayerAt { get; set; }
 
     public PlayerEntity Player { get; set; } = null!;
 }
@@ -298,6 +299,8 @@ public class PeerMessageEntity
     public string Body { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ReadAt { get; set; }
+    public DateTime? HiddenForSenderAt { get; set; }
+    public DateTime? HiddenForRecipientAt { get; set; }
 
     public PlayerEntity FromPlayer { get; set; } = null!;
     public PlayerEntity ToPlayer { get; set; } = null!;
@@ -311,6 +314,8 @@ public class PlayerToStaffMessageEntity
     public string Body { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ReadAt { get; set; }
+    public DateTime? HiddenForPlayerAt { get; set; }
+    public DateTime? HiddenForStaffAt { get; set; }
 
     public PlayerEntity Player { get; set; } = null!;
 }
@@ -342,6 +347,7 @@ public class PlayerWarningEntity
     public string IssuedByUsername { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresAt { get; set; }
+    public DateTime? AcknowledgedAt { get; set; }
 
     public PlayerEntity Player { get; set; } = null!;
     public FlaggedMessageEntity? FlaggedMessage { get; set; }

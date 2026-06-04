@@ -93,6 +93,10 @@ public class ModeratorController(
     public async Task<ActionResult<IReadOnlyList<BanLevelOptionDto>>> BanLevels(CancellationToken ct) =>
         Ok(await adminService.GetBanLevelOptions());
 
+    [HttpGet("ban-reasons")]
+    public async Task<ActionResult<BanReasonPresetsResponse>> BanReasons(CancellationToken ct) =>
+        Ok(await adminService.GetBanReasonPresets());
+
     [HttpPost("players/{playerId:guid}/ban")]
     public async Task<ActionResult<PlayerBanActionResponse>> BanPlayer(
         Guid playerId,

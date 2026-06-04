@@ -81,18 +81,19 @@ public static class BanLevels
 
     public static bool IsPermanent(string code) => code == Life;
 
-    public static string FormatBanMessage(string banLevel, DateTime? expiresAtUtc)
+    public static string FormatBanMessage(string banLevel, DateTime? expiresAtUtc, string? reason = null)
     {
-        if (IsPermanent(banLevel))
+        var message = IsPermanent(banLevel)
+            ? "Your account is permanently banned."
+            : expiresAtUtc is null
+                ? "Your account is banned."
+                : $"Your account is banned until {expiresAtUtc.Value:yyyy-MM-dd HH:mm} UTC.";
+
+        if (string.IsNullOrWhiteSpace(reason))
         {
-            return "Your account is permanently banned.";
+            return message;
         }
 
-        if (expiresAtUtc is null)
-        {
-            return "Your account is banned.";
-        }
-
-        return $"Your account is banned until {expiresAtUtc.Value:yyyy-MM-dd HH:mm} UTC.";
+        return $"{message} Reason: {reason.Trim()}";
     }
 }

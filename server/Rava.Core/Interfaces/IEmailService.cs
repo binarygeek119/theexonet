@@ -20,4 +20,22 @@ public interface IEmailService
         string message,
         string adminPortalUrl,
         CancellationToken cancellationToken = default);
+
+    Task SendAccountBanAsync(
+        string toEmail,
+        string username,
+        string banLevelLabel,
+        string reason,
+        bool isPermanent,
+        DateTime? expiresAtUtc,
+        string loginUrl,
+        CancellationToken cancellationToken = default);
+
+    Task SendAccountWarningAsync(
+        string toEmail,
+        string username,
+        string reason,
+        DateTime expiresAtUtc,
+        string loginUrl,
+        CancellationToken cancellationToken = default);
 }

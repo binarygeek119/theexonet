@@ -15,7 +15,9 @@ public class PeerMessageService(
     public async Task<IReadOnlyList<PeerMessageDto>> GetMailboxAsync(Guid playerId, CancellationToken ct)
     {
         var messages = await db.PeerMessages.AsNoTracking()
-            .Where(m => m.FromPlayerId == playerId || m.ToPlayerId == playerId)
+            .Where(m =>
+                (m.FromPlayerId == playerId && m.HiddenForSenderAt == null)
+                || (m.ToPlayerId == playerId && m.HiddenForRecipientAt == null))
             .OrderByDescending(m => m.CreatedAt)
             .Take(100)
             .ToListAsync(ct);
@@ -39,7 +41,9 @@ public class PeerMessageService(
 
     public async Task<int> GetUnreadCountAsync(Guid playerId, CancellationToken ct) =>
         await db.PeerMessages.AsNoTracking()
-            .CountAsync(m => m.ToPlayerId == playerId && m.ReadAt == null, ct);
+            .CountAsync(
+                m => m.ToPlayerId == playerId && m.ReadAt == null && m.HiddenForRecipientAt == null,
+                ct);
 
     public async Task<(PeerMessageDto? Message, string? Error)> SendMessageAsync(
         Guid fromPlayerId,
@@ -132,6 +136,11 @@ public class PeerMessageService(
             return (null, "You can only mark messages sent to you as read.");
         }
 
+        if (message.HiddenForRecipientAt is not null)
+        {
+            return (null, "Message not found.");
+        }
+
         if (message.ReadAt is null)
         {
             message.ReadAt = DateTime.UtcNow;
@@ -143,6 +152,42 @@ public class PeerMessageService(
             .ToDictionaryAsync(p => p.Id, p => p.Username, ct);
 
         return (MapMessage(message, usernames, playerId), null);
+    }
+
+    public async Task<string?> DeleteAsync(Guid messageId, Guid playerId, CancellationToken ct)
+    {
+        var message = await db.PeerMessages.FirstOrDefaultAsync(m => m.Id == messageId, ct);
+        if (message is null)
+        {
+            return "Message not found.";
+        }
+
+        if (message.FromPlayerId != playerId && message.ToPlayerId != playerId)
+        {
+            return "You can only delete messages you sent or received.";
+        }
+
+        if (message.FromPlayerId == playerId)
+        {
+            if (message.HiddenForSenderAt is not null)
+            {
+                return null;
+            }
+
+            message.HiddenForSenderAt = DateTime.UtcNow;
+        }
+        else
+        {
+            if (message.HiddenForRecipientAt is not null)
+            {
+                return null;
+            }
+
+            message.HiddenForRecipientAt = DateTime.UtcNow;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return null;
     }
 
     private async Task<bool> AreFriendsAsync(Guid playerA, Guid playerB, CancellationToken ct) =>

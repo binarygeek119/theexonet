@@ -7,7 +7,7 @@ import {
   setRaxHtml,
   RAX_NAME,
 } from "./currency.js";
-import { initPlayerMessaging } from "./player-messages.js?v=20260529-messages-staff-panel";
+import { initPlayerMessaging } from "./player-messages.js?v=20260529-message-remove";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
 import { initExonet } from "./exonet.js?v=20260529-testing-friends-server-2";
 import { initI18n, applyTranslations, wireLocaleSelectors, wireLocaleSelector, getLocale, setLocale, t } from "./i18n.js";
@@ -22,6 +22,7 @@ import {
   saveRemovedDummyFriendship,
   setCachedTestingModeEnabled,
 } from "./admin-testing-mode.js?v=20260529-testing-dummy-assets";
+import { initModerationFlow } from "./moderation-flow.js?v=20260529-moderation-flow";
 
 const api = new RavaApi(API_BASE_URL);
 
@@ -203,6 +204,8 @@ const state = {
   selectedZoneId: null,
   authMode: "login",
   banMessage: "",
+  registerTosViewed: false,
+  registerTosFormUnlocked: false,
   nextDayAtUtc: null,
   tradeAuctions: [],
   tradeMarketValue: 0,
@@ -228,6 +231,15 @@ const els = {
   registerPronounsInput: document.getElementById("register-pronouns-input"),
   registerBirthdayPublic: document.getElementById("register-birthday-public"),
   registerAgePublic: document.getElementById("register-age-public"),
+  registerTosGate: document.getElementById("register-tos-gate"),
+  registerFormShell: document.getElementById("register-form-shell"),
+  registerTosOpenBtn: document.getElementById("register-tos-open-btn"),
+  registerTosAccept: document.getElementById("register-tos-accept"),
+  registerTosContinueBtn: document.getElementById("register-tos-continue-btn"),
+  registerTosModal: document.getElementById("register-tos-modal"),
+  registerTosBody: document.getElementById("register-tos-body"),
+  registerTosCloseBtn: document.getElementById("register-tos-close-btn"),
+  registerTosDoneBtn: document.getElementById("register-tos-done-btn"),
   birthdayMonth: document.getElementById("birthday-month"),
   birthdayDay: document.getElementById("birthday-day"),
   birthdayYear: document.getElementById("birthday-year"),
@@ -429,7 +441,15 @@ const els = {
   friendsList: document.getElementById("friends-list"),
   incomingFriendsList: document.getElementById("incoming-friends-list"),
   outgoingFriendsList: document.getElementById("outgoing-friends-list"),
+  moderationModal: document.getElementById("moderation-modal"),
+  moderationTitle: document.getElementById("moderation-modal-title"),
+  moderationMessage: document.getElementById("moderation-modal-message"),
+  moderationMeta: document.getElementById("moderation-modal-meta"),
+  moderationAckBtn: document.getElementById("moderation-ack-btn"),
+  moderationAppealBtn: document.getElementById("moderation-appeal-btn"),
 };
+
+let moderation;
 
 function showStatus(message, isError = false) {
   els.statusBar.textContent = message ?? "";
@@ -479,6 +499,96 @@ function showAuthToast(message, variant = "success") {
   authToastTimer = setTimeout(hideAuthToast, 6000);
 }
 
+function resetRegisterTosGate() {
+  state.registerTosViewed = false;
+  state.registerTosFormUnlocked = false;
+  if (els.registerTosAccept) {
+    els.registerTosAccept.checked = false;
+    els.registerTosAccept.disabled = true;
+  }
+  if (els.registerTosContinueBtn) {
+    els.registerTosContinueBtn.disabled = true;
+  }
+}
+
+function renderRegisterTosBody() {
+  if (!els.registerTosBody) {
+    return;
+  }
+
+  const sections = [
+    ["auth.tos.sec.beKind.title", "auth.tos.sec.beKind.body"],
+    ["auth.tos.sec.messages.title", "auth.tos.sec.messages.body"],
+    ["auth.tos.sec.filters.title", "auth.tos.sec.filters.body"],
+    ["auth.tos.sec.account.title", "auth.tos.sec.account.body"],
+    ["auth.tos.sec.data.title", "auth.tos.sec.data.body"],
+    ["auth.tos.sec.ai.title", "auth.tos.sec.ai.body"],
+    ["auth.tos.sec.asis.title", "auth.tos.sec.asis.body"],
+    ["auth.tos.sec.changes.title", "auth.tos.sec.changes.body"],
+    ["auth.tos.sec.contact.title", "auth.tos.sec.contact.body"],
+  ];
+
+  els.registerTosBody.innerHTML = sections
+    .map(
+      ([titleKey, bodyKey]) => `
+        <section>
+          <h3>${escapeHtml(t(titleKey))}</h3>
+          <p>${escapeHtml(t(bodyKey))}</p>
+        </section>`
+    )
+    .join("");
+}
+
+function syncRegisterTosContinueButton() {
+  if (!els.registerTosContinueBtn || !els.registerTosAccept) {
+    return;
+  }
+
+  els.registerTosContinueBtn.disabled =
+    !state.registerTosViewed || !els.registerTosAccept.checked;
+}
+
+function markRegisterTosViewed() {
+  state.registerTosViewed = true;
+  if (els.registerTosAccept) {
+    els.registerTosAccept.disabled = false;
+  }
+  syncRegisterTosContinueButton();
+}
+
+function openRegisterTosModal() {
+  renderRegisterTosBody();
+  if (els.registerTosModal) {
+    els.registerTosModal.hidden = false;
+  }
+}
+
+function closeRegisterTosModal(markViewed = true) {
+  if (els.registerTosModal) {
+    els.registerTosModal.hidden = true;
+  }
+  if (markViewed) {
+    markRegisterTosViewed();
+  }
+}
+
+function updateRegisterSignupVisibility() {
+  const isRegister = state.authMode === "register";
+  const showGate = isRegister && !state.registerTosFormUnlocked;
+  const showForm = !isRegister || state.registerTosFormUnlocked;
+
+  if (els.registerTosGate) {
+    els.registerTosGate.hidden = !showGate;
+  }
+  if (els.registerFormShell) {
+    els.registerFormShell.hidden = !showForm;
+  }
+
+  if (isRegister && showGate) {
+    els.passwordGroup.hidden = true;
+  }
+}
+
 function setAuthMode(mode) {
   state.authMode = mode;
   const isLogin = mode === "login";
@@ -487,12 +597,18 @@ function setAuthMode(mode) {
   const isReset = mode === "reset";
   const isBanAppeal = mode === "ban-appeal";
 
-  els.usernameGroup.hidden = isForgot || isReset;
-
-  els.emailGroup.hidden = !isRegister;
-  els.birthdayGroup.hidden = !isRegister;
-  setHidden(els.registerProfileGroup, !isRegister);
   if (isRegister) {
+    resetRegisterTosGate();
+  } else {
+    state.registerTosFormUnlocked = false;
+  }
+
+  els.usernameGroup.hidden = isForgot || isReset || (isRegister && !state.registerTosFormUnlocked);
+
+  els.emailGroup.hidden = !isRegister || !state.registerTosFormUnlocked;
+  els.birthdayGroup.hidden = !isRegister || !state.registerTosFormUnlocked;
+  setHidden(els.registerProfileGroup, !isRegister || !state.registerTosFormUnlocked);
+  if (isRegister && state.registerTosFormUnlocked) {
     syncRegisterGenderUi();
     if (els.registerLocaleSelect) {
       els.registerLocaleSelect.value = getLocale() || "en";
@@ -500,11 +616,12 @@ function setAuthMode(mode) {
   }
   els.forgotGroup.hidden = !isForgot;
   els.resetGroup.hidden = !isReset;
-  els.passwordGroup.hidden = isForgot || isReset || isBanAppeal;
+  els.passwordGroup.hidden =
+    isForgot || isReset || isBanAppeal || (isRegister && !state.registerTosFormUnlocked);
   els.banAppealGroup.hidden = !isBanAppeal;
 
   els.loginBtn.hidden = !isLogin;
-  els.registerBtn.hidden = !isRegister;
+  els.registerBtn.hidden = !isRegister || !state.registerTosFormUnlocked;
   els.toggleMode.hidden = isForgot || isReset || isBanAppeal;
   els.forgotBtn.hidden = !isLogin;
   els.sendResetBtn.hidden = !isForgot;
@@ -512,10 +629,16 @@ function setAuthMode(mode) {
   els.banAppealBtn.hidden = !isBanAppeal;
   els.backLoginBtn.hidden = !isForgot && !isReset && !isBanAppeal;
 
+  updateRegisterSignupVisibility();
+
   if (isRegister) {
     els.toggleMode.textContent = t("auth.switchToLogin");
-    ensureBirthdayDropdownsReady();
-    showLoginStatus(t("auth.hint.register"), "info");
+    if (state.registerTosFormUnlocked) {
+      ensureBirthdayDropdownsReady();
+      showLoginStatus(t("auth.hint.register"), "info");
+    } else {
+      showLoginStatus(t("auth.hint.tos"), "info");
+    }
   } else if (isForgot) {
     showLoginStatus(t("auth.hint.forgot"), "info");
   } else if (isReset) {
@@ -2647,12 +2770,7 @@ async function tryAutoLogin() {
     await refreshAll();
     showEventAnnouncements(session.eventAnnouncements);
   } catch (error) {
-    if (error.code === "banned" || (error.status === 403 && error.message?.toLowerCase().includes("banned"))) {
-      api.clearAuth();
-      state.banMessage = error.message;
-      setAuthMode("ban-appeal");
-      showScreen("login");
-      showLoginStatus(error.message, "error");
+    if (moderation?.handleModerationKick(error)) {
       return;
     }
 
@@ -3331,6 +3449,15 @@ function notifyRegisterResult(message, variant) {
 
 async function authenticate(register) {
   const isRegister = register || state.authMode === "register";
+
+  if (isRegister && !state.registerTosFormUnlocked) {
+    notifyRegisterResult(
+      state.registerTosViewed ? t("auth.tos.mustAccept") : t("auth.tos.mustOpen"),
+      "error",
+    );
+    return;
+  }
+
   const username = els.username.value.trim();
   const password = els.password.value;
   const email = els.email.value.trim();
@@ -3416,16 +3543,28 @@ async function authenticate(register) {
     const response = await api.login(username, password);
     api.saveAuth(response);
     applyTestingFlagsFromAuth(response);
+
+    const pendingWarnings = response.pendingWarnings ?? [];
+    if (pendingWarnings.length) {
+      try {
+        await moderation.acknowledgePendingWarnings(pendingWarnings);
+      } catch (ackError) {
+        if (!moderation.handleModerationKick(ackError)) {
+          api.clearAuth();
+          showLoginStatus(ackError.message, "error");
+        }
+        return;
+      }
+    }
+
     hideAuthToast();
     showLoginStatus("");
     showScreen("game");
     await refreshAll();
     showEventAnnouncements(response.eventAnnouncements);
   } catch (error) {
-    if (!isRegister && (error.code === "banned" || (error.status === 403 && error.message?.toLowerCase().includes("banned")))) {
-      state.banMessage = error.message;
-      setAuthMode("ban-appeal");
-      showLoginStatus(error.message, "error");
+    if (!isRegister && error.code === "banned") {
+      await moderation.showBanModal(error.message, error.ban);
       return;
     }
 
@@ -3646,6 +3785,28 @@ els.toggleMode.addEventListener("click", () => {
   setAuthMode(state.authMode === "register" ? "login" : "register");
 });
 els.registerGenderInput?.addEventListener("change", syncRegisterGenderUi);
+els.registerTosOpenBtn?.addEventListener("click", openRegisterTosModal);
+els.registerTosCloseBtn?.addEventListener("click", () => closeRegisterTosModal(true));
+els.registerTosDoneBtn?.addEventListener("click", () => closeRegisterTosModal(true));
+els.registerTosAccept?.addEventListener("change", syncRegisterTosContinueButton);
+els.registerTosContinueBtn?.addEventListener("click", () => {
+  if (!state.registerTosViewed) {
+    showLoginStatus(t("auth.tos.mustOpen"), "error");
+    return;
+  }
+  if (!els.registerTosAccept?.checked) {
+    showLoginStatus(t("auth.tos.mustAccept"), "error");
+    return;
+  }
+
+  state.registerTosFormUnlocked = true;
+  setAuthMode("register");
+});
+els.registerTosModal?.addEventListener("click", (event) => {
+  if (event.target === els.registerTosModal) {
+    closeRegisterTosModal(true);
+  }
+});
 els.loginBtn.addEventListener("click", () => authenticate(false));
 els.registerBtn.addEventListener("click", () => authenticate(true));
 els.forgotBtn.addEventListener("click", () => setAuthMode("forgot"));
@@ -3971,6 +4132,15 @@ async function startApp() {
   setAuthMode("login");
   initBirthdayDropdowns();
   initGameVersionTag();
+  moderation = initModerationFlow({
+    api,
+    els,
+    t,
+    showScreen,
+    setAuthMode,
+    showLoginStatus,
+    state,
+  });
   showScreen("login");
   els.mineGrid.style.setProperty("--grid-size", GRID_SIZE);
 

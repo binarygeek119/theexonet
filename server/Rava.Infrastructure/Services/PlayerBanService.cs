@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Rava.Core.Configuration;
 using Rava.Core.Constants;
 using Rava.Core.Dtos;
+using Rava.Core.Interfaces;
 using Rava.Infrastructure.Data;
 using Rava.Infrastructure.Entities;
 
@@ -11,12 +13,16 @@ namespace Rava.Infrastructure.Services;
 public class PlayerBanService(
     AppDbContext db,
     StaffModerationPolicy staffModerationPolicy,
-    IOptionsMonitor<AdminOptions> adminOptions)
+    IOptionsMonitor<AdminOptions> adminOptions,
+    IPlayerModerationNotifier moderationNotifier,
+    ILogger<PlayerBanService> logger)
 {
     public IReadOnlyList<BanLevelOptionDto> GetBanLevelOptions() =>
         BanLevels.Options
             .Select(option => new BanLevelOptionDto(option.Code, option.Label))
             .ToList();
+
+    public IReadOnlyList<string> GetBanReasonPresets() => BanReasons.Presets;
 
     public async Task<PlayerBanDto?> GetActiveBanAsync(Guid playerId, CancellationToken ct)
     {
@@ -71,6 +77,65 @@ public class PlayerBanService(
         return bans.Select(MapBan).ToList();
     }
 
+    public async Task<AdminBansResponse> GetAdminBanListAsync(
+        string? search,
+        bool activeOnly,
+        int limit,
+        CancellationToken ct)
+    {
+        limit = Math.Clamp(limit, 1, 200);
+        var now = DateTime.UtcNow;
+        var protectedPlayerIds = await db.Players.AsNoTracking()
+            .Select(p => new { p.Id, p.Username })
+            .ToListAsync(ct);
+        var excludedPlayerIds = protectedPlayerIds
+            .Where(p => adminOptions.CurrentValue.IsAdminUsername(p.Username))
+            .Select(p => p.Id)
+            .ToList();
+
+        var query = db.PlayerBans.AsNoTracking()
+            .Include(b => b.Player)
+            .AsQueryable();
+
+        if (excludedPlayerIds.Count > 0)
+        {
+            query = query.Where(b => !excludedPlayerIds.Contains(b.PlayerId));
+        }
+
+        if (activeOnly)
+        {
+            query = query.Where(b => b.LiftedAt == null && (b.ExpiresAt == null || b.ExpiresAt > now));
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(b =>
+                EF.Functions.ILike(b.Player.Username, $"%{term}%")
+                || EF.Functions.ILike(b.Player.Email, $"%{term}%")
+                || EF.Functions.ILike(b.Player.ProfileNumber, $"%{term}%")
+                || EF.Functions.ILike(b.Reason, $"%{term}%")
+                || EF.Functions.ILike(b.BannedByUsername, $"%{term}%"));
+        }
+
+        var bans = await query
+            .OrderByDescending(b => b.CreatedAt)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        var items = bans
+            .Select(b => new AdminBanListItemDto(
+                b.Id,
+                b.PlayerId,
+                b.Player.Username,
+                b.Player.Email,
+                b.Player.ProfileNumber,
+                MapBan(b)))
+            .ToList();
+
+        return new AdminBansResponse(items);
+    }
+
     public async Task<string?> GetActiveBanMessageAsync(Guid playerId, CancellationToken ct)
     {
         var ban = await GetActiveBanAsync(playerId, ct);
@@ -90,6 +155,11 @@ public class PlayerBanService(
         }
 
         reason = reason?.Trim() ?? string.Empty;
+        if (reason.Length == 0)
+        {
+            return (null, "Enter a ban reason for the player.");
+        }
+
         if (reason.Length > 2000)
         {
             return (null, "Ban reason cannot exceed 2000 characters.");
@@ -134,7 +204,31 @@ public class PlayerBanService(
         db.PlayerBans.Add(ban);
         await db.SaveChangesAsync(ct);
 
-        return (MapBan(ban), null);
+        var banDto = MapBan(ban);
+        await TryNotifyBanAsync(player, banDto, ct);
+        return (banDto, null);
+    }
+
+    private async Task TryNotifyBanAsync(PlayerEntity player, PlayerBanDto ban, CancellationToken ct)
+    {
+        if (ModerationEmailPolicy.ShouldSkipNotification(ban.Reason)
+            || string.IsNullOrWhiteSpace(player.Email))
+        {
+            return;
+        }
+
+        try
+        {
+            await moderationNotifier.NotifyBanAsync(player.Email, player.Username, ban, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Account ban email failed for {Username} ({Email})",
+                player.Username,
+                player.Email);
+        }
     }
 
     public async Task<(PlayerBanDto? Ban, string? Error)> LiftBanAsync(
@@ -176,7 +270,7 @@ public class PlayerBanService(
     }
 
     public static string FormatMessage(PlayerBanDto ban) =>
-        BanLevels.FormatBanMessage(ban.BanLevel, ban.ExpiresAt);
+        BanLevels.FormatBanMessage(ban.BanLevel, ban.ExpiresAt, ban.Reason);
 
     private async Task<bool> IsProtectedAdminAsync(Guid playerId, CancellationToken ct)
     {

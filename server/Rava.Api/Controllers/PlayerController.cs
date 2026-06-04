@@ -301,6 +301,19 @@ public class PlayerController(
         return Ok(message);
     }
 
+    [HttpDelete("messages/{messageId:guid}")]
+    public async Task<ActionResult<MessageResponse>> DeleteMessage(Guid messageId, CancellationToken ct)
+    {
+        var playerId = User.GetPlayerId();
+        var error = await playerMessageService.DeleteAsync(messageId, playerId, ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(new MessageResponse("Message removed."));
+    }
+
     [HttpGet("peer-messages")]
     public async Task<ActionResult<PeerMessagesResponse>> PeerMessages(CancellationToken ct)
     {
@@ -341,6 +354,19 @@ public class PlayerController(
         return Ok(message);
     }
 
+    [HttpDelete("peer-messages/{messageId:guid}")]
+    public async Task<ActionResult<MessageResponse>> DeletePeerMessage(Guid messageId, CancellationToken ct)
+    {
+        var playerId = User.GetPlayerId();
+        var error = await peerMessageService.DeleteAsync(messageId, playerId, ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(new MessageResponse("Message removed."));
+    }
+
     [HttpGet("staff-contacts")]
     public ActionResult<StaffContactsResponse> StaffContacts() =>
         Ok(new StaffContactsResponse(playerToStaffMessageService.GetStaffContacts()));
@@ -370,5 +396,18 @@ public class PlayerController(
         }
 
         return Ok(new SendPlayerToStaffMessageResponse(message!, "Message sent to staff."));
+    }
+
+    [HttpDelete("staff-messages/{messageId:guid}")]
+    public async Task<ActionResult<MessageResponse>> DeleteStaffMessage(Guid messageId, CancellationToken ct)
+    {
+        var playerId = User.GetPlayerId();
+        var error = await playerToStaffMessageService.DeleteByPlayerAsync(messageId, playerId, ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(new MessageResponse("Message removed."));
     }
 }

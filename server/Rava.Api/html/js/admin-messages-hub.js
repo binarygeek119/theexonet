@@ -110,11 +110,16 @@ export function initAdminMessagesHub({ api, els, setStatus, staffMessaging }) {
 
     els.detail.innerHTML = `
       <header class="staff-message-detail-top">
-        <p class="admin-message-detail-kind">
-          <span class="admin-message-kind admin-message-kind-${message.kind}">${kindLabel}</span>
-        </p>
-        <h3>${direction}</h3>
-        <p class="staff-message-detail-meta">${formatMessageDate(message.createdAt)}</p>
+        <div class="staff-message-detail-head">
+          <div>
+            <p class="admin-message-detail-kind">
+              <span class="admin-message-kind admin-message-kind-${message.kind}">${kindLabel}</span>
+            </p>
+            <h3>${direction}</h3>
+            <p class="staff-message-detail-meta">${formatMessageDate(message.createdAt)}</p>
+          </div>
+          <button type="button" class="btn ghost danger staff-message-delete-btn">Delete</button>
+        </div>
       </header>
       <div class="staff-message-detail-body">${escapeHtml(message.preview)}</div>`;
   }
@@ -155,8 +160,11 @@ export function initAdminMessagesHub({ api, els, setStatus, staffMessaging }) {
     }
   }
 
-  async function refresh() {
-    setStatus(els.status, "Loading…");
+  async function refresh(options = {}) {
+    const { successMessage } = options;
+    if (!successMessage) {
+      setStatus(els.status, "Loading…");
+    }
     await staffMessaging.reloadStaffInbox();
     const response = await api.staffPlayerInbox();
     playerMessages = response.messages ?? [];
@@ -173,7 +181,11 @@ export function initAdminMessagesHub({ api, els, setStatus, staffMessaging }) {
       await selectMessage(selectedKey);
     }
 
-    updateStatusLine();
+    if (successMessage) {
+      setStatus(els.status, successMessage, false);
+    } else {
+      updateStatusLine();
+    }
     await staffMessaging.refreshUnreadBadge();
   }
 
@@ -184,6 +196,40 @@ export function initAdminMessagesHub({ api, els, setStatus, staffMessaging }) {
       els.status,
       `${staffCount + playerCount} message(s) (${staffCount} staff, ${playerCount} from players)`,
     );
+  }
+
+  async function deleteSelectedMessage() {
+    const message = findMessage(selectedKey);
+    if (!message) {
+      return;
+    }
+
+    if (!window.confirm("Delete this message? This cannot be undone.")) {
+      return;
+    }
+
+    setStatus(els.status, "Deleting…");
+    try {
+      let successMessage = "Message deleted.";
+      if (message.kind === "staff") {
+        const result = await api.staffDeleteMessage(message.id);
+        successMessage = result.message ?? successMessage;
+        await staffMessaging.reloadStaffInbox();
+      } else {
+        const result = await api.staffDeletePlayerInboxMessage(message.id);
+        successMessage = result.message ?? successMessage;
+        playerMessages = playerMessages.filter((item) => item.id !== message.id);
+      }
+
+      selectedKey = null;
+      const messages = mergedMessages();
+      selectedKey = messages[0] ? messageKey(messages[0]) : null;
+      syncDisplay();
+      setStatus(els.status, successMessage, false);
+      await staffMessaging.refreshUnreadBadge();
+    } catch (error) {
+      setStatus(els.status, error.message, true);
+    }
   }
 
   els.filterButtons?.forEach((button) => {
@@ -204,6 +250,14 @@ export function initAdminMessagesHub({ api, els, setStatus, staffMessaging }) {
     }
 
     selectMessage(button.dataset.messageKey).catch((error) => setStatus(els.status, error.message, true));
+  });
+
+  els.detail?.addEventListener("click", (event) => {
+    if (!event.target.closest(".staff-message-delete-btn")) {
+      return;
+    }
+
+    deleteSelectedMessage().catch((error) => setStatus(els.status, error.message, true));
   });
 
   return { refresh, syncDisplay };

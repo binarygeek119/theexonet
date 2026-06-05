@@ -96,6 +96,16 @@
     "CacheDirectory": "lunar-weather",
     "RelaysFile": "weather-relays.csv"
   },
+  "Foreverfall": {
+    "Enabled": true,
+    "CacheDirectory": "foreverfall",
+    "MaxInmateImages": 500,
+    "RetentionDays": 14,
+    "TargetDailyIntake": 15,
+    "IntakeVariance": 8,
+    "MinDailyIntake": 7,
+    "MaxDailyIntake": 23
+  },
   "CompanyLogo": {
     "Enabled": true,
     "SecondsBetweenGenerations": 8

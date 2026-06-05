@@ -229,6 +229,7 @@ builder.Services.AddSingleton<ForeverfallPenitentiaryService>();
 builder.Services.AddHostedService<ForeverfallSchedulerService>();
 builder.Services.AddSingleton<VoidCorpCatalogService>();
 builder.Services.AddSingleton<VoidCorpProductImageGenerator>();
+builder.Services.AddSingleton<VoidCorpMissingImageBackfillService>();
 builder.Services.AddHostedService<VoidCorpSchedulerService>();
 builder.Services.AddHostedService<ExonetAiAssetScannerService>();
 builder.Services.AddSingleton<IProfileAvatarStorage>(sp =>

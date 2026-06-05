@@ -9,6 +9,7 @@ namespace Rava.Api.Services.VoidCorp;
 public sealed class VoidCorpCatalogService(
     RavaHostingPaths hostingPaths,
     ITradeItemsCatalog tradeItemsCatalog,
+    VoidCorpMissingImageBackfillService backfillService,
     IOptions<VoidCorpOptions> voidCorpOptions)
 {
     private readonly VoidCorpOptions _options = voidCorpOptions.Value;
@@ -43,7 +44,10 @@ public sealed class VoidCorpCatalogService(
             return;
         }
 
-        VoidCorpCatalogSync.Sync(hostingPaths.VoidCorpCacheRoot, tradeItemsCatalog.GetSupplyItems());
+        var syncResult = VoidCorpCatalogSync.Sync(
+            hostingPaths.VoidCorpCacheRoot,
+            tradeItemsCatalog.GetSupplyItems());
+        backfillService.EnqueueAfterSync(syncResult);
     }
 
     private VoidCorpProductDto MapProduct(VoidCorpCatalogEntryDocument entry)

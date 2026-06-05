@@ -10,5 +10,5 @@
   <path d="M196 168h120M196 198h80" stroke="#5a6a8a" stroke-width="4" opacity="0.6"/>
   <circle cx="256" cy="158" r="24" fill="none" stroke="#8b9dc3" stroke-width="4" opacity="0.7"/>
   <text x="256" y="280" text-anchor="middle" fill="#8b9dc3" font-family="monospace" font-size="16">VOIDCORP PRODUCT</text>
-  <text x="256" y="304" text-anchor="middle" fill="#5a6a8a" font-family="monospace" font-size="12">IMAGE PENDING</text>
+  <text x="256" y="304" text-anchor="middle" fill="#5a6a8a" font-family="monospace" font-size="12">AI IMAGE PENDING</text>
 </svg>

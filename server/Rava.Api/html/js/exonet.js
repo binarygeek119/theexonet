@@ -1764,6 +1764,25 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
 
   const VOIDCORP_MISSING_PRODUCT = "/exonet/voidcorp/placeholders/missing-product.svg";
 
+  function voidCorpImageCaption(product) {
+    if (product.imageUrl && product.source === "openai") {
+      return "AI product imagery";
+    }
+
+    if (!product.imageUrl) {
+      return "AI product imagery pending";
+    }
+
+    return null;
+  }
+
+  function voidCorpImageCaptionHtml(product) {
+    const caption = voidCorpImageCaption(product);
+    return caption
+      ? `<p class="exonet-vc-image-caption">${escapeHtml(caption)}</p>`
+      : "";
+  }
+
   function voidCorpProductCard(product) {
     const image = product.imageUrl || VOIDCORP_MISSING_PRODUCT;
     return `
@@ -1771,6 +1790,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
         <div class="exonet-vc-image-wrap">
           <img class="exonet-vc-image" src="${escapeHtml(image)}" alt="" loading="lazy"
             onerror="this.onerror=null;this.src='${VOIDCORP_MISSING_PRODUCT}'">
+          ${voidCorpImageCaptionHtml(product)}
         </div>
         <div class="exonet-vc-card-body">
           <h3>${escapeHtml(product.displayName)}</h3>
@@ -1788,6 +1808,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
           <div class="exonet-vc-image-wrap exonet-vc-image-wrap--large">
             <img class="exonet-vc-image" src="${escapeHtml(image)}" alt="" loading="lazy"
               onerror="this.onerror=null;this.src='${VOIDCORP_MISSING_PRODUCT}'">
+            ${voidCorpImageCaptionHtml(product)}
           </div>
           <div>
             <p class="exonet-vc-category">${escapeHtml(product.category)}</p>

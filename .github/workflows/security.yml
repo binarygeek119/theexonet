@@ -85,9 +85,14 @@ jobs:
       # scanning is not enabled on the repository.
       - name: Run CodeQL analysis
         run: |
+          CODEQL="$CODEQL_DIST/codeql"
+          if [ ! -x "$CODEQL" ]; then
+            echo "CodeQL CLI not found at $CODEQL"
+            exit 1
+          fi
           mkdir -p codeql-results
-          codeql database finalize "$RUNNER_TEMP/codeql_databases/csharp"
-          codeql database analyze "$RUNNER_TEMP/codeql_databases/csharp" \
+          "$CODEQL" database finalize "$RUNNER_TEMP/codeql_databases/csharp"
+          "$CODEQL" database analyze "$RUNNER_TEMP/codeql_databases/csharp" \
             --format=sarif-latest \
             --output=codeql-results/csharp.sarif \
             --threads="${CODEQL_THREADS:-2}" \

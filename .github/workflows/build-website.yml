@@ -11,6 +11,8 @@ on:
       - "server/Directory.Build.props"
       - "docs/deploy.md"
       - "docs/github-deploy-setup.md"
+      - "docs/branch-protection.md"
+      - ".github/rulesets/**"
       - "docs/game/**"
   pull_request:
     branches: [main]
@@ -22,6 +24,8 @@ on:
       - "server/Directory.Build.props"
       - "docs/deploy.md"
       - "docs/github-deploy-setup.md"
+      - "docs/branch-protection.md"
+      - ".github/rulesets/**"
       - "docs/game/**"
   workflow_dispatch:
     inputs:
@@ -117,6 +121,11 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Download publish artifact
         uses: actions/download-artifact@v8
         with:
@@ -126,29 +135,52 @@ jobs:
       - name: Create release archive
         run: zip -r "rava-website-${{ needs.build.outputs.release_tag }}.zip" publish data
 
+      - name: Prepare release body
+        id: release_body
+        env:
+          RELEASE_TAG: ${{ needs.build.outputs.release_tag }}
+          RELEASE_DATE: ${{ needs.build.outputs.release_date }}
+        run: |
+          chmod +x scripts/generate-release-notes.sh
+          VERSION_FILE=server/Rava.Core/Constants/GameVersion.cs
+          MAJOR="$(sed -n 's/.*Major = \([0-9][0-9]*\).*/\1/p' "$VERSION_FILE")"
+          MINOR="$(sed -n 's/.*Minor = \([0-9][0-9]*\).*/\1/p' "$VERSION_FILE")"
+          PATCH="$(sed -n 's/.*Patch = \([0-9][0-9]*\).*/\1/p' "$VERSION_FILE")"
+          GAME_VERSION="V${MAJOR}.${MINOR}.${PATCH}"
+          echo "game_version=${GAME_VERSION}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## What's changed"
+            echo
+            bash scripts/generate-release-notes.sh
+            echo
+            echo "## Release info"
+            echo
+            echo "- **Game version:** ${GAME_VERSION}"
+            echo "- **Tag:** \`${RELEASE_TAG}\`"
+            echo "- **Date (UTC):** ${RELEASE_DATE}"
+            echo "- **Build number:** ${{ github.run_number }}"
+            echo "- **Commit:** ${{ github.sha }}"
+            echo "- **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            echo "## Install"
+            echo
+            echo "Download \`rava-website-*.zip\`, extract \`publish/\`, copy \`appsettings.json.example\` to \`appsettings.json\`, configure secrets, then run:"
+            echo
+            echo "- **\`Rava.Api.dll\`** — port 5000"
+            echo "- **\`Rava.Status.dll\`** — port 6000 (same folder; add \`StatusMonitor\` section to \`appsettings.json\`)"
+            echo "- **\`Rava.Admin.dll\`** — port 7000 (same folder; add \`AdminPortal\` section to \`appsettings.json\`)"
+            echo "- **\`Rava.Moderator.dll\`** — port 7050 (same folder; add \`ModeratorPortal\` section to \`appsettings.json\`)"
+            echo "- **\`Rava.Docs.dll\`** — port 9000 (same folder; add \`DocsPortal\` section to \`appsettings.json\`)"
+          } > release-body.md
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.build.outputs.release_tag }}
-          name: Website ${{ needs.build.outputs.release_tag }}
-          body: |
-            Automated website release.
-
-            - **Tag:** `${{ needs.build.outputs.release_tag }}`
-            - **Date (UTC):** ${{ needs.build.outputs.release_date }}
-            - **Build number:** ${{ github.run_number }}
-            - **Commit:** ${{ github.sha }}
-            - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-            Download `rava-website-*.zip`, extract `publish/`, copy `appsettings.json.example` to `appsettings.json`, configure secrets, then run:
-
-            - **`Rava.Api.dll`** — port 5000
-            - **`Rava.Status.dll`** — port 6000 (same folder; add `StatusMonitor` section to `appsettings.json`)
-            - **`Rava.Admin.dll`** — port 7000 (same folder; add `AdminPortal` section to `appsettings.json`)
-            - **`Rava.Moderator.dll`** — port 7050 (same folder; add `ModeratorPortal` section to `appsettings.json`)
-            - **`Rava.Docs.dll`** — port 9000 (same folder; add `DocsPortal` section to `appsettings.json`)
+          name: Website ${{ needs.build.outputs.release_tag }} (${{ steps.release_body.outputs.game_version }})
+          body_path: release-body.md
           files: rava-website-*.zip
-          generate_release_notes: true
 
   deploy:
     name: Deploy to production

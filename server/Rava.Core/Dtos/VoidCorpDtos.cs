@@ -16,3 +16,19 @@ public record VoidCorpProductDto(
 public record VoidCorpCatalogDto(
     DateTime UpdatedAtUtc,
     IReadOnlyList<VoidCorpProductDto> Products);
+
+public record AdminVoidCorpStatusDto(
+    bool Enabled,
+    bool OpenAiConfigured,
+    bool GenerationReady,
+    int ProductCount,
+    int WithImagesCount,
+    int MissingImagesCount,
+    int MaxImagesPerBatch,
+    DateTime UpdatedAtUtc);
+
+public record AdminVoidCorpGenerateImagesResponse(
+    string Message,
+    int Attempted,
+    int Generated,
+    int RemainingMissing);

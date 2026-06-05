@@ -1,0 +1,89 @@
+using Microsoft.Extensions.Options;
+using Rava.Api.Services.OpenAi;
+using Rava.Core.Configuration;
+using Rava.Core.Dtos;
+using Rava.Core.Interfaces;
+using Rava.Core.Services;
+
+namespace Rava.Api.Services.VoidCorp;
+
+public sealed class VoidCorpAdminService(
+    RavaHostingPaths hostingPaths,
+    ITradeItemsCatalog tradeItemsCatalog,
+    VoidCorpMissingImageBackfillService backfillService,
+    VoidCorpProductImageGenerator imageGenerator,
+    OpenAiConnectionResolver openAi,
+    IOptions<VoidCorpOptions> voidCorpOptions)
+{
+    public AdminVoidCorpStatusDto GetStatus()
+    {
+        var settings = voidCorpOptions.Value;
+        var cacheRoot = hostingPaths.VoidCorpCacheRoot;
+
+        if (settings.Enabled)
+        {
+            VoidCorpCatalogSync.Sync(cacheRoot, tradeItemsCatalog.GetSupplyItems());
+        }
+
+        var document = VoidCorpCatalogSync.Load(cacheRoot);
+        var productCount = document.Products.Count;
+        var missingImages = productCount == 0
+            ? 0
+            : document.Products.Count(product => VoidCorpMissingImageSelection.IsMissing(cacheRoot, product));
+        var withImages = productCount - missingImages;
+
+        return new AdminVoidCorpStatusDto(
+            settings.Enabled,
+            openAi.IsApiKeyConfigured,
+            settings.Enabled && openAi.IsApiKeyConfigured,
+            productCount,
+            withImages,
+            missingImages,
+            Math.Max(1, settings.MaxImagesPerDay),
+            document.UpdatedAtUtc);
+    }
+
+    public async Task<(AdminVoidCorpGenerateImagesResponse? Response, string? Error)> GenerateMissingImagesAsync(
+        CancellationToken cancellationToken)
+    {
+        var settings = voidCorpOptions.Value;
+        if (!settings.Enabled)
+        {
+            return (null, "VoidCorp is disabled in configuration.");
+        }
+
+        if (!imageGenerator.IsConfigured)
+        {
+            return (null, "OpenAi.ApiKey is not configured; AI product images are unavailable.");
+        }
+
+        var statusBefore = GetStatus();
+        if (statusBefore.MissingImagesCount == 0)
+        {
+            return (new AdminVoidCorpGenerateImagesResponse(
+                "All product images are already present.",
+                0,
+                0,
+                0), null);
+        }
+
+        var result = await backfillService.RunAsync("admin", cancellationToken);
+        if (result.Skipped && result.Attempted == 0 && result.Generated == 0)
+        {
+            return (null, "Another VoidCorp image generation run is already in progress.");
+        }
+
+        var statusAfter = GetStatus();
+        var message = result.Generated > 0
+            ? $"Generated {result.Generated} of {result.Attempted} missing product image(s)."
+            : result.Attempted > 0
+                ? "Image generation attempted but no images were saved. Check API logs for details."
+                : "All product images are already present.";
+
+        return (new AdminVoidCorpGenerateImagesResponse(
+            message,
+            result.Attempted,
+            result.Generated,
+            statusAfter.MissingImagesCount), null);
+    }
+}

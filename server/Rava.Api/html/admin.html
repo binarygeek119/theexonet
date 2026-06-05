@@ -82,6 +82,7 @@
       <button type="button" class="admin-nav-btn" data-admin-page="offworld-news">Offworld News</button>
       <button type="button" class="admin-nav-btn" data-admin-page="lunar-weather">Lunar Weather</button>
       <button type="button" class="admin-nav-btn" data-admin-page="foreverfall-penitentiary">Foreverfall Penitentiary</button>
+    <button type="button" class="admin-nav-btn" data-admin-page="voidcorp">VoidCorp</button>
     </nav>
 
     <main class="admin-main">
@@ -279,6 +280,27 @@
             <button id="admin-ffp-save-btn" type="submit" class="btn ghost">Save settings</button>
             <p id="admin-ffp-settings-status" class="status-text"></p>
           </form>
+        </section>
+      </section>
+
+      <section id="admin-page-voidcorp" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>VoidCorp</h2>
+              <p class="admin-page-desc">Generate AI product listing images for the Exonet VoidCorp catalog. New trade supplies sync into the catalog automatically; missing images backfill on API reads, at UTC midnight, and when you run generation here.</p>
+            </div>
+          </div>
+          <p id="admin-voidcorp-summary" class="admin-page-desc">Loading catalog status…</p>
+          <div class="button-row">
+            <button id="admin-voidcorp-generate-btn" type="button" class="btn primary">Generate missing product images</button>
+          </div>
+          <p id="admin-voidcorp-status" class="status-text"></p>
+        </section>
+
+        <section class="admin-panel">
+          <h2>Generation batch</h2>
+          <p class="admin-page-desc">Each run generates up to <span id="admin-voidcorp-batch-limit">4</span> missing images (configured in appsettings as VoidCorp:MaxImagesPerDay). Run again until the missing count reaches zero.</p>
         </section>
       </section>
 

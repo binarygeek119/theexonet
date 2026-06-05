@@ -83,6 +83,11 @@ const els = {
   ffpMax: document.getElementById("admin-ffp-max"),
   ffpSaveBtn: document.getElementById("admin-ffp-save-btn"),
   ffpSettingsStatus: document.getElementById("admin-ffp-settings-status"),
+  pageVoidCorp: document.getElementById("admin-page-voidcorp"),
+  voidcorpSummary: document.getElementById("admin-voidcorp-summary"),
+  voidcorpStatus: document.getElementById("admin-voidcorp-status"),
+  voidcorpGenerateBtn: document.getElementById("admin-voidcorp-generate-btn"),
+  voidcorpBatchLimit: document.getElementById("admin-voidcorp-batch-limit"),
   eventsStatus: document.getElementById("admin-events-status"),
   eventsList: document.getElementById("admin-events-list"),
   eventsNewBtn: document.getElementById("admin-events-new-btn"),
@@ -1370,6 +1375,82 @@ async function regenerateForeverfallIntake() {
   }
 }
 
+function renderVoidCorpSummary(status) {
+  if (!status) {
+    els.voidcorpSummary.textContent = "No VoidCorp status loaded.";
+    return;
+  }
+
+  const productCount = pickJson(status, "productCount") ?? 0;
+  const withImages = pickJson(status, "withImagesCount") ?? 0;
+  const missing = pickJson(status, "missingImagesCount") ?? 0;
+  const updatedAt = pickJson(status, "updatedAtUtc");
+  const updatedLabel = updatedAt ? new Date(updatedAt).toISOString().slice(0, 19).replace("T", " ") + " UTC" : "—";
+  const enabled = Boolean(pickJson(status, "enabled"));
+  const openAiConfigured = Boolean(pickJson(status, "openAiConfigured"));
+  const generationReady = Boolean(pickJson(status, "generationReady"));
+  const batchLimit = pickJson(status, "maxImagesPerBatch") ?? 4;
+
+  if (els.voidcorpBatchLimit) {
+    els.voidcorpBatchLimit.textContent = String(batchLimit);
+  }
+
+  const readiness = generationReady
+    ? "OpenAI ready"
+    : !enabled
+      ? "VoidCorp disabled in configuration"
+      : !openAiConfigured
+        ? "OpenAI API key not configured"
+        : "Generation unavailable";
+
+  els.voidcorpSummary.textContent =
+    `${productCount} products · ${withImages} with images · ${missing} missing · updated ${updatedLabel} · ${readiness}.`;
+
+  if (els.voidcorpGenerateBtn) {
+    els.voidcorpGenerateBtn.disabled = !generationReady || missing === 0;
+  }
+}
+
+async function loadVoidCorpSummary() {
+  try {
+    const status = await api.adminGetVoidCorpStatus();
+    renderVoidCorpSummary(status);
+    setStatus(els.voidcorpStatus, "");
+  } catch (error) {
+    els.voidcorpSummary.textContent = "Could not load VoidCorp catalog status.";
+    setStatus(els.voidcorpStatus, error.message, true);
+  }
+}
+
+async function loadVoidCorpPage() {
+  await loadVoidCorpSummary();
+}
+
+async function generateVoidCorpMissingImages() {
+  if (
+    !window.confirm(
+      "Generate missing VoidCorp product images? Each run creates up to the configured daily batch limit.",
+    )
+  ) {
+    return;
+  }
+
+  setStatus(els.voidcorpStatus, "Generating product images…");
+  els.voidcorpGenerateBtn.disabled = true;
+  try {
+    const result = await api.adminGenerateVoidCorpMissingImages();
+    await loadVoidCorpSummary();
+    const remaining = pickJson(result, "remainingMissing") ?? 0;
+    setStatus(
+      els.voidcorpStatus,
+      `${result.message}${remaining > 0 ? ` ${remaining} still missing — run again to continue.` : ""}`,
+    );
+  } catch (error) {
+    setStatus(els.voidcorpStatus, error.message, true);
+    await loadVoidCorpSummary();
+  }
+}
+
 function countOffworldNewsAiImages(stories) {
   return (stories ?? []).filter((story) => String(story.imageUrl ?? "").includes("/images/")).length;
 }
@@ -2522,6 +2603,8 @@ async function loadPortal() {
     await loadLunarWeatherPage();
   } else if (state.page === "foreverfall-penitentiary") {
     await loadForeverfallPage();
+  } else if (state.page === "voidcorp") {
+    await loadVoidCorpPage();
   } else if (state.page === "testing") {
     loadTestingPage();
   }
@@ -2546,6 +2629,10 @@ async function loadCurrentPage() {
   }
   if (state.page === "foreverfall-penitentiary") {
     await loadForeverfallPage();
+    return;
+  }
+  if (state.page === "voidcorp") {
+    await loadVoidCorpPage();
     return;
   }
   if (state.page === "players") {
@@ -2737,6 +2824,8 @@ els.navButtons.forEach((button) => {
         setStatus(els.lunarWeatherStatus, error.message, true);
       } else if (state.page === "foreverfall-penitentiary") {
         setStatus(els.foreverfallStatus, error.message, true);
+      } else if (state.page === "voidcorp") {
+        setStatus(els.voidcorpStatus, error.message, true);
       } else if (state.page === "testing") {
         setStatus(els.testingStatus, error.message, true);
       }
@@ -2910,6 +2999,10 @@ els.ffpSettingsForm?.addEventListener("submit", (event) => {
 
 els.foreverfallRegenBtn?.addEventListener("click", () => {
   regenerateForeverfallIntake().catch((error) => setStatus(els.foreverfallStatus, error.message, true));
+});
+
+els.voidcorpGenerateBtn?.addEventListener("click", () => {
+  generateVoidCorpMissingImages().catch((error) => setStatus(els.voidcorpStatus, error.message, true));
 });
 
 els.messageLogSearchBtn.addEventListener("click", () => {

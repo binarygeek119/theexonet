@@ -5,6 +5,7 @@ using Rava.Api.Services;
 using Rava.Api.Services.Foreverfall;
 using Rava.Api.Services.LunarWeather;
 using Rava.Api.Services.OffworldNews;
+using Rava.Api.Services.VoidCorp;
 using Rava.Api.Services.TestingDummyFriends;
 using Rava.Core.Configuration;
 using Rava.Core.Constants;
@@ -33,6 +34,7 @@ public class AdminController(
     LunarWeatherAdminSettingsStore lunarWeatherAdminSettings,
     ForeverfallPenitentiaryService foreverfallPenitentiaryService,
     ForeverfallAdminSettingsStore foreverfallAdminSettings,
+    VoidCorpAdminService voidCorpAdminService,
     IEmailService emailService,
     IOptions<EmailOptions> emailOptions,
     IOptions<AdminOptions> adminOptions,
@@ -245,6 +247,23 @@ public class AdminController(
             roster.IntakeCount,
             roster.MaleCount,
             roster.FemaleCount));
+    }
+
+    [HttpGet("voidcorp/status")]
+    public ActionResult<AdminVoidCorpStatusDto> GetVoidCorpStatus() =>
+        Ok(voidCorpAdminService.GetStatus());
+
+    [HttpPost("voidcorp/generate-missing-images")]
+    public async Task<ActionResult<AdminVoidCorpGenerateImagesResponse>> GenerateVoidCorpMissingImages(
+        CancellationToken ct)
+    {
+        var (response, error) = await voidCorpAdminService.GenerateMissingImagesAsync(ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(response);
     }
 
     [HttpGet("players")]

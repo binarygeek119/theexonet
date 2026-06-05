@@ -839,6 +839,17 @@ export class RavaApi {
     });
   }
 
+  adminGetVoidCorpStatus() {
+    return this.request("/api/admin/voidcorp/status");
+  }
+
+  adminGenerateVoidCorpMissingImages() {
+    return this.request("/api/admin/voidcorp/generate-missing-images", {
+      method: "POST",
+      body: {},
+    });
+  }
+
   moderatorAccess() {
     return this.request("/api/moderator/access");
   }

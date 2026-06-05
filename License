@@ -1,0 +1,299 @@
+Mozilla Public License Version 2.0
+with Domain Exclusivity, Open Source Requirement, and Funding Restrictions
+
+1. Definitions
+--------------
+
+1.1. "Contributor"
+    means each individual or legal entity that creates, contributes to
+    the creation of, or owns Covered Software.
+
+1.2. "Contributor Version"
+    means the combination of the Contributions of others (if any) used
+    by a Contributor and that particular Contributor's Contribution.
+
+1.3. "Contribution"
+    means Covered Software of a particular Contributor, including
+    any source code, documentation or other material that that
+    Contributor makes available to the project.
+
+1.4. "Covered Software"
+    means Source Code Form to which the initial Contributor has attached
+    the notice in Exhibit A, the Executable Form of such Source Code
+    Form, and Modifications of such Source Code Form, in each case
+    including portions thereof.
+
+1.5. "Executable Form"
+    means any form of the work other than Source Code Form.
+
+1.6. "Larger Work"
+    means a work that combines Covered Software with portions of
+    software that are not governed by the terms of this License.
+
+1.7. "License"
+    means this document.
+
+1.8. "Licensable"
+    means having the right to grant, to the best of Licensee's knowledge
+    and belief, a royalty-free, non-exclusive, non-transferable,
+    non-sublicensable, irrevocable license under intellectual property
+    rights owned or licensable by Licensee to use, reproduce, make,
+    have made, modify, distribute, publicly perform, publicly display,
+    and sublicense Covered Software in Source Code Form and in Executable
+    Form and, at Licensee's option, any patent claims owned or licensable
+    by Licensee that are necessarily infringed by Licensee's
+    Contribution(s) alone or by combination of Licensee's Contribution(s)
+    with the Covered Software to which such Contribution(s) was submitted.
+    If Licensee holds patent claims that are necessarily infringed by
+    their Contribution(s) alone, Licensee agrees not to assert those patent
+    claims against any other Contributor or Licensor.
+
+1.9. "Modifications"
+    means any of the following:
+
+    (a) any file in Source Code Form that results from an addition to,
+    deletion from or modification of the contents of Covered Software;
+    or
+
+    (b) any new file in Source Code Form that contains any Covered
+    Software.
+
+1.10. "Source Code Form"
+    means the form of the work preferred for making modifications,
+    including but not limited to software source code, documentation
+    source, and configuration files.
+
+1.11. "Object Code Form"
+    means any form resulting from mechanical transformation or
+    translation of a Source Code Form, including but not limited to
+    compiled object code, generated documentation, and conversions to
+    other media types.
+
+1.12. "Patent Claims" of a Contributor
+    means any patent claim(s), including without limitation, method,
+    process, and apparatus claims, in any patent Licensable by such
+    Contributor that would be infringed, but for the grant of the
+    License, by the making, using, selling, offering for sale, having
+    made, import, or transfer of either its Contributions or its
+    Contributor Version.
+
+2. License Grants and Conditions
+--------------------------------
+
+2.1. Grants
+
+Each Contributor hereby grants You a world-wide, royalty-free,
+non-exclusive license:
+
+(a) under intellectual property rights (other than patent or trademark)
+    Licensable by such Contributor to use, reproduce, make, have made,
+    sell, offer for sale, import, have imported, publicly display,
+    publicly perform, sublicense, and distribute the Covered Software
+    in Source Code or Object Code Form; and
+
+(b) under Patent Claims of such Contributor to make, use, sell, offer
+    for sale, have made, import, and otherwise transfer the Covered
+    Software in Source Code or Object Code Form.
+
+2.2. Conditions
+
+The License grants under Section 2.1 are expressly conditioned upon
+Your compliance with the following conditions:
+
+(a) You must give any other recipients of the Covered Software a
+    copy of this License; and
+
+(b) You must cause any Covered Software that You distribute to include
+    a file documenting the changes You made to create that Covered
+    Software and the date of any change. You may include this file in
+    any place in the Covered Software where recipients would be likely
+    to look for such a file.
+
+(c) You must retain, in the Source Code Form of any Covered Software
+    that You distribute, all copyright, patent, trademark, and
+    attribution notices from the Source Code Form of the Covered
+    Software.
+
+(d) You may not offer or impose any terms on any Covered Software that
+    restrict the ability of a recipient of the Covered Software to
+    exercise the rights granted herein.
+
+(e) You are not required to surrender rights under a different open
+    source license that You may have that are compatible with this
+    License.
+
+3. Trademark Grant
+------------------
+
+3.1. Grant of Rights
+Subject to the third party trademark right notice below, as a condition
+of the license grant under Section 2.1, each Contributor grants You a
+world-wide, royalty-free, non-exclusive license:
+
+(a) under trademarks Licensable by such Contributor to use, reproduce,
+    have made, use, import, and otherwise transfer the trademarks of
+    such Contributor in connection with the Covered Software, or
+    modifications thereof, in Source Code or Object Code Form; and
+
+(b) under Patent Claims of such Contributor to make, use, sell, offer
+    for sale, have made, import, and otherwise transfer the Covered
+    Software in Source Code or Object Code Form.
+
+3.2. Third Party Trademark Right Notice
+This License does not grant any rights to any trademarks that a
+Contributor may use in connection with the Covered Software or their
+Contributions, including but not limited to any trademarks or
+trademark rights in any name, logo, or other designation that is
+included in the Covered Software. This License does not grant any
+rights to use any trademarks that are not a part of the Covered Software
+themselves.
+
+4. Inability to Comply Due to Statute or Regulation
+---------------------------------------------------
+
+If it is impossible for You to comply with any of the terms of this
+License with respect to some or all of the Covered Software due to
+statute, judicial order, or regulation then You must: (a) comply with
+the terms of this License to the maximum extent possible; and (b)
+describe the limitations and the code they affect. Such description
+must be placed in a text file that is included with all distributions
+of the Covered Software under this License. Except to the extent
+prohibited by statute or regulation, such description must be
+sufficiently detailed for a recipient of ordinary skill to be able to
+understand it.
+
+5. Termination
+--------------
+
+5.1. The rights granted under this License will terminate automatically
+if You fail to comply with any of its terms. However, if You become
+compliant, then the rights granted under this License from a particular
+Contributor are reinstated (a) provisionally, unless and until such
+Contributor explicitly and finally terminates Your grants, and (b) on an
+ongoing basis, if such Contributor fails to notify You of the
+non-compliance by some reasonable means prior to 60 days after You have
+come back into compliance. Moreover, Your grants from a particular
+Contributor are reinstated on an ongoing basis if such Contributor
+notifies You of the non-compliance by some reasonable means, this is the
+first time You have received notice of non-compliance with this License
+from such Contributor, and You become compliant prior to 30 days after
+Your receipt of the notice.
+
+5.2. If You initiate litigation against any entity by asserting a patent
+infringement claim (excluding declaratory judgment actions,
+counter-claims, and cross-claims) alleging that a Contributor Version
+directly or indirectly infringes any patent, then the rights granted to
+You by that Contributor under Sections 2.1(b) and 3.1(b) of this License
+shall terminate as of the date such litigation is filed.
+
+6. Disclaimer of Warranty
+-------------------------
+
+COVERED SOFTWARE IS PROVIDED UNDER THIS LICENSE ON AN "AS IS" BASIS,
+WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING,
+WITHOUT LIMITATION, WARRANTIES THAT THE COVERED SOFTWARE IS FREE OF
+DEFECTS, MERCHANTABLE, FIT FOR A PARTICULAR PURPOSE OR NON-INFRINGING.
+THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE COVERED
+SOFTWARE IS WITH YOU. SHOULD ANY COVERED SOFTWARE PROVE DEFECTIVE IN ANY
+RESPECT, YOU (NOT THE INITIAL DEVELOPER OR ANY OTHER CONTRIBUTOR) ASSUME
+THE COST OF ANY NECESSARY SERVICING, REPAIR OR CORRECTION. THIS DISCLAIMER
+OF WARRANTY CONSTITUTES AN ESSENTIAL PART OF THIS LICENSE. NO USE OF ANY
+COVERED SOFTWARE IS AUTHORIZED HEREUNDER EXCEPT UNDER THIS DISCLAIMER.
+
+7. Limitation of Liability
+--------------------------
+
+UNDER NO CIRCUMSTANCES AND UNDER NO LEGAL THEORY, WHETHER TORT (INCLUDING
+NEGLIGENCE), CONTRACT, OR OTHERWISE, SHALL YOU, THE INITIAL DEVELOPER,
+ANY OTHER CONTRIBUTOR, OR ANY DISTRIBUTOR OF COVERED SOFTWARE, OR ANY
+SUPPLIER OF ANY OF SUCH PARTIES, BE LIABLE TO ANY PERSON FOR ANY
+INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES OF ANY CHARACTER
+INCLUDING, WITHOUT LIMITATION, DAMAGES FOR LOSS OF GOODWILL, WORK STOPPAGE,
+COMPUTER FAILURE OR MALFUNCTION, OR ANY AND ALL OTHER COMMERCIAL DAMAGES
+OR LOSSES, EVEN IF SUCH PARTY SHALL HAVE BEEN INFORMED OF THE POSSIBILITY
+OF SUCH DAMAGES. THIS LIMITATION OF LIABILITY SHALL NOT APPLY TO LIABILITY
+FOR DEATH OR PERSONAL INJURY RESULTING FROM SUCH PARTY'S NEGLIGENCE TO THE
+EXTENT APPLICABLE LAW PROHIBITS SUCH LIMITATION. SOME JURISDICTIONS DO NOT
+ALLOW THE EXCLUSION OR LIMITATION OF INCIDENTAL OR CONSEQUENTIAL DAMAGES,
+SO THIS EXCLUSION AND LIMITATION MAY NOT APPLY TO YOU.
+
+8. Litigation
+-------------
+
+Any litigation relating to this License may be brought only in the
+courts of a jurisdiction where the defendant maintains its principal
+place of business, and such litigation will be governed by laws of that
+jurisdiction, without reference to its conflict-of-law provisions.
+Nothing in this Section shall prevent a party's ability to bring
+cross-claims or counter-claims.
+
+9. Miscellaneous
+----------------
+
+This License represents the complete agreement concerning the subject
+matter hereof. If any provision of this License is held to be
+unenforceable, such provision shall be reformed only to the extent
+necessary to make it enforceable. This License shall be governed by
+the laws of the jurisdiction in which the copyright holder maintains
+its principal place of business, without reference to its conflict-of-law
+provisions.
+
+10. Additional Terms
+--------------------
+
+10.1. Domain Exclusivity Provision
+
+   a. While the original project is actively maintained and accessible at any of its official domains, no public instances of this software may be hosted on any other domain or subdomain.
+
+   b. The official domains for this project are:
+      - [DOMAIN 1]
+      - [DOMAIN 2]
+      - [ADDITIONAL DOMAINS AS NEEDED]
+
+   c. Temporary maintenance periods or technical outages of the official domains do not constitute abandonment of the exclusivity provision.
+
+   d. The exclusivity provision terminates only if:
+      - The original project is officially announced as retired or abandoned by the copyright holder, OR
+      - All official domains have been inaccessible for a continuous period of 180 days without any announcement of temporary maintenance.
+
+   e. Private instances for personal use that are not accessible to the public internet are permitted at any time.
+
+   f. Upon termination of the exclusivity provision, other instances may be hosted on public domains, provided they comply with all other terms of this license.
+
+10.2. Open Source Requirement
+
+   a. The project must remain open source under this license or a compatible open source license.
+
+   b. All source code, assets, and documentation must be made publicly available in a source code repository.
+
+10.3. Funding Restrictions
+
+   a. If the project is officially retired or abandoned, no funding may be solicited or accepted for instances of this software without explicit written permission from the original project owner(s).
+
+   b. "Funding" includes but is not limited to donations, crowdfunding, investments, sponsorships, or any form of monetary compensation specifically for operating instances of this software.
+
+10.4. Contributor Rights and Credit
+
+   a. By submitting code, assets, or other contributions to this project, contributors transfer all rights to their contribution to the project owner(s).
+
+   b. Contributors retain the right to be credited for their contributions in the project's documentation, attribution notices, or other appropriate locations.
+
+   c. The project owner(s) may use, modify, distribute, or otherwise exploit contributions without further permission or compensation to contributors.
+
+10.5. License Modification Authority
+
+   a. The project owner(s) reserve the right to modify these additional terms or the license as a whole at any time.
+
+   b. License modifications will apply to all future contributions and uses of the software.
+
+   c. Existing distributions of the software under previous license terms remain compliant with those terms.
+
+EXHIBIT A - Mozilla Public License Standard Header
+--------------------------------------------------
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0 with Domain Exclusivity Provisions. If a copy of the
+MPL was not distributed with this file, You can obtain one at
+http://mozilla.org/MPL/2.0/.
+
+[Insert your official domains here]

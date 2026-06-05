@@ -6,6 +6,7 @@ using Rava.Api.Services.OffworldNews;
 using Rava.Core.Configuration;
 using Rava.Core.Dtos;
 using Rava.Core.Services;
+using Rava.Core.Services.ExonetAiAssetScan;
 
 namespace Rava.Api.Services.Foreverfall;
 
@@ -495,4 +496,7 @@ public sealed class ForeverfallPenitentiaryService(
     }
 
     public int GetPortraitPoolCount() => LoadImageRegistry().Images.Count;
+
+    public ExonetAiAssetScanAreaResult SyncPortraitRegistryFromDisk() =>
+        ForeverfallPortraitRegistryScanner.Sync(_cacheRoot);
 }

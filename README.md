@@ -1,185 +1,172 @@
-# Rava — Phase 1 Core Mining Game
+<p align="center">
+  <img src="logo.svg" alt="RAVA logo" width="280">
+</p>
 
-2D point-and-click space mining game with ASP.NET Core backend, browser client, and optional Unity client.
+# RAVA — Reactive Asteroid Venturing Agency
 
-## Prerequisites
+[![License: MPL-2.0](https://img.shields.io/badge/License-MPL--2.0-blue.svg)](License)
 
-- .NET 10 SDK
-- PostgreSQL 16+ (local Docker or remote server)
-- Unity 6 (6000.x) — optional, for the Unity client
+A browser-based sci-fi asteroid mining game. Register an account, run mines on the belt, manage workers and supplies, sell ore, and advance game days to keep your operation alive. Beyond the mine grid, **Exonet** is the in-game frontier network—trade data, player profiles, AI-generated news, and lore that updates from the live server.
 
-## Quick Start (Web App)
 
-### 1. Configure PostgreSQL
 
-Copy the example config and set your connection string:
+**Stack:** ASP.NET Core 10 · PostgreSQL · HTML/CSS/JS · optional Unity client
+
+---
+
+## About
+
+RAVA is a point-and-click mining sim set in a hard-science frontier. Players build credit runway, buy supplies, assign workers to zones on an asteroid grid, and end each day to extract ore and pay payroll. The economy includes public trade listings, company names, miner profiles, and a friends directory.
+
+Staff-facing portals handle moderation, admin operations, and server health. Exonet sites add daily world-building content—some generated with OpenAI at UTC midnight.
+
+---
+
+## Features
+
+### Gameplay
+
+- Account registration and JWT login (email, password reset)
+- Starter mine with point-and-click zone assignment
+- Daily game tick: extraction, payroll, supply consumption
+- Finance dashboard and runway estimates
+- Trade market, supply store, shipping/refinery flows
+- Miner profiles (avatars, backgrounds, social links, rankings)
+- Friends and social directory
+
+### Exonet (in-game browser)
+
+- **Trade Market** — public market data
+- **Supply Store** — catalog and listings
+- **Offworld News** — daily AI frontier headlines
+- **Lunar Weather** — space-weather relay bulletins
+- **Foreverfall Penitentiary** — galactic lifetime-sentence inmate registry
+- **RAVA Archives** — official player documentation
+
+### Operations
+
+- **Status dashboard** — API/database health, OpenAI usage
+- **Admin portal** — players, bans, events, credits, Exonet tuning
+- **Moderator portal** — messages, appeals, flagged content
+
+The game exposes a REST API under `/api`. See source controllers in `server/Rava.Api/Controllers/` for routes.
+
+---
+
+## Repository layout
+
+```
+rava/
+├── Assets/Scripts/          Unity client (optional)
+├── server/
+│   ├── Rava.Api/            Game API + browser client (html/)
+│   ├── Rava.Core/           Domain logic, DTOs, simulation
+│   ├── Rava.Infrastructure/ EF Core, services
+│   ├── Rava.Core.Tests/
+│   ├── Rava.Status/         Status dashboard (port 6000)
+│   ├── Rava.Admin/          Admin portal (port 7000)
+│   ├── Rava.Moderator/      Moderator portal (port 7050)
+│   └── Rava.Docs/           Game docs host (port 9000)
+├── docs/                    Deploy, translation, versioning
+├── scripts/                 Server helpers and publish scripts
+└── docker-compose.yml       Local PostgreSQL (optional)
+```
+
+---
+
+## Quick start
+
+### Prerequisites
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- PostgreSQL 16+ (local Docker via `docker compose up -d` or your own server)
+
+### Run locally
 
 ```bash
 cp server/Rava.Api/appsettings.json.example server/Rava.Api/appsettings.json
-```
+# Edit DefaultConnection and secrets in appsettings.json
 
-Edit `server/Rava.Api/appsettings.json`:
-
-```json
-"DefaultConnection": "Host=YOUR_DB_HOST;Port=5432;Database=YOUR_DATABASE;Username=YOUR_DB_USER;Password=YOUR_PASSWORD"
-```
-
-Create the `rava` database on your server if it does not exist yet. On first run, the API creates tables automatically via EF Core (`EnsureCreated`).
-
-**Optional local Docker Postgres** (instead of a remote server):
-
-```bash
-docker compose up -d
-```
-
-Use `Host=localhost;Port=5432;Database=rava;Username=rava;Password=rava_dev` in that case.
-
-### 2. Start the server
-
-```bash
 cd server
 dotnet run --project Rava.Api
 ```
 
-Open **http://localhost:5000** in your browser.
+Open **http://localhost:5000**, register an account, and start mining.
 
-Register an account, assign workers to mine zones, buy supplies, sell ore, and click **End Day** to advance.
+Optional local Postgres connection string:
 
-### 3. Status dashboard (optional)
+```
+Host=localhost;Port=5432;Database=rava;Username=rava;Password=rava_dev
+```
 
-Run the server status UI on port **6000** (polls the game API):
+### Optional services
 
 ```bash
 cd server
-dotnet run --project Rava.Status
+dotnet run --project Rava.Status      # http://localhost:6000
+dotnet run --project Rava.Admin       # http://localhost:7000
+dotnet run --project Rava.Moderator   # http://localhost:7050
+dotnet run --project Rava.Docs        # http://localhost:9000
 ```
 
-Open **http://localhost:6000** for API/database health, response time, and links.
-
-### 4. Admin portal (optional)
-
-Run the admin operations UI on port **7000** (calls the game API for `/api/admin/*`):
-
-```bash
-cd server
-dotnet run --project Rava.Admin
-```
-
-Open **http://localhost:7000** (production: **https://ravaadmin.binarygeek119.duckdns.org/**).
-
-### 5. Moderator portal (optional)
-
-Run the moderator oversight UI on port **7050** (calls the game API for `/api/moderator/*`):
-
-```bash
-cd server
-dotnet run --project Rava.Moderator
-```
-
-Open **http://localhost:7050** (production: **https://ravamoderator.binarygeek119.duckdns.org/**).
-
-### 6. Game docs (optional)
-
-Run the markdown game docs site on port **9000**:
-
-```bash
-cd server
-dotnet run --project Rava.Docs
-```
-
-Open **http://localhost:9000** (production: **https://ravadocs.binarygeek119.duckdns.org/**). Edit pages under **`docs/game/`**.
-
-## Translations (i18n / Weblate later)
-
-UI strings live in JSON under `server/Rava.Api/html/locales/` and `server/Rava.Status/wwwroot/locales/` (`data-i18n` + `i18n.js`). **Weblate is disabled for now** (English-only, config in `weblate.yml.off`). See **[docs/TRANSLATION.md](docs/TRANSLATION.md)** for go-live steps. Exonet / Offworld News stays excluded.
-
-## Production
-
-| Service | Host | Backend port |
-|---------|------|--------------|
-| Game (browser UI) | Game site (HTTPS) | 80 |
-| API | API subdomain (HTTPS) | 5000 |
-| Status dashboard | Status subdomain (HTTPS) | 6000 |
-| Admin portal | Admin subdomain (HTTPS) | 7000 |
-| Moderator portal | Moderator subdomain (HTTPS) | 7050 |
-| Game docs | Docs subdomain (HTTPS) | 9000 |
-
-Deploy `server/Rava.Api/html/` to the game host (port 80). Run `Rava.Api`, `Rava.Status`, `Rava.Admin`, `Rava.Moderator`, and `Rava.Docs` from the same publish folder (ports 5000, 6000, 7000, 7050, and 9000). The browser client on the game host calls the API host automatically (`html/js/config.js`).
-
-On the API host, set `"Hosting": { "ServeGameUi": false }` in `appsettings.json` (included in `appsettings.json.example`) so the API subdomain shows a status page at `/` instead of the game UI. Local `dotnet run` in Development still serves the game at `/` unless you override that in config.
-
-Set `Email:AppBaseUrl` to your public game site URL so password reset links and other emails point at the game site—not the API host or `localhost`.
-
-### Auto-deploy from GitHub Actions
-
-After each successful `main` build, CI can rsync `html/` to the game host and the API publish output to the API host. See **[docs/github-deploy-setup.md](docs/github-deploy-setup.md)** and **[docs/deploy.md](docs/deploy.md)** for SSH secrets, paths, and systemd setup.
-
-## Unity Client (Optional)
-
-Open the project in Unity 6 and press Play — the game bootstraps automatically against the same API at `http://localhost:5000`.
-
-## Architecture
-
-```
-rava/
-├── Assets/Scripts/     Unity client (optional)
-├── server/             ASP.NET Core API + simulation
-│   ├── Rava.Api/
-│   │   └── html/       Browser client (HTML/CSS/JS)
-│   ├── Rava.Status/    Server status dashboard (port 6000)
-│   ├── Rava.Admin/     Admin operations portal (port 7000)
-│   ├── Rava.Moderator/ Moderator oversight portal (port 7050)
-│   ├── Rava.Docs/      Game docs markdown host (port 9000)
-│   ├── Rava.Core/
-│   └── Rava.Infrastructure/
-└── docker-compose.yml  PostgreSQL for local dev
-```
-
-## Versioning
-
-Public release version is **V*MAJOR*.*MINOR*.*PATCH*** (currently **V1.0.0**):
-
-- **Major** — major releases
-- **Minor** — new features
-- **Patch** — bug fixes
-
-Update `server/Rava.Core/Constants/GameVersion.cs` only when you decide to release a new version — do not bump it automatically with other changes. See **[docs/VERSIONING.md](docs/VERSIONING.md)** for the full policy and release checklist.
-
-## Phase 1 Features
-
-- Register / login with JWT auth
-- Starter asteroid mine (8×8 grid, point-and-click zones)
-- Worker assignment to mining zones
-- Daily game tick: ore extraction, payroll, supply consumption
-- Mock US market prices for 4 supply types
-- NPC ore sales + emergency 50% buyback (anti-softlock)
-- Finance dashboard with runway estimate
-
-## Phase 2+ (Reserved)
-
-Friends, player market, multi-mine, mine groups, real US market API, account nuke.
-
-## API Endpoints
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| GET | `/api/status` | API and database health, player count, server uptime, first-run timestamp |
-| GET | `/api/status/economy` | Public ore/supply prices and account reward values |
-| POST | `/api/auth/register` | Create account + starter mine (email required) |
-| POST | `/api/auth/login` | Login |
-| POST | `/api/auth/forgot-password` | Email password reset link |
-| POST | `/api/auth/reset-password` | Set new password with reset token |
-| GET | `/api/mines/{id}` | Mine state |
-| POST | `/api/mines/{id}/assign-worker` | Assign worker |
-| POST | `/api/mines/{id}/buy-supply` | Buy supplies |
-| POST | `/api/mines/{id}/sell-ore` | Sell ore |
-| POST | `/api/game/advance-day` | Advance game day |
-| GET | `/api/market/today` | Current supply prices |
-| GET | `/api/player/finances` | Finance summary |
-
-## Tests
+### Tests
 
 ```bash
 cd server
 dotnet test
 ```
+
+---
+
+## Services (production layout)
+
+| Service | Role | Port |
+|---------|------|------|
+| Game UI | Browser client (`html/`) | 80 (HTTPS via reverse proxy) |
+| Rava.Api | Game API | 5000 |
+| Rava.Status | Health and monitoring | 6000 |
+| Rava.Admin | Admin operations | 7000 |
+| Rava.Moderator | Moderation | 7050 |
+| Rava.Docs | Player documentation | 9000 |
+
+Production deploys all backends from one publish folder. Set `"Hosting": { "ServeGameUi": false }` on the API host so the game UI is served separately. See **[docs/deploy.md](docs/deploy.md)** and **[docs/github-deploy-setup.md](docs/github-deploy-setup.md)** for systemd, SSH deploy, and GitHub Actions.
+
+---
+
+## Unity client (optional)
+
+Open the project in **Unity 6** and press Play. The client talks to the same API at `http://localhost:5000`.
+
+---
+
+## CI and security
+
+GitHub Actions on `main`:
+
+- **RAVA CI** — build, test, publish artifact, optional production deploy
+- **Security** — NuGet vulnerability audit, CodeQL for C#
+
+Dependabot opens weekly update PRs for NuGet and GitHub Actions.
+
+---
+
+## Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [docs/deploy.md](docs/deploy.md) | Production setup, systemd, permissions |
+| [docs/github-deploy-setup.md](docs/github-deploy-setup.md) | GitHub Actions auto-deploy |
+| [docs/TRANSLATION.md](docs/TRANSLATION.md) | i18n and Weblate (currently English-only) |
+| [docs/VERSIONING.md](docs/VERSIONING.md) | Semantic versioning policy |
+| [docs/create-account.md](docs/create-account.md) | Manual account creation |
+| [docs/game/](docs/game/) | Player guide source (also served via Rava.Docs) |
+
+UI strings live in `server/Rava.Api/html/locales/`. Exonet AI content is English-only and excluded from translation.
+
+---
+
+## License
+
+This project is licensed under the **Mozilla Public License 2.0** with additional project-specific terms. See **[License](License)** for the full text.
+
+Game version **V1.0.0** is defined in `server/Rava.Core/Constants/GameVersion.cs`. See [docs/VERSIONING.md](docs/VERSIONING.md) for release policy.

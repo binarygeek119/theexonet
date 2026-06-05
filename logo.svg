@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" role="img" aria-label="RAVA">
+  <rect x="4" y="4" width="72" height="72" rx="16" fill="#0b1220"/>
+  <path fill="#7dd3fc" d="M40 14 62 40 40 66 18 40Z"/>
+  <circle cx="40" cy="40" r="9" fill="#070b14"/>
+  <text
+    x="92"
+    y="52"
+    fill="#e2e8f0"
+    font-family="Segoe UI, system-ui, -apple-system, sans-serif"
+    font-size="40"
+    font-weight="700"
+    letter-spacing="0.08em">RAVA</text>
+</svg>

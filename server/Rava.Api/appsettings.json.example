@@ -106,6 +106,9 @@
     "MinDailyIntake": 7,
     "MaxDailyIntake": 23
   },
+  "ExonetAiAssetScanner": {
+    "Enabled": true
+  },
   "CompanyLogo": {
     "Enabled": true,
     "SecondsBetweenGenerations": 8

@@ -1,5 +1,6 @@
 using Rava.Core.Configuration;
 using Rava.Core.Services;
+using Rava.Core.Services.ExonetAiAssetScan;
 
 namespace Rava.Api.Services.TestingDummyFriends;
 
@@ -105,27 +106,6 @@ public sealed class TestingDummyFriendsAssetService(
         }
     }
 
-    public static int CountMissingAssets(string assetsRoot)
-    {
-        var missing = 0;
-        for (var index = 0; index < TestingDummyFriendsCatalog.DummyCount; index++)
-        {
-            if (!File.Exists(TestingDummyFriendsPaths.AvatarFilePath(assetsRoot, index)))
-            {
-                missing++;
-            }
-
-            if (!File.Exists(TestingDummyFriendsPaths.BackgroundFilePath(assetsRoot, index)))
-            {
-                missing++;
-            }
-
-            if (!File.Exists(TestingDummyFriendsPaths.LogoFilePath(assetsRoot, index)))
-            {
-                missing++;
-            }
-        }
-
-        return missing;
-    }
+    public static int CountMissingAssets(string assetsRoot) =>
+        TestingDummyFriendsAssetInventory.CountMissingAssets(assetsRoot);
 }

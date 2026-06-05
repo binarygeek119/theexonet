@@ -11,6 +11,7 @@ using Rava.Api.Services;
 using Rava.Api.Services.Market;
 using Rava.Api.Services.CompanyLogo;
 using Rava.Api.Services.OpenAi;
+using Rava.Api.Services.ExonetAiAssetScan;
 using Rava.Api.Services.Foreverfall;
 using Rava.Api.Services.LunarWeather;
 using Rava.Api.Services.OffworldNews;
@@ -144,6 +145,7 @@ builder.Services.Configure<OpenAiOptions>(builder.Configuration.GetSection(OpenA
 builder.Services.Configure<OffworldNewsOptions>(builder.Configuration.GetSection(OffworldNewsOptions.SectionName));
 builder.Services.Configure<LunarWeatherOptions>(builder.Configuration.GetSection(LunarWeatherOptions.SectionName));
 builder.Services.Configure<ForeverfallOptions>(builder.Configuration.GetSection(ForeverfallOptions.SectionName));
+builder.Services.Configure<ExonetAiAssetScannerOptions>(builder.Configuration.GetSection(ExonetAiAssetScannerOptions.SectionName));
 builder.Services.AddSingleton<OpenAiConnectionResolver>();
 builder.Services.Configure<CompanyLogoOptions>(builder.Configuration.GetSection(CompanyLogoOptions.SectionName));
 builder.Services.AddControllers()
@@ -215,6 +217,7 @@ builder.Services.AddHostedService<LunarWeatherSchedulerService>();
 builder.Services.AddSingleton<ForeverfallAdminSettingsStore>();
 builder.Services.AddSingleton<ForeverfallPenitentiaryService>();
 builder.Services.AddHostedService<ForeverfallSchedulerService>();
+builder.Services.AddHostedService<ExonetAiAssetScannerService>();
 builder.Services.AddSingleton<IProfileAvatarStorage>(sp =>
     new LocalProfileAvatarStorage(new ProfileAvatarStorageOptions
     {

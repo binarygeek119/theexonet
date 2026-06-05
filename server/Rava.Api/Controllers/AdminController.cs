@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Rava.Api.Services;
+using Rava.Api.Services.Foreverfall;
 using Rava.Api.Services.LunarWeather;
 using Rava.Api.Services.OffworldNews;
 using Rava.Api.Services.TestingDummyFriends;
@@ -30,6 +31,8 @@ public class AdminController(
     OffworldNewsAdminSettingsStore offworldNewsAdminSettings,
     LunarWeatherService lunarWeatherService,
     LunarWeatherAdminSettingsStore lunarWeatherAdminSettings,
+    ForeverfallPenitentiaryService foreverfallPenitentiaryService,
+    ForeverfallAdminSettingsStore foreverfallAdminSettings,
     IEmailService emailService,
     IOptions<EmailOptions> emailOptions,
     IOptions<AdminOptions> adminOptions,
@@ -203,6 +206,45 @@ public class AdminController(
             bulletin.Source,
             bulletin.OperationalCount,
             bulletin.OutageCount));
+    }
+
+    [HttpGet("foreverfall/settings")]
+    public ActionResult<AdminForeverfallSettingsDto> GetForeverfallSettings() =>
+        Ok(foreverfallAdminSettings.GetSettings(foreverfallPenitentiaryService.GetPortraitPoolCount()));
+
+    [HttpPut("foreverfall/settings")]
+    public ActionResult<AdminForeverfallSettingsDto> UpdateForeverfallSettings(
+        AdminUpdateForeverfallSettingsRequest request)
+    {
+        var (settings, error) = foreverfallAdminSettings.Save(
+            request,
+            foreverfallPenitentiaryService.GetPortraitPoolCount());
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(settings);
+    }
+
+    [HttpGet("foreverfall/status")]
+    public ActionResult<AdminForeverfallStatusDto> GetForeverfallStatus() =>
+        Ok(foreverfallPenitentiaryService.GetStatus());
+
+    [HttpPost("foreverfall/regenerate-intake")]
+    public async Task<ActionResult<AdminForeverfallRegenerateResponse>> RegenerateForeverfallIntake(
+        CancellationToken ct)
+    {
+        var today = UtcGameClock.Today;
+        await foreverfallPenitentiaryService.EnsureDailyIntakeAsync(today, forceRegenerate: true, ct);
+        var roster = await foreverfallPenitentiaryService.GetRosterAsync(today, ct);
+        return Ok(new AdminForeverfallRegenerateResponse(
+            "Today's Foreverfall Penitentiary intake regenerated.",
+            roster.IntakeDate,
+            roster.Source,
+            roster.IntakeCount,
+            roster.MaleCount,
+            roster.FemaleCount));
     }
 
     [HttpGet("players")]

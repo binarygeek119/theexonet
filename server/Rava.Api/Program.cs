@@ -11,6 +11,7 @@ using Rava.Api.Services;
 using Rava.Api.Services.Market;
 using Rava.Api.Services.CompanyLogo;
 using Rava.Api.Services.OpenAi;
+using Rava.Api.Services.Foreverfall;
 using Rava.Api.Services.LunarWeather;
 using Rava.Api.Services.OffworldNews;
 using Rava.Api.Services.TestingDummyFriends;
@@ -108,12 +109,20 @@ var lunarWeatherCacheRoot = RavaDataPaths.ResolveOffworldNewsCacheRoot(
     contentRootPath,
     webRootPath,
     lunarWeatherOptionsForPaths.CacheDirectory);
+var foreverfallOptionsForPaths =
+    builder.Configuration.GetSection(ForeverfallOptions.SectionName).Get<ForeverfallOptions>()
+    ?? new ForeverfallOptions();
+var foreverfallCacheRoot = RavaDataPaths.ResolveOffworldNewsCacheRoot(
+    contentRootPath,
+    webRootPath,
+    foreverfallOptionsForPaths.CacheDirectory);
 var hostingPaths = new RavaHostingPaths
 {
     DataRoot = dataRootPath,
     ImagesRoot = imagesRootPath,
     OffworldNewsCacheRoot = offworldNewsCacheRoot,
     LunarWeatherCacheRoot = lunarWeatherCacheRoot,
+    ForeverfallCacheRoot = foreverfallCacheRoot,
     WebRoot = webRootPath,
 };
 RavaDataFileBootstrap.EnsureFromPublish(contentRootPath, offworldNewsOptionsForPaths.ReportersFile);
@@ -134,6 +143,7 @@ builder.Services.Configure<HostingOptions>(builder.Configuration.GetSection(Host
 builder.Services.Configure<OpenAiOptions>(builder.Configuration.GetSection(OpenAiOptions.SectionName));
 builder.Services.Configure<OffworldNewsOptions>(builder.Configuration.GetSection(OffworldNewsOptions.SectionName));
 builder.Services.Configure<LunarWeatherOptions>(builder.Configuration.GetSection(LunarWeatherOptions.SectionName));
+builder.Services.Configure<ForeverfallOptions>(builder.Configuration.GetSection(ForeverfallOptions.SectionName));
 builder.Services.AddSingleton<OpenAiConnectionResolver>();
 builder.Services.Configure<CompanyLogoOptions>(builder.Configuration.GetSection(CompanyLogoOptions.SectionName));
 builder.Services.AddControllers()
@@ -202,6 +212,9 @@ builder.Services.AddHostedService<OffworldNewsSchedulerService>();
 builder.Services.AddSingleton<LunarWeatherAdminSettingsStore>();
 builder.Services.AddSingleton<LunarWeatherService>();
 builder.Services.AddHostedService<LunarWeatherSchedulerService>();
+builder.Services.AddSingleton<ForeverfallAdminSettingsStore>();
+builder.Services.AddSingleton<ForeverfallPenitentiaryService>();
+builder.Services.AddHostedService<ForeverfallSchedulerService>();
 builder.Services.AddSingleton<IProfileAvatarStorage>(sp =>
     new LocalProfileAvatarStorage(new ProfileAvatarStorageOptions
     {
@@ -298,6 +311,7 @@ catch (Exception ex)
 
 app.Services.GetRequiredService<OffworldNewsAdminSettingsStore>().Load();
 app.Services.GetRequiredService<LunarWeatherAdminSettingsStore>().Load();
+app.Services.GetRequiredService<ForeverfallAdminSettingsStore>().Load();
 app.Services.GetRequiredService<OpenAiUsageTracker>().Load();
 
 var offworldNewsStartupOptions =
@@ -510,12 +524,27 @@ if (Directory.Exists(offworldNewsPlaceholdersRoot))
     });
 }
 
+var foreverfallPlaceholdersRoot = Path.Combine(webRootPath, "exonet", "foreverfall-penitentiary", "placeholders");
+if (Directory.Exists(foreverfallPlaceholdersRoot))
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(foreverfallPlaceholdersRoot),
+        RequestPath = "/exonet/foreverfall-penitentiary/placeholders"
+    });
+}
+
 if (serveGameUi)
 {
     app.UseStaticFiles(new StaticFileOptions
     {
         FileProvider = new PhysicalFileProvider(Path.Combine(offworldNewsCacheRoot, "images")),
         RequestPath = $"/{RavaDataPaths.OffworldNewsPublicPath}/images"
+    });
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(Path.Combine(foreverfallCacheRoot, "images")),
+        RequestPath = ForeverfallStoragePaths.PublicImagesPath
     });
     app.UseStaticFiles(new StaticFileOptions
     {
@@ -545,6 +574,11 @@ else
     {
         FileProvider = new PhysicalFileProvider(Path.Combine(offworldNewsCacheRoot, "images")),
         RequestPath = $"/{RavaDataPaths.OffworldNewsPublicPath}/images"
+    });
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(Path.Combine(foreverfallCacheRoot, "images")),
+        RequestPath = ForeverfallStoragePaths.PublicImagesPath
     });
     app.UseStaticFiles(new StaticFileOptions
     {

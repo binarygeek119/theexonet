@@ -81,6 +81,7 @@
       <button type="button" class="admin-nav-btn" data-admin-page="events">Events</button>
       <button type="button" class="admin-nav-btn" data-admin-page="offworld-news">Offworld News</button>
       <button type="button" class="admin-nav-btn" data-admin-page="lunar-weather">Lunar Weather</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="foreverfall-penitentiary">Foreverfall Penitentiary</button>
     </nav>
 
     <main class="admin-main">
@@ -224,6 +225,59 @@
             </label>
             <button id="admin-lws-save-btn" type="submit" class="btn ghost">Save settings</button>
             <p id="admin-lws-settings-status" class="status-text"></p>
+          </form>
+        </section>
+      </section>
+
+      <section id="admin-page-foreverfall-penitentiary" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Foreverfall Penitentiary</h2>
+              <p class="admin-page-desc">Configure galactic lifetime-sentence inmate intake. New rosters publish at UTC midnight; portrait images accumulate until the pool cap, then reuse.</p>
+            </div>
+          </div>
+          <p id="admin-foreverfall-summary" class="admin-page-desc">Loading status…</p>
+          <div class="button-row">
+            <button id="admin-foreverfall-regen-btn" type="button" class="btn primary">Regenerate today's intake</button>
+          </div>
+          <p id="admin-foreverfall-status" class="status-text"></p>
+        </section>
+
+        <section class="admin-panel">
+          <h2>Intake settings</h2>
+          <p class="admin-page-desc">Fuzzy daily count uses date-seeded variance around the target (e.g. 15 ± 8). Inmate records purge after retention days; portrait images are kept permanently.</p>
+          <form id="admin-foreverfall-settings-form" class="admin-onn-pool-form admin-foreverfall-form">
+            <label class="admin-checkbox-row">
+              <input id="admin-ffp-enabled" type="checkbox" checked>
+              Enabled
+            </label>
+            <label>
+              Max inmate portrait images
+              <input id="admin-ffp-max-images" type="number" min="1" max="5000" step="1" value="500">
+            </label>
+            <label>
+              Retention days (inmate history)
+              <input id="admin-ffp-retention" type="number" min="1" max="365" step="1" value="14">
+            </label>
+            <label>
+              Target daily intake
+              <input id="admin-ffp-target" type="number" min="1" max="5000" step="1" value="15">
+            </label>
+            <label>
+              Intake variance (±)
+              <input id="admin-ffp-variance" type="number" min="0" max="50" step="1" value="8">
+            </label>
+            <label>
+              Minimum daily intake
+              <input id="admin-ffp-min" type="number" min="1" max="5000" step="1" value="7">
+            </label>
+            <label>
+              Maximum daily intake
+              <input id="admin-ffp-max" type="number" min="1" max="5000" step="1" value="23">
+            </label>
+            <button id="admin-ffp-save-btn" type="submit" class="btn ghost">Save settings</button>
+            <p id="admin-ffp-settings-status" class="status-text"></p>
           </form>
         </section>
       </section>

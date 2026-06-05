@@ -308,6 +308,23 @@ export class RavaApi {
     return this.request("/api/public/lunar-weather/archives", { auth: false });
   }
 
+  getForeverfallRoster(date) {
+    const params = date ? `?date=${encodeURIComponent(date)}` : "";
+    return this.request(`/api/public/foreverfall${params}`, { auth: false });
+  }
+
+  getForeverfallArchives() {
+    return this.request("/api/public/foreverfall/archives", { auth: false });
+  }
+
+  searchForeverfallInmates(q) {
+    return this.request(`/api/public/foreverfall/search?q=${encodeURIComponent(q)}`, { auth: false });
+  }
+
+  getForeverfallInmate(inmateId) {
+    return this.request(`/api/public/foreverfall/inmate/${encodeURIComponent(inmateId)}`, { auth: false });
+  }
+
   getTradeItems() {
     return this.request("/api/trade/items", { auth: false });
   }
@@ -787,6 +804,28 @@ export class RavaApi {
 
   adminRegenerateLunarWeatherBulletin() {
     return this.request("/api/admin/lunar-weather/regenerate-bulletin", {
+      method: "POST",
+      body: {},
+    });
+  }
+
+  adminGetForeverfallSettings() {
+    return this.request("/api/admin/foreverfall/settings");
+  }
+
+  adminUpdateForeverfallSettings(body) {
+    return this.request("/api/admin/foreverfall/settings", {
+      method: "PUT",
+      body,
+    });
+  }
+
+  adminGetForeverfallStatus() {
+    return this.request("/api/admin/foreverfall/status");
+  }
+
+  adminRegenerateForeverfallIntake() {
+    return this.request("/api/admin/foreverfall/regenerate-intake", {
       method: "POST",
       body: {},
     });

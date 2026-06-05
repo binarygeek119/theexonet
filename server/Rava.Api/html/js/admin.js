@@ -69,6 +69,20 @@ const els = {
   lwsMax: document.getElementById("admin-lws-max"),
   lwsSaveBtn: document.getElementById("admin-lws-save-btn"),
   lwsSettingsStatus: document.getElementById("admin-lws-settings-status"),
+  pageForeverfall: document.getElementById("admin-page-foreverfall-penitentiary"),
+  foreverfallSummary: document.getElementById("admin-foreverfall-summary"),
+  foreverfallStatus: document.getElementById("admin-foreverfall-status"),
+  foreverfallRegenBtn: document.getElementById("admin-foreverfall-regen-btn"),
+  ffpSettingsForm: document.getElementById("admin-foreverfall-settings-form"),
+  ffpEnabled: document.getElementById("admin-ffp-enabled"),
+  ffpMaxImages: document.getElementById("admin-ffp-max-images"),
+  ffpRetention: document.getElementById("admin-ffp-retention"),
+  ffpTarget: document.getElementById("admin-ffp-target"),
+  ffpVariance: document.getElementById("admin-ffp-variance"),
+  ffpMin: document.getElementById("admin-ffp-min"),
+  ffpMax: document.getElementById("admin-ffp-max"),
+  ffpSaveBtn: document.getElementById("admin-ffp-save-btn"),
+  ffpSettingsStatus: document.getElementById("admin-ffp-settings-status"),
   eventsStatus: document.getElementById("admin-events-status"),
   eventsList: document.getElementById("admin-events-list"),
   eventsNewBtn: document.getElementById("admin-events-new-btn"),
@@ -1247,6 +1261,115 @@ async function regenerateLunarWeatherBulletin() {
   }
 }
 
+function renderForeverfallSummary(status, settings) {
+  if (!status) {
+    els.foreverfallSummary.textContent = "No Foreverfall status loaded.";
+    return;
+  }
+
+  const pool = pickJson(status, "portraitPoolCount") ?? 0;
+  const maxImages = pickJson(settings, "maxInmateImages") ?? pickJson(status, "maxInmateImages") ?? 500;
+  const todayCount = pickJson(status, "todayIntakeCount") ?? 0;
+  const today = pickJson(status, "today") ?? "today";
+  const oldest = pickJson(status, "oldestRosterDate") ?? "—";
+  const rosterCount = pickJson(status, "rosterCount") ?? 0;
+  els.foreverfallSummary.textContent =
+    `Today (${today}): ${todayCount} inmates intake · portrait pool ${pool}/${maxImages} · ${rosterCount} roster day(s) on file · oldest ${oldest}.`;
+}
+
+async function loadForeverfallSummary() {
+  try {
+    const [status, settings] = await Promise.all([
+      api.adminGetForeverfallStatus(),
+      api.adminGetForeverfallSettings(),
+    ]);
+    renderForeverfallSummary(status, settings);
+  } catch (error) {
+    els.foreverfallSummary.textContent = "Could not load Foreverfall Penitentiary status.";
+    setStatus(els.foreverfallStatus, error.message, true);
+  }
+}
+
+function applyForeverfallSettingsForm(settings) {
+  if (!settings) {
+    return;
+  }
+
+  if (els.ffpEnabled) {
+    els.ffpEnabled.checked = Boolean(pickJson(settings, "enabled"));
+  }
+  els.ffpMaxImages.value = String(pickJson(settings, "maxInmateImages") ?? 500);
+  els.ffpRetention.value = String(pickJson(settings, "retentionDays") ?? 14);
+  els.ffpTarget.value = String(pickJson(settings, "targetDailyIntake") ?? 15);
+  els.ffpVariance.value = String(pickJson(settings, "intakeVariance") ?? 8);
+  els.ffpMin.value = String(pickJson(settings, "minDailyIntake") ?? 7);
+  els.ffpMax.value = String(pickJson(settings, "maxDailyIntake") ?? 23);
+}
+
+async function loadForeverfallSettings() {
+  try {
+    const settings = await api.adminGetForeverfallSettings();
+    applyForeverfallSettingsForm(settings);
+  } catch (error) {
+    setStatus(els.ffpSettingsStatus, error.message, true);
+  }
+}
+
+async function loadForeverfallPage() {
+  await Promise.all([loadForeverfallSummary(), loadForeverfallSettings()]);
+}
+
+async function saveForeverfallSettings(event) {
+  event.preventDefault();
+  const body = {
+    enabled: Boolean(els.ffpEnabled?.checked),
+    maxInmateImages: Number(els.ffpMaxImages.value),
+    retentionDays: Number(els.ffpRetention.value),
+    targetDailyIntake: Number(els.ffpTarget.value),
+    intakeVariance: Number(els.ffpVariance.value),
+    minDailyIntake: Number(els.ffpMin.value),
+    maxDailyIntake: Number(els.ffpMax.value),
+  };
+
+  setStatus(els.ffpSettingsStatus, "Saving…");
+  els.ffpSaveBtn.disabled = true;
+  try {
+    const settings = await api.adminUpdateForeverfallSettings(body);
+    applyForeverfallSettingsForm(settings);
+    await loadForeverfallSummary();
+    setStatus(els.ffpSettingsStatus, "Settings saved.");
+  } catch (error) {
+    setStatus(els.ffpSettingsStatus, error.message, true);
+  } finally {
+    els.ffpSaveBtn.disabled = false;
+  }
+}
+
+async function regenerateForeverfallIntake() {
+  if (
+    !window.confirm(
+      "Regenerate today's Foreverfall intake? This replaces the cached roster for today and may generate new AI portraits.",
+    )
+  ) {
+    return;
+  }
+
+  setStatus(els.foreverfallStatus, "Regenerating intake…");
+  els.foreverfallRegenBtn.disabled = true;
+  try {
+    const result = await api.adminRegenerateForeverfallIntake();
+    await loadForeverfallSummary();
+    setStatus(
+      els.foreverfallStatus,
+      `${result.message} ${result.intakeCount} inmates (${result.maleCount}M / ${result.femaleCount}F).`,
+    );
+  } catch (error) {
+    setStatus(els.foreverfallStatus, error.message, true);
+  } finally {
+    els.foreverfallRegenBtn.disabled = false;
+  }
+}
+
 function countOffworldNewsAiImages(stories) {
   return (stories ?? []).filter((story) => String(story.imageUrl ?? "").includes("/images/")).length;
 }
@@ -2397,6 +2520,8 @@ async function loadPortal() {
     await loadOffworldNewsPage();
   } else if (state.page === "lunar-weather") {
     await loadLunarWeatherPage();
+  } else if (state.page === "foreverfall-penitentiary") {
+    await loadForeverfallPage();
   } else if (state.page === "testing") {
     loadTestingPage();
   }
@@ -2417,6 +2542,10 @@ async function loadCurrentPage() {
   }
   if (state.page === "lunar-weather") {
     await loadLunarWeatherPage();
+    return;
+  }
+  if (state.page === "foreverfall-penitentiary") {
+    await loadForeverfallPage();
     return;
   }
   if (state.page === "players") {
@@ -2606,6 +2735,8 @@ els.navButtons.forEach((button) => {
         setStatus(els.offworldNewsStatus, error.message, true);
       } else if (state.page === "lunar-weather") {
         setStatus(els.lunarWeatherStatus, error.message, true);
+      } else if (state.page === "foreverfall-penitentiary") {
+        setStatus(els.foreverfallStatus, error.message, true);
       } else if (state.page === "testing") {
         setStatus(els.testingStatus, error.message, true);
       }
@@ -2771,6 +2902,14 @@ els.lwsSettingsForm?.addEventListener("submit", (event) => {
 
 els.lunarWeatherRegenBtn?.addEventListener("click", () => {
   regenerateLunarWeatherBulletin().catch((error) => setStatus(els.lunarWeatherStatus, error.message, true));
+});
+
+els.ffpSettingsForm?.addEventListener("submit", (event) => {
+  saveForeverfallSettings(event).catch((error) => setStatus(els.ffpSettingsStatus, error.message, true));
+});
+
+els.foreverfallRegenBtn?.addEventListener("click", () => {
+  regenerateForeverfallIntake().catch((error) => setStatus(els.foreverfallStatus, error.message, true));
 });
 
 els.messageLogSearchBtn.addEventListener("click", () => {

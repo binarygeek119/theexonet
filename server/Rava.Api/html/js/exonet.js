@@ -15,6 +15,7 @@ const BOOKMARKS = [
   { slug: "sites/offworld-news", title: "Offworld News", subtitle: "Daily frontier headlines" },
   { slug: "sites/void-corp", title: "VoidCorp", subtitle: "Coming soon", placeholder: true },
   { slug: "sites/lunar-weather", title: "Lunar Weather", subtitle: "Relay network space forecasts" },
+  { slug: "sites/foreverfall-penitentiary", title: "Foreverfall Penitentiary", subtitle: "Galactic lifetime sentence registry" },
 ];
 
 const PLACEHOLDER_SITES = {
@@ -268,6 +269,11 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
         await renderOffworldNews(parseOffworldNewsSlug(currentSlug));
       } else if (currentSlug === "sites/lunar-weather" || currentSlug.startsWith("sites/lunar-weather/")) {
         await renderLunarWeather(currentSlug);
+      } else if (
+        currentSlug === "sites/foreverfall-penitentiary" ||
+        currentSlug.startsWith("sites/foreverfall-penitentiary/")
+      ) {
+        await renderForeverfallPenitentiary(currentSlug);
       } else if (PLACEHOLDER_SITES[currentSlug]) {
         renderPlaceholder(currentSlug);
       } else {
@@ -1754,6 +1760,252 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     });
 
     setStatus(`LWS · ${reporting}/${pool} relays reporting · ${offline} offline`);
+  }
+
+  const FOREVERFALL_MISSING_PORTRAIT =
+    "/exonet/foreverfall-penitentiary/placeholders/missing-portrait.svg";
+
+  function foreverfallInmateCard(inmate) {
+    const portrait = inmate.imageUrl || FOREVERFALL_MISSING_PORTRAIT;
+    return `
+      <article class="exonet-ffp-card" data-ffp-inmate="${escapeHtml(inmate.id)}">
+        <div class="exonet-ffp-portrait-wrap">
+          <img class="exonet-ffp-portrait" src="${escapeHtml(portrait)}" alt="" loading="lazy"
+            onerror="this.onerror=null;this.src='${FOREVERFALL_MISSING_PORTRAIT}'">
+        </div>
+        <div class="exonet-ffp-card-body">
+          <h3>${escapeHtml(inmate.displayName)}</h3>
+          <p class="exonet-ffp-meta">${escapeHtml(inmate.species)} · ${escapeHtml(inmate.gender)} wing</p>
+          <p class="exonet-ffp-crime"><strong>Charge:</strong> ${escapeHtml(inmate.crime)}</p>
+          <p class="exonet-ffp-reason">${escapeHtml(inmate.intakeReason)}</p>
+          <p class="exonet-ffp-sentence">${escapeHtml(inmate.sentence)}</p>
+        </div>
+      </article>`;
+  }
+
+  function foreverfallInmateDetail(inmate) {
+    const portrait = inmate.imageUrl || FOREVERFALL_MISSING_PORTRAIT;
+    return `
+      <article class="exonet-ffp-detail">
+        <div class="exonet-ffp-detail-head">
+          <div class="exonet-ffp-portrait-wrap exonet-ffp-portrait-wrap--large">
+            <img class="exonet-ffp-portrait" src="${escapeHtml(portrait)}" alt="" loading="lazy"
+              onerror="this.onerror=null;this.src='${FOREVERFALL_MISSING_PORTRAIT}'">
+          </div>
+          <div>
+            <h2>${escapeHtml(inmate.displayName)}</h2>
+            <p class="exonet-ffp-meta">${escapeHtml(inmate.species)} · ${escapeHtml(inmate.gender)} wing · Intake ${escapeHtml(inmate.intakeDate)}</p>
+            <p class="exonet-ffp-id">Registry ${escapeHtml(inmate.id)}</p>
+          </div>
+        </div>
+        <dl class="exonet-ffp-dossier">
+          <div><dt>Charge</dt><dd>${escapeHtml(inmate.crime)}</dd></div>
+          <div><dt>Sentence</dt><dd>${escapeHtml(inmate.sentence)}</dd></div>
+          <div><dt>Intake reason</dt><dd>${escapeHtml(inmate.intakeReason)}</dd></div>
+          <div><dt>Dossier</dt><dd>${escapeHtml(inmate.bio)}</dd></div>
+        </dl>
+      </article>`;
+  }
+
+  async function renderForeverfallPenitentiary(slug) {
+    const segments = slug.split("/");
+    const tail = segments.slice(2);
+
+    if (tail[0] === "inmate" && tail[1]) {
+      setStatus("Fetching inmate dossier…");
+      const inmate = await api.getForeverfallInmate(tail[1]);
+      content.innerHTML = `
+        ${pageHeader("Foreverfall Penitentiary", slug)}
+        <div class="exonet-ffp-site">
+          <div class="exonet-ffp-toolbar">
+            <button type="button" class="btn ghost" data-ffp-back>← Intake registry</button>
+          </div>
+          ${foreverfallInmateDetail(inmate)}
+        </div>`;
+      content.querySelector("[data-ffp-back]")?.addEventListener("click", () =>
+        navigate("sites/foreverfall-penitentiary"),
+      );
+      setStatus(`Foreverfall · dossier ${inmate.id}`);
+      return;
+    }
+
+    if (tail[0] === "search") {
+      setStatus("Foreverfall inmate search…");
+      content.innerHTML = `
+        ${pageHeader("Foreverfall Penitentiary", slug)}
+        <div class="exonet-ffp-site">
+          <form class="exonet-ffp-search" data-ffp-search-form>
+            <label>
+              Search lifetime-sentence registry
+              <input type="search" name="q" placeholder="Name, species, crime…" autocomplete="off">
+            </label>
+            <button type="submit" class="btn primary">Search</button>
+          </form>
+          <div class="exonet-ffp-toolbar">
+            <button type="button" class="btn ghost" data-ffp-back>← Intake registry</button>
+          </div>
+          <div data-ffp-search-results class="exonet-ffp-search-results"></div>
+        </div>`;
+      const form = content.querySelector("[data-ffp-search-form]");
+      const results = content.querySelector("[data-ffp-search-results]");
+      content.querySelector("[data-ffp-back]")?.addEventListener("click", () =>
+        navigate("sites/foreverfall-penitentiary"),
+      );
+      form?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const q = new FormData(form).get("q")?.toString().trim() ?? "";
+        if (!q) {
+          results.innerHTML = `<p class="exonet-muted">Enter a search term.</p>`;
+          return;
+        }
+        setStatus(`Searching Foreverfall registry for “${q}”…`);
+        const data = await api.searchForeverfallInmates(q);
+        const inmates = data.inmates ?? [];
+        results.innerHTML =
+          inmates.length === 0
+            ? `<p class="exonet-muted">No matching inmates in the last two weeks of intake records.</p>`
+            : `<p class="exonet-ffp-search-count">${inmates.length} match(es)</p>
+               <div class="exonet-ffp-grid">${inmates.map(foreverfallInmateCard).join("")}</div>`;
+        wireForeverfallInmateCards();
+        setStatus(`Foreverfall search · ${inmates.length} result(s)`);
+      });
+      setStatus("Foreverfall · inmate search");
+      return;
+    }
+
+    if (tail[0] === "archives") {
+      const archiveDate = tail[1] ?? "";
+      if (archiveDate) {
+        setStatus(`Loading Foreverfall intake ${archiveDate}…`);
+        const roster = await api.getForeverfallRoster(archiveDate);
+        content.innerHTML = `
+          ${pageHeader("Foreverfall Penitentiary", slug)}
+          <div class="exonet-ffp-site">
+            <header class="exonet-ffp-masthead">
+              <div class="exonet-ffp-brand">FOREVERFALL PENITENTIARY</div>
+              <p class="exonet-ffp-tagline">Archived intake · ${escapeHtml(archiveDate)}</p>
+            </header>
+            <div class="exonet-ffp-toolbar">
+              <button type="button" class="btn ghost" data-ffp-archives>← Archives</button>
+              <button type="button" class="btn ghost" data-ffp-home>Today’s intake</button>
+            </div>
+            ${renderForeverfallWings(roster)}
+          </div>`;
+        content.querySelector("[data-ffp-archives]")?.addEventListener("click", () =>
+          navigate("sites/foreverfall-penitentiary/archives"),
+        );
+        content.querySelector("[data-ffp-home]")?.addEventListener("click", () =>
+          navigate("sites/foreverfall-penitentiary"),
+        );
+        wireForeverfallInmateCards();
+        setStatus(`Foreverfall archive · ${archiveDate} · ${roster.intakeCount ?? 0} inmates`);
+        return;
+      }
+
+      setStatus("Loading Foreverfall archives…");
+      const archives = await api.getForeverfallArchives();
+      const entries = archives.rosters ?? [];
+      content.innerHTML = `
+        ${pageHeader("Foreverfall Penitentiary", slug)}
+        <div class="exonet-ffp-site">
+          <header class="exonet-ffp-masthead">
+            <div class="exonet-ffp-brand">INTAKE ARCHIVES</div>
+            <p class="exonet-ffp-tagline">Rolling registry history (approx. two weeks retained)</p>
+          </header>
+          <div class="exonet-ffp-toolbar">
+            <button type="button" class="btn ghost" data-ffp-home>← Today’s intake</button>
+          </div>
+          <table class="exonet-table exonet-ffp-archive-table">
+            <thead><tr><th>Date</th><th>Intake</th><th>Male</th><th>Female</th><th>Sample</th></tr></thead>
+            <tbody>
+              ${entries
+                .map(
+                  (entry) => `
+                <tr class="exonet-ffp-archive-row" data-ffp-date="${escapeHtml(entry.intakeDate)}">
+                  <td>${escapeHtml(entry.intakeDate)}</td>
+                  <td>${entry.intakeCount ?? 0}</td>
+                  <td>${entry.maleCount ?? 0}</td>
+                  <td>${entry.femaleCount ?? 0}</td>
+                  <td>${escapeHtml(entry.sampleName ?? "—")}</td>
+                </tr>`,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>`;
+      content.querySelector("[data-ffp-home]")?.addEventListener("click", () =>
+        navigate("sites/foreverfall-penitentiary"),
+      );
+      content.querySelectorAll("[data-ffp-date]").forEach((row) => {
+        row.addEventListener("click", () =>
+          navigate(`sites/foreverfall-penitentiary/archives/${row.dataset.ffpDate}`),
+        );
+      });
+      setStatus(`Foreverfall archives · ${entries.length} day(s)`);
+      return;
+    }
+
+    setStatus("Fetching Foreverfall Penitentiary intake…");
+    const roster = await api.getForeverfallRoster();
+    const editionLabel = roster.intakeDate ?? "today";
+    const sourceLabel =
+      roster.source === "openai" ? "AI dossier synthesis" : roster.source === "template" ? "Template fallback intake" : "Awaiting midnight intake";
+    const intake = roster.intakeCount ?? 0;
+
+    content.innerHTML = `
+      ${pageHeader("Foreverfall Penitentiary", slug)}
+      <div class="exonet-ffp-site">
+        <header class="exonet-ffp-masthead">
+          <div class="exonet-ffp-brand">FOREVERFALL PENITENTIARY</div>
+          <p class="exonet-ffp-tagline">Maximum-security black-hole prison · galactic lifetime sentences</p>
+          <p class="exonet-ffp-edition">New intake — ${escapeHtml(editionLabel)} · ${escapeHtml(sourceLabel)}</p>
+          <div class="exonet-ffp-stats">
+            <span class="exonet-ffp-stat"><strong>${intake}</strong> new inmates</span>
+            <span class="exonet-ffp-stat"><strong>${roster.maleCount ?? 0}</strong> male wing</span>
+            <span class="exonet-ffp-stat"><strong>${roster.femaleCount ?? 0}</strong> female wing</span>
+          </div>
+        </header>
+        <div class="exonet-ffp-toolbar">
+          <button type="button" class="btn ghost" data-ffp-search>Search registry</button>
+          <button type="button" class="btn ghost" data-ffp-archives>Intake archives</button>
+        </div>
+        ${renderForeverfallWings(roster)}
+      </div>`;
+
+    content.querySelector("[data-ffp-search]")?.addEventListener("click", () =>
+      navigate("sites/foreverfall-penitentiary/search"),
+    );
+    content.querySelector("[data-ffp-archives]")?.addEventListener("click", () =>
+      navigate("sites/foreverfall-penitentiary/archives"),
+    );
+    wireForeverfallInmateCards();
+    setStatus(`Foreverfall · ${intake} new inmates · ${roster.maleCount ?? 0}M / ${roster.femaleCount ?? 0}F`);
+  }
+
+  function renderForeverfallWings(roster) {
+    const males = roster.maleWing ?? [];
+    const females = roster.femaleWing ?? [];
+    return `
+      <section class="exonet-ffp-wing">
+        <h2 class="exonet-ffp-wing-title">Male Wing — New Inmates</h2>
+        <div class="exonet-ffp-grid">
+          ${males.length ? males.map(foreverfallInmateCard).join("") : `<p class="exonet-muted">No male-wing intake on file.</p>`}
+        </div>
+      </section>
+      <section class="exonet-ffp-wing">
+        <h2 class="exonet-ffp-wing-title">Female Wing — New Inmates</h2>
+        <div class="exonet-ffp-grid">
+          ${females.length ? females.map(foreverfallInmateCard).join("") : `<p class="exonet-muted">No female-wing intake on file.</p>`}
+        </div>
+      </section>`;
+  }
+
+  function wireForeverfallInmateCards() {
+    content.querySelectorAll("[data-ffp-inmate]").forEach((card) => {
+      card.addEventListener("click", () =>
+        navigate(`sites/foreverfall-penitentiary/inmate/${encodeURIComponent(card.dataset.ffpInmate)}`),
+      );
+    });
   }
 
   function renderPlaceholder(slug) {

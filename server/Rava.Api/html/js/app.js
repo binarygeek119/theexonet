@@ -1,4 +1,4 @@
-import { RavaApi } from "./api.js";
+import { RavaApi } from "./api.js?v=20260605-voidcorp";
 import { GRID_SIZE, ORE_TYPES, SUPPLY_TYPES, API_BASE_URL, readMetaApiBase } from "./config.js";
 import {
   formatRaxHtml,
@@ -9,7 +9,7 @@ import {
 } from "./currency.js";
 import { initPlayerMessaging } from "./player-messages.js?v=20260529-message-remove";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
-import { initExonet } from "./exonet.js?v=20260529-testing-friends-server-2";
+import { initExonet } from "./exonet.js?v=20260605-voidcorp";
 import { initI18n, applyTranslations, wireLocaleSelectors, wireLocaleSelector, getLocale, setLocale, t } from "./i18n.js";
 import {
   augmentOwnerProfileForTesting,

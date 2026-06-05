@@ -35,6 +35,6 @@ After changing the constants, rebuild and deploy the API (and status site if bun
 ## Release checklist
 
 1. Update `Major`, `Minor`, or `Patch` in `GameVersion.cs`.
-2. Note the change in your commit or release notes.
+2. Note the change in your commit or release notes (GitHub releases auto-list commits since the previous `website-*` tag).
 3. Deploy to production (GitHub Actions or manual rsync).
 4. Confirm `curl -s https://ravaapi.binarygeek119.duckdns.org/api/status | grep gameVersion`.

@@ -156,6 +156,7 @@ Dependabot opens weekly update PRs for NuGet and GitHub Actions.
 |-----|-------------|
 | [docs/deploy.md](docs/deploy.md) | Production setup, systemd, permissions |
 | [docs/github-deploy-setup.md](docs/github-deploy-setup.md) | GitHub Actions auto-deploy |
+| [docs/branch-protection.md](docs/branch-protection.md) | Branch protection rules for `main` |
 | [docs/TRANSLATION.md](docs/TRANSLATION.md) | i18n and Weblate (currently English-only) |
 | [docs/VERSIONING.md](docs/VERSIONING.md) | Semantic versioning policy |
 | [docs/create-account.md](docs/create-account.md) | Manual account creation |

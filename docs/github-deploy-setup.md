@@ -137,7 +137,7 @@ One workflow handles everything: **Actions → RAVA CI** (file: `.github/workflo
 Push to `main` under `server/` or `scripts/` (or run the workflow manually). It will:
 
 1. **Build and test** — restore, build, test, validate JavaScript
-2. **Publish GitHub release** — zip of `publish/` + `data/` (skipped on pull requests)
+2. **Publish GitHub release** — zip of `publish/` + `data/` with a **What's changed** section listing commits since the previous `website-*` tag (skipped on pull requests)
 3. **Deploy to production** — when `ENABLE_PRODUCTION_DEPLOY=true` (skipped on pull requests)
 
 Manual run options (**Run workflow**):
@@ -163,7 +163,16 @@ sudo deploy-rava-portals       # auto-finds ./server
 
 Watch the **RAVA CI** workflow in the Actions tab.
 
-## 7. Troubleshooting
+## 7. Branch protection
+
+Protect `main` so PRs (including Dependabot) must pass CI before merge. See **[docs/branch-protection.md](branch-protection.md)** for rules, required checks, and setup:
+
+```bash
+gh auth login
+bash scripts/configure-branch-protection.sh
+```
+
+## 8. Troubleshooting
 
 ### `hostname contains invalid characters` during rsync
 

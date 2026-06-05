@@ -13,17 +13,12 @@ const BOOKMARKS = [
   { slug: "profile", title: "Miner Profiles", subtitle: "Browse, search, and rankings" },
   { slug: "docs", title: "RAVA Archives", subtitle: "Official game docs" },
   { slug: "sites/offworld-news", title: "Offworld News", subtitle: "Daily frontier headlines" },
-  { slug: "sites/void-corp", title: "VoidCorp", subtitle: "Coming soon", placeholder: true },
+  { slug: "sites/void-corp", title: "VoidCorp", subtitle: "Mining equipment catalog" },
   { slug: "sites/lunar-weather", title: "Lunar Weather", subtitle: "Relay network space forecasts" },
   { slug: "sites/foreverfall-penitentiary", title: "Foreverfall Penitentiary", subtitle: "Galactic lifetime sentence registry" },
 ];
 
-const PLACEHOLDER_SITES = {
-  "sites/void-corp": {
-    title: "VoidCorp Holdings",
-    tagline: "Corporate portal under reconstruction in orbit.",
-  },
-};
+const PLACEHOLDER_SITES = {};
 
 const DOC_SLUGS = [
   { slug: "index", title: "Overview" },
@@ -274,6 +269,8 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
         currentSlug.startsWith("sites/foreverfall-penitentiary/")
       ) {
         await renderForeverfallPenitentiary(currentSlug);
+      } else if (currentSlug === "sites/void-corp" || currentSlug.startsWith("sites/void-corp/")) {
+        await renderVoidCorp(currentSlug);
       } else if (PLACEHOLDER_SITES[currentSlug]) {
         renderPlaceholder(currentSlug);
       } else {
@@ -1764,6 +1761,100 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
 
   const FOREVERFALL_MISSING_PORTRAIT =
     "/exonet/foreverfall-penitentiary/placeholders/missing-portrait.svg";
+
+  const VOIDCORP_MISSING_PRODUCT = "/exonet/voidcorp/placeholders/missing-product.svg";
+
+  function voidCorpProductCard(product) {
+    const image = product.imageUrl || VOIDCORP_MISSING_PRODUCT;
+    return `
+      <article class="exonet-vc-card" data-vc-product="${escapeHtml(product.slug)}">
+        <div class="exonet-vc-image-wrap">
+          <img class="exonet-vc-image" src="${escapeHtml(image)}" alt="" loading="lazy"
+            onerror="this.onerror=null;this.src='${VOIDCORP_MISSING_PRODUCT}'">
+        </div>
+        <div class="exonet-vc-card-body">
+          <h3>${escapeHtml(product.displayName)}</h3>
+          <p class="exonet-vc-tagline">${escapeHtml(product.tagline)}</p>
+          <p class="exonet-vc-price">${formatRaxHtml(product.basePrice)} <span class="exonet-muted">MSRP</span></p>
+        </div>
+      </article>`;
+  }
+
+  function voidCorpProductDetail(product) {
+    const image = product.imageUrl || VOIDCORP_MISSING_PRODUCT;
+    return `
+      <article class="exonet-vc-detail">
+        <div class="exonet-vc-detail-head">
+          <div class="exonet-vc-image-wrap exonet-vc-image-wrap--large">
+            <img class="exonet-vc-image" src="${escapeHtml(image)}" alt="" loading="lazy"
+              onerror="this.onerror=null;this.src='${VOIDCORP_MISSING_PRODUCT}'">
+          </div>
+          <div>
+            <p class="exonet-vc-category">${escapeHtml(product.category)}</p>
+            <h2>${escapeHtml(product.displayName)}</h2>
+            <p class="exonet-vc-tagline">${escapeHtml(product.tagline)}</p>
+            <p class="exonet-vc-summary">${escapeHtml(product.summary)}</p>
+          </div>
+        </div>
+        <div class="exonet-vc-copy">
+          <p>${escapeHtml(product.description)}</p>
+        </div>
+        <dl class="exonet-vc-specs">
+          <div><dt>Reference MSRP</dt><dd>${formatRaxHtml(product.basePrice)}</dd></div>
+          <div><dt>Market symbol</dt><dd>${escapeHtml(product.uiSymbol ?? "—")}</dd></div>
+          <div><dt>Field effect</dt><dd>${escapeHtml(product.summary)}</dd></div>
+          <div><dt>Catalog ID</dt><dd>${escapeHtml(product.slug)}</dd></div>
+        </dl>
+      </article>`;
+  }
+
+  async function renderVoidCorp(slug) {
+    const segments = slug.split("/");
+    const tail = segments.slice(2);
+
+    if (tail[0] === "product" && tail[1]) {
+      setStatus("Fetching VoidCorp product…");
+      const product = await api.getVoidCorpProduct(tail[1]);
+      content.innerHTML = `
+        ${pageHeader("VoidCorp", slug)}
+        <div class="exonet-vc-site">
+          <div class="exonet-vc-toolbar">
+            <button type="button" class="btn ghost" data-vc-back>← Product catalog</button>
+          </div>
+          ${voidCorpProductDetail(product)}
+        </div>`;
+      content.querySelector("[data-vc-back]")?.addEventListener("click", () =>
+        navigate("sites/void-corp"),
+      );
+      setStatus(`VoidCorp · ${product.displayName}`);
+      return;
+    }
+
+    setStatus("Fetching VoidCorp catalog…");
+    const catalog = await api.getVoidCorpCatalog();
+    const products = catalog.products ?? [];
+
+    content.innerHTML = `
+      ${pageHeader("VoidCorp", slug)}
+      <div class="exonet-vc-site">
+        <header class="exonet-vc-masthead">
+          <div class="exonet-vc-brand">VOIDCORP</div>
+          <p class="exonet-vc-tagline-main">Frontier mining systems · Industrial supply division</p>
+          <p class="exonet-vc-edition">${products.length} products in catalog · Updated ${escapeHtml(new Date(catalog.updatedAtUtc).toISOString().slice(0, 10))}</p>
+        </header>
+        <div class="exonet-vc-grid">
+          ${products.length ? products.map(voidCorpProductCard).join("") : `<p class="exonet-muted">No products listed.</p>`}
+        </div>
+      </div>`;
+
+    content.querySelectorAll("[data-vc-product]").forEach((card) => {
+      card.addEventListener("click", () =>
+        navigate(`sites/void-corp/product/${encodeURIComponent(card.dataset.vcProduct)}`),
+      );
+    });
+
+    setStatus(`VoidCorp · ${products.length} products`);
+  }
 
   function foreverfallInmateCard(inmate) {
     const portrait = inmate.imageUrl || FOREVERFALL_MISSING_PORTRAIT;

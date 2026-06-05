@@ -15,5 +15,6 @@ public static class OpenAiUsageCategories
     public const string TestingDummyAvatar = "testing_dummy_avatar";
     public const string TestingDummyBackground = "testing_dummy_background";
     public const string TestingDummyLogo = "testing_dummy_logo";
+    public const string VoidCorpProduct = "voidcorp_product";
     public const string Other = "other";
 }

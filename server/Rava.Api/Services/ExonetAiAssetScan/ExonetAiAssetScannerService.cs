@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Rava.Core.Configuration;
+using Rava.Core.Interfaces;
 using Rava.Core.Services;
 using Rava.Core.Services.ExonetAiAssetScan;
 
@@ -13,6 +14,8 @@ public sealed class ExonetAiAssetScannerService(
     IOptions<ForeverfallOptions> foreverfallOptions,
     IOptions<OffworldNewsOptions> offworldNewsOptions,
     IOptions<LunarWeatherOptions> lunarWeatherOptions,
+    IOptions<VoidCorpOptions> voidCorpOptions,
+    ITradeItemsCatalog tradeItemsCatalog,
     RavaHostingPaths hostingPaths,
     ILogger<ExonetAiAssetScannerService> logger) : BackgroundService
 {
@@ -59,7 +62,9 @@ public sealed class ExonetAiAssetScannerService(
             reportersCsvPath,
             foreverfallOptions.Value.Enabled,
             offworldNewsOptions.Value.Enabled,
-            lunarWeatherOptions.Value.Enabled);
+            lunarWeatherOptions.Value.Enabled,
+            voidCorpOptions.Value.Enabled,
+            tradeItemsCatalog.GetSupplyItems());
 
         var summary = ExonetAiAssetScanCoordinator.RunAll(context);
         LogSummary(trigger, summary);

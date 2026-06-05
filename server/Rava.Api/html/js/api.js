@@ -325,6 +325,14 @@ export class RavaApi {
     return this.request(`/api/public/foreverfall/inmate/${encodeURIComponent(inmateId)}`, { auth: false });
   }
 
+  getVoidCorpCatalog() {
+    return this.request("/api/public/voidcorp", { auth: false });
+  }
+
+  getVoidCorpProduct(slug) {
+    return this.request(`/api/public/voidcorp/${encodeURIComponent(slug)}`, { auth: false });
+  }
+
   getTradeItems() {
     return this.request("/api/trade/items", { auth: false });
   }

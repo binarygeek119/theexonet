@@ -16,6 +16,7 @@ using Rava.Api.Services.Foreverfall;
 using Rava.Api.Services.LunarWeather;
 using Rava.Api.Services.OffworldNews;
 using Rava.Api.Services.TestingDummyFriends;
+using Rava.Api.Services.VoidCorp;
 using Rava.Core.Configuration;
 using Rava.Core.Constants;
 using Rava.Core.Interfaces;
@@ -117,6 +118,13 @@ var foreverfallCacheRoot = RavaDataPaths.ResolveOffworldNewsCacheRoot(
     contentRootPath,
     webRootPath,
     foreverfallOptionsForPaths.CacheDirectory);
+var voidCorpOptionsForPaths =
+    builder.Configuration.GetSection(VoidCorpOptions.SectionName).Get<VoidCorpOptions>()
+    ?? new VoidCorpOptions();
+var voidCorpCacheRoot = RavaDataPaths.ResolveOffworldNewsCacheRoot(
+    contentRootPath,
+    webRootPath,
+    voidCorpOptionsForPaths.CacheDirectory);
 var hostingPaths = new RavaHostingPaths
 {
     DataRoot = dataRootPath,
@@ -124,6 +132,7 @@ var hostingPaths = new RavaHostingPaths
     OffworldNewsCacheRoot = offworldNewsCacheRoot,
     LunarWeatherCacheRoot = lunarWeatherCacheRoot,
     ForeverfallCacheRoot = foreverfallCacheRoot,
+    VoidCorpCacheRoot = voidCorpCacheRoot,
     WebRoot = webRootPath,
 };
 RavaDataFileBootstrap.EnsureFromPublish(contentRootPath, offworldNewsOptionsForPaths.ReportersFile);
@@ -145,6 +154,7 @@ builder.Services.Configure<OpenAiOptions>(builder.Configuration.GetSection(OpenA
 builder.Services.Configure<OffworldNewsOptions>(builder.Configuration.GetSection(OffworldNewsOptions.SectionName));
 builder.Services.Configure<LunarWeatherOptions>(builder.Configuration.GetSection(LunarWeatherOptions.SectionName));
 builder.Services.Configure<ForeverfallOptions>(builder.Configuration.GetSection(ForeverfallOptions.SectionName));
+builder.Services.Configure<VoidCorpOptions>(builder.Configuration.GetSection(VoidCorpOptions.SectionName));
 builder.Services.Configure<ExonetAiAssetScannerOptions>(builder.Configuration.GetSection(ExonetAiAssetScannerOptions.SectionName));
 builder.Services.AddSingleton<OpenAiConnectionResolver>();
 builder.Services.Configure<CompanyLogoOptions>(builder.Configuration.GetSection(CompanyLogoOptions.SectionName));
@@ -217,6 +227,9 @@ builder.Services.AddHostedService<LunarWeatherSchedulerService>();
 builder.Services.AddSingleton<ForeverfallAdminSettingsStore>();
 builder.Services.AddSingleton<ForeverfallPenitentiaryService>();
 builder.Services.AddHostedService<ForeverfallSchedulerService>();
+builder.Services.AddSingleton<VoidCorpCatalogService>();
+builder.Services.AddSingleton<VoidCorpProductImageGenerator>();
+builder.Services.AddHostedService<VoidCorpSchedulerService>();
 builder.Services.AddHostedService<ExonetAiAssetScannerService>();
 builder.Services.AddSingleton<IProfileAvatarStorage>(sp =>
     new LocalProfileAvatarStorage(new ProfileAvatarStorageOptions
@@ -480,6 +493,14 @@ var serveGameUi = hostingOptions.ServeGameUi ?? !app.Environment.IsProduction();
 var resolvedHostingPaths = app.Services.GetRequiredService<RavaHostingPaths>();
 var reportersAssetsRoot = resolvedHostingPaths.OffworldNewsReportersAssetsRoot;
 Directory.CreateDirectory(reportersAssetsRoot);
+ForeverfallStoragePaths.EnsureDirectories(foreverfallCacheRoot);
+VoidCorpStoragePaths.EnsureDirectories(voidCorpCacheRoot);
+Directory.CreateDirectory(Path.Combine(offworldNewsCacheRoot, OffworldNewsStoragePaths.ImagesFolder));
+LunarWeatherStoragePaths.EnsureEditionDirectory(lunarWeatherCacheRoot);
+Directory.CreateDirectory(imagesRootPath);
+Directory.CreateDirectory(Path.Combine(imagesRootPath, ProfileAvatarStorageOptions.RelativeFolder));
+Directory.CreateDirectory(Path.Combine(imagesRootPath, ProfileBackgroundStorageOptions.RelativeFolder));
+Directory.CreateDirectory(Path.Combine(imagesRootPath, CompanyLogoStorageOptions.RelativeFolder));
 var legacyReportersAssetsRoot = Path.Combine(webRootPath, "exonet", "offworld-news", "reporters");
 MigrateLegacyReporterPortraitAssets(legacyReportersAssetsRoot, reportersAssetsRoot);
 
@@ -536,6 +557,24 @@ if (Directory.Exists(foreverfallPlaceholdersRoot))
         RequestPath = "/exonet/foreverfall-penitentiary/placeholders"
     });
 }
+
+var voidCorpPlaceholdersRoot = Path.Combine(webRootPath, "exonet", "voidcorp", "placeholders");
+if (Directory.Exists(voidCorpPlaceholdersRoot))
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(voidCorpPlaceholdersRoot),
+        RequestPath = "/exonet/voidcorp/placeholders"
+    });
+}
+
+var voidCorpProductsRoot = Path.Combine(voidCorpCacheRoot, VoidCorpStoragePaths.ImagesFolder);
+Directory.CreateDirectory(voidCorpProductsRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(voidCorpProductsRoot),
+    RequestPath = VoidCorpStoragePaths.PublicProductsPath
+});
 
 if (serveGameUi)
 {

@@ -69,6 +69,7 @@ public class OffworldNewsReporterScannerTests
             OffworldNewsCacheRoot = offworldNewsCacheRoot,
             LunarWeatherCacheRoot = offworldNewsCacheRoot,
             ForeverfallCacheRoot = offworldNewsCacheRoot,
+            VoidCorpCacheRoot = offworldNewsCacheRoot,
             WebRoot = offworldNewsCacheRoot,
         };
 
@@ -77,7 +78,9 @@ public class OffworldNewsReporterScannerTests
             csvPath,
             ForeverfallEnabled: false,
             OffworldNewsEnabled: true,
-            LunarWeatherEnabled: false);
+            LunarWeatherEnabled: false,
+            VoidCorpEnabled: false,
+            SupplyItems: []);
 
         return new OffworldNewsReporterScanner().Scan(context);
     }

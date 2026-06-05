@@ -37,7 +37,7 @@ public static partial class OffworldNewsTemplateGenerator
 
     private static readonly string[] FakeCompanyNames =
     [
-        "VoidCorp Holdings",
+        "VoidCorp",
         "Redshift Logistics",
         "Ceres Consolidated Mining",
         "Helios Belt Freight",

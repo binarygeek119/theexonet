@@ -66,6 +66,7 @@ public class LunarWeatherEditionScannerTests
             OffworldNewsCacheRoot = cacheRoot,
             LunarWeatherCacheRoot = cacheRoot,
             ForeverfallCacheRoot = cacheRoot,
+            VoidCorpCacheRoot = cacheRoot,
             WebRoot = cacheRoot,
         };
 
@@ -74,7 +75,9 @@ public class LunarWeatherEditionScannerTests
             OffworldNewsReportersCsvPath: string.Empty,
             ForeverfallEnabled: false,
             OffworldNewsEnabled: false,
-            LunarWeatherEnabled: true);
+            LunarWeatherEnabled: true,
+            VoidCorpEnabled: false,
+            SupplyItems: []);
 
         return new LunarWeatherEditionScanner().Scan(context);
     }

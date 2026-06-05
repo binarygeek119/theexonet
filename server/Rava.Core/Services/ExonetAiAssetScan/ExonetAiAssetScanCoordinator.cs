@@ -8,6 +8,7 @@ public static class ExonetAiAssetScanCoordinator
         new OffworldNewsImageScanner(),
         new OffworldNewsReporterScanner(),
         new LunarWeatherEditionScanner(),
+        new VoidCorpCatalogScanner(),
         new TestingDummyFriendsScanner(),
     ];
 

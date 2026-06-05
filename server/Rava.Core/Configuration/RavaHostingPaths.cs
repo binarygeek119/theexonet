@@ -15,6 +15,8 @@ public sealed class RavaHostingPaths
 
     public required string ForeverfallCacheRoot { get; init; }
 
+    public required string VoidCorpCacheRoot { get; init; }
+
     public required string WebRoot { get; init; }
 
     /// <summary>AI-generated reporter portraits and banners (persists under data/exonet in production).</summary>

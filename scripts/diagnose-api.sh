@@ -115,6 +115,8 @@ else
 fi
 if [ "$(id -u)" -eq 0 ]; then
   mkdir -p "${news_cache}/editions" "${news_cache}/images"
+  mkdir -p "${DATA_DIR}/exonet/foreverfall/images" "${DATA_DIR}/exonet/foreverfall/rosters"
+  mkdir -p "${DATA_DIR}/exonet/lunar-weather/editions"
   chown -R "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}/exonet" 2>/dev/null || true
 fi
 if command -v curl >/dev/null 2>&1; then
@@ -124,6 +126,22 @@ if command -v curl >/dev/null 2>&1; then
     echo "Offworld News endpoint: FAILED — deploy latest Rava.Api.dll or check journalctl for errors"
     missing=1
   fi
+fi
+echo
+
+echo "--- Foreverfall Penitentiary ---"
+foreverfall_cache="${DATA_DIR}/exonet/foreverfall"
+for dir in "${foreverfall_cache}/images" "${foreverfall_cache}/rosters"; do
+  if [ -d "$dir" ]; then
+    echo "OK  $dir"
+  else
+    echo "MISSING  $dir (required for API startup)"
+    missing=1
+  fi
+done
+if [ "$(id -u)" -eq 0 ]; then
+  mkdir -p "${foreverfall_cache}/images" "${foreverfall_cache}/rosters"
+  chown -R "${SERVICE_USER}:${SERVICE_USER}" "${foreverfall_cache}" 2>/dev/null || true
 fi
 echo
 

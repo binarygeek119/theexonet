@@ -96,6 +96,7 @@ public class OffworldNewsImageScannerTests
             OffworldNewsCacheRoot = cacheRoot,
             LunarWeatherCacheRoot = cacheRoot,
             ForeverfallCacheRoot = cacheRoot,
+            VoidCorpCacheRoot = cacheRoot,
             WebRoot = cacheRoot,
         };
 
@@ -104,7 +105,9 @@ public class OffworldNewsImageScannerTests
             OffworldNewsReportersCsvPath: string.Empty,
             ForeverfallEnabled: false,
             OffworldNewsEnabled: true,
-            LunarWeatherEnabled: false);
+            LunarWeatherEnabled: false,
+            VoidCorpEnabled: false,
+            SupplyItems: []);
 
         return new OffworldNewsImageScanner().Scan(context);
     }

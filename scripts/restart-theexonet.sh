@@ -173,22 +173,29 @@ ensure_shared_wwwroot() {
   fi
 }
 
-probe_http() {
+wait_http() {
   local label="$1"
   local url="$2"
+  local max_attempts="${3:-30}"
   local attempt code
 
-  for attempt in 1 2 3 4 5; do
-    code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 2 --max-time 5 "${url}" 2>/dev/null || echo "000")"
+  for attempt in $(seq 1 "${max_attempts}"); do
+    code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 2 --max-time 8 "${url}" 2>/dev/null || echo "000")"
     if [ "${code}" = "200" ]; then
-      echo "${label}: OK"
+      echo "${label}: OK (${url})"
       return 0
     fi
-    sleep 1
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
+      sleep 2
+    fi
   done
 
   echo "${label}: unreachable (HTTP ${code} from ${url})"
   return 1
+}
+
+probe_http() {
+  wait_http "$1" "$2" 15
 }
 
 show_portal_failure() {
@@ -224,27 +231,27 @@ sleep 2
 
 prepare_publish_dir
 
-echo "Starting ${API_SERVICE}..."
+echo "Starting ${API_SERVICE} first (other services wait for API HTTP)..."
 systemctl start "${API_SERVICE}"
 
-echo "Starting ${STATUS_SERVICE}..."
+if command -v curl >/dev/null 2>&1; then
+  wait_http "API ready" "http://127.0.0.1:5000/api/status" 60 || {
+    echo "ERROR: API did not become ready on port 5000." >&2
+    show_service_failure "${API_SERVICE}"
+    exit 1
+  }
+fi
+
+echo "Starting ${STATUS_SERVICE}, ${ADMIN_SERVICE}, ${MODERATOR_SERVICE}, and ${DOCS_SERVICE}..."
 systemctl start "${STATUS_SERVICE}"
-
-echo "Starting ${ADMIN_SERVICE}..."
 systemctl start "${ADMIN_SERVICE}"
-
-echo "Starting ${MODERATOR_SERVICE}..."
 systemctl start "${MODERATOR_SERVICE}"
-
-echo "Starting ${DOCS_SERVICE}..."
 systemctl start "${DOCS_SERVICE}"
 
 if systemctl list-unit-files "${PERMISSIONS_SERVICE}.service" --no-legend 2>/dev/null | grep -q "${PERMISSIONS_SERVICE}"; then
   echo "Starting ${PERMISSIONS_SERVICE}..."
   systemctl start "${PERMISSIONS_SERVICE}" 2>/dev/null || true
 fi
-
-sleep 5
 
 systemctl is-active --quiet "${API_SERVICE}" && echo "${API_SERVICE}: running" || { echo "${API_SERVICE}: FAILED"; show_service_failure "${API_SERVICE}"; }
 systemctl is-active --quiet "${STATUS_SERVICE}" && echo "${STATUS_SERVICE}: running" || { echo "${STATUS_SERVICE}: FAILED"; show_service_failure "${STATUS_SERVICE}"; }
@@ -258,15 +265,15 @@ fi
 admin_ok=1
 moderator_ok=1
 if command -v curl >/dev/null 2>&1; then
-  curl -sf http://127.0.0.1:5000/api/status >/dev/null && echo "API health: OK" || echo "API health: unreachable"
-  curl -sf --max-time 15 http://127.0.0.1:5000/api/public/offworld-news >/dev/null \
-    && echo "Offworld News API: OK" \
+  wait_http "API health" "http://127.0.0.1:5000/api/status" 5 \
+    || show_service_failure "${API_SERVICE}"
+  wait_http "Offworld News API" "http://127.0.0.1:5000/api/public/offworld-news" 15 \
     || echo "Offworld News API: unreachable (deploy latest Theexonet.Api.dll and restart)"
   admin_ok=0
   moderator_ok=0
   probe_http "Admin portal" "http://127.0.0.1:7000/admin.html" && admin_ok=1 || show_portal_failure "${ADMIN_SERVICE}"
   probe_http "Moderator portal" "http://127.0.0.1:7050/moderator.html" && moderator_ok=1 || show_portal_failure "${MODERATOR_SERVICE}"
-  curl -sf http://127.0.0.1:9000/ >/dev/null && echo "Docs portal: OK" || echo "Docs portal: unreachable"
+  wait_http "Docs portal" "http://127.0.0.1:9000/" 15 || echo "Docs portal: unreachable"
 fi
 
 if [ "$admin_ok" -eq 0 ] || [ "$moderator_ok" -eq 0 ]; then

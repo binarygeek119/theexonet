@@ -234,6 +234,17 @@ if [ -f "${APPS_SETTINGS}" ]; then
     -e "s|https://theexonetadmin\\.binarygeek119\\.duckdns\\.org|https://admin.${DOMAIN}|g" \
     -e "s|https://theexonetmoderator\\.binarygeek119\\.duckdns\\.org|https://moderator.${DOMAIN}|g" \
     -e "s|https://theexonetdocs\\.binarygeek119\\.duckdns\\.org|https://docs.${DOMAIN}|g" \
+    -e "s|https://ravaapi\\.binarygeek119\\.duckdns\\.org|https://api.${DOMAIN}|g" \
+    -e "s|https://ravastatus\\.binarygeek119\\.duckdns\\.org|https://status.${DOMAIN}|g" \
+    -e "s|https://ravaadmin\\.binarygeek119\\.duckdns\\.org|https://admin.${DOMAIN}|g" \
+    -e "s|https://ravamoderator\\.binarygeek119\\.duckdns\\.org|https://moderator.${DOMAIN}|g" \
+    -e "s|https://ravadocs\\.binarygeek119\\.duckdns\\.org|https://docs.${DOMAIN}|g" \
+    -e "s|https://rava\\.binarygeek119\\.duckdns\\.org|https://${DOMAIN}|g" \
+    -e "s|https://ravaapi\\.${DOMAIN}|https://api.${DOMAIN}|g" \
+    -e "s|https://ravastatus\\.${DOMAIN}|https://status.${DOMAIN}|g" \
+    -e "s|https://ravaadmin\\.${DOMAIN}|https://admin.${DOMAIN}|g" \
+    -e "s|https://ravamoderator\\.${DOMAIN}|https://moderator.${DOMAIN}|g" \
+    -e "s|https://ravadocs\\.${DOMAIN}|https://docs.${DOMAIN}|g" \
     -e 's|Database=rava|Database=theexonet|g' \
     -e 's|Username=postgres|Username=theexonet|g' \
     -e 's|Host=localhost|Host=127.0.0.1|g' \

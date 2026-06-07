@@ -55,6 +55,7 @@ jobs:
           sparse-checkout: |
             server
             scripts
+            docs/game
           lfs: false
 
       - name: Set release tag

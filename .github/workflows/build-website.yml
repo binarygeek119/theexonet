@@ -192,7 +192,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
-      DEPLOY_HOST: ${{ vars.DEPLOY_HOST || secrets.DEPLOY_HOST || 'binarygeek119.duckdns.org' }}
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST || secrets.DEPLOY_HOST || 'theexonet.com' }}
       DEPLOY_USER: ${{ vars.DEPLOY_USER || secrets.DEPLOY_USER || 'root' }}
       DEPLOY_SSH_PORT: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
       DEPLOY_WWW_PATH: ${{ vars.DEPLOY_WWW_PATH || secrets.DEPLOY_WWW_PATH || '/var/www/publish' }}
@@ -334,7 +334,7 @@ jobs:
 
           host="$(normalize_host "$DEPLOY_HOST")"
           if [ -z "$host" ]; then
-            echo "DEPLOY_HOST is empty. Set it to your server hostname (e.g. binarygeek119.duckdns.org)." >&2
+            echo "DEPLOY_HOST is empty. Set it to your server hostname (e.g. theexonet.com)." >&2
             exit 1
           fi
           if ! [[ "$host" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]]; then
@@ -379,21 +379,27 @@ jobs:
 
           effective_www_host="${www_host:-$host}"
           effective_api_host="${api_host:-$host}"
+          skip_www_rsync=false
           if [ "$effective_www_host" = "$effective_api_host" ] && { [ "$www_path" = "$api_path" ] || [ "$www_path" = "${api_path}/html" ]; }; then
+            skip_www_rsync=true
             echo "DEPLOY_SKIP_WWW_RSYNC=true" >> "$GITHUB_ENV"
             echo "DEPLOY_WWW_PATH is under publish — game html ships in publish/html/ (skipping separate www rsync)."
           else
             echo "DEPLOY_SKIP_WWW_RSYNC=false" >> "$GITHUB_ENV"
           fi
 
+          deploy_ip="$(getent ahostsv4 "$host" 2>/dev/null | awk 'NR==1 {print $1}' || true)"
+          echo "Deploy host: ${host}${deploy_ip:+ (A ${deploy_ip})}"
+
           echo "Deploy targets:"
-          if [ "${DEPLOY_SKIP_WWW_RSYNC:-false}" = "true" ]; then
+          if [ "$skip_www_rsync" = "true" ]; then
             echo "  publish (api + html + portals): ${user}@${effective_api_host}:${api_path}/"
           else
             echo "  www: ${user}@${effective_www_host}:${www_path}/"
             echo "  api: ${user}@${effective_api_host}:${api_path}/"
           fi
           echo "  repo: ${repo_path}"
+          echo "  data: ${data_path}"
 
       - name: Add SSH host keys
         run: |
@@ -423,7 +429,7 @@ jobs:
           done
 
           if [ "${#unique_hosts[@]}" -eq 0 ]; then
-            echo "No deploy host configured. Set repository variable DEPLOY_HOST (hostname only, e.g. binarygeek119.duckdns.org)." >&2
+            echo "No deploy host configured. Set repository variable DEPLOY_HOST (hostname only, e.g. theexonet.com)." >&2
             exit 1
           fi
 
@@ -471,11 +477,22 @@ jobs:
           fi
 
           run_remote() {
+            local rc=0
             if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$1" "$2"
+              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$1" "$2" || rc=$?
             else
               SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$1" "$2"
+                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$1" "$2" || rc=$?
+            fi
+            if [ "$rc" -ne 0 ]; then
+              echo "ERROR: SSH to $1 failed (exit ${rc})." >&2
+              echo "  DEPLOY_HOST=${DEPLOY_HOST} — confirm this is your GCP VM (not an old duckdns/home host)." >&2
+              if [ "${{ steps.auth.outputs.method }}" = "password" ]; then
+                echo "  theexonet GCP uses key-only SSH. Add secret DEPLOY_SSH_KEY (private key) and remove DEPLOY_SSH_PASSWORD." >&2
+              else
+                echo "  Ensure the public key for DEPLOY_SSH_KEY is in ${DEPLOY_USER}@server:~/.ssh/authorized_keys" >&2
+              fi
+              exit "$rc"
             fi
           }
 

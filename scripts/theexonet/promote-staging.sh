@@ -3,6 +3,19 @@
 # Run as root after uploading a publish bundle to /var/www/staging:
 #   sudo bash scripts/theexonet/promote-staging.sh
 #   sudo bash scripts/theexonet/promote-staging.sh theexonet-website-deploy-<sha>.tar.gz
+#
+# GitHub Actions uploads a fresh copy to ${STAGING_DIR}/run-promote-staging.sh first.
+# Installed promote-theexonet-staging delegates to that copy when present.
+_staging_dir="${THEEXONET_STAGING_DIR:-/var/www/staging}"
+_ci_promote="${_staging_dir}/run-promote-staging.sh"
+if [ -f "${_ci_promote}" ] && [ -x "${_ci_promote}" ]; then
+  _self="$(readlink -f "${BASH_SOURCE[0]}")"
+  _ci="$(readlink -f "${_ci_promote}")"
+  if [ "${_self}" != "${_ci}" ]; then
+    exec "${_ci_promote}" "$@"
+  fi
+fi
+
 set -euo pipefail
 
 REQUESTED_ARCHIVE="${1:-}"

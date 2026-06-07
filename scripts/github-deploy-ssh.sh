@@ -70,7 +70,7 @@ if ! SSHPASS="${PASSWORD}" sshpass -e scp "${scp_opts[@]}" "${LOCAL_FILE}" "${US
   tmp_path="upload-${REMOTE_NAME}"
   SSHPASS="${PASSWORD}" sshpass -e scp "${scp_opts[@]}" "${LOCAL_FILE}" "${USER}@${HOST}:${tmp_path}"
   SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
-    "sudo stage-theexonet-upload '${tmp_path}'"
+    "sudo -n stage-theexonet-upload '${tmp_path}'"
 fi
 
 echo "Uploading promote script from CI checkout…"
@@ -78,12 +78,24 @@ SSHPASS="${PASSWORD}" sshpass -e scp "${scp_opts[@]}" "${PROMOTE_SCRIPT}" "${USE
 SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
   "chmod 755 '${REMOTE_PROMOTE}'"
 
-echo "Promote and restart (CI promote script)…"
-if ! SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
-  "sudo '${REMOTE_PROMOTE}' '${REMOTE_NAME}'"; then
-  echo "CI promote script failed — trying installed promote-theexonet-staging…" >&2
-  SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
-    "sudo promote-theexonet-staging '${REMOTE_NAME}'"
+echo "Promote and restart (sudo promote-theexonet-staging)…"
+promote_output=""
+if ! promote_output="$(SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
+  "sudo -n promote-theexonet-staging '${REMOTE_NAME}'" 2>&1)"; then
+  echo "${promote_output}"
+  echo "ERROR: promote-theexonet-staging failed." >&2
+  echo "On the VM (one-time after git pull):" >&2
+  echo "  sudo bash scripts/install-bin-scripts.sh scripts" >&2
+  exit 1
+fi
+echo "${promote_output}"
+
+if ! printf '%s' "${promote_output}" | grep -q 'Unpacking '; then
+  echo "ERROR: promote did not unpack the staging archive (installed promote script is stale)." >&2
+  echo "On the VM:" >&2
+  echo "  cd /opt/theexonet/theexonet && git pull" >&2
+  echo "  sudo bash scripts/install-bin-scripts.sh scripts" >&2
+  exit 1
 fi
 
 echo "Verify game html on production…"
@@ -93,8 +105,7 @@ game_host="${game_host%%/*}"
 verify_url="https://${game_host}/index.html"
 if ! curl -sf --max-time 30 "${verify_url}" | grep -q "content=\"${HTML_BUILD_MARKER}\""; then
   echo "ERROR: ${verify_url} is missing html build marker ${HTML_BUILD_MARKER}." >&2
-  echo "If CI promote failed with sudo, on the VM run:" >&2
-  echo "  sudo DEPLOY_SSH_PASSWORD='...' bash scripts/theexonet/setup-github-ssh-restart.sh" >&2
+  echo "On the VM:" >&2
   echo "  sudo deploy-theexonet-html /opt/theexonet/theexonet/server/Theexonet.Api/html" >&2
   exit 1
 fi

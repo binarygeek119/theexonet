@@ -73,11 +73,9 @@ Cmnd_Alias THEEXONET_RESTART = /usr/local/bin/restart-theexonet, ${LIB_DIR}/rest
 Cmnd_Alias THEEXONET_FIX_PERMS = /usr/local/bin/fix-theexonet-permissions, ${LIB_DIR}/fix-hosting-permissions.sh
 Cmnd_Alias THEEXONET_SYSTEMCTL = /bin/systemctl restart theexonet-api, /bin/systemctl restart theexonet-status, /bin/systemctl restart theexonet-admin, /bin/systemctl restart theexonet-moderator, /bin/systemctl restart theexonet-docs
 Cmnd_Alias THEEXONET_STAGE_UPLOAD = /usr/local/bin/stage-theexonet-upload, ${LIB_DIR}/theexonet/stage-github-upload.sh
-Cmnd_Alias THEEXONET_CI_PROMOTE = ${STAGING_DIR}/run-promote-staging.sh
 Cmnd_Alias THEEXONET_DEPLOY_HTML = /usr/local/bin/deploy-theexonet-html, ${LIB_DIR}/deploy-html.sh
 
 ${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_PROMOTE
-${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_CI_PROMOTE
 ${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_RESTART
 ${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_FIX_PERMS
 ${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_SYSTEMCTL
@@ -97,7 +95,8 @@ echo "Staging upload dir: ${STAGING_DIR} (group ${GAME_GROUP}, mode 2775)"
 echo ""
 echo "=== GitHub deploy user ready ==="
 echo "SSH user:     ${DEPLOY_USER}"
-echo "Permissions:  upload to ${STAGING_DIR}, promote staging, restart services"
+echo "Permissions:  upload to ${STAGING_DIR}, promote staging (delegates to run-promote-staging.sh), restart services"
+echo "After git pull also run: sudo install-theexonet-scripts   # refresh promote-theexonet-staging delegation"
 echo "GitHub secret: DEPLOY_SSH_PASSWORD (upload + promote — FTPS not required)"
 echo "GitHub variable: DEPLOY_USER = ${DEPLOY_USER}"
 echo ""

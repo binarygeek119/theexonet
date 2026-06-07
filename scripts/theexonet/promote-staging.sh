@@ -83,29 +83,26 @@ discover_archives() {
   shopt -s nullglob
   declare -A seen=()
   local -a found=()
-  local pattern file canon
+  local file canon
 
-  for pattern in \
+  for file in \
     "${STAGING_DIR}"/theexonet-website-deploy-*.tar.gz \
     "${STAGING_DIR}"/theexonet-website-deploy-*.zip \
     "${STAGING_DIR}"/theexonet-website-deploy-*.tgz \
     "${STAGING_DIR}"/theexonet-website-*.tar.gz \
-    "${STAGING_DIR}"/theexonet-website-*.zip \
-    "${STAGING_DIR}"/*.tar.gz \
-    "${STAGING_DIR}"/*.zip \
-    "${STAGING_DIR}"/*.tgz; do
-    for file in ${pattern}; do
-      [ -f "${file}" ] || continue
-      canon="$(readlink -f "${file}")"
-      if [ -n "${seen[${canon}]+x}" ]; then
-        continue
-      fi
-      seen["${canon}"]=1
-      found+=("${file}")
-    done
+    "${STAGING_DIR}"/theexonet-website-*.zip; do
+    [ -f "${file}" ] || continue
+    canon="$(readlink -f "${file}")"
+    if [ -n "${seen[${canon}]+x}" ]; then
+      continue
+    fi
+    seen["${canon}"]=1
+    found+=("${file}")
   done
 
-  printf '%s\0' "${found[@]}"
+  if [ "${#found[@]}" -gt 0 ]; then
+    printf '%s\0' "${found[@]}"
+  fi
 }
 
 newest_archive() {
@@ -157,6 +154,7 @@ promote_archive() {
   rm -f "${archive}"
 }
 
+STAGING_ARCHIVES=()
 mapfile -d '' -t STAGING_ARCHIVES < <(discover_archives)
 
 if [ -n "${REQUESTED_ARCHIVE}" ]; then

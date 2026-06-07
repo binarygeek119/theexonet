@@ -117,7 +117,15 @@ if [ -d "${unpack_dir}/data" ]; then
   mv "${unpack_dir}/data" "${STAGING}/"
 fi
 rm -rf "${unpack_dir}"
-rm -f "${ARCHIVE}"
+shopt -s nullglob
+for stale in \
+  "${STAGING}"/theexonet-website-deploy-*.tar.gz \
+  "${STAGING}"/theexonet-website-deploy-*.zip \
+  "${STAGING}"/theexonet-website-deploy-*.tgz \
+  "${STAGING}"/theexonet-website-*.tar.gz \
+  "${STAGING}"/theexonet-website-*.zip; do
+  rm -f "${stale}"
+done
 echo "Unpacking ${ARCHIVE}…"
 REMOTE_UNPACK
 )"; then
@@ -226,16 +234,41 @@ if ! SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
   exit 1
 fi
 
-echo "Verify game html on production…"
+echo "Verify Apache serves game html…"
 game_host="${HOST#https://}"
 game_host="${game_host#http://}"
 game_host="${game_host%%/*}"
-cache_bust="${GITHUB_SHA:-ci}"
-verify_url="https://${game_host}/index.html?ci=${cache_bust}"
-if ! curl -sf --max-time 30 -H 'Cache-Control: no-cache' "${verify_url}" | grep -q "content=\"${HTML_BUILD_MARKER}\""; then
-  echo "ERROR: ${verify_url} is missing html build marker ${HTML_BUILD_MARKER}." >&2
-  echo "Disk copy is updated; check Apache vhost DocumentRoot or CDN cache for ${game_host}." >&2
+if ! SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
+  "GAME_HOST='${game_host}' HTML_BUILD_MARKER='${HTML_BUILD_MARKER}' bash -s" <<'REMOTE_VERIFY'
+set -euo pipefail
+MARKER="content=\"${HTML_BUILD_MARKER}\""
+check_url() {
+  local url="$1"
+  local -a curl_opts=(-sf --max-time 15 -H "Host: ${GAME_HOST}")
+  case "${url}" in
+    https:*) curl_opts=(-k "${curl_opts[@]}") ;;
+  esac
+  curl "${curl_opts[@]}" "${url}" | grep -q "${MARKER}"
+}
+if check_url "https://127.0.0.1/index.html" 2>/dev/null \
+  || check_url "http://127.0.0.1/index.html" 2>/dev/null; then
+  echo "Apache serves ${HTML_BUILD_MARKER} for Host: ${GAME_HOST}"
+  exit 0
+fi
+echo "ERROR: Apache on 127.0.0.1 is not serving ${HTML_BUILD_MARKER} for Host: ${GAME_HOST}." >&2
+apache2ctl -S 2>/dev/null | grep -E 'DocumentRoot|${GAME_HOST}' >&2 || true
+exit 1
+REMOTE_VERIFY
+then
+  echo "ERROR: local Apache html verify failed." >&2
   exit 1
 fi
 
-echo "SSH deploy complete (${HTML_BUILD_MARKER} live on ${verify_url})."
+cache_bust="${GITHUB_SHA:-ci}"
+verify_url="https://${game_host}/index.html?ci=${cache_bust}"
+if curl -sf --max-time 30 -H 'Cache-Control: no-cache' "${verify_url}" | grep -q "content=\"${HTML_BUILD_MARKER}\""; then
+  echo "SSH deploy complete (${HTML_BUILD_MARKER} live on ${verify_url})."
+else
+  echo "WARN: public ${verify_url} did not return ${HTML_BUILD_MARKER} (CDN/DNS cache may lag)."
+  echo "SSH deploy complete on server disk and local Apache (${HTML_BUILD_MARKER})."
+fi

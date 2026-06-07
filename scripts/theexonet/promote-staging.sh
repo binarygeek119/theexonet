@@ -125,6 +125,12 @@ promote_archive() {
       exit 1
     fi
     rsync -a --delete "${unpack_dir}/publish/" "${PUBLISH_DIR}/"
+    if [ ! -f "${PUBLISH_DIR}/html/index.html" ]; then
+      echo "ERROR: promote did not deploy publish/html/index.html" >&2
+      force_remove "${unpack_dir}"
+      rm -f "${archive}"
+      exit 1
+    fi
   else
     echo "ERROR: ${archive} has no publish/ folder." >&2
     force_remove "${unpack_dir}"

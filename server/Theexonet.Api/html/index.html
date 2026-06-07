@@ -4,8 +4,39 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theexonet-api-base" content="https://api.theexonet.com">
+  <meta name="theexonet-html-build" content="20260607-checkbox-grid">
   <link rel="icon" href="/images/currency.png" type="image/png">
   <title>theexonet</title>
+  <style>
+    /* Critical: privacy checkboxes — survives stale app.css on CDN/browser cache */
+    .register-privacy-option,
+    .profile-privacy-option {
+      display: grid !important;
+      grid-template-columns: 1rem minmax(0, 1fr) !important;
+      gap: 0.5rem !important;
+      align-items: start !important;
+    }
+    .register-privacy-option input[type="checkbox"],
+    .profile-privacy-option input[type="checkbox"] {
+      width: 1rem !important;
+      height: 1rem !important;
+      min-width: 1rem !important;
+      max-width: 1rem !important;
+      margin: 0.15rem 0 0 !important;
+      padding: 0 !important;
+      grid-column: 1 !important;
+      grid-row: 1 !important;
+    }
+    .register-privacy-option > label,
+    .register-privacy-option > span,
+    .profile-privacy-option > label,
+    .profile-privacy-option > span {
+      grid-column: 2 !important;
+      grid-row: 1 !important;
+      margin: 0 !important;
+      min-width: 0 !important;
+    }
+  </style>
   <link rel="stylesheet" href="/css/app.css?v=20260607-checkbox-grid">
   <link rel="stylesheet" href="/css/profile.css?v=20260607-checkbox-grid">
   <link rel="stylesheet" href="/css/exonet.css?v=20260605-voidcorp">

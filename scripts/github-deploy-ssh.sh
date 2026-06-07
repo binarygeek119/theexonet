@@ -69,4 +69,12 @@ echo "Promote and restart…"
 SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
   "sudo promote-theexonet-staging '${REMOTE_NAME}'"
 
+echo "Verify game html on server…"
+if ! SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
+  "grep -q 'theexonet-html-build' /var/www/publish/html/index.html"; then
+  echo "ERROR: /var/www/publish/html/index.html was not updated by promote." >&2
+  echo "On the VM as root: sudo deploy-theexonet-html /opt/theexonet/theexonet/server/Theexonet.Api/html" >&2
+  exit 1
+fi
+
 echo "SSH deploy complete."

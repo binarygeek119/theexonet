@@ -234,6 +234,8 @@ jobs:
           fi
           rsync -a server/Theexonet.Api/html/ publish/html/
           test -f publish/Theexonet.Api.dll
+          grep -q 'theexonet-html-build' publish/html/index.html
+          grep -q 'content="20260607-checkbox-grid"' publish/html/index.html
 
       - name: Validate SSH deploy credentials
         env:
@@ -320,3 +322,10 @@ jobs:
           wait_http "Game" "http://${host}/"
           wait_http "API status" "http://api.${host}/api/status" || \
             wait_http "API root" "http://api.${host}/"
+          game_html="$(curl -sf --max-time 20 "http://${host}/index.html" || true)"
+          if [ -z "${game_html}" ] || ! printf '%s' "${game_html}" | grep -q 'content="20260607-checkbox-grid"'; then
+            echo "ERROR: production still serves stale html (missing build marker 20260607-checkbox-grid)." >&2
+            echo "On the VM: cd /opt/theexonet/theexonet && git pull && sudo deploy-theexonet-html server/Theexonet.Api/html" >&2
+            exit 1
+          fi
+          echo "Game html build marker: OK"

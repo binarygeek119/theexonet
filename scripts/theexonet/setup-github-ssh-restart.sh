@@ -54,7 +54,6 @@ Match User ${DEPLOY_USER}
     PasswordAuthentication yes
     PermitTTY no
     X11Forwarding no
-    AllowTcpForwarding no
 EOF
 chmod 644 /etc/ssh/sshd_config.d/99-theexonet-github-deploy.conf
 
@@ -72,21 +71,30 @@ Cmnd_Alias THEEXONET_PROMOTE = /usr/local/bin/promote-theexonet-staging, ${LIB_D
 Cmnd_Alias THEEXONET_RESTART = /usr/local/bin/restart-theexonet, ${LIB_DIR}/restart-theexonet.sh
 Cmnd_Alias THEEXONET_FIX_PERMS = /usr/local/bin/fix-theexonet-permissions, ${LIB_DIR}/fix-hosting-permissions.sh
 Cmnd_Alias THEEXONET_SYSTEMCTL = /bin/systemctl restart theexonet-api, /bin/systemctl restart theexonet-status, /bin/systemctl restart theexonet-admin, /bin/systemctl restart theexonet-moderator, /bin/systemctl restart theexonet-docs
+Cmnd_Alias THEEXONET_STAGE_UPLOAD = /usr/local/bin/stage-theexonet-upload, ${LIB_DIR}/theexonet/stage-github-upload.sh
 
 ${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_PROMOTE
 ${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_RESTART
 ${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_FIX_PERMS
 ${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_SYSTEMCTL
+${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_STAGE_UPLOAD
 EOF
 chmod 440 "${sudoers}"
 visudo -cf "${sudoers}" >/dev/null
 echo "Wrote ${sudoers}"
 
+STAGING_DIR="${THEEXONET_STAGING_DIR:-/var/www/staging}"
+mkdir -p "${STAGING_DIR}"
+chown root:"${GAME_GROUP}" "${STAGING_DIR}"
+chmod 2775 "${STAGING_DIR}"
+usermod -aG "${GAME_GROUP}" "${DEPLOY_USER}" 2>/dev/null || true
+echo "Staging upload dir: ${STAGING_DIR} (group ${GAME_GROUP}, mode 2775)"
+
 echo ""
 echo "=== GitHub deploy user ready ==="
 echo "SSH user:     ${DEPLOY_USER}"
-echo "Permissions:  promote staging, restart game services, fix hosting permissions"
-echo "GitHub secret: DEPLOY_SSH_PASSWORD"
+echo "Permissions:  upload to ${STAGING_DIR}, promote staging, restart services"
+echo "GitHub secret: DEPLOY_SSH_PASSWORD (upload + promote — FTPS not required)"
 echo "GitHub variable: DEPLOY_USER = ${DEPLOY_USER}"
 echo ""
 echo "Test:"

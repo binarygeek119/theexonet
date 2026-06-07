@@ -1,6 +1,6 @@
 # GitHub Actions deploy setup (FTPS)
 
-Production deploy uploads a zip bundle via **FTPS** to `/var/www/staging/`, then **SSH** runs `promote-theexonet-staging` (restart all services). The **staging watcher** is a backup if SSH is not configured.
+Production deploy uploads a zip bundle via **SSH** (`githubdeploy`) to `/var/www/staging/`, then runs `promote-theexonet-staging` (restart all services). FTPS (`gameftp`) is optional for manual FileZilla uploads only. The **staging watcher** is a backup if promote fails.
 
 **Never commit passwords to the repo.** Add them only in GitHub **Settings → Secrets and variables → Actions**.
 
@@ -60,22 +60,17 @@ Optional: `DEPLOY_FTP_HOST` if FTP hostname differs from `DEPLOY_HOST`. Optional
 
 Remove obsolete variables if present: `DEPLOY_WWW_PATH`, `DEPLOY_API_PATH`, `DEPLOY_METHOD`, etc.
 
-## 2. FTPS password (required)
+## 2. Deploy secrets (required)
 
 **Settings → Secrets**
 
 | Name | Value |
 |------|--------|
-| `DEPLOY_FTP_PASSWORD` | `gameftp` password |
 | `DEPLOY_SSH_PASSWORD` | `githubdeploy` password — same value passed to `setup-github-ssh-restart.sh` |
 
-Set FTPS password safely on the server:
+`DEPLOY_FTP_PASSWORD` is **not required** for CI (SSH upload replaced FTPS). Keep it only if you use FileZilla manually.
 
-```bash
-sudo GAME_FTP_PASSWORD='YourPassword' bash scripts/theexonet/set-gameftp-password.sh
-```
-
-Remove unused secrets: `DEPLOY_SSH_KEY` (key-based SSH not used).
+Remove unused secrets: `DEPLOY_SSH_KEY`, `DEPLOY_FTP_PASSWORD` (optional).
 
 ## 3. What the workflow does
 
@@ -83,8 +78,8 @@ Remove unused secrets: `DEPLOY_SSH_KEY` (key-based SSH not used).
 
 1. Build and test
 2. Zip `publish/` + `data/`
-3. **FTPS upload** to `staging/theexonet-website-deploy-<sha>.zip`
-4. **SSH** `promote-theexonet-staging` (if `DEPLOY_SSH_PASSWORD` is set; otherwise staging-watcher promotes within ~30s)
+3. **SSH upload** to `/var/www/staging/theexonet-website-deploy-<sha>.zip` as `githubdeploy`
+4. **SSH** `promote-theexonet-staging` (restart all services)
 5. Wait for `http://theexonet.com/` and API HTTP
 
 ## 4. Manual promote (if watcher is down)

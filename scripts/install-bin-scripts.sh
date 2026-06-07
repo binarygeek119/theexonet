@@ -104,6 +104,14 @@ if [ -f "${SRC_DIR}/github-deploy-restart.sh" ]; then
   cp -f "${SRC_DIR}/github-deploy-restart.sh" "${LIB_DIR}/github-deploy-restart.sh"
   chmod 755 "${LIB_DIR}/github-deploy-restart.sh"
 fi
+if [ -f "${SRC_DIR}/github-deploy-ssh.sh" ]; then
+  cp -f "${SRC_DIR}/github-deploy-ssh.sh" "${LIB_DIR}/github-deploy-ssh.sh"
+  chmod 755 "${LIB_DIR}/github-deploy-ssh.sh"
+fi
+if [ -f "${SRC_DIR}/theexonet/stage-github-upload.sh" ]; then
+  cp -f "${SRC_DIR}/theexonet/stage-github-upload.sh" "${LIB_DIR}/theexonet/stage-github-upload.sh"
+  chmod 755 "${LIB_DIR}/theexonet/stage-github-upload.sh"
+fi
 if ! command -v unzip >/dev/null 2>&1 || ! command -v rsync >/dev/null 2>&1; then
   echo "WARN: install unzip rsync for promote-theexonet-staging (apt install unzip rsync)" >&2
 fi
@@ -161,6 +169,7 @@ declare -A bin_links=(
   [setup-github-ssh-restart.sh]=setup-theexonet-github-ssh
   [diagnose-ftps.sh]=diagnose-theexonet-ftps
   [set-gameftp-password.sh]=set-theexonet-gameftp-password
+  [stage-github-upload.sh]=stage-theexonet-upload
   [pull-server-repo.sh]=pull-theexonet-repo
 )
 

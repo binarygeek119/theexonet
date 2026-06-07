@@ -1,4 +1,4 @@
-name: theexonet CI
+﻿name: theexonet CI
 
 on:
   push:
@@ -184,7 +184,7 @@ jobs:
 
 
   deploy:
-    name: Deploy to production (FTPS)
+    name: Deploy to production (SSH)
     needs: build
     if: >
       github.event_name != 'pull_request' &&
@@ -217,18 +217,14 @@ jobs:
       - name: Ensure html is in publish bundle
         run: rsync -a server/Theexonet.Api/html/ publish/html/
 
-      - name: Validate FTPS deploy credentials
+      - name: Validate SSH deploy credentials
         env:
-          DEPLOY_FTP_PASSWORD: ${{ secrets.DEPLOY_FTP_PASSWORD }}
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -z "${DEPLOY_FTP_PASSWORD}" ]; then
-            echo "Add repository secret DEPLOY_FTP_PASSWORD (gameftp password)." >&2
-            echo "On the server: sudo GAME_FTP_PASSWORD='...' bash scripts/theexonet/set-gameftp-password.sh" >&2
-            exit 1
-          fi
-          if printf '%s' "${DEPLOY_FTP_PASSWORD}" | grep -q ':'; then
-            echo "ERROR: DEPLOY_FTP_PASSWORD cannot contain ':' (vsftpd chpasswd limitation)." >&2
+          if [ -z "${DEPLOY_SSH_PASSWORD}" ]; then
+            echo "Add repository secret DEPLOY_SSH_PASSWORD (githubdeploy password)." >&2
+            echo "On the server: sudo DEPLOY_SSH_PASSWORD='...' bash scripts/theexonet/setup-github-ssh-restart.sh" >&2
             exit 1
           fi
           case "${DEPLOY_HOST}" in
@@ -236,15 +232,9 @@ jobs:
               echo "WARN: DEPLOY_HOST is still ${DEPLOY_HOST}. Set DEPLOY_HOST to theexonet.com or the VM IP." >&2
               ;;
           esac
-          if [ "${DEPLOY_SSH_USER}" = "root" ]; then
-            echo "WARN: DEPLOY_USER is root. Set GitHub variable DEPLOY_USER=githubdeploy for the deploy SSH user." >&2
-          fi
-          ftp_user="${DEPLOY_FTP_USER:-gameftp}"
-          echo "FTPS user: ${ftp_user} (must be gameftp — githubdeploy is SSH-only)"
-          if [ "${ftp_user}" != "gameftp" ]; then
-            echo "ERROR: DEPLOY_FTP_USER is '${ftp_user}' but FTPS requires gameftp." >&2
-            echo "Remove DEPLOY_FTP_USER secret/variable or set it to gameftp." >&2
-            exit 1
+          echo "SSH deploy user: ${DEPLOY_SSH_USER} (expect githubdeploy)"
+          if [ "${DEPLOY_SSH_USER}" != "githubdeploy" ]; then
+            echo "WARN: Set GitHub variable DEPLOY_USER=githubdeploy" >&2
           fi
 
       - name: Normalize deploy host
@@ -262,31 +252,23 @@ jobs:
           fi
           echo "DEPLOY_FTP_HOST=$host" >> "$GITHUB_ENV"
           deploy_ip="$(getent ahostsv4 "$host" 2>/dev/null | awk 'NR==1 {print $1}' || true)"
-          echo "FTPS target: ${host}${deploy_ip:+ (A ${deploy_ip})} -> ${DEPLOY_FTP_STAGING_DIR}/"
+          echo "DEPLOY_SSH_HOST=$host" >> "$GITHUB_ENV"
+          echo "SSH target: ${host}${deploy_ip:+ (A ${deploy_ip})} -> /var/www/staging/"
 
-      - name: Install lftp and sshpass
-        run: sudo apt-get update && sudo apt-get install -y lftp sshpass
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass openssh-client
 
       - name: Create deploy archive
         run: zip -r "theexonet-website-deploy-${GITHUB_SHA}.zip" publish data
 
-      - name: Upload deploy bundle via FTPS
-        env:
-          DEPLOY_FTP_PASSWORD: ${{ secrets.DEPLOY_FTP_PASSWORD }}
-        run: |
-          set -euo pipefail
-          chmod +x scripts/github-deploy-ftp.sh
-          bash scripts/github-deploy-ftp.sh "theexonet-website-deploy-${GITHUB_SHA}.zip"
-          echo "Uploaded deploy zip to staging."
-
-      - name: Promote and restart via SSH
+      - name: Upload and deploy via SSH
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-          DEPLOY_SSH_HOST: ${{ env.DEPLOY_FTP_HOST }}
+          DEPLOY_SSH_HOST: ${{ env.DEPLOY_SSH_HOST }}
         run: |
           set -euo pipefail
-          chmod +x scripts/github-deploy-restart.sh
-          bash scripts/github-deploy-restart.sh
+          chmod +x scripts/github-deploy-ssh.sh
+          bash scripts/github-deploy-ssh.sh "theexonet-website-deploy-${GITHUB_SHA}.zip"
 
       - name: Wait for production HTTP
         run: |

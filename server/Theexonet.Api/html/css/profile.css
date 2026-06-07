@@ -827,22 +827,32 @@
 }
 
 .profile-edit-panel .profile-privacy-option {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
   gap: 0.5rem;
+  align-items: start;
   margin: 0 0 0.5rem;
+}
+
+.profile-edit-panel .profile-privacy-option input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  min-width: 1rem;
+  max-width: 1rem;
+  padding: 0;
+  margin: 0.15rem 0 0;
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.profile-edit-panel .profile-privacy-option label {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
   font-size: 0.9rem;
   font-weight: 400;
   line-height: 1.4;
   cursor: pointer;
-}
-
-.profile-edit-panel .profile-privacy-option input[type="checkbox"] {
-  width: auto;
-  min-width: 1rem;
-  padding: 0;
-  margin-top: 0.2rem;
-  flex-shrink: 0;
 }
 
 .profile-save-row {

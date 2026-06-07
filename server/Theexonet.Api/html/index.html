@@ -6,8 +6,8 @@
   <meta name="theexonet-api-base" content="https://api.theexonet.com">
   <link rel="icon" href="/images/currency.png" type="image/png">
   <title>theexonet</title>
-  <link rel="stylesheet" href="/css/app.css?v=20260607-checkbox-flex">
-  <link rel="stylesheet" href="/css/profile.css?v=20260529-profile-edit-media">
+  <link rel="stylesheet" href="/css/app.css?v=20260607-checkbox-grid">
+  <link rel="stylesheet" href="/css/profile.css?v=20260607-checkbox-grid">
   <link rel="stylesheet" href="/css/exonet.css?v=20260605-voidcorp">
 </head>
 <body>
@@ -53,14 +53,14 @@
           <datalist id="birthday-year-options"></datalist>
         </div>
         <div class="register-privacy-options">
-          <label class="register-privacy-option">
+          <div class="register-privacy-option">
             <input id="register-birthday-public" type="checkbox">
-            <span data-i18n="auth.birthdayPublic">Show my birthday (month and day only) on my public profile</span>
-          </label>
-          <label class="register-privacy-option">
+            <label for="register-birthday-public" data-i18n="auth.birthdayPublic">Show my birthday (month and day only) on my public profile</label>
+          </div>
+          <div class="register-privacy-option">
             <input id="register-age-public" type="checkbox">
-            <span data-i18n="auth.agePublic">Show my age on my public profile</span>
-          </label>
+            <label for="register-age-public" data-i18n="auth.agePublic">Show my age on my public profile</label>
+          </div>
         </div>
       </div>
 
@@ -553,14 +553,14 @@
             <div class="profile-privacy-options">
               <p class="profile-number-label" data-i18n="profile.edit.publicInfo">Public profile info</p>
               <p class="profile-number-hint" data-i18n="profile.edit.publicInfoHint">Choose what other players can see on your public profile and in Exonet lists. Birth year is never shared.</p>
-              <label class="profile-privacy-option">
+              <div class="profile-privacy-option">
                 <input id="profile-birthday-public-input" type="checkbox">
-                <span data-i18n="profile.edit.birthdayPublic">Show my birthday (month and day only) on my public profile</span>
-              </label>
-              <label class="profile-privacy-option">
+                <label for="profile-birthday-public-input" data-i18n="profile.edit.birthdayPublic">Show my birthday (month and day only) on my public profile</label>
+              </div>
+              <div class="profile-privacy-option">
                 <input id="profile-age-public-input" type="checkbox">
-                <span data-i18n="profile.edit.agePublic">Show my age on my public profile</span>
-              </label>
+                <label for="profile-age-public-input" data-i18n="profile.edit.agePublic">Show my age on my public profile</label>
+              </div>
             </div>
 
             <label for="profile-mood-input" data-i18n="profile.edit.mood">Mood</label>

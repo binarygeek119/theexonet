@@ -163,28 +163,32 @@ select optgroup {
 
 .register-privacy-option,
 .profile-privacy-option {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
   gap: 0.5rem;
+  align-items: start;
+}
+
+.register-privacy-option input[type="checkbox"],
+.profile-privacy-option input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  min-width: 1rem;
+  max-width: 1rem;
+  margin: 0.15rem 0 0;
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.register-privacy-option label,
+.profile-privacy-option label {
+  grid-column: 2;
+  grid-row: 1;
   margin: 0;
   font-size: 0.9rem;
   line-height: 1.4;
   color: var(--text);
   cursor: pointer;
-}
-
-.register-privacy-option input,
-.profile-privacy-option input {
-  width: 1rem;
-  height: 1rem;
-  margin: 0.2rem 0 0;
-  flex: 0 0 auto;
-}
-
-.register-privacy-option span,
-.profile-privacy-option span {
-  flex: 1 1 auto;
-  min-width: 0;
 }
 
 .profile-public-info {

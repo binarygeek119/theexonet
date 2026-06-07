@@ -382,7 +382,7 @@ public static class DatabaseSchemaUpdater
             CREATE TABLE IF NOT EXISTS "AiImageQueue" (
                 "Id" uuid NOT NULL,
                 "Kind" text NOT NULL,
-                "Payload" text NOT NULL DEFAULT '{}',
+                "Payload" text NOT NULL DEFAULT '{{}}',
                 "Status" text NOT NULL DEFAULT 'queued',
                 "Source" text NOT NULL DEFAULT '',
                 "Error" text NULL,

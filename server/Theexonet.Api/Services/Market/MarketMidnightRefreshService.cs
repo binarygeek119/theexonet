@@ -1,17 +1,22 @@
 using Microsoft.Extensions.Caching.Memory;
-using Theexonet.Core.Interfaces;
+using Microsoft.Extensions.Options;
+using Theexonet.Core.Configuration;
 using Theexonet.Core.Services;
 
 namespace Theexonet.Api.Services.Market;
 
+/// <summary>
+/// Prefetches market prices on API startup and refreshes them at each UTC midnight boundary.
+/// </summary>
 public class MarketMidnightRefreshService(
     IMemoryCache cache,
-    IMarketDataProvider marketProvider,
+    FallbackMarketDataProvider marketProvider,
+    IOptions<MarketOptions> options,
     ILogger<MarketMidnightRefreshService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await PrefetchCurrentDayAsync(stoppingToken);
+        await RefreshAsync("startup", stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -30,25 +35,50 @@ public class MarketMidnightRefreshService(
                 break;
             }
 
-            if (cache is MemoryCache memoryCache)
-            {
-                memoryCache.Compact(1.0);
-            }
-
-            logger.LogInformation("UTC midnight reached. Refreshing live market prices.");
-            await PrefetchCurrentDayAsync(stoppingToken);
+            await RefreshAsync("midnight", stoppingToken);
         }
     }
 
-    private async Task PrefetchCurrentDayAsync(CancellationToken cancellationToken)
+    private async Task RefreshAsync(string reason, CancellationToken cancellationToken)
     {
+        var today = UtcGameClock.Today;
+
         try
         {
-            await marketProvider.GetDailyPricesAsync(0, UtcGameClock.Today, cancellationToken);
+            if (options.Value.UseLiveData)
+            {
+                if (reason == "startup")
+                {
+                    logger.LogInformation(
+                        "API startup. Prefetching live US market prices (Yahoo Finance) for UTC {UtcDate}.",
+                        today);
+                }
+                else
+                {
+                    if (cache is MemoryCache memoryCache)
+                    {
+                        memoryCache.Compact(1.0);
+                    }
+
+                    logger.LogInformation(
+                        "UTC midnight reached. Refreshing live US market prices (Yahoo Finance) for UTC {UtcDate}.",
+                        today);
+                }
+
+                await marketProvider.PrefetchTodayAsync(cancellationToken);
+                return;
+            }
+
+            if (reason == "startup")
+            {
+                logger.LogInformation("Live market prefetch skipped (UseLiveData=false).");
+            }
+
+            await marketProvider.PrefetchTodayAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Market prefetch failed for UTC {UtcDate}", UtcGameClock.Today);
+            logger.LogWarning(ex, "Market prefetch failed for UTC {UtcDate} ({Reason})", today, reason);
         }
     }
 }

@@ -382,7 +382,7 @@ var marketOptions = builder.Configuration.GetSection(MarketOptions.SectionName).
 if (marketOptions.UseLiveData)
 {
     app.Logger.LogInformation(
-        "Live US market prices enabled (Yahoo Finance, refresh at UTC midnight). Items file: {ItemsFile}",
+        "Live US market prices enabled (Yahoo Finance, refresh at API startup and UTC midnight). Items file: {ItemsFile}",
         Path.Combine(dataRootPath, marketOptions.ItemsFile));
 }
 else

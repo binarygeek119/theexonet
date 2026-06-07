@@ -25,13 +25,23 @@ public class YahooFinanceMarketDataProvider(
         DateOnly utcDate,
         CancellationToken cancellationToken = default)
     {
-        var cacheKey = $"market:yahoo:{utcDate:yyyy-MM-dd}";
+        var cacheKey = BuildCacheKey(utcDate);
         return cache.GetOrCreateAsync(cacheKey, entry =>
         {
             entry.AbsoluteExpiration = UtcGameClock.NextDayBoundaryUtc;
             return FetchSnapshotAsync(gameDay, utcDate, cancellationToken);
         })!;
     }
+
+    /// <summary>Force-fetch today's prices (API startup and UTC midnight refresh).</summary>
+    public Task<DailyMarketSnapshot> PrefetchTodayAsync(CancellationToken cancellationToken = default)
+    {
+        var today = UtcGameClock.Today;
+        cache.Remove(BuildCacheKey(today));
+        return GetDailyPricesAsync(0, today, cancellationToken);
+    }
+
+    private static string BuildCacheKey(DateOnly utcDate) => $"market:yahoo:{utcDate:yyyy-MM-dd}";
 
     private async Task<DailyMarketSnapshot> FetchSnapshotAsync(
         int gameDay,

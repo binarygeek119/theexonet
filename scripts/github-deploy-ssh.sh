@@ -10,7 +10,7 @@
 #   DEPLOY_STAGING_DIR    — default /var/www/staging
 #
 # Usage:
-#   bash scripts/github-deploy-ssh.sh theexonet-website-deploy-<sha>.zip
+#   bash scripts/github-deploy-ssh.sh theexonet-website-deploy-<sha>.tar.gz
 set -euo pipefail
 
 LOCAL_FILE="${1:?usage: github-deploy-ssh.sh <local-zip>}"

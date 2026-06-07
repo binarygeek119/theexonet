@@ -1,4 +1,4 @@
-name: theexonet CI
+﻿name: theexonet CI
 
 on:
   push:
@@ -277,7 +277,15 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y sshpass openssh-client
 
       - name: Create deploy archive
-        run: zip -r "theexonet-website-deploy-${GITHUB_SHA}.zip" publish data
+        run: |
+          set -euo pipefail
+          # Runtime-generated ONN assets live under /var/www/data — never bundle them.
+          find publish/html -type l -delete 2>/dev/null || true
+          rm -rf \
+            publish/html/exonet/offworld-news/reporters \
+            publish/html/exonet/offworld-news/editions \
+            publish/html/exonet/offworld-news/images
+          tar -czf "theexonet-website-deploy-${GITHUB_SHA}.tar.gz" publish data
 
       - name: Upload and deploy via SSH
         env:
@@ -286,7 +294,7 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x scripts/github-deploy-ssh.sh
-          bash scripts/github-deploy-ssh.sh "theexonet-website-deploy-${GITHUB_SHA}.zip"
+          bash scripts/github-deploy-ssh.sh "theexonet-website-deploy-${GITHUB_SHA}.tar.gz"
 
       - name: Wait for production HTTP
         run: |

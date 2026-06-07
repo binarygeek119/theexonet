@@ -17,21 +17,23 @@ fi
 
 promote_if_needed() {
   shopt -s nullglob
-  local zip newest_mtime=0 newest_zip=""
-  for zip in \
+  local archive newest_mtime=0 newest_archive=""
+  for archive in \
+    "${STAGING_DIR}"/theexonet-website-deploy-*.tar.gz \
     "${STAGING_DIR}"/theexonet-website-deploy-*.zip \
     "${STAGING_DIR}"/theexonet-website-*.zip \
+    "${STAGING_DIR}"/*.tar.gz \
     "${STAGING_DIR}"/*.zip; do
-    [ -f "${zip}" ] || continue
+    [ -f "${archive}" ] || continue
     local mtime
-    mtime="$(stat -c %Y "${zip}" 2>/dev/null || echo 0)"
+    mtime="$(stat -c %Y "${archive}" 2>/dev/null || echo 0)"
     if [ "${mtime}" -gt "${newest_mtime}" ]; then
       newest_mtime="${mtime}"
-      newest_zip="${zip}"
+      newest_archive="${archive}"
     fi
   done
 
-  if [ -z "${newest_zip}" ]; then
+  if [ -z "${newest_archive}" ]; then
     return 0
   fi
 
@@ -43,7 +45,7 @@ promote_if_needed() {
     return 0
   fi
 
-  log "New deploy zip detected: ${newest_zip}"
+  log "New deploy archive detected: ${newest_archive}"
   if command -v promote-theexonet-staging >/dev/null 2>&1; then
     promote-theexonet-staging
   else

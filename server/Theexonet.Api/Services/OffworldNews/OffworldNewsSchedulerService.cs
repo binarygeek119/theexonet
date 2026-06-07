@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Options;
 using Theexonet.Core.Configuration;
+using Theexonet.Core.Constants;
+using Theexonet.Core.Interfaces;
 using Theexonet.Core.Services;
+using Theexonet.Infrastructure.Services;
 
 namespace Theexonet.Api.Services.OffworldNews;
 
@@ -10,6 +13,7 @@ namespace Theexonet.Api.Services.OffworldNews;
 public sealed class OffworldNewsSchedulerService(
     OffworldNewsService offworldNewsService,
     IOptions<OffworldNewsOptions> options,
+    ILiveUpdateBroadcaster liveUpdateBroadcaster,
     ILogger<OffworldNewsSchedulerService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -50,6 +54,11 @@ public sealed class OffworldNewsSchedulerService(
         try
         {
             await offworldNewsService.EnsureEditionAsync(today, forceRegenerate, cancellationToken);
+            if (forceRegenerate)
+            {
+                LiveUpdatePublisher.NotifyGlobalRefresh(liveUpdateBroadcaster, LiveUpdateScopes.Exonet);
+            }
+
             logger.LogInformation(
                 "Offworld News scheduler finished for {Date} (force={Force})",
                 today,

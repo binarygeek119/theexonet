@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Theexonet.Core.Constants;
 using Theexonet.Core.Dtos;
+using Theexonet.Core.Interfaces;
 using Theexonet.Infrastructure.Data;
 using Theexonet.Infrastructure.Entities;
 
@@ -10,7 +11,8 @@ namespace Theexonet.Infrastructure.Services;
 public class PeerMessageService(
     AppDbContext db,
     ILogger<PeerMessageService> logger,
-    MessageModerationService messageModerationService)
+    MessageModerationService messageModerationService,
+    ILiveUpdateBroadcaster liveUpdateBroadcaster)
 {
     public async Task<IReadOnlyList<PeerMessageDto>> GetMailboxAsync(Guid playerId, CancellationToken ct)
     {
@@ -95,6 +97,8 @@ public class PeerMessageService(
 
         db.PeerMessages.Add(message);
         await db.SaveChangesAsync(ct);
+        LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, toPlayerId, LiveUpdateScopes.Messages);
+        LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, fromPlayerId, LiveUpdateScopes.Messages);
 
         var usernames = await db.Players.AsNoTracking()
             .Where(p => p.Id == fromPlayerId || p.Id == toPlayerId)

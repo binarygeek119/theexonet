@@ -21,6 +21,7 @@ namespace Theexonet.Api.Controllers;
 public class StatusController(
     AppDbContext db,
     ServerRuntimeInfo runtime,
+    ClientBuildInfo clientBuildInfo,
     IMarketDataProvider marketProvider,
     IMarketItemsCatalog marketItems,
     IGameCreditsConfig gameCreditsConfig,
@@ -62,7 +63,8 @@ public class StatusController(
             runtime.UptimeSeconds,
             runtime.StartedUtc,
             runtime.FirstRunUtc,
-            GameVersion.Display));
+            GameVersion.Display,
+            clientBuildInfo.HtmlBuild));
     }
 
     [AllowAnonymous]

@@ -36,7 +36,8 @@ public class PlayerGameService(
     IGameCreditsConfig gameCreditsConfig,
     ReporterFriendshipService reporterFriendshipService,
     TheexonetHostingPaths hostingPaths,
-    IOptionsMonitor<AdminOptions> adminOptions)
+    IOptionsMonitor<AdminOptions> adminOptions,
+    ILiveUpdateBroadcaster liveUpdateBroadcaster)
 {
     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> DayProcessLocks = new();
     private IGameCreditsConfig Credits => gameCreditsConfig;
@@ -299,9 +300,11 @@ public class PlayerGameService(
                 null,
                 1,
                 ct);
+            LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, playerId, LiveUpdateScopes.Mine);
             return (true, "Worker assigned to zone.", completions);
         }
 
+        LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, playerId, LiveUpdateScopes.Mine);
         return (true, "Worker unassigned.", []);
     }
 
@@ -400,6 +403,7 @@ public class PlayerGameService(
         var message = tradeBonusCredits > 0
             ? $"Purchased {request.Quantity} {supplyType} for {totalCost} credits (+{tradeBonusCredits} event trade bonus)."
             : $"Purchased {request.Quantity} {supplyType} for {totalCost} credits.";
+        LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, playerId, LiveUpdateScopes.Mine);
         return (true, message, player.Credits, completions);
     }
 
@@ -483,6 +487,7 @@ public class PlayerGameService(
         var message = saleBonusCredits > 0
             ? $"Sold {request.Quantity} {oreType} for {totalValue} credits (+{saleBonusCredits} event sale bonus)."
             : $"Sold {request.Quantity} {oreType} for {totalValue} credits.";
+        LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, playerId, LiveUpdateScopes.Mine);
         return (true, message, player.Credits, completions);
     }
 
@@ -1013,6 +1018,7 @@ public class PlayerGameService(
         });
         await db.SaveChangesAsync(ct);
 
+        LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, target.Id, LiveUpdateScopes.Friends);
         return (true, $"Friend request sent to {target.Username}.");
     }
 
@@ -1036,6 +1042,8 @@ public class PlayerGameService(
         friendship.AcceptedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
+        LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, playerId, LiveUpdateScopes.Friends);
+        LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, friendship.PlayerId, LiveUpdateScopes.Friends);
         return (true, "Friend request accepted.");
     }
 
@@ -1345,6 +1353,7 @@ public class PlayerGameService(
                 null,
                 daysAdvanced,
                 ct);
+            LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, player.Id, LiveUpdateScopes.Mine);
             return (latestReport, completions);
         }
         finally

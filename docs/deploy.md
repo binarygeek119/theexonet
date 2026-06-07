@@ -303,6 +303,34 @@ The deploy workflow syncs `scripts/` on each run, installs helpers to `/usr/loca
 | `theexonetmoderator.binarygeek119.duckdns.org` | port 7050 (`Theexonet.Moderator`) |
 | `theexonetdocs.binarygeek119.duckdns.org` | port 9000 (`Theexonet.Docs`) |
 
+The main game uses Server-Sent Events at `GET /api/live/events` for live data and deploy notifications. If the API is behind nginx, disable buffering and use a long read timeout for that path:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name theexonetapi.binarygeek119.duckdns.org;
+
+    location /api/live/ {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
 Example nginx server block for the game docs site:
 
 ```nginx

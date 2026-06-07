@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Options;
 using Theexonet.Core.Configuration;
+using Theexonet.Core.Constants;
+using Theexonet.Core.Interfaces;
 using Theexonet.Core.Services;
+using Theexonet.Infrastructure.Services;
 
 namespace Theexonet.Api.Services.Foreverfall;
 
@@ -10,6 +13,7 @@ namespace Theexonet.Api.Services.Foreverfall;
 public sealed class ForeverfallSchedulerService(
     ForeverfallPenitentiaryService penitentiaryService,
     IOptions<ForeverfallOptions> options,
+    ILiveUpdateBroadcaster liveUpdateBroadcaster,
     ILogger<ForeverfallSchedulerService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -63,6 +67,11 @@ public sealed class ForeverfallSchedulerService(
                 today,
                 forceRegenerate,
                 cancellationToken);
+
+            if (forceRegenerate)
+            {
+                LiveUpdatePublisher.NotifyGlobalRefresh(liveUpdateBroadcaster, LiveUpdateScopes.Exonet);
+            }
 
             logger.LogInformation(
                 "Foreverfall scheduler finished for {Date} (force={Force})",

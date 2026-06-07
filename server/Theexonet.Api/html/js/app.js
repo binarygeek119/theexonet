@@ -23,8 +23,10 @@ import {
   setCachedTestingModeEnabled,
 } from "./admin-testing-mode.js?v=20260529-testing-dummy-assets";
 import { initModerationFlow } from "./moderation-flow.js?v=20260529-moderation-flow";
+import { initLiveUpdates } from "./live-updates.js?v=20260607-live-updates";
 
 const api = new TheexonetApi(API_BASE_URL);
+const BOOT_HTML_BUILD = document.querySelector('meta[name="theexonet-html-build"]')?.content?.trim() ?? "";
 
 const PROFILE_GENDER_LABEL_KEYS = {
   male: "profile.edit.gender.male",
@@ -454,9 +456,14 @@ const els = {
   moderationMeta: document.getElementById("moderation-modal-meta"),
   moderationAckBtn: document.getElementById("moderation-ack-btn"),
   moderationAppealBtn: document.getElementById("moderation-appeal-btn"),
+  clientUpdateBanner: document.getElementById("client-update-banner"),
+  clientUpdateReloadBtn: document.getElementById("client-update-reload-btn"),
+  clientUpdateDismissBtn: document.getElementById("client-update-dismiss-btn"),
 };
 
 let moderation;
+let liveUpdates;
+let clientUpdateDismissedBuild = "";
 
 function showStatus(message, isError = false) {
   els.statusBar.textContent = message ?? "";
@@ -2719,6 +2726,150 @@ function formatRunway(days) {
   return Number(days) >= 999 ? "∞" : Number(days).toFixed(1);
 }
 
+function isGameModalOpen() {
+  const modals = [
+    els.financeModal,
+    els.supplyModal,
+    els.dayModal,
+    els.friendsModal,
+    els.messagesModal,
+    els.shippingModal,
+    els.storeModal,
+    els.eventModal,
+    els.profileModal,
+    els.profileEditModal,
+    els.exonetModal,
+    els.moderationModal,
+  ];
+
+  return modals.some((modal) => modal && !modal.hidden);
+}
+
+function showClientUpdateBanner(htmlBuild) {
+  const build = String(htmlBuild ?? "").trim();
+  if (!build || !BOOT_HTML_BUILD || build === BOOT_HTML_BUILD) {
+    hideClientUpdateBanner();
+    return;
+  }
+
+  if (build === clientUpdateDismissedBuild) {
+    return;
+  }
+
+  if (els.clientUpdateBanner) {
+    els.clientUpdateBanner.dataset.build = build;
+    els.clientUpdateBanner.hidden = false;
+  }
+}
+
+function hideClientUpdateBanner() {
+  if (els.clientUpdateBanner) {
+    els.clientUpdateBanner.hidden = true;
+  }
+}
+
+function checkClientBuild(htmlBuild) {
+  const build = String(htmlBuild ?? "").trim();
+  if (!build || !BOOT_HTML_BUILD || build === BOOT_HTML_BUILD) {
+    return;
+  }
+
+  showClientUpdateBanner(build);
+}
+
+async function handleLiveRefreshScope(scope) {
+  switch (scope) {
+    case "mine":
+    case "market":
+      await refreshAll();
+      break;
+    case "messages":
+      await playerMessaging.refreshUnreadBadge();
+      if (!els.messagesModal.hidden) {
+        await playerMessaging.loadMessages();
+      }
+      break;
+    case "auctions":
+      if (!els.storeModal.hidden) {
+        await refreshTradeAuctions();
+      }
+      break;
+    case "friends":
+      if (!els.friendsModal?.hidden) {
+        await loadFriends();
+      }
+      break;
+    case "profile":
+      await refreshProfileIfOpen();
+      break;
+    case "exonet":
+      if (!els.exonetModal.hidden) {
+        exonet.reloadCurrent();
+      }
+      break;
+    default:
+      await refreshAll();
+      break;
+  }
+}
+
+async function handleLiveUpdateEvent(event) {
+  const type = event?.type;
+  if (!type) {
+    return;
+  }
+
+  if (type === "hello" || type === "ping" || type === "client_build") {
+    checkClientBuild(event?.htmlBuild);
+    return;
+  }
+
+  if (type === "refresh") {
+    try {
+      await handleLiveRefreshScope(event?.scope);
+    } catch (error) {
+      console.warn("[theexonet] live refresh failed", error);
+    }
+    return;
+  }
+
+  if (type === "session_end") {
+    liveUpdates?.stop();
+    try {
+      await api.getSession();
+    } catch (error) {
+      if (moderation?.handleModerationKick(error)) {
+        return;
+      }
+    }
+    logout();
+    showLoginStatus(t("auth.sessionIncomplete"), "info");
+  }
+}
+
+function startLiveUpdates() {
+  if (!api.token) {
+    return;
+  }
+
+  liveUpdates?.stop();
+  liveUpdates = initLiveUpdates({
+    apiBaseUrl: API_BASE_URL,
+    getToken: () => api.token,
+    onEvent: (event) => {
+      handleLiveUpdateEvent(event).catch((error) => {
+        console.warn("[theexonet] live update handler failed", error);
+      });
+    },
+  });
+  liveUpdates.start();
+}
+
+function stopLiveUpdates() {
+  liveUpdates?.stop();
+  liveUpdates = undefined;
+}
+
 async function refreshAll() {
   const mine = await api.getMine();
   const [finances, market] = await Promise.all([api.getFinances(), api.getMarket()]);
@@ -2795,6 +2946,7 @@ async function tryAutoLogin() {
     showScreen("game");
     await refreshAll();
     showEventAnnouncements(session.eventAnnouncements);
+    startLiveUpdates();
   } catch (error) {
     if (moderation?.handleModerationKick(error)) {
       return;
@@ -3588,6 +3740,7 @@ async function authenticate(register) {
     showScreen("game");
     await refreshAll();
     showEventAnnouncements(response.eventAnnouncements);
+    startLiveUpdates();
   } catch (error) {
     if (!isRegister && error.code === "banned") {
       await moderation.showBanModal(error.message, error.ban);
@@ -3747,6 +3900,7 @@ async function emergencySell() {
 
 
 function logout() {
+  stopLiveUpdates();
   api.clearAuth();
   state.mine = null;
   state.finances = null;
@@ -4137,10 +4291,11 @@ async function startApp() {
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState !== "visible" || !els.loginScreen.hidden) {
+    if (document.visibilityState !== "visible" || els.gameScreen.hidden) {
       return;
     }
 
+    refreshAll().catch((error) => showStatus(error.message, true));
     refreshStaffAdminFlag()
       .then(async () => {
         if (!els.friendsModal?.hidden) {
@@ -4148,6 +4303,22 @@ async function startApp() {
         }
       })
       .catch(() => {});
+  });
+
+  els.clientUpdateReloadBtn?.addEventListener("click", () => {
+    if (isGameModalOpen()) {
+      return;
+    }
+
+    window.location.reload();
+  });
+
+  els.clientUpdateDismissBtn?.addEventListener("click", () => {
+    const bannerBuild = els.clientUpdateBanner?.dataset?.build ?? "";
+    if (bannerBuild) {
+      clientUpdateDismissedBuild = bannerBuild;
+    }
+    hideClientUpdateBanner();
   });
 
   setAuthMode("login");

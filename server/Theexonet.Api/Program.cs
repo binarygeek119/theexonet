@@ -312,6 +312,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (context.Request.Path.StartsWithSegments("/api/live/events")
+                    && string.IsNullOrEmpty(context.Token))
+                {
+                    var token = context.Request.Query["token"];
+                    if (!string.IsNullOrWhiteSpace(token))
+                    {
+                        context.Token = token;
+                    }
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization(options =>
@@ -322,6 +339,10 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddSingleton<IAuthorizationHandler, AdminAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, ModeratorAuthorizationHandler>();
 builder.Services.AddSingleton<ServerRuntimeInfo>();
+builder.Services.AddSingleton<LiveUpdateBroadcaster>();
+builder.Services.AddSingleton<ILiveUpdateBroadcaster>(sp => sp.GetRequiredService<LiveUpdateBroadcaster>());
+builder.Services.AddSingleton<ClientBuildInfo>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<ClientBuildInfo>());
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))

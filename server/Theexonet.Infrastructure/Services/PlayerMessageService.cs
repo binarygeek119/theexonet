@@ -2,12 +2,16 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Theexonet.Core.Constants;
 using Theexonet.Core.Dtos;
+using Theexonet.Core.Interfaces;
 using Theexonet.Infrastructure.Data;
 using Theexonet.Infrastructure.Entities;
 
 namespace Theexonet.Infrastructure.Services;
 
-public class PlayerMessageService(AppDbContext db, ILogger<PlayerMessageService> logger)
+public class PlayerMessageService(
+    AppDbContext db,
+    ILogger<PlayerMessageService> logger,
+    ILiveUpdateBroadcaster liveUpdateBroadcaster)
 {
     public async Task<IReadOnlyList<PlayerMessageDto>> GetInboxAsync(Guid playerId, CancellationToken ct)
     {
@@ -70,6 +74,7 @@ public class PlayerMessageService(AppDbContext db, ILogger<PlayerMessageService>
 
         db.PlayerMessages.Add(message);
         await db.SaveChangesAsync(ct);
+        LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, playerId, LiveUpdateScopes.Messages);
 
         var playerUsername = await db.Players.AsNoTracking()
             .Where(p => p.Id == playerId)

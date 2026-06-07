@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Theexonet.Core.Configuration;
+using Theexonet.Core.Constants;
+using Theexonet.Core.Interfaces;
 using Theexonet.Core.Services;
+using Theexonet.Infrastructure.Services;
 
 namespace Theexonet.Api.Services.Market;
 
@@ -12,6 +15,7 @@ public class MarketMidnightRefreshService(
     IMemoryCache cache,
     FallbackMarketDataProvider marketProvider,
     IOptions<MarketOptions> options,
+    ILiveUpdateBroadcaster liveUpdateBroadcaster,
     ILogger<MarketMidnightRefreshService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -66,6 +70,11 @@ public class MarketMidnightRefreshService(
                 }
 
                 await marketProvider.PrefetchTodayAsync(cancellationToken);
+                if (reason == "midnight")
+                {
+                    LiveUpdatePublisher.NotifyGlobalRefresh(liveUpdateBroadcaster, LiveUpdateScopes.Market);
+                }
+
                 return;
             }
 
@@ -75,6 +84,10 @@ public class MarketMidnightRefreshService(
             }
 
             await marketProvider.PrefetchTodayAsync(cancellationToken);
+            if (reason == "midnight")
+            {
+                LiveUpdatePublisher.NotifyGlobalRefresh(liveUpdateBroadcaster, LiveUpdateScopes.Market);
+            }
         }
         catch (Exception ex)
         {

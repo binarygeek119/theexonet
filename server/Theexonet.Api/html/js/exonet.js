@@ -2216,5 +2216,13 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
   renderBookmarks();
   updateChrome();
 
-  return { open, close, navigate };
+  function reloadCurrent() {
+    if (modal.hidden) {
+      return;
+    }
+
+    navigate(currentSlug, { pushHistory: false });
+  }
+
+  return { open, close, navigate, reloadCurrent };
 }

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theexonet-api-base" content="https://api.theexonet.com">
-  <meta name="theexonet-html-build" content="20260607-checkbox-grid">
+  <meta name="theexonet-html-build" content="20260607-live-updates">
   <link rel="icon" href="/images/currency.png" type="image/png">
   <title>theexonet</title>
   <style>
@@ -37,7 +37,7 @@
       min-width: 0 !important;
     }
   </style>
-  <link rel="stylesheet" href="/css/app.css?v=20260607-checkbox-grid">
+  <link rel="stylesheet" href="/css/app.css?v=20260607-live-updates">
   <link rel="stylesheet" href="/css/profile.css?v=20260607-checkbox-grid">
   <link rel="stylesheet" href="/css/exonet.css?v=20260605-voidcorp">
 </head>
@@ -806,6 +806,14 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260607-tos-continue"></script>
+  <div id="client-update-banner" class="client-update-banner" hidden role="status" aria-live="polite">
+    <p class="client-update-banner-text">A new version of theexonet is available.</p>
+    <div class="client-update-banner-actions">
+      <button id="client-update-reload-btn" type="button" class="btn primary">Update now</button>
+      <button id="client-update-dismiss-btn" type="button" class="btn ghost">Later</button>
+    </div>
+  </div>
+
+<script type="module" src="/js/app.js?v=20260607-live-updates"></script>
 </body>
 </html>

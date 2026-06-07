@@ -15,6 +15,7 @@ public class PlayerBanService(
     StaffModerationPolicy staffModerationPolicy,
     IOptionsMonitor<AdminOptions> adminOptions,
     IPlayerModerationNotifier moderationNotifier,
+    ILiveUpdateBroadcaster liveUpdateBroadcaster,
     ILogger<PlayerBanService> logger)
 {
     public IReadOnlyList<BanLevelOptionDto> GetBanLevelOptions() =>
@@ -205,6 +206,7 @@ public class PlayerBanService(
         await db.SaveChangesAsync(ct);
 
         var banDto = MapBan(ban);
+        LiveUpdatePublisher.NotifySessionEnd(liveUpdateBroadcaster, playerId);
         await TryNotifyBanAsync(player, banDto, ct);
         return (banDto, null);
     }

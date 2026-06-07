@@ -13,7 +13,8 @@ namespace Theexonet.Infrastructure.Services;
 public class TradeAuctionService(
     AppDbContext db,
     ITradeItemsCatalog tradeItems,
-    IOptions<TradeOptions> tradeOptions)
+    IOptions<TradeOptions> tradeOptions,
+    ILiveUpdateBroadcaster liveUpdateBroadcaster)
 {
     private TradeOptions Options => tradeOptions.Value;
 
@@ -123,6 +124,7 @@ public class TradeAuctionService(
 
         db.TradeAuctions.Add(auction);
         await db.SaveChangesAsync(ct);
+        LiveUpdatePublisher.NotifyGlobalRefresh(liveUpdateBroadcaster, LiveUpdateScopes.Auctions);
 
         return (new TradeAuctionActionResponse(true, "Auction listed on the Trade Market."), null);
     }
@@ -175,10 +177,11 @@ public class TradeAuctionService(
             return (null, "Insufficient Rax for this bid.");
         }
 
-        if (auction.HighBidderPlayerId is not null && auction.CurrentBid is not null)
+        var previousHighBidderId = auction.HighBidderPlayerId;
+        if (previousHighBidderId is not null && auction.CurrentBid is not null)
         {
             var previousBidder = await db.Players.FirstOrDefaultAsync(
-                p => p.Id == auction.HighBidderPlayerId.Value,
+                p => p.Id == previousHighBidderId.Value,
                 ct);
             if (previousBidder is not null)
             {
@@ -197,6 +200,13 @@ public class TradeAuctionService(
         }
 
         await db.SaveChangesAsync(ct);
+        LiveUpdatePublisher.NotifyGlobalRefresh(liveUpdateBroadcaster, LiveUpdateScopes.Auctions);
+        if (previousHighBidderId is Guid outbidPlayerId && outbidPlayerId != bidderId)
+        {
+            LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, outbidPlayerId, LiveUpdateScopes.Mine);
+        }
+
+        LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, bidderId, LiveUpdateScopes.Mine);
 
         var message = auction.EndsAt is null
             ? "Bid placed."
@@ -230,6 +240,7 @@ public class TradeAuctionService(
         auction.Status = TradeAuctionStatuses.Cancelled;
         auction.CompletedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
+        LiveUpdatePublisher.NotifyGlobalRefresh(liveUpdateBroadcaster, LiveUpdateScopes.Auctions);
 
         return (new TradeAuctionActionResponse(true, "Auction cancelled."), null);
     }
@@ -257,6 +268,7 @@ public class TradeAuctionService(
         if (due.Count > 0)
         {
             await db.SaveChangesAsync(ct);
+            LiveUpdatePublisher.NotifyGlobalRefresh(liveUpdateBroadcaster, LiveUpdateScopes.Auctions);
         }
     }
 

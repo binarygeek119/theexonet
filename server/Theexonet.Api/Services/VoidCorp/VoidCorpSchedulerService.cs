@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Options;
 using Theexonet.Core.Configuration;
+using Theexonet.Core.Constants;
+using Theexonet.Core.Interfaces;
 using Theexonet.Core.Services;
+using Theexonet.Infrastructure.Services;
 
 namespace Theexonet.Api.Services.VoidCorp;
 
@@ -10,6 +13,7 @@ namespace Theexonet.Api.Services.VoidCorp;
 public sealed class VoidCorpSchedulerService(
     VoidCorpMissingImageBackfillService backfillService,
     IOptions<VoidCorpOptions> options,
+    ILiveUpdateBroadcaster liveUpdateBroadcaster,
     ILogger<VoidCorpSchedulerService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -43,14 +47,18 @@ public sealed class VoidCorpSchedulerService(
         }
     }
 
-    private Task RunCycleAsync(string trigger, CancellationToken cancellationToken)
+    private async Task RunCycleAsync(string trigger, CancellationToken cancellationToken)
     {
         if (!backfillService.IsConfigured)
         {
             logger.LogDebug("VoidCorp scheduler ({Trigger}) skipped: OpenAI not configured.", trigger);
-            return Task.CompletedTask;
+            return;
         }
 
-        return backfillService.RunAsync(trigger, cancellationToken);
+        await backfillService.RunAsync(trigger, cancellationToken);
+        if (trigger == "midnight")
+        {
+            LiveUpdatePublisher.NotifyGlobalRefresh(liveUpdateBroadcaster, LiveUpdateScopes.Exonet);
+        }
     }
 }

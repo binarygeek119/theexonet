@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Options;
 using Theexonet.Core.Configuration;
+using Theexonet.Core.Constants;
+using Theexonet.Core.Interfaces;
 using Theexonet.Core.Services;
+using Theexonet.Infrastructure.Services;
 
 namespace Theexonet.Api.Services.LunarWeather;
 
@@ -10,6 +13,7 @@ namespace Theexonet.Api.Services.LunarWeather;
 public sealed class LunarWeatherSchedulerService(
     LunarWeatherService lunarWeatherService,
     IOptions<LunarWeatherOptions> options,
+    ILiveUpdateBroadcaster liveUpdateBroadcaster,
     ILogger<LunarWeatherSchedulerService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -50,6 +54,11 @@ public sealed class LunarWeatherSchedulerService(
         try
         {
             await lunarWeatherService.EnsureBulletinAsync(today, forceRegenerate, cancellationToken);
+            if (forceRegenerate)
+            {
+                LiveUpdatePublisher.NotifyGlobalRefresh(liveUpdateBroadcaster, LiveUpdateScopes.Exonet);
+            }
+
             logger.LogInformation(
                 "Lunar Weather scheduler finished for {Date} (force={Force})",
                 today,

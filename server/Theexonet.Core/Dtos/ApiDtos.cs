@@ -27,7 +27,10 @@ public record ApiStatusResponse(
     double ServerUptimeSeconds = 0,
     DateTime? ServerStartedUtc = null,
     DateTime? ServerFirstRunUtc = null,
-    string GameVersion = "");
+    string GameVersion = "",
+    string HtmlBuild = "");
+
+public record LiveUpdateEventDto(string Type, string? Scope = null, string? HtmlBuild = null);
 
 public record PublicOpenAiUsageResponse(
     DateTime Utc,

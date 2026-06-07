@@ -29,7 +29,7 @@ REMOTE_PATH="${STAGING_DIR%/}/${REMOTE_NAME}"
 REMOTE_PROMOTE="${STAGING_DIR%/}/run-promote-staging.sh"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 PROMOTE_SCRIPT="${SCRIPT_DIR}/theexonet/promote-staging.sh"
-HTML_BUILD_MARKER="${HTML_BUILD_MARKER:-20260607-checkbox-grid}"
+HTML_BUILD_MARKER="${HTML_BUILD_MARKER:-20260607-live-updates}"
 
 if [ -z "${PASSWORD}" ]; then
   echo "ERROR: set DEPLOY_SSH_PASSWORD." >&2

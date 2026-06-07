@@ -43,28 +43,30 @@ for cmd in ssh scp sshpass; do
   fi
 done
 
-ssh_base_opts=(
-  -p "${PORT}"
+ssh_common_opts=(
   -o BatchMode=no
   -o StrictHostKeyChecking=accept-new
   -o ConnectTimeout=60
   -o PreferredAuthentications=password
   -o PubkeyAuthentication=no
 )
+ssh_opts=(-p "${PORT}" "${ssh_common_opts[@]}")
+# scp uses -P for port (-p means preserve file times).
+scp_opts=(-P "${PORT}" "${ssh_common_opts[@]}")
 
 export SSHPASS="${PASSWORD}"
 
 echo "Uploading ${LOCAL_FILE} → ${USER}@${HOST}:${REMOTE_PATH}"
-if ! SSHPASS="${PASSWORD}" sshpass -e scp "${ssh_base_opts[@]}" "${LOCAL_FILE}" "${USER}@${HOST}:${REMOTE_PATH}"; then
+if ! SSHPASS="${PASSWORD}" sshpass -e scp "${scp_opts[@]}" "${LOCAL_FILE}" "${USER}@${HOST}:${REMOTE_PATH}"; then
   echo "Direct scp to ${REMOTE_PATH} failed — trying home dir + sudo mv…" >&2
   tmp_path="upload-${REMOTE_NAME}"
-  SSHPASS="${PASSWORD}" sshpass -e scp "${ssh_base_opts[@]}" "${LOCAL_FILE}" "${USER}@${HOST}:${tmp_path}"
-  SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_base_opts[@]}" "${USER}@${HOST}" \
+  SSHPASS="${PASSWORD}" sshpass -e scp "${scp_opts[@]}" "${LOCAL_FILE}" "${USER}@${HOST}:${tmp_path}"
+  SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
     "sudo stage-theexonet-upload '${tmp_path}'"
 fi
 
 echo "Promote and restart…"
-SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_base_opts[@]}" "${USER}@${HOST}" \
+SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
   'sudo promote-theexonet-staging || sudo restart-theexonet'
 
 echo "SSH deploy complete."

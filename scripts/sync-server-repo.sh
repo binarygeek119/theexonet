@@ -19,14 +19,14 @@ looks_like_repo() {
 
 sync_existing() {
   cd "${REPO_PATH}"
-  git fetch origin --prune
-  if git cat-file -e "${TARGET_REF}^{commit}" 2>/dev/null; then
-    git reset --hard "${TARGET_REF}"
+  git -c safe.directory="${REPO_PATH}" fetch origin --prune
+  if git -c safe.directory="${REPO_PATH}" cat-file -e "${TARGET_REF}^{commit}" 2>/dev/null; then
+    git -c safe.directory="${REPO_PATH}" reset --hard "${TARGET_REF}"
   else
-    git fetch origin "${TARGET_REF}" 2>/dev/null || git fetch origin main
-    git reset --hard "${TARGET_REF}"
+    git -c safe.directory="${REPO_PATH}" fetch origin "${TARGET_REF}" 2>/dev/null || git -c safe.directory="${REPO_PATH}" fetch origin main
+    git -c safe.directory="${REPO_PATH}" reset --hard "${TARGET_REF}"
   fi
-  git clean -fd
+  git -c safe.directory="${REPO_PATH}" clean -fd
 }
 
 clone_repo() {

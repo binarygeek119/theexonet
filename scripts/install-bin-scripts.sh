@@ -43,6 +43,7 @@ for script in \
   sync-publish-wwwroot.sh \
   migrate-publish-data-to-var-www.sh \
   sync-publish-data.sh \
+  pull-server-repo.sh \
   fix-hosting-permissions.sh \
   audit-hosting-permissions.sh \
   theexonet-hosting-env.sh \
@@ -150,6 +151,7 @@ declare -A bin_links=(
   [install-apache-ssl-vhosts.sh]=install-theexonet-apache-ssl
   [sync-postgres-password.sh]=sync-theexonet-postgres-password
   [setup-github-ssh-restart.sh]=setup-theexonet-github-ssh
+  [pull-server-repo.sh]=pull-theexonet-repo
 )
 
 for src in "${!bin_links[@]}"; do

@@ -222,6 +222,12 @@ public sealed class OpenAiOffworldNewsGenerator(
         var strugglingList = struggling.Count > 0 ? string.Join(", ", struggling) : "none available";
         var assignedReporters = OffworldNewsReporterCatalog.PickReportersForEdition(editionDate, storyCount);
         var reporterAssignments = OffworldNewsReporterCatalog.BuildWritingAssignmentBlock(assignedReporters);
+        var storyTypes = OffworldNewsEditionStoryTypes.TypesForEdition(editionDate, storyCount);
+        var storyTypeAssignments = string.Join(
+            "\n",
+            storyTypes.Select(
+                (type, index) =>
+                    $"{index + 1}. {type} — {OffworldNewsEditionStoryTypes.PromptDescription(type)}"));
 
         var prompt = $$"""
             You write satirical but believable sci-fi news for "Offworld News Network" (ONN), covering the theexonet universe:
@@ -233,22 +239,19 @@ public sealed class OpenAiOffworldNewsGenerator(
             - Tone: mix of Bloomberg wire + frontier tabloid + optimistic Star Trek-style exploration ethics; no real-world politics; no hate; family-friendly
             - Never mention artificial intelligence, AI, language models, ChatGPT, or automated/machine-written news in headlines, dek, or body
 
-            Story topics MUST vary across the edition and include several of:
-            - Belt stock/supply markets and ore prices
-            - Shipping routes, refinery queues, cargo manifests
-            - Player-style mining companies doing well (use rising list) or in trouble (use struggling list)
-            - Fake corporate names when not using a player company
-            - New planets and survey charters (see Frontier tiers below)
-            - Interplanetary politics (Orbital Commons, charter votes, registry rules)
-            - Interplanetary wars: border skirmishes, flotilla standoffs, ceasefire talks, convoy diversions — dramatic but not gratuitously violent; focus on shipping, diplomacy, and belt neutrality
-            - Interplanetary criminals: smuggling rings, black-route haulers, marshal busts, bounty postings, Rax laundering, falsified cargo manifests
+            Each edition uses a fixed set of story types. Assign each story to the type listed for its position — do not swap or duplicate types:
+            {{storyTypeAssignments}}
 
-            Frontier / new-world coverage (Star Trek-style discovery arc — use different tiers across stories, do not repeat the same tier every time):
-            1) Observation only — long-range probes, watchlist worlds, non-interference / look-but-do-not-land doctrine, passive sensor arrays, Orbital Commons review cycles
-            2) Introduced to travelers — navigation beacons published, licensed convoy advisories, diplomatic briefings for captains, trade passage allowed but no claims yet
-            3) Joining the journey — charter fold votes, new worlds entering the belt relay community, upcoming claim windows under theexonet rules, survey teams embedding for production
+            Core types (most editions include all five):
+            - Politics — Orbital Commons votes, charter hearings, registry rules, diplomacy
+            - New Planets — surveys, watchlist worlds, traveler advisories, charter openings (Star Trek-style discovery arc)
+            - Work — mining crews, refinery queues, payroll pressure, worker assignments, shipping labor
+            - Stocks — Rax markets, ore spreads, supply bids, Trade Market volume
+            - Companies — player-style mining firms, corporate filings, company value rankings
 
-            Assign Frontier category to discovery/first-contact stories; Security category to wars, marshals, smugglers, and cartels; keep existing categories for markets, mining, etc.
+            New-planet stories may use different discovery tiers (observation only, introduced to travelers, joining the charter fold) but must stay in the New Planets type.
+
+            Supplemental types (only when the edition has more than five stories): Security, Shipping, Exonet.
 
             Real player mining companies doing well lately: {{risingList}}
             Real player mining companies under pressure lately: {{strugglingList}}
@@ -269,7 +272,7 @@ public sealed class OpenAiOffworldNewsGenerator(
                   "headline": "string",
                   "dek": "short subheadline",
                   "body": "paragraphs separated by \\n\\n",
-                  "category": "Markets|Mining|Corporate|Shipping|Politics|Exonet|Frontier|Security",
+                  "category": "Politics|New Planets|Work|Stocks|Companies|Security|Shipping|Exonet",
                   "location": "fictional belt or outer-planet location",
                   "companyName": "featured mining company or syndicate in the story",
                   "imagePrompt": "1-2 sentences describing the exact illustration scene for this story only"
@@ -326,7 +329,10 @@ public sealed class OpenAiOffworldNewsGenerator(
         for (var index = 0; index < Math.Min(storyCount, parsed.Stories.Count); index++)
         {
             var item = parsed.Stories[index];
-            var category = item.Category ?? "Markets";
+            var category = index < storyTypes.Count
+                ? storyTypes[index]
+                : OffworldNewsEditionStoryTypes.Normalize(item.Category);
+
             var reporter = index < assignedReporters.Count
                 ? assignedReporters[index]
                 : OffworldNewsReporterCatalog.PickForStory(editionDate, index);

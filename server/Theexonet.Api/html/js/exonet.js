@@ -2048,7 +2048,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
             <button type="button" class="btn ghost" data-ffp-home>← Today’s intake</button>
           </div>
           <table class="exonet-table exonet-ffp-archive-table">
-            <thead><tr><th>Date</th><th>Intake</th><th>Male</th><th>Female</th><th>Sample</th></tr></thead>
+            <thead><tr><th>Date</th><th>Intake</th><th>Male</th><th>Female</th><th>Intake officer</th></tr></thead>
             <tbody>
               ${entries
                 .map(
@@ -2058,7 +2058,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
                   <td>${entry.intakeCount ?? 0}</td>
                   <td>${entry.maleCount ?? 0}</td>
                   <td>${entry.femaleCount ?? 0}</td>
-                  <td>${escapeHtml(entry.sampleName ?? "—")}</td>
+                  <td>${escapeHtml(entry.intakeOfficer ?? "—")}</td>
                 </tr>`,
                 )
                 .join("")}

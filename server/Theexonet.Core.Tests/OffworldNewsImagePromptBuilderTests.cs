@@ -36,7 +36,7 @@ public class OffworldNewsImagePromptBuilderTests
         Assert.Contains("Traders hold ore until NPC buyers", prompt);
         Assert.Contains("Miners in orange suits monitor conveyor belts", prompt);
         Assert.Contains("Ceres Relay", prompt);
-        Assert.Contains("Markets coverage", prompt);
+        Assert.Contains("Stocks coverage", prompt);
         Assert.Contains("Ferroxite Mining Co", prompt);
     }
 
@@ -57,7 +57,7 @@ public class OffworldNewsImagePromptBuilderTests
             headline,
             dek,
             body,
-            "Markets",
+            "Stocks",
             "Ceres Relay",
             "ONN Wire Desk",
             "mira-solano",

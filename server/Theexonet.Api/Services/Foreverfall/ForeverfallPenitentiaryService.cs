@@ -76,7 +76,7 @@ public sealed class ForeverfallPenitentiaryService(
                 continue;
             }
 
-            var sample = (string?)null;
+            var intakeOfficer = ForeverfallIntakeOfficerGenerator.Resolve(date);
             var intakeCount = 0;
             var maleCount = 0;
             var femaleCount = 0;
@@ -85,11 +85,11 @@ public sealed class ForeverfallPenitentiaryService(
                 var roster = JsonSerializer.Deserialize<ForeverfallRosterDto>(File.ReadAllText(path), JsonOptions);
                 if (roster is not null)
                 {
+                    roster = NormalizeRoster(roster);
                     intakeCount = roster.IntakeCount;
                     maleCount = roster.MaleCount;
                     femaleCount = roster.FemaleCount;
-                    sample = roster.MaleWing.FirstOrDefault()?.DisplayName
-                        ?? roster.FemaleWing.FirstOrDefault()?.DisplayName;
+                    intakeOfficer = roster.IntakeOfficer;
                 }
             }
             catch (Exception ex)
@@ -97,7 +97,7 @@ public sealed class ForeverfallPenitentiaryService(
                 logger.LogWarning(ex, "Failed to read Foreverfall archive index for {Date}", date);
             }
 
-            entries.Add(new ForeverfallArchiveEntryDto(date, intakeCount, maleCount, femaleCount, sample));
+            entries.Add(new ForeverfallArchiveEntryDto(date, intakeCount, maleCount, femaleCount, intakeOfficer));
         }
 
         entries.Sort((left, right) => right.IntakeDate.CompareTo(left.IntakeDate));
@@ -565,6 +565,7 @@ public sealed class ForeverfallPenitentiaryService(
             inmates.Count,
             maleWing.Count,
             femaleWing.Count,
+            ForeverfallIntakeOfficerGenerator.Resolve(date),
             maleWing,
             femaleWing);
     }
@@ -608,14 +609,34 @@ public sealed class ForeverfallPenitentiaryService(
     }
 
     private ForeverfallRosterDto BuildEmptyRoster(DateOnly date) =>
-        new(date, DateTime.UtcNow, "empty", 0, 0, 0, [], []);
+        new(
+            date,
+            DateTime.UtcNow,
+            "empty",
+            0,
+            0,
+            0,
+            ForeverfallIntakeOfficerGenerator.Resolve(date),
+            [],
+            []);
 
-    private ForeverfallRosterDto EnrichRosterImageUrls(ForeverfallRosterDto roster) =>
+    private static ForeverfallRosterDto NormalizeRoster(ForeverfallRosterDto roster) =>
         roster with
+        {
+            IntakeOfficer = string.IsNullOrWhiteSpace(roster.IntakeOfficer)
+                ? ForeverfallIntakeOfficerGenerator.Resolve(roster.IntakeDate)
+                : roster.IntakeOfficer,
+        };
+
+    private ForeverfallRosterDto EnrichRosterImageUrls(ForeverfallRosterDto roster)
+    {
+        roster = NormalizeRoster(roster);
+        return roster with
         {
             MaleWing = roster.MaleWing.Select(EnrichInmateImageUrl).ToList(),
             FemaleWing = roster.FemaleWing.Select(EnrichInmateImageUrl).ToList(),
         };
+    }
 
     private ForeverfallInmateDto EnrichInmateImageUrl(ForeverfallInmateDto inmate) =>
         inmate with

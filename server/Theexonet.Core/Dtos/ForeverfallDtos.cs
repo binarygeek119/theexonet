@@ -20,6 +20,7 @@ public record ForeverfallRosterDto(
     int IntakeCount,
     int MaleCount,
     int FemaleCount,
+    string IntakeOfficer,
     IReadOnlyList<ForeverfallInmateDto> MaleWing,
     IReadOnlyList<ForeverfallInmateDto> FemaleWing);
 
@@ -28,7 +29,7 @@ public record ForeverfallArchiveEntryDto(
     int IntakeCount,
     int MaleCount,
     int FemaleCount,
-    string? SampleName);
+    string? IntakeOfficer);
 
 public record ForeverfallArchivesDto(
     IReadOnlyList<ForeverfallArchiveEntryDto> Rosters);

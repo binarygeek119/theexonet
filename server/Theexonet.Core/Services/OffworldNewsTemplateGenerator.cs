@@ -7,17 +7,18 @@ namespace Theexonet.Core.Services;
 
 public static partial class OffworldNewsTemplateGenerator
 {
-    private static readonly string[] Categories =
-    [
-        "Markets",
-        "Mining",
-        "Corporate",
-        "Shipping",
-        "Politics",
-        "Exonet",
-        "Frontier",
-        "Security",
-    ];
+    private static readonly Dictionary<string, int[]> TemplatesByType =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            [OffworldNewsEditionStoryTypes.Politics] = [2, 13],
+            [OffworldNewsEditionStoryTypes.NewPlanets] = [7, 10, 11, 12],
+            [OffworldNewsEditionStoryTypes.Work] = [1, 3, 4],
+            [OffworldNewsEditionStoryTypes.Stocks] = [0, 6],
+            [OffworldNewsEditionStoryTypes.Companies] = [5, 9, 8],
+            ["Security"] = [13, 14],
+            ["Shipping"] = [1],
+            ["Exonet"] = [5],
+        };
 
     private static readonly string[] Locations =
     [
@@ -62,11 +63,12 @@ public static partial class OffworldNewsTemplateGenerator
         var rising = companyContext?.RisingCompanies ?? [];
         var struggling = companyContext?.StrugglingCompanies ?? [];
 
+        var storyTypes = OffworldNewsEditionStoryTypes.TypesForEdition(editionDate, storyCount);
         var stories = new List<OffworldNewsStoryDto>();
         for (var index = 0; index < storyCount; index++)
         {
-            var template = StoryTemplates[index % StoryTemplates.Length];
-            var category = Categories[index % Categories.Length];
+            var storyType = storyTypes[index];
+            var template = PickTemplate(random, storyType, index);
             var companyName = PickCompany(random, rising, struggling, index);
             var topic = Pick(random, TopicSubjects);
             var actor = Pick(random, BodyActors);
@@ -86,13 +88,13 @@ public static partial class OffworldNewsTemplateGenerator
                 headline,
                 dek,
                 body,
-                category,
+                storyType,
                 location,
                 reporter.DisplayName,
                 reporter.Slug,
                 publishedBase.AddHours(index * 2.5),
                 companyName,
-                PlaceholderImageForCategory(category)));
+                PlaceholderImageForCategory(storyType)));
         }
 
         return new OffworldNewsEditionDto(
@@ -122,21 +124,17 @@ public static partial class OffworldNewsTemplateGenerator
     }
 
     public static string PlaceholderImageForCategory(string category) =>
-        $"/exonet/offworld-news/placeholders/{SlugifyCategory(category)}.svg";
+        OffworldNewsEditionStoryTypes.PlaceholderImageUrl(category);
 
-    private static string SlugifyCategory(string category) =>
-        category.ToLowerInvariant() switch
+    private static StoryTemplate PickTemplate(Random random, string storyType, int index)
+    {
+        if (TemplatesByType.TryGetValue(storyType, out var indices) && indices.Length > 0)
         {
-            "markets" => "markets",
-            "mining" => "mining",
-            "corporate" => "corporate",
-            "shipping" => "shipping",
-            "politics" => "politics",
-            "exonet" => "exonet",
-            "frontier" => "frontier",
-            "security" => "security",
-            _ => "markets",
-        };
+            return StoryTemplates[indices[(index + random.Next(indices.Length)) % indices.Length]];
+        }
+
+        return StoryTemplates[index % StoryTemplates.Length];
+    }
 
     private static Random CreateRandom(DateOnly date)
     {

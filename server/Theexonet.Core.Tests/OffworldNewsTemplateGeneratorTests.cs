@@ -39,14 +39,23 @@ public class OffworldNewsTemplateGeneratorTests
     }
 
     [Fact]
-    public void PlaceholderImageForCategory_includes_frontier_and_security()
+    public void PlaceholderImageForCategory_maps_story_types_to_placeholders()
     {
-        Assert.Contains("frontier", OffworldNewsTemplateGenerator.PlaceholderImageForCategory("Frontier"));
-        Assert.Contains("security", OffworldNewsTemplateGenerator.PlaceholderImageForCategory("Security"));
+        Assert.Contains("frontier", OffworldNewsTemplateGenerator.PlaceholderImageForCategory("New Planets"));
+        Assert.Contains("politics", OffworldNewsTemplateGenerator.PlaceholderImageForCategory("Politics"));
+        Assert.Contains("markets", OffworldNewsTemplateGenerator.PlaceholderImageForCategory("Stocks"));
     }
 
     [Fact]
-    public void Generate_can_include_frontier_and_security_story_templates()
+    public void Generate_includes_all_core_story_types_for_five_story_editions()
+    {
+        var edition = OffworldNewsTemplateGenerator.Generate(new DateOnly(2026, 6, 7), 5);
+
+        Assert.Equal(OffworldNewsEditionStoryTypes.Core, edition.Stories.Select(story => story.Category));
+    }
+
+    [Fact]
+    public void Generate_can_include_supplemental_types_for_larger_editions()
     {
         var categories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (var day = 0; day < 40; day++)
@@ -58,7 +67,7 @@ public class OffworldNewsTemplateGeneratorTests
             }
         }
 
-        Assert.Contains("Frontier", categories);
         Assert.Contains("Security", categories);
+        Assert.Contains("New Planets", categories);
     }
 }

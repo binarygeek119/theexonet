@@ -25,6 +25,13 @@ public static class ForeverfallStoragePaths
     public static string PublicImageUrl(string imageId) =>
         $"{PublicImagesPath}/{Uri.EscapeDataString(imageId)}.jpg";
 
+    public static bool ImageFileExists(string cacheRoot, string imageId) =>
+        !string.IsNullOrWhiteSpace(imageId)
+        && File.Exists(ImageFilePath(cacheRoot, imageId));
+
+    public static string ResolvePublicImageUrl(string cacheRoot, string imageId) =>
+        ImageFileExists(cacheRoot, imageId) ? PublicImageUrl(imageId) : string.Empty;
+
     public static void EnsureDirectories(string cacheRoot)
     {
         Directory.CreateDirectory(Path.Combine(cacheRoot, RostersFolder));

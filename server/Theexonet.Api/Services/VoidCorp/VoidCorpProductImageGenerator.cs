@@ -38,7 +38,12 @@ public sealed class VoidCorpProductImageGenerator(
             return (false, "OpenAi.ApiKey is not configured.");
         }
 
-        var prompt = VoidCorpProductPrompts.BuildImagePrompt(product.DisplayName, product.Summary, product.Tagline);
+        var prompt = VoidCorpProductPrompts.BuildImagePrompt(
+            product.Slug,
+            product.DisplayName,
+            product.Summary,
+            product.Tagline,
+            product.Color);
         if (prompt.Length > 3900)
         {
             prompt = prompt[..3900];

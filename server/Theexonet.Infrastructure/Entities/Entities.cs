@@ -434,3 +434,16 @@ public class CompanyLogoQueueEntity
     public MineEntity Mine { get; set; } = null!;
     public PlayerEntity Player { get; set; } = null!;
 }
+
+public class AiImageQueueEntity
+{
+    public Guid Id { get; set; }
+    public string Kind { get; set; } = string.Empty;
+    public string Payload { get; set; } = "{}";
+    public string Status { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty;
+    public string? Error { get; set; }
+    public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+}

@@ -59,7 +59,11 @@ public sealed class ForeverfallSchedulerService(
                 logger.LogInformation("Foreverfall purged {Count} expired roster(s)", purged);
             }
 
-            await penitentiaryService.EnsureDailyIntakeAsync(today, forceRegenerate, cancellationToken);
+            await penitentiaryService.EnsureDailyIntakeAsync(
+                today,
+                forceRegenerate,
+                cancellationToken);
+
             logger.LogInformation(
                 "Foreverfall scheduler finished for {Date} (force={Force})",
                 today,

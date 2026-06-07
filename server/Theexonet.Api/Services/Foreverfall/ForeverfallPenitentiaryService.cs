@@ -2,8 +2,10 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
+using Theexonet.Api.Services.AiImageQueue;
 using Theexonet.Api.Services.OffworldNews;
 using Theexonet.Core.Configuration;
+using Theexonet.Core.Constants;
 using Theexonet.Core.Dtos;
 using Theexonet.Core.Services;
 using Theexonet.Core.Services.ExonetAiAssetScan;
@@ -16,9 +18,11 @@ public sealed class ForeverfallPenitentiaryService(
     OpenAiConnectionResolver openAi,
     TheexonetHostingPaths hostingPaths,
     IHttpClientFactory httpClientFactory,
+    AiImageQueuePublisher aiImageQueuePublisher,
     ILogger<ForeverfallPenitentiaryService> logger)
 {
     private static readonly ConcurrentDictionary<DateOnly, SemaphoreSlim> GenerationLocks = new();
+    private static readonly TimeSpan IntakeJobTimeout = TimeSpan.FromMinutes(10);
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -43,7 +47,7 @@ public sealed class ForeverfallPenitentiaryService(
         var cached = TryLoadRoster(date);
         if (cached is not null)
         {
-            return cached;
+            return EnrichRosterImageUrls(cached);
         }
 
         return BuildEmptyRoster(date);
@@ -134,7 +138,7 @@ public sealed class ForeverfallPenitentiaryService(
             {
                 if (MatchesQuery(inmate, normalized))
                 {
-                    matches.Add(inmate);
+                    matches.Add(EnrichInmateImageUrl(inmate));
                 }
             }
         }
@@ -175,7 +179,7 @@ public sealed class ForeverfallPenitentiaryService(
                 .FirstOrDefault(inmate => string.Equals(inmate.Id, inmateId, StringComparison.OrdinalIgnoreCase));
             if (match is not null)
             {
-                return match;
+                return EnrichInmateImageUrl(match);
             }
         }
 
@@ -260,9 +264,19 @@ public sealed class ForeverfallPenitentiaryService(
 
         ForeverfallStoragePaths.EnsureDirectories(_cacheRoot);
 
-        if (!forceRegenerate && TryLoadRoster(date) is not null)
+        if (!forceRegenerate)
         {
-            return;
+            var existing = TryLoadRoster(date);
+            if (existing is not null)
+            {
+                if (!string.Equals(existing.Source, "openai", StringComparison.OrdinalIgnoreCase)
+                    && openAi.IsApiKeyConfigured)
+                {
+                    await QueueIntakeUpgradeAsync(date, forceRegenerate: false, ct);
+                }
+
+                return;
+            }
         }
 
         var gate = GenerationLocks.GetOrAdd(date, _ => new SemaphoreSlim(1, 1));
@@ -274,7 +288,17 @@ public sealed class ForeverfallPenitentiaryService(
                 return;
             }
 
-            await GenerateAndStoreRosterAsync(date, ct);
+            SaveTemplateRoster(date);
+
+            logger.LogInformation(
+                "Foreverfall template roster ready for {Date} (force={Force})",
+                date,
+                forceRegenerate);
+
+            if (openAi.IsApiKeyConfigured)
+            {
+                await QueueIntakeUpgradeAsync(date, forceRegenerate, ct);
+            }
         }
         finally
         {
@@ -282,7 +306,186 @@ public sealed class ForeverfallPenitentiaryService(
         }
     }
 
-    private async Task GenerateAndStoreRosterAsync(DateOnly date, CancellationToken ct)
+    public async Task<(bool Ok, string? Error, int PortraitsQueued)> RegenerateIntakeAndWaitAsync(
+        CancellationToken ct = default)
+    {
+        if (!GenerationOptions.Enabled)
+        {
+            return (false, "Foreverfall Penitentiary is disabled in configuration.", 0);
+        }
+
+        var date = UtcGameClock.Today;
+        var source = $"foreverfall:intake:{date:yyyy-MM-dd}";
+        var gate = GenerationLocks.GetOrAdd(date, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try
+        {
+            SaveTemplateRoster(date);
+
+            if (!openAi.IsApiKeyConfigured)
+            {
+                return (true, null, 0);
+            }
+
+            var enqueue = await aiImageQueuePublisher.EnqueueForeverfallIntakeAsync(
+                date,
+                forceRegenerate: true,
+                source,
+                ct);
+            if (enqueue.EnqueuedCount == 0 && enqueue.Message is not null)
+            {
+                return (false, enqueue.Message, 0);
+            }
+
+            var wait = await aiImageQueuePublisher.WaitForJobAsync(
+                AiImageJobKinds.ForeverfallIntake,
+                source,
+                IntakeJobTimeout,
+                ct);
+            if (wait.Failed)
+            {
+                return (false, wait.Error ?? "Foreverfall intake generation failed.", 0);
+            }
+
+            if (!wait.Completed)
+            {
+                return (false, wait.Error ?? "Timed out waiting for Foreverfall intake generation.", 0);
+            }
+
+            var portraitStatus = await aiImageQueuePublisher.GetStatusAsync(
+                AiImageJobKinds.ForeverfallPortrait,
+                ct);
+            return (true, null, portraitStatus.QueuedCount);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Admin Foreverfall intake regeneration failed for {Date}", date);
+            return (false, "Intake regeneration failed. Check API logs for details.", 0);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    public async Task<(bool Ok, string? Error)> ProcessIntakeJobAsync(
+        DateOnly date,
+        bool forceRegenerate,
+        CancellationToken ct)
+    {
+        if (!GenerationOptions.Enabled)
+        {
+            return (false, "Foreverfall Penitentiary is disabled in configuration.");
+        }
+
+        var gate = GenerationLocks.GetOrAdd(date, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try
+        {
+            var cached = TryLoadRoster(date);
+            if (!forceRegenerate
+                && cached is not null
+                && string.Equals(cached.Source, "openai", StringComparison.OrdinalIgnoreCase))
+            {
+                return (true, null);
+            }
+
+            var pendingPortraits = await GenerateAndStoreRosterAsync(date, ct);
+            if (pendingPortraits.Count > 0)
+            {
+                await aiImageQueuePublisher.EnqueueForeverfallPortraitsAsync(
+                    pendingPortraits,
+                    $"foreverfall:intake:{date:yyyy-MM-dd}",
+                    ct);
+            }
+
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Foreverfall intake job failed for {Date}", date);
+            return (false, ex.Message);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private async Task QueueIntakeUpgradeAsync(
+        DateOnly date,
+        bool forceRegenerate,
+        CancellationToken ct)
+    {
+        if (!openAi.IsApiKeyConfigured)
+        {
+            return;
+        }
+
+        var source = $"foreverfall:intake:{date:yyyy-MM-dd}";
+        var result = await aiImageQueuePublisher.EnqueueForeverfallIntakeAsync(
+            date,
+            forceRegenerate,
+            source,
+            ct);
+
+        if (result.EnqueuedCount > 0)
+        {
+            logger.LogInformation(
+                "Queued Foreverfall intake job for {Date} (force={Force})",
+                date,
+                forceRegenerate);
+        }
+    }
+
+    public async Task<(bool Ok, string? Error)> GenerateAndSavePortraitAsync(
+        ForeverfallPortraitJobItem item,
+        CancellationToken ct = default)
+    {
+        if (!openAi.IsApiKeyConfigured)
+        {
+            return (false, "OpenAi.ApiKey is not configured.");
+        }
+
+        var portraitGenerator = new ForeverfallPortraitGenerator(
+            openAi,
+            httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
+            _cacheRoot);
+
+        var (ok, error) = await portraitGenerator.GenerateAndSaveAsync(
+            item.ImageId,
+            item.DisplayName,
+            item.Species,
+            item.Gender,
+            ct);
+        if (!ok)
+        {
+            return (false, error);
+        }
+
+        var registry = LoadImageRegistry();
+        SaveImageRegistry(AppendRegistryEntry(registry, item.ImageId, item.Gender));
+        return (true, null);
+    }
+
+    private void SaveTemplateRoster(DateOnly date)
+    {
+        var generation = GenerationOptions;
+        var intakeCount = ForeverfallIntakeSelector.ResolveIntakeCount(date, generation);
+        var (maleCount, femaleCount) = ForeverfallIntakeSelector.SplitByGender(intakeCount, date);
+        var registry = LoadImageRegistry();
+        var assignments = ForeverfallPortraitImageAssigner.Assign(
+            date,
+            maleCount,
+            femaleCount,
+            registry,
+            generation.MaxInmateImages);
+        var generated = ForeverfallInmateTemplateGenerator.Generate(date, intakeCount, maleCount, femaleCount);
+        var roster = BuildRosterFromProfiles(date, assignments, generated, "template");
+        TrySaveRoster(roster);
+    }
+
+    private async Task<IReadOnlyList<ForeverfallPortraitJobItem>> GenerateAndStoreRosterAsync(DateOnly date, CancellationToken ct)
     {
         var generation = GenerationOptions;
         var intakeCount = ForeverfallIntakeSelector.ResolveIntakeCount(date, generation);
@@ -313,38 +516,31 @@ public sealed class ForeverfallPenitentiaryService(
             source = "template";
         }
 
-        var portraitGenerator = new ForeverfallPortraitGenerator(
-            openAi,
-            httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
-            _cacheRoot);
+        var roster = BuildRosterFromProfiles(date, assignments, generated, source);
+        var pendingPortraits = CollectPendingPortraits(assignments, generated);
+        TrySaveRoster(roster);
+        logger.LogInformation(
+            "Foreverfall intake ready for {Date}: {Count} inmates ({Male} male, {Female} female), source={Source}, portraitsQueued={PortraitsQueued}",
+            date,
+            roster.IntakeCount,
+            roster.MaleCount,
+            roster.FemaleCount,
+            source,
+            pendingPortraits.Count);
+        return pendingPortraits;
+    }
 
-        var inmates = new List<ForeverfallInmateDto>(intakeCount);
+    private ForeverfallRosterDto BuildRosterFromProfiles(
+        DateOnly date,
+        IReadOnlyList<ForeverfallPortraitAssignment> assignments,
+        IReadOnlyList<GeneratedForeverfallInmate> generated,
+        string source)
+    {
+        var inmates = new List<ForeverfallInmateDto>(assignments.Count);
         for (var index = 0; index < assignments.Count && index < generated.Count; index++)
         {
             var assignment = assignments[index];
             var profile = generated[index];
-
-            if (assignment.NeedsGeneration && openAi.IsApiKeyConfigured)
-            {
-                var (ok, error) = await portraitGenerator.GenerateAndSaveAsync(
-                    assignment.ImageId,
-                    profile.DisplayName,
-                    profile.Species,
-                    assignment.Gender,
-                    ct);
-                if (ok)
-                {
-                    registry = AppendRegistryEntry(registry, assignment.ImageId, assignment.Gender);
-                }
-                else
-                {
-                    logger.LogWarning(
-                        "Foreverfall portrait generation failed for {ImageId}: {Error}",
-                        assignment.ImageId,
-                        error);
-                }
-            }
-
             var inmateId = $"FFP-{date:yyyyMMdd}-{index + 1:D3}";
             inmates.Add(new ForeverfallInmateDto(
                 inmateId,
@@ -357,14 +553,12 @@ public sealed class ForeverfallPenitentiaryService(
                 profile.IntakeReason,
                 profile.Bio,
                 assignment.ImageId,
-                ForeverfallStoragePaths.PublicImageUrl(assignment.ImageId)));
+                ForeverfallStoragePaths.ResolvePublicImageUrl(_cacheRoot, assignment.ImageId)));
         }
-
-        SaveImageRegistry(registry);
 
         var maleWing = inmates.Where(inmate => inmate.Gender == "male").ToList();
         var femaleWing = inmates.Where(inmate => inmate.Gender == "female").ToList();
-        var roster = new ForeverfallRosterDto(
+        return new ForeverfallRosterDto(
             date,
             DateTime.UtcNow,
             source,
@@ -373,15 +567,33 @@ public sealed class ForeverfallPenitentiaryService(
             femaleWing.Count,
             maleWing,
             femaleWing);
+    }
 
-        TrySaveRoster(roster);
-        logger.LogInformation(
-            "Foreverfall intake ready for {Date}: {Count} inmates ({Male} male, {Female} female), source={Source}",
-            date,
-            roster.IntakeCount,
-            roster.MaleCount,
-            roster.FemaleCount,
-            source);
+    private List<ForeverfallPortraitJobItem> CollectPendingPortraits(
+        IReadOnlyList<ForeverfallPortraitAssignment> assignments,
+        IReadOnlyList<GeneratedForeverfallInmate> generated)
+    {
+        var pendingPortraits = new List<ForeverfallPortraitJobItem>();
+        if (!openAi.IsApiKeyConfigured)
+        {
+            return pendingPortraits;
+        }
+
+        for (var index = 0; index < assignments.Count && index < generated.Count; index++)
+        {
+            var assignment = assignments[index];
+            var profile = generated[index];
+            if (assignment.NeedsGeneration)
+            {
+                pendingPortraits.Add(new ForeverfallPortraitJobItem(
+                    assignment.ImageId,
+                    profile.DisplayName,
+                    profile.Species,
+                    assignment.Gender));
+            }
+        }
+
+        return pendingPortraits;
     }
 
     private static bool MatchesQuery(ForeverfallInmateDto inmate, string query)
@@ -397,6 +609,19 @@ public sealed class ForeverfallPenitentiaryService(
 
     private ForeverfallRosterDto BuildEmptyRoster(DateOnly date) =>
         new(date, DateTime.UtcNow, "empty", 0, 0, 0, [], []);
+
+    private ForeverfallRosterDto EnrichRosterImageUrls(ForeverfallRosterDto roster) =>
+        roster with
+        {
+            MaleWing = roster.MaleWing.Select(EnrichInmateImageUrl).ToList(),
+            FemaleWing = roster.FemaleWing.Select(EnrichInmateImageUrl).ToList(),
+        };
+
+    private ForeverfallInmateDto EnrichInmateImageUrl(ForeverfallInmateDto inmate) =>
+        inmate with
+        {
+            ImageUrl = ForeverfallStoragePaths.ResolvePublicImageUrl(_cacheRoot, inmate.ImageId),
+        };
 
     private ForeverfallRosterDto? TryLoadRoster(DateOnly date)
     {

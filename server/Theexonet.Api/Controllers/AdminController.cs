@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Theexonet.Api.Services;
+using Theexonet.Api.Services.AiImageQueue;
 using Theexonet.Api.Services.Foreverfall;
+using Theexonet.Infrastructure.Services;
 using Theexonet.Api.Services.LunarWeather;
 using Theexonet.Api.Services.OffworldNews;
 using Theexonet.Api.Services.VoidCorp;
@@ -12,7 +14,6 @@ using Theexonet.Core.Constants;
 using Theexonet.Core.Dtos;
 using Theexonet.Core.Interfaces;
 using Theexonet.Core.Services;
-using Theexonet.Infrastructure.Services;
 
 namespace Theexonet.Api.Controllers;
 
@@ -27,7 +28,7 @@ public class AdminController(
     GameCreditsConfigService gameCreditsConfigService,
     SpecialEventService specialEventService,
     OffworldNewsService offworldNewsService,
-    OffworldNewsReporterPortraitJobService offworldNewsReporterPortraitJob,
+    IServiceScopeFactory scopeFactory,
     OffworldNewsReporterRosterAdminService offworldNewsReporterRoster,
     OffworldNewsAdminSettingsStore offworldNewsAdminSettings,
     LunarWeatherService lunarWeatherService,
@@ -70,7 +71,7 @@ public class AdminController(
 
         return Ok(OffworldNewsService.ToRegenerateResponse(
             edition!,
-            "Today's Offworld News stories and images were regenerated."));
+            "Today's Offworld News stories regenerated; story images queued for generation."));
     }
 
     [HttpPost("offworld-news/regenerate-images")]
@@ -84,24 +85,26 @@ public class AdminController(
 
         return Ok(OffworldNewsService.ToRegenerateResponse(
             edition!,
-            "Today's Offworld News AI images were regenerated. Archive editions were not changed."));
+            "Today's Offworld News AI images queued for regeneration. Archive editions were not changed."));
     }
 
     [HttpPost("offworld-news/regenerate-reporter-portraits")]
-    public ActionResult<AdminOffworldNewsReporterPortraitJobDto> RegenerateOffworldNewsReporterPortraits()
+    public async Task<ActionResult<AdminAiImageQueueStatusDto>> RegenerateOffworldNewsReporterPortraits(
+        CancellationToken ct)
     {
-        var (started, error) = offworldNewsReporterPortraitJob.TryStart(slugs: null);
-        if (!started)
+        var (_, error) = await offworldNewsService.RegenerateReporterPortraitsAsync(ct: ct);
+        if (error is not null)
         {
             return BadRequest(new { message = error });
         }
 
-        return Accepted(offworldNewsReporterPortraitJob.GetStatus());
+        return Accepted(await GetAiImageQueueStatusInternalAsync("onn_reporter", ct));
     }
 
     [HttpGet("offworld-news/reporter-portraits-job")]
-    public ActionResult<AdminOffworldNewsReporterPortraitJobDto> GetOffworldNewsReporterPortraitJob() =>
-        Ok(offworldNewsReporterPortraitJob.GetStatus());
+    public async Task<ActionResult<AdminAiImageQueueStatusDto>> GetOffworldNewsReporterPortraitJob(
+        CancellationToken ct) =>
+        Ok(await GetAiImageQueueStatusInternalAsync("onn_reporter", ct));
 
     [HttpGet("offworld-news/reporters")]
     public ActionResult<AdminOffworldNewsReportersPageDto> GetOffworldNewsReporters() =>
@@ -137,9 +140,10 @@ public class AdminController(
     }
 
     [HttpPost("offworld-news/reporters/{slug}/regenerate-portraits")]
-    public ActionResult<AdminOffworldNewsReporterPortraitJobDto> RegenerateOffworldNewsReporterPortraits(
+    public async Task<ActionResult<AdminAiImageQueueStatusDto>> RegenerateOffworldNewsReporterPortraits(
         string slug,
-        [FromQuery] string? assets = "both")
+        [FromQuery] string? assets = "both",
+        CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(slug)
             || slug.Equals("undefined", StringComparison.OrdinalIgnoreCase))
@@ -152,13 +156,16 @@ public class AdminController(
             return BadRequest(new { message = parseError });
         }
 
-        var (started, error) = offworldNewsReporterPortraitJob.TryStart([slug.Trim()], assetKind);
-        if (!started)
+        var (_, error) = await offworldNewsService.RegenerateReporterPortraitsAsync(
+            [slug.Trim()],
+            assetKind,
+            ct);
+        if (error is not null)
         {
             return BadRequest(new { message = error });
         }
 
-        return Accepted(offworldNewsReporterPortraitJob.GetStatus());
+        return Accepted(await GetAiImageQueueStatusInternalAsync("onn_reporter", ct));
     }
 
     [HttpGet("offworld-news/settings")]
@@ -199,9 +206,12 @@ public class AdminController(
     public async Task<ActionResult<AdminLunarWeatherRegenerateResponse>> RegenerateLunarWeatherBulletin(
         CancellationToken ct)
     {
-        var today = UtcGameClock.Today;
-        await lunarWeatherService.EnsureBulletinAsync(today, forceRegenerate: true, ct);
-        var bulletin = await lunarWeatherService.GetBulletinAsync(today, ct);
+        var (bulletin, error) = await lunarWeatherService.RegenerateBulletinAndWaitAsync(ct);
+        if (error is not null || bulletin is null)
+        {
+            return BadRequest(new { message = error ?? "Bulletin regeneration failed." });
+        }
+
         return Ok(new AdminLunarWeatherRegenerateResponse(
             "Today's Lunar Weather bulletin regenerated.",
             bulletin.BulletinDate,
@@ -237,8 +247,13 @@ public class AdminController(
     public async Task<ActionResult<AdminForeverfallRegenerateResponse>> RegenerateForeverfallIntake(
         CancellationToken ct)
     {
+        var (ok, error, portraitsQueued) = await foreverfallPenitentiaryService.RegenerateIntakeAndWaitAsync(ct);
+        if (!ok || error is not null)
+        {
+            return BadRequest(new { message = error ?? "Intake regeneration failed." });
+        }
+
         var today = UtcGameClock.Today;
-        await foreverfallPenitentiaryService.EnsureDailyIntakeAsync(today, forceRegenerate: true, ct);
         var roster = await foreverfallPenitentiaryService.GetRosterAsync(today, ct);
         return Ok(new AdminForeverfallRegenerateResponse(
             "Today's Foreverfall Penitentiary intake regenerated.",
@@ -246,7 +261,28 @@ public class AdminController(
             roster.Source,
             roster.IntakeCount,
             roster.MaleCount,
-            roster.FemaleCount));
+            roster.FemaleCount,
+            portraitsQueued));
+    }
+
+    [HttpGet("foreverfall/portrait-job")]
+    public async Task<ActionResult<AdminAiImageQueueStatusDto>> GetForeverfallPortraitJob(
+        CancellationToken ct) =>
+        Ok(await GetAiImageQueueStatusInternalAsync(AiImageJobKinds.ForeverfallPortrait, ct));
+
+    [HttpGet("ai-image-queue")]
+    public async Task<ActionResult<AdminAiImageQueueStatusDto>> GetAiImageQueueStatus(
+        [FromQuery] string? kind,
+        CancellationToken ct) =>
+        Ok(await GetAiImageQueueStatusInternalAsync(kind, ct));
+
+    private async Task<AdminAiImageQueueStatusDto> GetAiImageQueueStatusInternalAsync(
+        string? kind,
+        CancellationToken ct)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var queue = scope.ServiceProvider.GetRequiredService<AiImageQueueService>();
+        return await queue.GetStatusAsync(kind, ct);
     }
 
     [HttpGet("voidcorp/status")]

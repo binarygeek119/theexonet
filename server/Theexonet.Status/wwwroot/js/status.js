@@ -46,7 +46,6 @@ const els = {
   openaiApiKey: document.getElementById("openai-api-key"),
   openaiCreditsRemaining: document.getElementById("openai-credits-remaining"),
   openaiCreditsGranted: document.getElementById("openai-credits-granted"),
-  openaiCreditsNote: document.getElementById("openai-credits-note"),
   openaiRequestsTotal: document.getElementById("openai-requests-total"),
   openaiRequestsToday: document.getElementById("openai-requests-today"),
   openaiLastRequest: document.getElementById("openai-last-request"),
@@ -156,7 +155,6 @@ function renderOpenAiUsage(usage) {
     els.openaiApiKey.textContent = "—";
     els.openaiCreditsRemaining.textContent = "—";
     els.openaiCreditsGranted.textContent = "—";
-    els.openaiCreditsNote.textContent = "—";
     els.openaiRequestsTotal.textContent = "—";
     els.openaiRequestsToday.textContent = "—";
     els.openaiLastRequest.textContent = "—";
@@ -169,7 +167,6 @@ function renderOpenAiUsage(usage) {
   els.openaiApiKey.textContent = usage.apiKeyConfigured ? "Yes" : "No";
   els.openaiCreditsRemaining.textContent = formatUsd(usage.creditsRemainingUsd);
   els.openaiCreditsGranted.textContent = formatUsd(usage.creditsGrantedUsd);
-  els.openaiCreditsNote.textContent = usage.creditsNote || "—";
   els.openaiRequestsTotal.textContent = formatCount(usage.totalRequests);
   els.openaiRequestsToday.textContent = formatCount(usage.requestsToday);
   els.openaiLastRequest.textContent = formatUtc(usage.lastRequestUtc);

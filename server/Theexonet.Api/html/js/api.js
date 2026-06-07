@@ -839,6 +839,15 @@ export class TheexonetApi {
     });
   }
 
+  adminGetForeverfallPortraitJob() {
+    return this.request("/api/admin/foreverfall/portrait-job");
+  }
+
+  adminGetAiImageQueueStatus(kind) {
+    const params = kind ? `?kind=${encodeURIComponent(kind)}` : "";
+    return this.request(`/api/admin/ai-image-queue${params}`);
+  }
+
   adminGetVoidCorpStatus() {
     return this.request("/api/admin/voidcorp/status");
   }

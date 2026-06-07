@@ -2180,6 +2180,39 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     }
   });
 
+  function isExonetOpen() {
+    return !modal.hidden;
+  }
+
+  function handleMouseHistoryButton(event) {
+    if (!isExonetOpen()) {
+      return;
+    }
+    if (event.button === 3) {
+      event.preventDefault();
+      goBack();
+      return;
+    }
+    if (event.button === 4) {
+      event.preventDefault();
+      goForward();
+    }
+  }
+
+  function blockBrowserHistoryMouseButtons(event) {
+    if (!isExonetOpen()) {
+      return;
+    }
+    if (event.button === 3 || event.button === 4) {
+      event.preventDefault();
+    }
+  }
+
+  // Mouse side buttons (back = 3, forward = 4) while Exonet is open.
+  document.addEventListener("mousedown", blockBrowserHistoryMouseButtons, true);
+  document.addEventListener("mouseup", handleMouseHistoryButton);
+  document.addEventListener("auxclick", handleMouseHistoryButton);
+
   renderBookmarks();
   updateChrome();
 

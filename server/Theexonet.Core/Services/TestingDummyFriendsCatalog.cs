@@ -140,6 +140,16 @@ public static class TestingDummyFriendsCatalog
             TestingDummyFriendsPaths.LogoUrl(index));
     }
 
+    public static TestingDummyFriendsProfile? TryGet(int index)
+    {
+        if (index < 0 || index >= DummyCount)
+        {
+            return null;
+        }
+
+        return All().ElementAt(index);
+    }
+
     public static IEnumerable<TestingDummyFriendsProfile> All() =>
         Enumerable.Range(0, DummyCount).Select(Get);
 

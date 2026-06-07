@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Theexonet.Core.Configuration;
@@ -16,6 +17,7 @@ public class CompanyLogoQueueService(
     ICompanyLogoGenerator generator,
     ICompanyLogoStorage companyLogoStorage,
     IOptions<CompanyLogoOptions> companyLogoOptions,
+    IServiceScopeFactory scopeFactory,
     ILogger<CompanyLogoQueueService> logger)
 {
     public bool IsAiEnabled =>
@@ -56,6 +58,7 @@ public class CompanyLogoQueueService(
         };
         db.CompanyLogoQueue.Add(entry);
         await db.SaveChangesAsync(ct);
+        await EnqueueMasterJobAsync(entry, ct);
 
         var status = ToStatusDto(entry, "Queued for AI logo generation.");
         return (true, status.Message, status);
@@ -76,7 +79,7 @@ public class CompanyLogoQueueService(
             .Select(m => new { m.Id, m.PlayerId })
             .ToListAsync(ct);
 
-        var enqueued = 0;
+        var createdEntries = new List<CompanyLogoQueueEntity>();
         foreach (var mine in candidates)
         {
             if (await HasActiveQueueItemAsync(mine.Id, ct))
@@ -84,7 +87,7 @@ public class CompanyLogoQueueService(
                 continue;
             }
 
-            db.CompanyLogoQueue.Add(new CompanyLogoQueueEntity
+            var entry = new CompanyLogoQueueEntity
             {
                 Id = Guid.NewGuid(),
                 MineId = mine.Id,
@@ -92,54 +95,59 @@ public class CompanyLogoQueueService(
                 Status = CompanyLogoQueueStatuses.Queued,
                 Source = CompanyLogoQueueSources.Midnight,
                 RequestedAt = DateTime.UtcNow,
-            });
-            enqueued++;
+            };
+            db.CompanyLogoQueue.Add(entry);
+            createdEntries.Add(entry);
         }
 
-        if (enqueued > 0)
+        if (createdEntries.Count > 0)
         {
             await db.SaveChangesAsync(ct);
-            logger.LogInformation("Queued {Count} company logos for midnight AI generation.", enqueued);
+            foreach (var entry in createdEntries)
+            {
+                await EnqueueMasterJobAsync(entry, ct);
+            }
+
+            logger.LogInformation(
+                "Queued {Count} company logos for midnight AI generation.",
+                createdEntries.Count);
         }
 
-        return enqueued;
+        return createdEntries.Count;
     }
 
-    public async Task<bool> ProcessNextAsync(CancellationToken ct)
+    public async Task<(bool Ok, string? Error)> ProcessQueueEntryAsync(
+        CompanyLogoQueueEntity entry,
+        CancellationToken ct)
     {
         if (!IsAiEnabled)
         {
-            return false;
+            return (false, "AI logo generation is not available on this server.");
         }
 
-        var next = await db.CompanyLogoQueue
-            .Where(q => q.Status == CompanyLogoQueueStatuses.Queued)
-            .OrderBy(q => q.RequestedAt)
-            .FirstOrDefaultAsync(ct);
-
-        if (next is null)
+        if (entry.Status is CompanyLogoQueueStatuses.Completed or CompanyLogoQueueStatuses.Failed)
         {
-            return false;
+            return (true, null);
         }
 
-        next.Status = CompanyLogoQueueStatuses.Processing;
-        next.StartedAt = DateTime.UtcNow;
-        next.Error = null;
+        entry.Status = CompanyLogoQueueStatuses.Processing;
+        entry.StartedAt = DateTime.UtcNow;
+        entry.Error = null;
         await db.SaveChangesAsync(ct);
 
-        var mine = await db.Mines.FirstOrDefaultAsync(m => m.Id == next.MineId, ct);
-        var player = await db.Players.FirstOrDefaultAsync(p => p.Id == next.PlayerId, ct);
+        var mine = await db.Mines.FirstOrDefaultAsync(m => m.Id == entry.MineId, ct);
+        var player = await db.Players.FirstOrDefaultAsync(p => p.Id == entry.PlayerId, ct);
         if (mine is null || player is null)
         {
-            await FailAsync(next, "Mine or player no longer exists.", ct);
-            return true;
+            await FailAsync(entry, "Mine or player no longer exists.", ct);
+            return (false, "Mine or player no longer exists.");
         }
 
-        if (next.Source == CompanyLogoQueueSources.Midnight
+        if (entry.Source == CompanyLogoQueueSources.Midnight
             && (mine.CompanyLogoIsCustom || !string.IsNullOrWhiteSpace(mine.CompanyLogoUrl)))
         {
-            await CompleteSkippedAsync(next, "Logo already present.", ct);
-            return true;
+            await CompleteSkippedAsync(entry, "Logo already present.", ct);
+            return (true, null);
         }
 
         var (pngBytes, error) = await generator.GenerateAsync(
@@ -153,8 +161,8 @@ public class CompanyLogoQueueService(
 
         if (pngBytes is null)
         {
-            await FailAsync(next, error ?? "Logo generation failed.", ct);
-            return true;
+            await FailAsync(entry, error ?? "Logo generation failed.", ct);
+            return (false, error ?? "Logo generation failed.");
         }
 
         try
@@ -163,21 +171,32 @@ public class CompanyLogoQueueService(
             mine.CompanyLogoUrl = await companyLogoStorage.SaveAsync(mine.Id, stream, ct);
             mine.CompanyLogoRevision++;
             mine.CompanyLogoIsCustom = false;
-            next.Status = CompanyLogoQueueStatuses.Completed;
-            next.CompletedAt = DateTime.UtcNow;
-            next.Error = null;
+            entry.Status = CompanyLogoQueueStatuses.Completed;
+            entry.CompletedAt = DateTime.UtcNow;
+            entry.Error = null;
             await db.SaveChangesAsync(ct);
             logger.LogInformation(
                 "Generated AI company logo for mine {MineId} ({CompanyName}).",
                 mine.Id,
                 mine.Name);
+            return (true, null);
         }
         catch (Exception ex)
         {
-            await FailAsync(next, $"Failed to save logo: {ex.Message}", ct);
+            await FailAsync(entry, $"Failed to save logo: {ex.Message}", ct);
+            return (false, ex.Message);
         }
+    }
 
-        return true;
+    private async Task EnqueueMasterJobAsync(CompanyLogoQueueEntity entry, CancellationToken ct)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var queue = scope.ServiceProvider.GetRequiredService<AiImageQueueService>();
+        await queue.EnqueueAsync(
+            AiImageJobKinds.CompanyLogo,
+            new CompanyLogoJobPayload(entry.Id, entry.MineId),
+            entry.Source,
+            ct);
     }
 
     public async Task CancelPendingForMineAsync(Guid mineId, CancellationToken ct)

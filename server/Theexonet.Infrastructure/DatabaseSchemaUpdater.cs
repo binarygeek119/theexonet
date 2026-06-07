@@ -379,6 +379,20 @@ public static class DatabaseSchemaUpdater
             );
             CREATE INDEX IF NOT EXISTS "IX_CompanyLogoQueue_MineId_Status" ON "CompanyLogoQueue" ("MineId", "Status");
             CREATE INDEX IF NOT EXISTS "IX_CompanyLogoQueue_RequestedAt" ON "CompanyLogoQueue" ("RequestedAt");
+            CREATE TABLE IF NOT EXISTS "AiImageQueue" (
+                "Id" uuid NOT NULL,
+                "Kind" text NOT NULL,
+                "Payload" text NOT NULL DEFAULT '{}',
+                "Status" text NOT NULL DEFAULT 'queued',
+                "Source" text NOT NULL DEFAULT '',
+                "Error" text NULL,
+                "RequestedAt" timestamp with time zone NOT NULL DEFAULT NOW(),
+                "StartedAt" timestamp with time zone NULL,
+                "CompletedAt" timestamp with time zone NULL,
+                CONSTRAINT "PK_AiImageQueue" PRIMARY KEY ("Id")
+            );
+            CREATE INDEX IF NOT EXISTS "IX_AiImageQueue_Status_RequestedAt" ON "AiImageQueue" ("Status", "RequestedAt");
+            CREATE INDEX IF NOT EXISTS "IX_AiImageQueue_Kind" ON "AiImageQueue" ("Kind");
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "LastSeenAtUtc" timestamp with time zone;
             CREATE INDEX IF NOT EXISTS "IX_Players_LastSeenAtUtc" ON "Players" ("LastSeenAtUtc");
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileBirthdayPublic" boolean NOT NULL DEFAULT false;

@@ -37,6 +37,57 @@ public sealed class OpenAiOffworldNewsGenerator(
             stories);
     }
 
+    public async Task<(bool Ok, string? Error, string? ImageUrl, string? ImageAspect)> GenerateStoryImageAsync(
+        OffworldNewsStoryDto story,
+        string? aiImagePrompt,
+        DateOnly editionDate,
+        int storyIndex,
+        string cacheRoot,
+        CancellationToken ct)
+    {
+        var (result, error) = await GenerateAndStoreImageAsync(
+            story,
+            aiImagePrompt,
+            editionDate,
+            storyIndex,
+            cacheRoot,
+            ct);
+        if (result is null)
+        {
+            return (false, error, null, null);
+        }
+
+        return (true, null, result.Path, result.AspectKey);
+    }
+
+    public async Task<(OffworldNewsEditionDto Edition, IReadOnlyList<(string StoryId, int StoryIndex, string? ImagePrompt)> ImageJobs)>
+        GenerateEditionWithoutImagesAsync(
+            DateOnly editionDate,
+            OffworldNewsCompanyContext? companyContext,
+            CancellationToken ct)
+    {
+        var storyCount = OffworldNewsStoryCountSelector.ResolveStoryCount(editionDate, generationOptions);
+        var drafts = await GenerateStoriesAsync(editionDate, storyCount, companyContext, ct);
+        var stories = drafts.Select(draft => draft.Story).ToList();
+        var edition = new OffworldNewsEditionDto(
+            editionDate,
+            DateTime.UtcNow,
+            "openai",
+            stories);
+        var imageJobs = ResolveStoryImageIndices(storyCount)
+            .Select(index => (drafts[index].Story.Id, index, drafts[index].ImagePrompt))
+            .ToList();
+        return (edition, imageJobs);
+    }
+
+    public IReadOnlyList<int> ResolveStoryImageIndices(int storyCount) =>
+        Enumerable.Range(0, Math.Min(
+            storyCount,
+            featureOptions.MaxImagesPerDay <= 0
+                ? storyCount
+                : Math.Clamp(featureOptions.MaxImagesPerDay, 1, storyCount)))
+            .ToList();
+
     public async Task<(OffworldNewsEditionDto Edition, OffworldNewsImageGenerationSummary Images)> RegenerateImagesAsync(
         OffworldNewsEditionDto edition,
         IReadOnlyList<int> storyIndices,

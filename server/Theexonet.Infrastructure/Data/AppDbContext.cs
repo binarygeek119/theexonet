@@ -38,6 +38,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SpecialEventAnnouncementEntity> SpecialEventAnnouncements => Set<SpecialEventAnnouncementEntity>();
     public DbSet<DataMigrationEntity> DataMigrations => Set<DataMigrationEntity>();
     public DbSet<CompanyLogoQueueEntity> CompanyLogoQueue => Set<CompanyLogoQueueEntity>();
+    public DbSet<AiImageQueueEntity> AiImageQueue => Set<AiImageQueueEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -65,6 +66,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .WithMany()
                 .HasForeignKey(q => q.PlayerId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AiImageQueueEntity>(e =>
+        {
+            e.HasIndex(q => new { q.Status, q.RequestedAt });
+            e.HasIndex(q => q.Kind);
         });
 
         modelBuilder.Entity<MineZoneEntity>()

@@ -2,8 +2,10 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
+using Theexonet.Api.Services.AiImageQueue;
 using Theexonet.Api.Services.OffworldNews;
 using Theexonet.Core.Configuration;
+using Theexonet.Core.Constants;
 using Theexonet.Core.Dtos;
 using Theexonet.Core.Services;
 
@@ -15,10 +17,11 @@ public sealed class LunarWeatherService(
     OpenAiConnectionResolver openAi,
     TheexonetHostingPaths hostingPaths,
     IHttpClientFactory httpClientFactory,
+    AiImageQueuePublisher aiImageQueuePublisher,
     ILogger<LunarWeatherService> logger)
 {
     private static readonly ConcurrentDictionary<DateOnly, SemaphoreSlim> GenerationLocks = new();
-    private static readonly ConcurrentDictionary<DateOnly, byte> BackgroundUpgradeQueued = new();
+    private static readonly TimeSpan BulletinJobTimeout = TimeSpan.FromMinutes(10);
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -110,7 +113,7 @@ public sealed class LunarWeatherService(
             if (!string.Equals(existing.Source, "openai", StringComparison.OrdinalIgnoreCase)
                 && openAi.IsApiKeyConfigured)
             {
-                QueueBackgroundAiUpgrade(date);
+                await QueueBulletinUpgradeAsync(date, forceRegenerate: false, ct);
             }
 
             return;
@@ -125,11 +128,6 @@ public sealed class LunarWeatherService(
                 return;
             }
 
-            if (forceRegenerate)
-            {
-                BackgroundUpgradeQueued.TryRemove(date, out _);
-            }
-
             var template = BuildFreshBulletin(date);
             TrySaveBulletin(template);
             logger.LogInformation(
@@ -139,7 +137,7 @@ public sealed class LunarWeatherService(
 
             if (openAi.IsApiKeyConfigured)
             {
-                QueueBackgroundAiUpgrade(date);
+                await QueueBulletinUpgradeAsync(date, forceRegenerate, ct);
             }
         }
         finally
@@ -148,49 +146,130 @@ public sealed class LunarWeatherService(
         }
     }
 
-    private void QueueBackgroundAiUpgrade(DateOnly date)
+    private async Task QueueBulletinUpgradeAsync(
+        DateOnly date,
+        bool forceRegenerate,
+        CancellationToken ct)
     {
         if (!openAi.IsApiKeyConfigured)
         {
             return;
         }
 
-        if (!BackgroundUpgradeQueued.TryAdd(date, 0))
+        var source = $"lunar-weather:bulletin:{date:yyyy-MM-dd}";
+        var result = await aiImageQueuePublisher.EnqueueLunarWeatherBulletinAsync(
+            date,
+            forceRegenerate,
+            source,
+            ct);
+
+        if (result.EnqueuedCount > 0)
         {
-            return;
+            logger.LogInformation(
+                "Queued Lunar Weather bulletin job for {Date} (force={Force})",
+                date,
+                forceRegenerate);
+        }
+    }
+
+    public async Task<(bool Ok, string? Error)> ProcessBulletinJobAsync(
+        DateOnly date,
+        bool forceRegenerate,
+        CancellationToken ct)
+    {
+        if (!_options.Enabled)
+        {
+            return (false, "Lunar Weather is disabled in configuration.");
         }
 
-        _ = Task.Run(async () =>
+        var gate = GenerationLocks.GetOrAdd(date, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try
         {
-            try
+            var cached = TryLoadBulletin(date);
+            if (!forceRegenerate
+                && cached is not null
+                && string.Equals(cached.Source, "openai", StringComparison.OrdinalIgnoreCase))
             {
-                var gate = GenerationLocks.GetOrAdd(date, _ => new SemaphoreSlim(1, 1));
-                await gate.WaitAsync();
-                try
-                {
-                    var cached = TryLoadBulletin(date);
-                    if (string.Equals(cached?.Source, "openai", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return;
-                    }
+                return (true, null);
+            }
 
-                    logger.LogInformation("Generating Lunar Weather AI bulletin for {Date} in background", date);
-                    await GenerateAndStoreBulletinAsync(date, CancellationToken.None);
-                }
-                finally
-                {
-                    gate.Release();
-                }
-            }
-            catch (Exception ex)
+            await GenerateAndStoreBulletinAsync(date, ct);
+            logger.LogInformation("Lunar Weather AI bulletin ready for {Date}", date);
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Lunar Weather bulletin job failed for {Date}", date);
+            return (false, ex.Message);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    public async Task<(LunarWeatherBulletinDto? Bulletin, string? Error)> RegenerateBulletinAndWaitAsync(
+        CancellationToken ct = default)
+    {
+        if (!_options.Enabled)
+        {
+            return (null, "Lunar Weather is disabled in configuration.");
+        }
+
+        var date = UtcGameClock.Today;
+        var source = $"lunar-weather:bulletin:{date:yyyy-MM-dd}";
+        var gate = GenerationLocks.GetOrAdd(date, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try
+        {
+            var template = BuildFreshBulletin(date);
+            TrySaveBulletin(template);
+
+            if (!openAi.IsApiKeyConfigured)
             {
-                logger.LogWarning(ex, "Background Lunar Weather AI upgrade failed for {Date}", date);
+                return (template, null);
             }
-            finally
+
+            var enqueue = await aiImageQueuePublisher.EnqueueLunarWeatherBulletinAsync(
+                date,
+                forceRegenerate: true,
+                source,
+                ct);
+            if (enqueue.EnqueuedCount == 0 && enqueue.Message is not null)
             {
-                BackgroundUpgradeQueued.TryRemove(date, out _);
+                return (null, enqueue.Message);
             }
-        });
+
+            var wait = await aiImageQueuePublisher.WaitForJobAsync(
+                AiImageJobKinds.LunarWeatherBulletin,
+                source,
+                BulletinJobTimeout,
+                ct);
+            if (wait.Failed)
+            {
+                return (null, wait.Error ?? "Lunar Weather bulletin generation failed.");
+            }
+
+            if (!wait.Completed)
+            {
+                return (null, wait.Error ?? "Timed out waiting for Lunar Weather bulletin generation.");
+            }
+
+            var bulletin = TryLoadBulletin(date);
+            return bulletin is null
+                ? (null, "Bulletin regeneration completed but bulletin file is missing.")
+                : (bulletin, null);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Admin Lunar Weather bulletin regeneration failed for {Date}", date);
+            return (null, "Bulletin regeneration failed. Check API logs for details.");
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     private async Task<LunarWeatherBulletinDto> GenerateAndStoreBulletinAsync(DateOnly date, CancellationToken ct)

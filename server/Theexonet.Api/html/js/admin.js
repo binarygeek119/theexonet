@@ -72,6 +72,7 @@ const els = {
   pageForeverfall: document.getElementById("admin-page-foreverfall-penitentiary"),
   foreverfallSummary: document.getElementById("admin-foreverfall-summary"),
   foreverfallStatus: document.getElementById("admin-foreverfall-status"),
+  foreverfallPortraitJob: document.getElementById("admin-foreverfall-portrait-job"),
   foreverfallRegenBtn: document.getElementById("admin-foreverfall-regen-btn"),
   ffpSettingsForm: document.getElementById("admin-foreverfall-settings-form"),
   ffpEnabled: document.getElementById("admin-ffp-enabled"),
@@ -110,6 +111,7 @@ const els = {
   eventCancelBtn: document.getElementById("admin-event-cancel-btn"),
   eventFormStatus: document.getElementById("admin-event-form-status"),
   stats: document.getElementById("admin-stats"),
+  aiImageQueueSummary: document.getElementById("admin-ai-image-queue-summary"),
   offworldNewsSummary: document.getElementById("admin-offworld-news-summary"),
   offworldNewsStatus: document.getElementById("admin-offworld-news-status"),
   offworldNewsRegenEditionBtn: document.getElementById("admin-offworld-news-regen-edition-btn"),
@@ -1019,9 +1021,110 @@ function renderCreditsTable(players) {
     .join("");
 }
 
+const AI_GENERATION_TEXT_KINDS = new Set([
+  "onn_edition_stories",
+  "foreverfall_intake",
+  "lunar_weather_bulletin",
+]);
+
+function summarizeQueuedByKind(byKind) {
+  const textKinds = [];
+  const imageKinds = [];
+  for (const [kind, count] of Object.entries(byKind)) {
+    if (count <= 0) {
+      continue;
+    }
+    const label = `${kind}: ${count}`;
+    if (AI_GENERATION_TEXT_KINDS.has(kind)) {
+      textKinds.push(label);
+    } else {
+      imageKinds.push(label);
+    }
+  }
+
+  const parts = [];
+  if (textKinds.length > 0) {
+    parts.push(`Text: ${textKinds.join(", ")}`);
+  }
+  if (imageKinds.length > 0) {
+    parts.push(`Images: ${imageKinds.join(", ")}`);
+  }
+  return parts.join(" · ");
+}
+
+function renderAiImageQueueSummary(status) {
+  if (!els.aiImageQueueSummary) {
+    return;
+  }
+
+  if (!status) {
+    els.aiImageQueueSummary.textContent = "Queue status unavailable.";
+    return;
+  }
+
+  const queueStatus = String(pickJson(status, "status") ?? "idle").toLowerCase();
+  const description = pickJson(status, "currentJobDescription") ?? "";
+  const queued = pickJson(status, "queuedCount") ?? 0;
+  const completedToday = pickJson(status, "completedToday") ?? 0;
+  const failedToday = pickJson(status, "failedToday") ?? 0;
+  const byKind = pickJson(status, "queuedByKind") ?? {};
+  const kindBits = summarizeQueuedByKind(byKind);
+
+  if (queueStatus === "idle" && queued === 0) {
+    els.aiImageQueueSummary.textContent =
+      `Idle. ${completedToday} completed today${failedToday > 0 ? `, ${failedToday} failed` : ""}.`;
+    return;
+  }
+
+  els.aiImageQueueSummary.textContent =
+    `${description || "Processing queue"} · ${queued} waiting · ${completedToday} completed today${failedToday > 0 ? ` · ${failedToday} failed` : ""}${kindBits ? ` · ${kindBits}` : ""}`;
+}
+
+async function loadAiImageQueueSummary() {
+  try {
+    const status = await api.adminGetAiImageQueueStatus();
+    renderAiImageQueueSummary(status);
+  } catch {
+    if (els.aiImageQueueSummary) {
+      els.aiImageQueueSummary.textContent = "Could not load AI generation queue status.";
+    }
+  }
+}
+
+async function waitForAiImageQueue(kind, onProgress) {
+  for (;;) {
+    const job = await api.adminGetAiImageQueueStatus(kind);
+    const queued = pickJson(job, "queuedCount") ?? 0;
+    const status = String(pickJson(job, "status") ?? "").toLowerCase();
+    const description = pickJson(job, "currentJobDescription") ?? "Processing AI generation queue…";
+    if (queued === 0 && status !== "running") {
+      return job;
+    }
+
+    onProgress?.(description);
+    await sleep(1500);
+  }
+}
+
+function formatAiImageQueueStatus(job) {
+  const description = pickJson(job, "currentJobDescription") ?? "";
+  const completedToday = pickJson(job, "completedToday") ?? 0;
+  const failedToday = pickJson(job, "failedToday") ?? 0;
+  const isError = failedToday > 0 && completedToday === 0;
+  const text =
+    description ||
+    `Queue finished. ${completedToday} completed today${failedToday > 0 ? `, ${failedToday} failed` : ""}.`;
+  return { text, isError };
+}
+
 async function loadDashboard() {
-  state.dashboard = await api.adminDashboard();
-  renderStats(state.dashboard);
+  await Promise.all([
+    (async () => {
+      state.dashboard = await api.adminDashboard();
+      renderStats(state.dashboard);
+    })(),
+    loadAiImageQueueSummary(),
+  ]);
 }
 
 function renderTestingDummySelect() {
@@ -1320,8 +1423,42 @@ async function loadForeverfallSettings() {
   }
 }
 
+function renderForeverfallPortraitJob(job) {
+  if (!els.foreverfallPortraitJob) {
+    return;
+  }
+
+  if (!job) {
+    els.foreverfallPortraitJob.textContent = "";
+    return;
+  }
+
+  const status = String(pickJson(job, "status") ?? "").toLowerCase();
+  const queued = pickJson(job, "queuedCount") ?? 0;
+  if (status === "idle" && queued === 0) {
+    els.foreverfallPortraitJob.textContent = "";
+    return;
+  }
+
+  const message = pickJson(job, "currentJobDescription") ?? "";
+  const completedToday = pickJson(job, "completedToday") ?? 0;
+  const suffix = queued > 0 ? ` (${queued} queued)` : ` · ${completedToday} completed today`;
+  els.foreverfallPortraitJob.textContent = `Portrait queue: ${message}${suffix}`;
+}
+
+async function loadForeverfallPortraitJob() {
+  try {
+    const job = await api.adminGetAiImageQueueStatus("foreverfall_portrait");
+    renderForeverfallPortraitJob(job);
+  } catch {
+    if (els.foreverfallPortraitJob) {
+      els.foreverfallPortraitJob.textContent = "";
+    }
+  }
+}
+
 async function loadForeverfallPage() {
-  await Promise.all([loadForeverfallSummary(), loadForeverfallSettings()]);
+  await Promise.all([loadForeverfallSummary(), loadForeverfallSettings(), loadForeverfallPortraitJob()]);
 }
 
 async function saveForeverfallSettings(event) {
@@ -1364,10 +1501,19 @@ async function regenerateForeverfallIntake() {
   try {
     const result = await api.adminRegenerateForeverfallIntake();
     await loadForeverfallSummary();
-    setStatus(
-      els.foreverfallStatus,
-      `${result.message} ${result.intakeCount} inmates (${result.maleCount}M / ${result.femaleCount}F).`,
-    );
+    const queued = pickJson(result, "portraitsQueued") ?? 0;
+    const intakeMessage = `${result.message} ${result.intakeCount} inmates (${result.maleCount}M / ${result.femaleCount}F).`;
+    if (queued > 0) {
+      setStatus(els.foreverfallStatus, `${intakeMessage} ${queued} portrait(s) queued.`);
+      const job = await waitForAiImageQueue("foreverfall_portrait", (message) =>
+        setStatus(els.foreverfallStatus, `${intakeMessage} ${message}`),
+      );
+      const result = formatAiImageQueueStatus(job);
+      setStatus(els.foreverfallStatus, `${intakeMessage} ${result.text}`.trim(), result.isError);
+      await loadForeverfallSummary();
+    } else {
+      setStatus(els.foreverfallStatus, intakeMessage);
+    }
   } catch (error) {
     setStatus(els.foreverfallStatus, error.message, true);
   } finally {
@@ -1484,22 +1630,40 @@ async function regenerateOffworldNewsEdition() {
     return;
   }
 
-  setStatus(els.offworldNewsStatus, "Regenerating stories and images…");
+  setStatus(els.offworldNewsStatus, "Regenerating stories…");
   setOffworldNewsButtonsDisabled(true);
   try {
     const result = await api.adminRegenerateOffworldNewsEdition();
     await loadOffworldNewsSummary();
-    setStatus(
-      els.offworldNewsStatus,
-      [
-        result.message,
-        `${result.storyCount} stories, ${result.illustratedStoryCount} AI images.`,
-        result.imageGenerationError,
-      ]
-        .filter(Boolean)
-        .join(" "),
-      Boolean(result.imageGenerationError),
-    );
+    const baseMessage = [
+      result.message,
+      `${result.storyCount} stories.`,
+      result.imageGenerationError,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    const storyImageJob = await api.adminGetAiImageQueueStatus("onn_story_image");
+    const imagesQueued = pickJson(storyImageJob, "queuedCount") ?? 0;
+    if (imagesQueued > 0) {
+      setStatus(els.offworldNewsStatus, `${baseMessage} ${imagesQueued} story image(s) queued.`);
+      const job = await waitForAiImageQueue("onn_story_image", (message) =>
+        setStatus(els.offworldNewsStatus, `${baseMessage} ${message}`),
+      );
+      const queueResult = formatAiImageQueueStatus(job);
+      setStatus(
+        els.offworldNewsStatus,
+        `${baseMessage} ${queueResult.text}`.trim(),
+        Boolean(result.imageGenerationError) || queueResult.isError,
+      );
+    } else {
+      setStatus(
+        els.offworldNewsStatus,
+        `${baseMessage} ${result.illustratedStoryCount} AI images.`,
+        Boolean(result.imageGenerationError),
+      );
+    }
+    await loadOffworldNewsSummary();
   } catch (error) {
     setStatus(els.offworldNewsStatus, error.message, true);
   } finally {
@@ -1969,37 +2133,11 @@ function sleep(ms) {
 }
 
 async function waitForReporterPortraitJob(onProgress) {
-  for (;;) {
-    const job = await api.adminGetOffworldNewsReporterPortraitJob();
-    const status = String(pickJson(job, "status") ?? "").toLowerCase();
-    if (status === "running") {
-      const saved = pickJson(job, "imagesSaved") ?? 0;
-      const attempts = pickJson(job, "imageAttempts") ?? 0;
-      const message = pickJson(job, "message") ?? "Regenerating reporter portraits…";
-      onProgress?.(`${message} (${saved}/${attempts} images)`);
-      await sleep(3000);
-      continue;
-    }
-
-    return job;
-  }
+  return waitForAiImageQueue("onn_reporter", onProgress);
 }
 
 function formatReporterPortraitJobStatus(job) {
-  const status = String(pickJson(job, "status") ?? "").toLowerCase();
-  const message = pickJson(job, "message") ?? "";
-  const error = pickJson(job, "imageGenerationError");
-  const saved = pickJson(job, "imagesSaved") ?? 0;
-  const attempts = pickJson(job, "imageAttempts") ?? 0;
-
-  if (status === "failed") {
-    return { text: message || "Portrait regeneration failed.", isError: true };
-  }
-
-  return {
-    text: error ? `${message} ${error}` : `${message} (${saved}/${attempts} images).`,
-    isError: Boolean(error),
-  };
+  return formatAiImageQueueStatus(job);
 }
 
 async function regenerateOnnReporterPortraits(form, assets = "both") {
@@ -2024,7 +2162,11 @@ async function regenerateOnnReporterPortraits(form, assets = "both") {
     await persistOnnReporterProfileForAi(form);
     const slug = readOnnSlugFromForm(form);
     setStatus(statusEl, "Starting regeneration…");
-    await api.adminRegenerateOneOffworldNewsReporterPortraits(slug, assets);
+    const started = await api.adminRegenerateOneOffworldNewsReporterPortraits(slug, assets);
+    const queued = pickJson(started, "queuedCount") ?? 0;
+    if (queued > 0) {
+      setStatus(statusEl, `Queued (${queued} job(s) waiting)…`);
+    }
     const job = await waitForReporterPortraitJob((message) => setStatus(statusEl, message));
     const result = formatReporterPortraitJobStatus(job);
     await loadOnnReporters();
@@ -2100,7 +2242,11 @@ async function regenerateOffworldNewsReporterPortraits() {
   setStatus(els.offworldNewsStatus, "Starting reporter portrait regeneration…");
   setOffworldNewsButtonsDisabled(true);
   try {
-    await api.adminRegenerateAllOffworldNewsReporterPortraits();
+    const started = await api.adminRegenerateAllOffworldNewsReporterPortraits();
+    const queued = pickJson(started, "queuedCount") ?? 0;
+    if (queued > 0) {
+      setStatus(els.offworldNewsStatus, `Queued (${queued} job(s) waiting)…`);
+    }
     const job = await waitForReporterPortraitJob((message) => setStatus(els.offworldNewsStatus, message));
     const result = formatReporterPortraitJobStatus(job);
     await loadOnnReporters();

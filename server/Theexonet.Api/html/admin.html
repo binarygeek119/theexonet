@@ -91,6 +91,11 @@
           <h2>Dashboard</h2>
           <div id="admin-stats" class="admin-stats"></div>
         </section>
+        <section class="admin-panel">
+          <h2>AI generation queue</h2>
+          <p class="admin-page-desc">Single FIFO line for all OpenAI generation. Text jobs: ONN edition stories, Foreverfall intake dossiers, Lunar Weather bulletins. Image jobs: ONN story art and reporter portraits, Foreverfall mugshots, VoidCorp products, testing dummy assets, and company logos.</p>
+          <p id="admin-ai-image-queue-summary" class="admin-page-desc">Loading queue status…</p>
+        </section>
       </section>
 
       <section id="admin-page-testing" class="admin-page" hidden>
@@ -235,7 +240,7 @@
           <div class="admin-panel-head">
             <div>
               <h2>Foreverfall Penitentiary</h2>
-              <p class="admin-page-desc">Configure galactic lifetime-sentence inmate intake. New rosters publish at UTC midnight; portrait images accumulate until the pool cap, then reuse.</p>
+              <p class="admin-page-desc">Configure galactic lifetime-sentence inmate intake. New rosters publish at UTC midnight with inmate dossiers first; AI portraits generate in a background queue. Portrait images accumulate until the pool cap, then reuse.</p>
             </div>
           </div>
           <p id="admin-foreverfall-summary" class="admin-page-desc">Loading status…</p>
@@ -243,6 +248,7 @@
             <button id="admin-foreverfall-regen-btn" type="button" class="btn primary">Regenerate today's intake</button>
           </div>
           <p id="admin-foreverfall-status" class="status-text"></p>
+          <p id="admin-foreverfall-portrait-job" class="admin-page-desc"></p>
         </section>
 
         <section class="admin-panel">

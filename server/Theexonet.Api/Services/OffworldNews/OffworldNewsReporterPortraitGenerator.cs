@@ -19,6 +19,40 @@ public sealed class OffworldNewsReporterPortraitGenerator(
         PropertyNameCaseInsensitive = true,
     };
 
+    public async Task<(bool Ok, string? Error)> GenerateAvatarAsync(string slug, CancellationToken ct = default)
+    {
+        var reporter = OffworldNewsReporterCatalog.TryGetBySlug(slug);
+        if (reporter is null)
+        {
+            return (false, "Reporter not found.");
+        }
+
+        Directory.CreateDirectory(OffworldNewsReporterPaths.ReporterFolder(reportersAssetsRoot, slug));
+        var (prompt, filePath, size, category) = (
+            OffworldNewsReporterPortraitPrompts.BuildAvatarPrompt(reporter),
+            OffworldNewsReporterPaths.AvatarFilePath(reportersAssetsRoot, slug),
+            "1024x1024",
+            OpenAiUsageCategories.ReporterAvatar);
+        return await GenerateAndSaveAsync(prompt, filePath, size, category, ct);
+    }
+
+    public async Task<(bool Ok, string? Error)> GenerateBackgroundAsync(string slug, CancellationToken ct = default)
+    {
+        var reporter = OffworldNewsReporterCatalog.TryGetBySlug(slug);
+        if (reporter is null)
+        {
+            return (false, "Reporter not found.");
+        }
+
+        Directory.CreateDirectory(OffworldNewsReporterPaths.ReporterFolder(reportersAssetsRoot, slug));
+        var (prompt, filePath, size, category) = (
+            OffworldNewsReporterPortraitPrompts.BuildBackgroundPrompt(reporter),
+            OffworldNewsReporterPaths.BackgroundFilePath(reportersAssetsRoot, slug),
+            "1792x1024",
+            OpenAiUsageCategories.ReporterBackground);
+        return await GenerateAndSaveAsync(prompt, filePath, size, category, ct);
+    }
+
     public async Task<OffworldNewsReporterPortraitGenerationSummary> GenerateAllAsync(
         IReadOnlyList<string>? slugs = null,
         ReporterPortraitAssetKind assets = ReporterPortraitAssetKind.Both,

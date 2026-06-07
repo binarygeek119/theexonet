@@ -70,4 +70,21 @@ public record AdminForeverfallRegenerateResponse(
     string Source,
     int IntakeCount,
     int MaleCount,
-    int FemaleCount);
+    int FemaleCount,
+    int PortraitsQueued = 0);
+
+public record ForeverfallPortraitJobItem(
+    string ImageId,
+    string DisplayName,
+    string Species,
+    string Gender);
+
+public record AdminForeverfallPortraitJobDto(
+    string Status,
+    string? Message,
+    int PortraitAttempts,
+    int PortraitsSaved,
+    string? ImageGenerationError,
+    DateTime? StartedUtc,
+    DateTime? CompletedUtc,
+    int QueuedJobs = 0);

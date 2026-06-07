@@ -147,4 +147,5 @@ public record AdminOffworldNewsReporterPortraitJobDto(
     int ImagesSaved,
     string? ImageGenerationError,
     DateTime? StartedUtc,
-    DateTime? CompletedUtc);
+    DateTime? CompletedUtc,
+    int QueuedJobs = 0);

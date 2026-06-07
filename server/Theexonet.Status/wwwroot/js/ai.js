@@ -26,7 +26,6 @@ const els = {
   creditsGranted: document.getElementById("ai-credits-granted"),
   creditsRemaining: document.getElementById("ai-credits-remaining"),
   creditsUsed: document.getElementById("ai-credits-used"),
-  creditsNote: document.getElementById("ai-credits-note"),
   statsRows: document.getElementById("ai-stats-rows"),
   statsFoot: document.getElementById("ai-stats-foot"),
 };
@@ -133,7 +132,6 @@ function renderPage(data) {
   els.creditsGranted.textContent = formatUsd(theexonet.creditsGrantedUsd);
   els.creditsRemaining.textContent = formatUsd(theexonet.creditsRemainingUsd);
   els.creditsUsed.textContent = formatUsd(theexonet.creditsUsedUsd);
-  els.creditsNote.textContent = theexonet.creditsNote || "—";
 
   renderStatsTable(theexonet);
 

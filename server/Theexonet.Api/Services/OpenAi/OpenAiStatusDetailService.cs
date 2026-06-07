@@ -1,8 +1,10 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Theexonet.Api.Services.OffworldNews;
 using Theexonet.Core.Configuration;
 using Theexonet.Core.Dtos;
 using Theexonet.Core.Services;
+using Theexonet.Infrastructure.Services;
 
 namespace Theexonet.Api.Services.OpenAi;
 
@@ -14,7 +16,7 @@ public sealed class OpenAiStatusDetailService(
     IOptions<CompanyLogoOptions> companyLogoOptions,
     OffworldNewsAdminSettingsStore adminSettings,
     OffworldNewsService offworldNewsService,
-    OffworldNewsReporterPortraitJobService portraitJobService)
+    IServiceScopeFactory scopeFactory)
 {
     public async Task<PublicOpenAiStatusDetailResponse> BuildAsync(CancellationToken cancellationToken)
     {
@@ -40,10 +42,14 @@ public sealed class OpenAiStatusDetailService(
             Math.Max(0, logo.SecondsBetweenGenerations),
             string.IsNullOrWhiteSpace(logo.BaseUrl) ? "(same as OpenAi.BaseUrl)" : logo.BaseUrl.Trim());
 
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var queue = scope.ServiceProvider.GetRequiredService<AiImageQueueService>();
+        var portraitJob = await queue.GetStatusAsync("onn_reporter", cancellationToken);
+
         var exonet = offworldNewsService.GetPublicAiSnapshot(
             adminSettings.ReporterPoolSize,
             adminSettings.ActivePoolCount(),
-            portraitJobService.GetStatus());
+            portraitJob);
 
         decimal? creditsUsed = null;
         if (billing.CreditsGrantedUsd is not null && billing.CreditsRemainingUsd is not null)
@@ -81,60 +87,6 @@ public sealed class OpenAiStatusDetailService(
             exonet);
     }
 
-    private static IReadOnlyList<PublicOpenAiGameFeatureDto> BuildGameFeatures(
-        OffworldNewsOptions offworld,
-        CompanyLogoOptions logo,
-        OpenAiConnectionResolver openAi,
-        bool apiKeyConfigured)
-    {
-        var aiActive = apiKeyConfigured && offworld.Enabled;
-        return
-        [
-            new PublicOpenAiGameFeatureDto(
-                "exonet-stories",
-                "Exonet / Offworld News — daily headlines",
-                $"GPT writes JSON story drafts for the in-game news feed (Exonet tab). Daily story count varies around {offworld.StoriesPerDay} ±{offworld.StoriesPerDayVariance} (max {offworld.MaxStoriesPerDay}, date-seeded). Falls back to templates when AI is off.",
-                OpenAiUsageCategories.StoryGeneration,
-                aiActive,
-                openAi.TextModel),
-            new PublicOpenAiGameFeatureDto(
-                "exonet-images",
-                "Exonet — story illustrations",
-                "Image model renders up to MaxImagesPerDay AI illustrations per edition; other stories use category placeholders.",
-                OpenAiUsageCategories.ImageGeneration,
-                aiActive && offworld.MaxImagesPerDay > 0,
-                openAi.ImageModel),
-            new PublicOpenAiGameFeatureDto(
-                "reporter-avatars",
-                "Reporter profile pictures",
-                "AI head-and-shoulders portraits for Offworld News correspondents on Exonet.",
-                OpenAiUsageCategories.ReporterAvatar,
-                aiActive,
-                openAi.ImageModel),
-            new PublicOpenAiGameFeatureDto(
-                "reporter-backgrounds",
-                "Reporter profile banners",
-                "AI wide banner backgrounds for ONN bureau profiles (signature news locations).",
-                OpenAiUsageCategories.ReporterBackground,
-                aiActive,
-                openAi.ImageModel),
-            new PublicOpenAiGameFeatureDto(
-                "reporter-portraits-legacy",
-                "Reporter portraits (legacy bucket)",
-                "Older portrait jobs before avatar and banner were tracked separately.",
-                OpenAiUsageCategories.ReporterPortrait,
-                false,
-                openAi.ImageModel),
-            new PublicOpenAiGameFeatureDto(
-                "company-logos",
-                "Player company logos",
-                "Queued PNG logo generation from profile/company settings using the player’s company name and bio context.",
-                OpenAiUsageCategories.CompanyLogo,
-                apiKeyConfigured && logo.Enabled,
-                openAi.ImageModelForCompanyLogo(logo)),
-        ];
-    }
-
     private static string? MaskApiKey(string? apiKey)
     {
         if (string.IsNullOrWhiteSpace(apiKey))
@@ -145,9 +97,59 @@ public sealed class OpenAiStatusDetailService(
         var trimmed = apiKey.Trim();
         if (trimmed.Length <= 8)
         {
-            return "••••";
+            return "****";
         }
 
-        return $"…{trimmed[^4..]}";
+        return $"{trimmed[..4]}…{trimmed[^4..]}";
     }
+
+    private static IReadOnlyList<PublicOpenAiGameFeatureDto> BuildGameFeatures(
+        OffworldNewsOptions offworld,
+        CompanyLogoOptions logo,
+        OpenAiConnectionResolver openAi,
+        bool apiKeyConfigured) =>
+    [
+        new(
+            "offworld-news-stories",
+            "Offworld News stories",
+            "Daily AI-generated frontier news editions.",
+            OpenAiUsageCategories.StoryGeneration,
+            offworld.Enabled && apiKeyConfigured,
+            openAi.TextModel),
+        new(
+            "offworld-news-images",
+            "Offworld News story images",
+            "Illustrations for daily Offworld News stories.",
+            OpenAiUsageCategories.ImageGeneration,
+            offworld.Enabled && apiKeyConfigured,
+            openAi.ImageModel),
+        new(
+            "reporter-avatar",
+            "Reporter avatars",
+            "ONN correspondent profile portraits.",
+            OpenAiUsageCategories.ReporterAvatar,
+            offworld.Enabled && apiKeyConfigured,
+            openAi.ImageModel),
+        new(
+            "reporter-background",
+            "Reporter banners",
+            "ONN correspondent profile banner images.",
+            OpenAiUsageCategories.ReporterBackground,
+            offworld.Enabled && apiKeyConfigured,
+            openAi.ImageModel),
+        new(
+            "reporter-portraits-legacy",
+            "Reporter portraits (legacy bucket)",
+            "Older portrait jobs before avatar and banner were tracked separately.",
+            OpenAiUsageCategories.ReporterPortrait,
+            false,
+            openAi.ImageModel),
+        new(
+            "company-logo",
+            "Company logos",
+            "AI-generated player company logos.",
+            OpenAiUsageCategories.CompanyLogo,
+            logo.Enabled && apiKeyConfigured,
+            openAi.ImageModelForCompanyLogo(logo)),
+    ];
 }

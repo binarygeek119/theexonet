@@ -6,6 +6,8 @@ using Microsoft.Extensions.Options;
 using Theexonet.Core.Configuration;
 using Theexonet.Core.Dtos;
 using Theexonet.Core.Services;
+using Theexonet.Api.Services.AiImageQueue;
+using Theexonet.Core.Constants;
 using Theexonet.Infrastructure.Services;
 
 namespace Theexonet.Api.Services.OffworldNews;
@@ -17,10 +19,11 @@ public sealed class OffworldNewsService(
     TheexonetHostingPaths hostingPaths,
     IHttpClientFactory httpClientFactory,
     IServiceScopeFactory scopeFactory,
+    AiImageQueuePublisher aiImageQueuePublisher,
     ILogger<OffworldNewsService> logger)
 {
     private static readonly ConcurrentDictionary<DateOnly, SemaphoreSlim> GenerationLocks = new();
-    private static readonly ConcurrentDictionary<DateOnly, byte> BackgroundUpgradeQueued = new();
+    private static readonly TimeSpan EditionStoriesJobTimeout = TimeSpan.FromMinutes(10);
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -106,7 +109,7 @@ public sealed class OffworldNewsService(
     public PublicOpenAiExonetSnapshotDto GetPublicAiSnapshot(
         int reporterPoolSize,
         int activeReporterPool,
-        AdminOffworldNewsReporterPortraitJobDto portraitJob)
+        AdminAiImageQueueStatusDto portraitJob)
     {
         var today = UtcGameClock.Today;
         var edition = TryLoadEdition(today);
@@ -131,9 +134,9 @@ public sealed class OffworldNewsService(
             OffworldNewsReporterCatalog.All.Count,
             archiveCount,
             portraitJob.Status ?? "idle",
-            portraitJob.Message,
-            portraitJob.ImagesSaved,
-            portraitJob.ImageAttempts);
+            portraitJob.CurrentJobDescription,
+            portraitJob.CompletedToday,
+            portraitJob.CompletedToday + portraitJob.FailedToday);
     }
 
     public OffworldNewsReportersDto ListReporters() =>
@@ -174,16 +177,111 @@ public sealed class OffworldNewsService(
             return (null, "Reporter not found.");
         }
 
-        var generator = new OffworldNewsReporterPortraitGenerator(
+        var result = await aiImageQueuePublisher.EnqueueOnnReporterPortraitsAsync(
+            slugs,
+            assets,
+            "admin:reporter-portraits",
+            ct);
+        if (result.EnqueuedCount == 0)
+        {
+            return (null, result.Message ?? "No reporter portrait jobs were queued.");
+        }
+
+        var reporterCount = slugs is { Count: > 0 }
+            ? slugs.Count(slug => OffworldNewsReporterCatalog.TryGetBySlug(slug) is not null)
+            : OffworldNewsReporterCatalog.All.Count();
+        var imageAttempts = assets switch
+        {
+            ReporterPortraitAssetKind.Avatar => reporterCount,
+            ReporterPortraitAssetKind.Background => reporterCount,
+            _ => reporterCount * 2,
+        };
+
+        return (
+            new OffworldNewsReporterPortraitGenerationSummary(
+                reporterCount,
+                imageAttempts,
+                0,
+                null),
+            null);
+    }
+
+    public async Task<(bool Ok, string? Error)> ApplyQueuedStoryImageAsync(
+        DateOnly editionDate,
+        string storyId,
+        int storyIndex,
+        string? imagePrompt,
+        CancellationToken ct)
+    {
+        if (!openAi.IsApiKeyConfigured)
+        {
+            return (false, "OpenAi.ApiKey is not configured.");
+        }
+
+        var edition = TryLoadEdition(editionDate);
+        if (edition is null || edition.Stories.Count == 0)
+        {
+            return (false, $"No Offworld News edition found for {editionDate:yyyy-MM-dd}.");
+        }
+
+        var index = -1;
+        if (storyIndex >= 0 && storyIndex < edition.Stories.Count)
+        {
+            index = storyIndex;
+        }
+        else
+        {
+            for (var candidateIndex = 0; candidateIndex < edition.Stories.Count; candidateIndex++)
+            {
+                if (string.Equals(edition.Stories[candidateIndex].Id, storyId, StringComparison.OrdinalIgnoreCase))
+                {
+                    index = candidateIndex;
+                    break;
+                }
+            }
+        }
+
+        if (index < 0)
+        {
+            return (false, $"Story {storyId} not found in edition {editionDate:yyyy-MM-dd}.");
+        }
+
+        var story = edition.Stories[index];
+        var generator = new OpenAiOffworldNewsGenerator(
+            GenerationOptions,
+            _options,
             openAi,
             httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
-            hostingPaths.OffworldNewsReportersAssetsRoot,
             logger);
+        var (ok, error, imageUrl, imageAspect) = await generator.GenerateStoryImageAsync(
+            story,
+            imagePrompt,
+            editionDate,
+            index,
+            GetCacheRoot(),
+            ct);
 
-        var summary = await generator.GenerateAllAsync(slugs, assets, ct);
-        return summary.Succeeded == 0
-            ? (summary, summary.Error ?? "No reporter portraits were generated.")
-            : (summary, null);
+        var stories = edition.Stories.ToList();
+        if (ok && !string.IsNullOrWhiteSpace(imageUrl))
+        {
+            stories[index] = story with { ImageUrl = imageUrl, ImageAspect = imageAspect };
+        }
+        else
+        {
+            stories[index] = story with
+            {
+                ImageUrl = story.ImageUrl
+                    ?? OffworldNewsTemplateGenerator.PlaceholderImageForCategory(story.Category),
+            };
+        }
+
+        var updated = edition with
+        {
+            GeneratedAt = DateTime.UtcNow,
+            Stories = stories,
+        };
+        TrySaveEdition(EnrichEditionAuthors(EnsureStoryImages(updated)));
+        return ok ? (true, null) : (false, error ?? "Story image generation failed.");
     }
 
     private IReadOnlyList<OffworldNewsReporterStoryRefDto> ListStoriesByReporter(string displayName, int limit)
@@ -277,7 +375,7 @@ public sealed class OffworldNewsService(
                 if (!string.Equals(existing.Source, "openai", StringComparison.OrdinalIgnoreCase)
                     && openAi.IsApiKeyConfigured)
                 {
-                    QueueBackgroundAiUpgrade(date);
+                    await QueueEditionStoriesUpgradeAsync(date, forceRegenerate: false, ct);
                 }
 
                 return;
@@ -293,11 +391,6 @@ public sealed class OffworldNewsService(
                 return;
             }
 
-            if (forceRegenerate)
-            {
-                BackgroundUpgradeQueued.TryRemove(date, out _);
-            }
-
             var companyContext = await LoadCompanyContextAsync(ct);
             var template = OffworldNewsTemplateGenerator.Generate(date, ResolveStoryCount(date), companyContext);
             TrySaveEdition(template);
@@ -309,7 +402,7 @@ public sealed class OffworldNewsService(
 
             if (openAi.IsApiKeyConfigured)
             {
-                QueueBackgroundAiUpgrade(date);
+                await QueueEditionStoriesUpgradeAsync(date, forceRegenerate, ct);
             }
         }
         finally
@@ -423,7 +516,19 @@ public sealed class OffworldNewsService(
                 openAi,
                 httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
                 logger);
-            edition = await generator.GenerateAsync(date, GetCacheRoot(), companyContext, ct);
+            var (generatedEdition, imageJobs) = await generator.GenerateEditionWithoutImagesAsync(
+                date,
+                companyContext,
+                ct);
+            edition = generatedEdition;
+            if (imageJobs.Count > 0)
+            {
+                await aiImageQueuePublisher.EnqueueOnnStoryImagesAsync(
+                    date,
+                    imageJobs,
+                    $"onn:edition:{date:yyyy-MM-dd}",
+                    ct);
+            }
         }
 
         edition = EnrichEditionAuthors(EnsureStoryImages(edition));
@@ -431,49 +536,67 @@ public sealed class OffworldNewsService(
         return edition;
     }
 
-    private void QueueBackgroundAiUpgrade(DateOnly date)
+    private async Task QueueEditionStoriesUpgradeAsync(
+        DateOnly date,
+        bool forceRegenerate,
+        CancellationToken ct)
     {
         if (!openAi.IsApiKeyConfigured)
         {
             return;
         }
 
-        if (!BackgroundUpgradeQueued.TryAdd(date, 0))
+        var source = $"onn:edition:{date:yyyy-MM-dd}";
+        var result = await aiImageQueuePublisher.EnqueueOnnEditionStoriesAsync(
+            date,
+            forceRegenerate,
+            source,
+            ct);
+
+        if (result.EnqueuedCount > 0)
         {
-            return;
+            logger.LogInformation(
+                "Queued Offworld News edition stories job for {Date} (force={Force})",
+                date,
+                forceRegenerate);
+        }
+    }
+
+    public async Task<(bool Ok, string? Error)> ProcessEditionStoriesJobAsync(
+        DateOnly date,
+        bool forceRegenerate,
+        CancellationToken ct)
+    {
+        if (!_options.Enabled)
+        {
+            return (false, "Offworld News is disabled in configuration.");
         }
 
-        _ = Task.Run(async () =>
+        var gate = GenerationLocks.GetOrAdd(date, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try
         {
-            try
+            var cached = TryLoadEdition(date);
+            if (!forceRegenerate
+                && cached is not null
+                && string.Equals(cached.Source, "openai", StringComparison.OrdinalIgnoreCase))
             {
-                var gate = GenerationLocks.GetOrAdd(date, _ => new SemaphoreSlim(1, 1));
-                await gate.WaitAsync();
-                try
-                {
-                    var cached = TryLoadEdition(date);
-                    if (string.Equals(cached?.Source, "openai", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return;
-                    }
+                return (true, null);
+            }
 
-                    logger.LogInformation("Generating Offworld News AI edition for {Date} in background", date);
-                    await GenerateAndStoreEditionAsync(date, CancellationToken.None);
-                }
-                finally
-                {
-                    gate.Release();
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Background Offworld News AI upgrade failed for {Date}", date);
-            }
-            finally
-            {
-                BackgroundUpgradeQueued.TryRemove(date, out _);
-            }
-        });
+            await GenerateAndStoreEditionAsync(date, ct);
+            logger.LogInformation("Offworld News AI edition ready for {Date}", date);
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Offworld News edition stories job failed for {Date}", date);
+            return (false, ex.Message);
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     private void TrySaveEdition(OffworldNewsEditionDto edition)
@@ -514,11 +637,11 @@ public sealed class OffworldNewsService(
         }
 
         var date = UtcGameClock.Today;
+        var source = $"onn:edition:{date:yyyy-MM-dd}";
         var gate = GenerationLocks.GetOrAdd(date, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(ct);
         try
         {
-            BackgroundUpgradeQueued.TryRemove(date, out _);
             DeleteEditionImages(date);
 
             var stale = TryLoadEdition(date);
@@ -526,10 +649,52 @@ public sealed class OffworldNewsService(
             {
                 TrySaveEdition(ResetGeneratedImagesToPlaceholders(stale));
             }
+            else
+            {
+                var companyContext = await LoadCompanyContextAsync(ct);
+                var template = OffworldNewsTemplateGenerator.Generate(date, ResolveStoryCount(date), companyContext);
+                TrySaveEdition(template);
+            }
 
-            var edition = await GenerateAndStoreEditionAsync(date, ct);
+            if (!openAi.IsApiKeyConfigured)
+            {
+                var templateEdition = TryLoadEdition(date);
+                return (templateEdition, null);
+            }
+
+            var enqueue = await aiImageQueuePublisher.EnqueueOnnEditionStoriesAsync(
+                date,
+                forceRegenerate: true,
+                source,
+                ct);
+            if (enqueue.EnqueuedCount == 0 && enqueue.Message is not null)
+            {
+                return (null, enqueue.Message);
+            }
+
+            var wait = await aiImageQueuePublisher.WaitForJobAsync(
+                AiImageJobKinds.OnnEditionStories,
+                source,
+                EditionStoriesJobTimeout,
+                ct);
+            if (wait.Failed)
+            {
+                return (null, wait.Error ?? "Edition stories generation failed.");
+            }
+
+            if (!wait.Completed)
+            {
+                return (null, wait.Error ?? "Timed out waiting for edition stories generation.");
+            }
+
+            var edition = TryLoadEdition(date);
+            if (edition is null)
+            {
+                return (null, "Edition regeneration completed but edition file is missing.");
+            }
+
             logger.LogInformation("Admin regenerated Offworld News edition for {Date}", date);
-            return (edition, null);
+            return (EnrichEditionAuthors(EnsureStoryImages(edition)), null);
         }
         catch (Exception ex)
         {
@@ -585,34 +750,21 @@ public sealed class OffworldNewsService(
             existing = ResetGeneratedImagesToPlaceholdersForEdition(existing, date);
             TrySaveEdition(existing);
 
-            var generator = new OpenAiOffworldNewsGenerator(
-                GenerationOptions,
-                _options,
-                openAi,
-                httpClientFactory.CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
-                logger);
-            var (edition, imageSummary) = await generator.RegenerateImagesAsync(
-                existing,
-                storyIndices,
-                GetCacheRoot(),
-                ct);
-            edition = EnrichEditionAuthors(EnsureStoryImages(edition));
-            TrySaveEdition(edition);
-
-            var illustrated = CountIllustratedStories(edition);
-            logger.LogInformation(
-                "Admin regenerated Offworld News images for {Date}: {Succeeded}/{Attempted} illustrated ({StoryCount} stories targeted)",
+            var imageJobs = storyIndices
+                .Select(index => (existing.Stories[index].Id, index, (string?)null))
+                .ToList();
+            await aiImageQueuePublisher.EnqueueOnnStoryImagesAsync(
                 date,
-                imageSummary.Succeeded,
-                imageSummary.Attempted,
-                storyIndices.Count);
+                imageJobs,
+                "admin:regenerate-images",
+                ct);
 
-            if (illustrated == 0 && imageSummary.Attempted > 0)
-            {
-                return (null, imageSummary.DescribeFailure());
-            }
+            logger.LogInformation(
+                "Admin queued Offworld News image regeneration for {Date}: {Count} story image job(s)",
+                date,
+                imageJobs.Count);
 
-            return (edition, null);
+            return (EnrichEditionAuthors(EnsureStoryImages(existing)), null);
         }
         catch (Exception ex)
         {

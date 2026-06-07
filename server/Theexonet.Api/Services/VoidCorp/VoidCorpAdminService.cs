@@ -68,14 +68,20 @@ public sealed class VoidCorpAdminService(
         }
 
         var result = await backfillService.RunAsync("admin", cancellationToken);
-        if (result.Skipped && result.Attempted == 0 && result.Generated == 0)
+        if (result.Attempted == 0)
         {
-            return (null, "Another VoidCorp image generation run is already in progress.");
+            return (new AdminVoidCorpGenerateImagesResponse(
+                result.Skipped
+                    ? "VoidCorp image generation is not configured."
+                    : "All product images are already present.",
+                0,
+                0,
+                statusBefore.MissingImagesCount), null);
         }
 
         var statusAfter = GetStatus();
-        var message = result.Generated > 0
-            ? $"Generated {result.Generated} of {result.Attempted} missing product image(s)."
+        var message = result.Attempted > 0
+            ? $"Queued {result.Attempted} missing product image(s) for generation."
             : result.Attempted > 0
                 ? "Image generation attempted but no images were saved. Check API logs for details."
                 : "All product images are already present.";

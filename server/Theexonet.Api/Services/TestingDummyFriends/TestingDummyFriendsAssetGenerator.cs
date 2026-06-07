@@ -24,6 +24,61 @@ public sealed class TestingDummyFriendsAssetGenerator(
 
     public bool IsConfigured => openAi.IsApiKeyConfigured;
 
+    public async Task<(bool Ok, string? Error)> GenerateAvatarAsync(
+        TestingDummyFriendsProfile profile,
+        string assetsRoot,
+        CancellationToken ct)
+    {
+        if (!IsConfigured)
+        {
+            return (false, "OpenAi.ApiKey is not configured.");
+        }
+
+        Directory.CreateDirectory(TestingDummyFriendsPaths.ProfileFolder(assetsRoot, profile.Index));
+        return await GenerateJpegAsync(
+            TestingDummyFriendsPortraitPrompts.BuildAvatarPrompt(profile),
+            TestingDummyFriendsPaths.AvatarFilePath(assetsRoot, profile.Index),
+            "1024x1024",
+            OpenAiUsageCategories.TestingDummyAvatar,
+            ct);
+    }
+
+    public async Task<(bool Ok, string? Error)> GenerateBackgroundAsync(
+        TestingDummyFriendsProfile profile,
+        string assetsRoot,
+        CancellationToken ct)
+    {
+        if (!IsConfigured)
+        {
+            return (false, "OpenAi.ApiKey is not configured.");
+        }
+
+        Directory.CreateDirectory(TestingDummyFriendsPaths.ProfileFolder(assetsRoot, profile.Index));
+        return await GenerateJpegAsync(
+            TestingDummyFriendsPortraitPrompts.BuildBackgroundPrompt(profile),
+            TestingDummyFriendsPaths.BackgroundFilePath(assetsRoot, profile.Index),
+            "1792x1024",
+            OpenAiUsageCategories.TestingDummyBackground,
+            ct);
+    }
+
+    public async Task<(bool Ok, string? Error)> GenerateLogoAsync(
+        TestingDummyFriendsProfile profile,
+        string assetsRoot,
+        CancellationToken ct)
+    {
+        if (!IsConfigured)
+        {
+            return (false, "OpenAi.ApiKey is not configured.");
+        }
+
+        Directory.CreateDirectory(TestingDummyFriendsPaths.ProfileFolder(assetsRoot, profile.Index));
+        return await GenerateLogoFileAsync(
+            profile,
+            TestingDummyFriendsPaths.LogoFilePath(assetsRoot, profile.Index),
+            ct);
+    }
+
     public async Task<(int Attempted, int Succeeded, string? LastError)> EnsureProfileAssetsAsync(
         TestingDummyFriendsProfile profile,
         string assetsRoot,
@@ -85,7 +140,7 @@ public sealed class TestingDummyFriendsAssetGenerator(
         if (!File.Exists(logoPath))
         {
             attempted++;
-            var (ok, error) = await GenerateLogoAsync(profile, logoPath, ct);
+            var (ok, error) = await GenerateLogoFileAsync(profile, logoPath, ct);
             if (ok)
             {
                 succeeded++;
@@ -143,7 +198,7 @@ public sealed class TestingDummyFriendsAssetGenerator(
         }
     }
 
-    private async Task<(bool Ok, string? Error)> GenerateLogoAsync(
+    private async Task<(bool Ok, string? Error)> GenerateLogoFileAsync(
         TestingDummyFriendsProfile profile,
         string filePath,
         CancellationToken ct)

@@ -117,5 +117,9 @@
   "CompanyLogo": {
     "Enabled": true,
     "SecondsBetweenGenerations": 8
+  },
+  "AiImageQueue": {
+    "Enabled": true,
+    "SecondsBetweenJobs": 3
   }
 }

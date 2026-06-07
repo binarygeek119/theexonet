@@ -15,7 +15,6 @@ const els = {
   theexonetCreditsRemaining: document.getElementById("theexonet-credits-remaining"),
   theexonetCreditsGranted: document.getElementById("theexonet-credits-granted"),
   theexonetCreditsUsed: document.getElementById("theexonet-credits-used"),
-  theexonetCreditsNote: document.getElementById("theexonet-credits-note"),
   theexonetRequestsTotal: document.getElementById("theexonet-requests-total"),
   theexonetRequestsToday: document.getElementById("theexonet-requests-today"),
   theexonetLastRequest: document.getElementById("theexonet-last-request"),
@@ -204,7 +203,6 @@ function renderTheexonet(theexonet, theexonetError, apiPublicUrl, gameUrl) {
   els.theexonetCreditsRemaining.textContent = formatUsd(theexonet.creditsRemainingUsd);
   els.theexonetCreditsGranted.textContent = formatUsd(theexonet.creditsGrantedUsd);
   els.theexonetCreditsUsed.textContent = formatUsd(theexonet.creditsUsedUsd);
-  els.theexonetCreditsNote.textContent = theexonet.creditsNote || "—";
   els.theexonetRequestsTotal.textContent = formatCount(theexonet.totalRequests);
   els.theexonetRequestsToday.textContent = formatCount(theexonet.requestsToday);
   els.theexonetLastRequest.textContent = formatUtc(theexonet.lastRequestUtc);

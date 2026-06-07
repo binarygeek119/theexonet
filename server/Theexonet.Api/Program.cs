@@ -12,14 +12,16 @@ using Theexonet.Api.Services.Market;
 using Theexonet.Api.Services.CompanyLogo;
 using Theexonet.Api.Services.OpenAi;
 using Theexonet.Api.Services.ExonetAiAssetScan;
+using Theexonet.Api.Services.AiImageQueue;
+using Theexonet.Api.Services.AiImageQueue.Handlers;
 using Theexonet.Api.Services.Foreverfall;
 using Theexonet.Api.Services.LunarWeather;
 using Theexonet.Api.Services.OffworldNews;
 using Theexonet.Api.Services.TestingDummyFriends;
 using Theexonet.Api.Services.VoidCorp;
 using Theexonet.Core.Configuration;
-using Theexonet.Core.Constants;
 using Theexonet.Core.Interfaces;
+using Theexonet.Core.Constants;
 using Theexonet.Core.Services;
 using Theexonet.Infrastructure;
 using Theexonet.Infrastructure.Data;
@@ -155,6 +157,7 @@ builder.Services.Configure<OffworldNewsOptions>(builder.Configuration.GetSection
 builder.Services.Configure<LunarWeatherOptions>(builder.Configuration.GetSection(LunarWeatherOptions.SectionName));
 builder.Services.Configure<ForeverfallOptions>(builder.Configuration.GetSection(ForeverfallOptions.SectionName));
 builder.Services.Configure<VoidCorpOptions>(builder.Configuration.GetSection(VoidCorpOptions.SectionName));
+builder.Services.Configure<AiImageQueueOptions>(builder.Configuration.GetSection(AiImageQueueOptions.SectionName));
 builder.Services.Configure<ExonetAiAssetScannerOptions>(builder.Configuration.GetSection(ExonetAiAssetScannerOptions.SectionName));
 builder.Services.AddSingleton<OpenAiConnectionResolver>();
 builder.Services.Configure<CompanyLogoOptions>(builder.Configuration.GetSection(CompanyLogoOptions.SectionName));
@@ -208,8 +211,29 @@ builder.Services.AddHttpClient(OpenAiOffworldNewsGenerator.HttpClientName, clien
         client.Timeout = TimeSpan.FromMinutes(3);
     })
     .AddHttpMessageHandler<OpenAiUsageLoggingHandler>();
+builder.Services.AddScoped<AiImageQueueService>();
+builder.Services.AddSingleton<AiImageQueuePublisher>();
+builder.Services.AddScoped<IAiImageJobHandler, OnnEditionStoriesJobHandler>();
+builder.Services.AddScoped<IAiImageJobHandler, OnnReporterAvatarJobHandler>();
+builder.Services.AddScoped<IAiImageJobHandler, OnnReporterBackgroundJobHandler>();
+builder.Services.AddScoped<IAiImageJobHandler, OnnStoryImageJobHandler>();
+builder.Services.AddScoped<IAiImageJobHandler, ForeverfallIntakeJobHandler>();
+builder.Services.AddScoped<IAiImageJobHandler, ForeverfallPortraitJobHandler>();
+builder.Services.AddScoped<IAiImageJobHandler, LunarWeatherBulletinJobHandler>();
+builder.Services.AddScoped<IAiImageJobHandler, VoidCorpProductJobHandler>();
+builder.Services.AddScoped<IAiImageJobHandler, TestingDummyAvatarJobHandler>();
+builder.Services.AddScoped<IAiImageJobHandler, TestingDummyBackgroundJobHandler>();
+builder.Services.AddScoped<IAiImageJobHandler, TestingDummyLogoJobHandler>();
+builder.Services.AddScoped<IAiImageJobHandler, CompanyLogoJobHandler>();
+builder.Services.AddHostedService<AiImageQueueProcessorService>();
+builder.Services.AddHostedService<AiImageQueueRecoveryService>();
+builder.Services.AddSingleton<OffworldNewsReporterPortraitGenerator>(sp =>
+    new OffworldNewsReporterPortraitGenerator(
+        sp.GetRequiredService<OpenAiConnectionResolver>(),
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient(OpenAiOffworldNewsGenerator.HttpClientName),
+        sp.GetRequiredService<TheexonetHostingPaths>().OffworldNewsReportersAssetsRoot,
+        sp.GetRequiredService<ILogger<OffworldNewsReporterPortraitGenerator>>()));
 builder.Services.AddSingleton<OffworldNewsService>();
-builder.Services.AddSingleton<OffworldNewsReporterPortraitJobService>();
 builder.Services.AddSingleton<TestingDummyFriendsAssetGenerator>();
 builder.Services.AddSingleton<TestingDummyFriendsAssetService>();
 builder.Services.AddSingleton<OffworldNewsAdminSettingsStore>();
@@ -261,7 +285,6 @@ builder.Services.AddSingleton<FallbackMarketDataProvider>();
 builder.Services.AddSingleton<IMarketDataProvider>(sp => sp.GetRequiredService<FallbackMarketDataProvider>());
 builder.Services.AddHostedService<MarketMidnightRefreshService>();
 builder.Services.AddHostedService<CompanyLogoMidnightSchedulerService>();
-builder.Services.AddHostedService<CompanyLogoQueueProcessorService>();
 builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddSingleton<ITokenService, JwtTokenService>();
 

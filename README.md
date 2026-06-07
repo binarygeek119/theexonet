@@ -148,6 +148,37 @@ GitHub Actions on `main`:
 
 Dependabot opens weekly update PRs for NuGet and GitHub Actions.
 
+### Security and code audit
+
+**theexonet is built primarily with AI-assisted development.** Automated checks (CodeQL, dependency audits, CI tests) help, but they are not a substitute for human review.
+
+I am looking for **code auditors and security reviewers** who can help assess the codebase end to end—authentication, authorization, input validation, secrets handling, deployment posture, and player-data safety. If you have experience in application security, penetration testing, or secure code review and want to audit an MPL-2.0 game stack (ASP.NET Core, PostgreSQL, browser client), please get in touch.
+
+Reasonable reports, pull requests, and coordinated disclosure are welcome.
+
+---
+
+## Get involved
+
+theexonet is an open project and I would like more people to help shape it. You do not need to commit to a huge roadmap—a focused PR, design note, or audit is valuable.
+
+| Area | Examples |
+|------|----------|
+| **Coding** | Bug fixes, refactors, tests, tooling, scripts |
+| **Ideas** | Gameplay, economy, Exonet lore, moderation workflows |
+| **Art** | UI visuals, icons, mine/asteroid presentation, branding |
+| **Backend** | API, simulation, data, schedulers, PostgreSQL |
+| **Frontend** | Game UI (`html/`), JavaScript, CSS, accessibility |
+| **UI / UX** | Layout, flows, mobile-friendly patterns, portal design |
+
+**Ways to contribute**
+
+- Open a [GitHub issue](https://github.com/binarygeek119/theexonet/issues) to discuss an idea before coding
+- Submit a pull request against `main` (see [docs/branch-protection.md](docs/branch-protection.md))
+- For security findings, prefer a private report if the issue is sensitive
+
+If you are unsure where to start, say what interests you (gameplay, ops, art, security) and we can point you at a good first task.
+
 ---
 
 ## Documentation

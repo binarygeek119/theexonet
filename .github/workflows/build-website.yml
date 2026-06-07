@@ -103,13 +103,20 @@ jobs:
       - name: Publish web app
         run: bash ../scripts/test-publish-bundle.sh
 
+      - name: Stage publish artifact
+        run: |
+          set -euo pipefail
+          stage="${GITHUB_WORKSPACE}/theexonet-artifact"
+          mkdir -p "${stage}/publish" "${stage}/data"
+          rsync -a publish/ "${stage}/publish/"
+          rsync -a data/ "${stage}/data/"
+          test -f "${stage}/publish/Theexonet.Api.dll"
+
       - name: Upload publish artifact
         uses: actions/upload-artifact@v7
         with:
           name: theexonet-website
-          path: |
-            server/publish/
-            server/data/
+          path: theexonet-artifact/
           if-no-files-found: error
 
   release:
@@ -132,12 +139,8 @@ jobs:
           name: theexonet-website
           path: .
 
-      - name: Prepare release bundle
-        run: |
-          set -euo pipefail
-          rsync -a server/publish/ publish/
-          rsync -a server/data/ data/
-          test -f publish/Theexonet.Api.dll
+      - name: Verify release bundle
+        run: test -f publish/Theexonet.Api.dll
 
       - name: Create release archive
         run: zip -r "theexonet-website-${{ needs.build.outputs.release_tag }}.zip" publish data
@@ -224,8 +227,11 @@ jobs:
       - name: Prepare deploy bundle
         run: |
           set -euo pipefail
-          rsync -a server/publish/ publish/
-          rsync -a server/data/ data/
+          if [ ! -f publish/Theexonet.Api.dll ]; then
+            echo "ERROR: publish/Theexonet.Api.dll missing after artifact download." >&2
+            find . -name 'Theexonet.Api.dll' >&2 || true
+            exit 1
+          fi
           rsync -a server/Theexonet.Api/html/ publish/html/
           test -f publish/Theexonet.Api.dll
 

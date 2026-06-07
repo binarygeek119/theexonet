@@ -2,7 +2,10 @@
 # Promote FTP/GitHub staging uploads into the live publish folder and restart services.
 # Run as root after uploading a publish bundle to /var/www/staging:
 #   sudo bash scripts/theexonet/promote-staging.sh
+#   sudo bash scripts/theexonet/promote-staging.sh theexonet-website-deploy-<sha>.tar.gz
 set -euo pipefail
+
+REQUESTED_ARCHIVE="${1:-}"
 
 STAGING_DIR="${THEEXONET_STAGING_DIR:-/var/www/staging}"
 PUBLISH_DIR="${THEEXONET_PUBLISH_DIR:-/var/www/publish}"
@@ -15,9 +18,9 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-for cmd in unzip rsync; do
+for cmd in unzip rsync tar; do
   if ! command -v "${cmd}" >/dev/null 2>&1; then
-    echo "ERROR: ${cmd} is required to promote deploy zips. Run: sudo apt-get install -y unzip rsync" >&2
+    echo "ERROR: ${cmd} is required to promote deploy archives. Run: sudo apt-get install -y unzip rsync tar" >&2
     exit 1
   fi
 done
@@ -63,15 +66,50 @@ extract_archive() {
 force_remove "${STAGING_DIR}/unpack"
 find "${STAGING_DIR}" -maxdepth 1 -type d -name '.unpack.*' -exec rm -rf {} + 2>/dev/null || true
 
-# Unpack zip/tar if present
-shopt -s nullglob
-for archive in \
-  "${STAGING_DIR}"/*.zip \
-  "${STAGING_DIR}"/*.tar.gz \
-  "${STAGING_DIR}"/*.tgz \
-  "${STAGING_DIR}"/theexonet-website-*.zip \
-  "${STAGING_DIR}"/theexonet-website-deploy-*.zip \
-  "${STAGING_DIR}"/theexonet-website-deploy-*.tar.gz; do
+discover_archives() {
+  shopt -s nullglob
+  declare -A seen=()
+  local -a found=()
+  local pattern file canon
+
+  for pattern in \
+    "${STAGING_DIR}"/theexonet-website-deploy-*.tar.gz \
+    "${STAGING_DIR}"/theexonet-website-deploy-*.zip \
+    "${STAGING_DIR}"/theexonet-website-deploy-*.tgz \
+    "${STAGING_DIR}"/theexonet-website-*.tar.gz \
+    "${STAGING_DIR}"/theexonet-website-*.zip \
+    "${STAGING_DIR}"/*.tar.gz \
+    "${STAGING_DIR}"/*.zip \
+    "${STAGING_DIR}"/*.tgz; do
+    for file in ${pattern}; do
+      [ -f "${file}" ] || continue
+      canon="$(readlink -f "${file}")"
+      if [ -n "${seen[${canon}]+x}" ]; then
+        continue
+      fi
+      seen["${canon}"]=1
+      found+=("${file}")
+    done
+  done
+
+  printf '%s\0' "${found[@]}"
+}
+
+newest_archive() {
+  local -a files=("$@")
+  local newest="" file mtime newest_mtime=0
+  for file in "${files[@]}"; do
+    mtime="$(stat -c %Y "${file}" 2>/dev/null || echo 0)"
+    if [ "${mtime}" -gt "${newest_mtime}" ]; then
+      newest_mtime="${mtime}"
+      newest="${file}"
+    fi
+  done
+  printf '%s' "${newest}"
+}
+
+promote_archive() {
+  local archive="$1"
   echo "Unpacking ${archive}…"
   unpack_dir="$(mktemp -d "${STAGING_DIR}/.unpack.XXXXXX")"
   if ! extract_archive "${archive}" "${unpack_dir}"; then
@@ -98,7 +136,39 @@ for archive in \
   fi
   force_remove "${unpack_dir}"
   rm -f "${archive}"
-done
+}
+
+mapfile -d '' -t STAGING_ARCHIVES < <(discover_archives)
+
+if [ -n "${REQUESTED_ARCHIVE}" ]; then
+  REQUESTED_ARCHIVE="$(basename "${REQUESTED_ARCHIVE}")"
+  TARGET_ARCHIVE="${STAGING_DIR}/${REQUESTED_ARCHIVE}"
+  if [ ! -f "${TARGET_ARCHIVE}" ]; then
+    echo "ERROR: requested archive not found: ${TARGET_ARCHIVE}" >&2
+    exit 1
+  fi
+  # Drop stale CI/FTP deploy bundles so overlapping globs cannot re-process them.
+  shopt -s nullglob
+  for stale in \
+    "${STAGING_DIR}"/theexonet-website-deploy-*.tar.gz \
+    "${STAGING_DIR}"/theexonet-website-deploy-*.zip \
+    "${STAGING_DIR}"/theexonet-website-deploy-*.tgz; do
+    if [ "${stale}" != "${TARGET_ARCHIVE}" ]; then
+      rm -f "${stale}"
+    fi
+  done
+  promote_archive "${TARGET_ARCHIVE}"
+elif [ "${#STAGING_ARCHIVES[@]}" -eq 0 ]; then
+  echo "Nothing to promote in ${STAGING_DIR}" >&2
+  exit 1
+else
+  TARGET_ARCHIVE="$(newest_archive "${STAGING_ARCHIVES[@]}")"
+  if [ -z "${TARGET_ARCHIVE}" ]; then
+    echo "Nothing to promote in ${STAGING_DIR}" >&2
+    exit 1
+  fi
+  promote_archive "${TARGET_ARCHIVE}"
+fi
 
 if [ ! -f "${PUBLISH_DIR}/Theexonet.Api.dll" ]; then
   echo "ERROR: ${PUBLISH_DIR}/Theexonet.Api.dll is missing after promote." >&2

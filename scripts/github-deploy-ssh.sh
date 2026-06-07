@@ -67,6 +67,6 @@ fi
 
 echo "Promote and restart…"
 SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
-  'sudo promote-theexonet-staging'
+  "sudo promote-theexonet-staging '${REMOTE_NAME}'"
 
 echo "SSH deploy complete."

@@ -7,8 +7,67 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-SRC_DIR="${1:-$SCRIPT_DIR}"
 LIB_DIR="${THEEXONET_LIB_DIR:-/usr/local/lib/theexonet/scripts}"
+
+looks_like_scripts_dir() {
+  local dir="$1"
+  [ -d "${dir}/systemd" ] && [ -f "${dir}/restart-theexonet.sh" ]
+}
+
+resolve_repo_scripts_dir() {
+  local candidate server_dir repo_root
+
+  if [ -n "${THEEXONET_SCRIPTS_DIR:-}" ] && looks_like_scripts_dir "${THEEXONET_SCRIPTS_DIR}"; then
+    cd "${THEEXONET_SCRIPTS_DIR}" && pwd
+    return 0
+  fi
+
+  if [ -f "${SCRIPT_DIR}/resolve-server-dir.sh" ]; then
+    if server_dir="$(bash "${SCRIPT_DIR}/resolve-server-dir.sh" 2>/dev/null || true)"; then
+      repo_root="$(dirname "${server_dir}")"
+      candidate="${repo_root}/scripts"
+      if looks_like_scripts_dir "${candidate}"; then
+        cd "${candidate}" && pwd
+        return 0
+      fi
+    fi
+  fi
+
+  for candidate in \
+    "/opt/theexonet/theexonet/scripts" \
+    "/opt/theexonet/scripts" \
+    "${PWD}/scripts"; do
+    if looks_like_scripts_dir "${candidate}"; then
+      cd "${candidate}" && pwd
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+if [ -n "${1:-}" ]; then
+  SRC_DIR="$(cd "${1}" && pwd)"
+elif [ "$(readlink -f "${SCRIPT_DIR}")" = "$(readlink -f "${LIB_DIR}")" ]; then
+  if ! SRC_DIR="$(resolve_repo_scripts_dir)"; then
+    echo "Could not find git scripts directory. After git pull, run one of:" >&2
+    echo "  sudo install-theexonet-scripts /opt/theexonet/theexonet/scripts" >&2
+    echo "  cd /opt/theexonet/theexonet && sudo bash scripts/install-bin-scripts.sh" >&2
+    exit 1
+  fi
+  echo "Using git scripts from ${SRC_DIR}"
+else
+  SRC_DIR="${SCRIPT_DIR}"
+fi
+
+copy_script() {
+  local src="$1"
+  local dest="$2"
+  if [ "$(readlink -f "${src}")" = "$(readlink -f "${dest}")" ]; then
+    return 0
+  fi
+  cp -f "${src}" "${dest}"
+}
 TEMPLATE_DIR="${THEEXONET_TEMPLATE_DATA_DIR:-/usr/local/lib/theexonet/data}"
 HTML_TEMPLATE_DIR="${THEEXONET_HTML_TEMPLATE_DIR:-/usr/local/lib/theexonet/html}"
 BIN_DIR="/usr/local/bin"
@@ -55,61 +114,61 @@ for script in \
     echo "Missing ${SRC_DIR}/${script}" >&2
     exit 1
   fi
-  cp -f "${SRC_DIR}/${script}" "${LIB_DIR}/${script}"
+  copy_script "${SRC_DIR}/${script}" "${LIB_DIR}/${script}"
   chmod 755 "${LIB_DIR}/${script}"
 done
 
 if [ -f "${SRC_DIR}/theexonet/promote-staging.sh" ]; then
-  cp -f "${SRC_DIR}/theexonet/promote-staging.sh" "${LIB_DIR}/promote-staging.sh"
+  copy_script "${SRC_DIR}/theexonet/promote-staging.sh" "${LIB_DIR}/promote-staging.sh"
   chmod 755 "${LIB_DIR}/promote-staging.sh"
 fi
 if [ -f "${SRC_DIR}/install-staging-watcher.sh" ]; then
-  cp -f "${SRC_DIR}/install-staging-watcher.sh" "${LIB_DIR}/install-staging-watcher.sh"
+  copy_script "${SRC_DIR}/install-staging-watcher.sh" "${LIB_DIR}/install-staging-watcher.sh"
   chmod 755 "${LIB_DIR}/install-staging-watcher.sh"
 fi
 if [ -f "${SRC_DIR}/theexonet/staging-watcher.sh" ]; then
   mkdir -p "${LIB_DIR}/theexonet"
-  cp -f "${SRC_DIR}/theexonet/staging-watcher.sh" "${LIB_DIR}/theexonet/staging-watcher.sh"
-  cp -f "${SRC_DIR}/theexonet/promote-staging.sh" "${LIB_DIR}/theexonet/promote-staging.sh"
+  copy_script "${SRC_DIR}/theexonet/staging-watcher.sh" "${LIB_DIR}/theexonet/staging-watcher.sh"
+  copy_script "${SRC_DIR}/theexonet/promote-staging.sh" "${LIB_DIR}/theexonet/promote-staging.sh"
   chmod 755 "${LIB_DIR}/theexonet/staging-watcher.sh" "${LIB_DIR}/theexonet/promote-staging.sh"
 fi
 if [ -f "${SRC_DIR}/theexonet/install-ssl-certs.sh" ]; then
-  cp -f "${SRC_DIR}/theexonet/install-ssl-certs.sh" "${LIB_DIR}/install-ssl-certs.sh"
+  copy_script "${SRC_DIR}/theexonet/install-ssl-certs.sh" "${LIB_DIR}/install-ssl-certs.sh"
   chmod 755 "${LIB_DIR}/install-ssl-certs.sh"
 fi
 if [ -f "${SRC_DIR}/theexonet/install-apache-ssl-vhosts.sh" ]; then
-  cp -f "${SRC_DIR}/theexonet/install-apache-ssl-vhosts.sh" "${LIB_DIR}/install-apache-ssl-vhosts.sh"
+  copy_script "${SRC_DIR}/theexonet/install-apache-ssl-vhosts.sh" "${LIB_DIR}/install-apache-ssl-vhosts.sh"
   chmod 755 "${LIB_DIR}/install-apache-ssl-vhosts.sh"
 fi
 if [ -f "${SRC_DIR}/theexonet/apache-theexonet-ssl.conf" ]; then
-  cp -f "${SRC_DIR}/theexonet/apache-theexonet-ssl.conf" "${LIB_DIR}/apache-theexonet-ssl.conf"
+  copy_script "${SRC_DIR}/theexonet/apache-theexonet-ssl.conf" "${LIB_DIR}/apache-theexonet-ssl.conf"
 fi
 if [ -f "${SRC_DIR}/theexonet/sync-postgres-password.sh" ]; then
-  cp -f "${SRC_DIR}/theexonet/sync-postgres-password.sh" "${LIB_DIR}/sync-postgres-password.sh"
+  copy_script "${SRC_DIR}/theexonet/sync-postgres-password.sh" "${LIB_DIR}/sync-postgres-password.sh"
   chmod 755 "${LIB_DIR}/sync-postgres-password.sh"
 fi
 if [ -f "${SRC_DIR}/theexonet/setup-github-ssh-restart.sh" ]; then
-  cp -f "${SRC_DIR}/theexonet/setup-github-ssh-restart.sh" "${LIB_DIR}/setup-github-ssh-restart.sh"
+  copy_script "${SRC_DIR}/theexonet/setup-github-ssh-restart.sh" "${LIB_DIR}/setup-github-ssh-restart.sh"
   chmod 755 "${LIB_DIR}/setup-github-ssh-restart.sh"
 fi
 if [ -f "${SRC_DIR}/theexonet/diagnose-ftps.sh" ]; then
-  cp -f "${SRC_DIR}/theexonet/diagnose-ftps.sh" "${LIB_DIR}/diagnose-ftps.sh"
+  copy_script "${SRC_DIR}/theexonet/diagnose-ftps.sh" "${LIB_DIR}/diagnose-ftps.sh"
   chmod 755 "${LIB_DIR}/diagnose-ftps.sh"
 fi
 if [ -f "${SRC_DIR}/theexonet/set-gameftp-password.sh" ]; then
-  cp -f "${SRC_DIR}/theexonet/set-gameftp-password.sh" "${LIB_DIR}/set-gameftp-password.sh"
+  copy_script "${SRC_DIR}/theexonet/set-gameftp-password.sh" "${LIB_DIR}/set-gameftp-password.sh"
   chmod 755 "${LIB_DIR}/set-gameftp-password.sh"
 fi
 if [ -f "${SRC_DIR}/github-deploy-restart.sh" ]; then
-  cp -f "${SRC_DIR}/github-deploy-restart.sh" "${LIB_DIR}/github-deploy-restart.sh"
+  copy_script "${SRC_DIR}/github-deploy-restart.sh" "${LIB_DIR}/github-deploy-restart.sh"
   chmod 755 "${LIB_DIR}/github-deploy-restart.sh"
 fi
 if [ -f "${SRC_DIR}/github-deploy-ssh.sh" ]; then
-  cp -f "${SRC_DIR}/github-deploy-ssh.sh" "${LIB_DIR}/github-deploy-ssh.sh"
+  copy_script "${SRC_DIR}/github-deploy-ssh.sh" "${LIB_DIR}/github-deploy-ssh.sh"
   chmod 755 "${LIB_DIR}/github-deploy-ssh.sh"
 fi
 if [ -f "${SRC_DIR}/theexonet/stage-github-upload.sh" ]; then
-  cp -f "${SRC_DIR}/theexonet/stage-github-upload.sh" "${LIB_DIR}/theexonet/stage-github-upload.sh"
+  copy_script "${SRC_DIR}/theexonet/stage-github-upload.sh" "${LIB_DIR}/theexonet/stage-github-upload.sh"
   chmod 755 "${LIB_DIR}/theexonet/stage-github-upload.sh"
 fi
 if ! command -v unzip >/dev/null 2>&1 || ! command -v rsync >/dev/null 2>&1; then

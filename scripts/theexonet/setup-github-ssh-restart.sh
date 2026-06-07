@@ -1,18 +1,21 @@
 #!/bin/bash
-# Enable password SSH so GitHub Actions can promote/restart after FTPS deploy.
+# Create a dedicated SSH user for GitHub Actions deploy (promote staging + restart game).
 #
-# One-time on the GCP VM as root (use the same password you will store in GitHub):
-#   sudo DEPLOY_SSH_PASSWORD='YourStrongPassword' bash scripts/theexonet/setup-github-ssh-restart.sh
+# One-time on the GCP VM as root:
+#   sudo DEPLOY_SSH_PASSWORD='YourStrongDeployPassword' bash scripts/theexonet/setup-github-ssh-restart.sh
 #
-# Then GitHub → Settings → Secrets → DEPLOY_SSH_PASSWORD (same value).
+# GitHub → Secrets → DEPLOY_SSH_PASSWORD (same password)
+# GitHub → Variables → DEPLOY_USER = githubdeploy
 #
 # Env:
-#   DEPLOY_SSH_PASSWORD  — required; sets login password for DEPLOY_SSH_USER
-#   DEPLOY_SSH_USER      — default root
+#   DEPLOY_SSH_PASSWORD  — required
+#   DEPLOY_SSH_USER      — default githubdeploy
 set -euo pipefail
 
-DEPLOY_USER="${DEPLOY_SSH_USER:-root}"
+DEPLOY_USER="${DEPLOY_SSH_USER:-githubdeploy}"
 DEPLOY_PASSWORD="${DEPLOY_SSH_PASSWORD:-}"
+GAME_GROUP="${THEEXONET_SERVICE_GROUP:-theexonet}"
+LIB_DIR="${THEEXONET_LIB_DIR:-/usr/local/lib/theexonet/scripts}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run as root." >&2
@@ -20,55 +23,71 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 if [ -z "${DEPLOY_PASSWORD}" ]; then
-  echo "ERROR: Set DEPLOY_SSH_PASSWORD (the password GitHub Actions will use)." >&2
+  echo "ERROR: Set DEPLOY_SSH_PASSWORD." >&2
   echo "  sudo DEPLOY_SSH_PASSWORD='...' bash scripts/theexonet/setup-github-ssh-restart.sh" >&2
   exit 1
 fi
 
-if ! id "${DEPLOY_USER}" >/dev/null 2>&1; then
-  echo "ERROR: user ${DEPLOY_USER} does not exist." >&2
-  exit 1
+if ! getent group "${GAME_GROUP}" >/dev/null 2>&1; then
+  groupadd "${GAME_GROUP}" 2>/dev/null || true
+fi
+
+if id "${DEPLOY_USER}" >/dev/null 2>&1; then
+  echo "User ${DEPLOY_USER} already exists — updating password and sudoers."
+  usermod -aG "${GAME_GROUP}" "${DEPLOY_USER}" 2>/dev/null || true
+else
+  useradd -m -s /bin/bash -G "${GAME_GROUP}" "${DEPLOY_USER}"
+  echo "Created user ${DEPLOY_USER} (group ${GAME_GROUP})."
 fi
 
 echo "${DEPLOY_USER}:${DEPLOY_PASSWORD}" | chpasswd
-echo "Set password for ${DEPLOY_USER}"
+echo "Set password for ${DEPLOY_USER}."
 
 mkdir -p /etc/ssh/sshd_config.d
-cat >/etc/ssh/sshd_config.d/99-theexonet-deploy-password.conf <<'EOF'
-# GitHub Actions deploy: password SSH for promote/restart (setup-github-ssh-restart.sh).
-PasswordAuthentication yes
-PermitRootLogin yes
+cat >/etc/ssh/sshd_config.d/99-theexonet-github-deploy.conf <<EOF
+# Dedicated GitHub deploy user — password SSH only (setup-github-ssh-restart.sh).
+PasswordAuthentication no
+PermitRootLogin prohibit-password
 KbdInteractiveAuthentication no
+
+Match User ${DEPLOY_USER}
+    PasswordAuthentication yes
+    PermitTTY no
+    X11Forwarding no
+    AllowTcpForwarding no
 EOF
-chmod 644 /etc/ssh/sshd_config.d/99-theexonet-deploy-password.conf
+chmod 644 /etc/ssh/sshd_config.d/99-theexonet-github-deploy.conf
 
 if sshd -t 2>/dev/null; then
   systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
-  echo "Reloaded sshd (password login enabled)."
+  echo "Reloaded sshd (${DEPLOY_USER} may use password; root key-only)."
 else
-  echo "WARN: sshd -t failed — check /etc/ssh/sshd_config.d/99-theexonet-deploy-password.conf" >&2
+  echo "WARN: sshd -t failed — check /etc/ssh/sshd_config.d/99-theexonet-github-deploy.conf" >&2
 fi
 
-# Non-root deploy users need passwordless sudo for promote/restart.
-if [ "${DEPLOY_USER}" != "root" ]; then
-  sudoers="/etc/sudoers.d/theexonet-deploy"
-  cat >"${sudoers}" <<EOF
-# Managed by setup-github-ssh-restart.sh — GitHub Actions deploy restart only.
-${DEPLOY_USER} ALL=(ALL) NOPASSWD: /usr/local/bin/promote-theexonet-staging
-${DEPLOY_USER} ALL=(ALL) NOPASSWD: /usr/local/lib/theexonet/scripts/theexonet/promote-staging.sh
-${DEPLOY_USER} ALL=(ALL) NOPASSWD: /usr/local/bin/restart-theexonet
-${DEPLOY_USER} ALL=(ALL) NOPASSWD: /usr/local/lib/theexonet/scripts/restart-theexonet.sh
+sudoers="/etc/sudoers.d/theexonet-github-deploy"
+cat >"${sudoers}" <<EOF
+# Managed by setup-github-ssh-restart.sh — GitHub Actions game deploy only.
+Cmnd_Alias THEEXONET_PROMOTE = /usr/local/bin/promote-theexonet-staging, ${LIB_DIR}/promote-staging.sh, ${LIB_DIR}/theexonet/promote-staging.sh
+Cmnd_Alias THEEXONET_RESTART = /usr/local/bin/restart-theexonet, ${LIB_DIR}/restart-theexonet.sh
+Cmnd_Alias THEEXONET_FIX_PERMS = /usr/local/bin/fix-theexonet-permissions, ${LIB_DIR}/fix-hosting-permissions.sh
+Cmnd_Alias THEEXONET_SYSTEMCTL = /bin/systemctl restart theexonet-api, /bin/systemctl restart theexonet-status, /bin/systemctl restart theexonet-admin, /bin/systemctl restart theexonet-moderator, /bin/systemctl restart theexonet-docs
+
+${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_PROMOTE
+${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_RESTART
+${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_FIX_PERMS
+${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_SYSTEMCTL
 EOF
-  chmod 440 "${sudoers}"
-  visudo -cf "${sudoers}" >/dev/null
-  echo "Wrote ${sudoers} for user ${DEPLOY_USER}"
-fi
+chmod 440 "${sudoers}"
+visudo -cf "${sudoers}" >/dev/null
+echo "Wrote ${sudoers}"
 
 echo ""
-echo "=== Password SSH deploy ready ==="
-echo "Login user: ${DEPLOY_USER}"
-echo "GitHub secret: DEPLOY_SSH_PASSWORD (same password you passed to this script)"
-echo "Optional vars: DEPLOY_USER=${DEPLOY_USER}, DEPLOY_SSH_PORT=22"
+echo "=== GitHub deploy user ready ==="
+echo "SSH user:     ${DEPLOY_USER}"
+echo "Permissions:  promote staging, restart game services, fix hosting permissions"
+echo "GitHub secret: DEPLOY_SSH_PASSWORD"
+echo "GitHub variable: DEPLOY_USER = ${DEPLOY_USER}"
 echo ""
-echo "Test from your PC (install sshpass locally if needed):"
-echo "  SSHPASS='***' sshpass -e ssh -o PubkeyAuthentication=no ${DEPLOY_USER}@theexonet.com 'restart-theexonet'"
+echo "Test:"
+echo "  SSHPASS='***' sshpass -e ssh -o PubkeyAuthentication=no ${DEPLOY_USER}@theexonet.com 'sudo restart-theexonet'"

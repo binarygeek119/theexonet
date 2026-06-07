@@ -163,24 +163,27 @@ gcloud compute firewall-rules create theexonet-ftp \
 sftp -i ~/.ssh/id_ed25519 root@EXTERNAL_IP
 ```
 
-## 10. GitHub Actions SSH restart (password)
+## 10. GitHub Actions SSH restart (`githubdeploy` user)
 
-After FTPS upload, CI SSHs in with a password and runs `promote-theexonet-staging`. One-time on the VM:
+After FTPS upload, CI SSHs as **`githubdeploy`** and runs `sudo promote-theexonet-staging`. One-time on the VM:
 
 ```bash
-cd /opt/theexonet/theexonet && git pull
+cd /opt/theexonet/theexonet && git -c safe.directory=/opt/theexonet/theexonet pull
 sudo DEPLOY_SSH_PASSWORD='YourStrongDeployPassword' bash scripts/theexonet/setup-github-ssh-restart.sh
 ```
 
-Add the **same password** to GitHub → **Settings → Secrets → Actions → `DEPLOY_SSH_PASSWORD`**.
+GitHub secrets/variables:
 
-Manual restart (password):
+- `DEPLOY_SSH_PASSWORD` — same password as above
+- `DEPLOY_USER` — `githubdeploy`
+
+Manual test:
 
 ```bash
-ssh -o PubkeyAuthentication=no root@EXTERNAL_IP 'restart-theexonet'
+SSHPASS='YourStrongDeployPassword' sshpass -e ssh -o PubkeyAuthentication=no githubdeploy@EXTERNAL_IP 'sudo restart-theexonet'
 ```
 
-Or with your SSH key if still configured via GCP metadata.
+Admin access remains **root + SSH key** via GCP metadata.
 
 See **[github-deploy-setup.md](github-deploy-setup.md)** for full CI secrets.
 

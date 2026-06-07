@@ -5,13 +5,13 @@
 # Env:
 #   DEPLOY_SSH_PASSWORD   — SSH login password (required to run; empty = skip)
 #   DEPLOY_SSH_HOST       — hostname or IP (default DEPLOY_FTP_HOST or DEPLOY_HOST)
-#   DEPLOY_SSH_USER       — default root
+#   DEPLOY_SSH_USER       — default githubdeploy
 #   DEPLOY_SSH_PORT       — default 22
 #   DEPLOY_SSH_WAIT_SEC   — seconds after FTPS before promote (default 5)
 set -euo pipefail
 
 HOST="${DEPLOY_SSH_HOST:-${DEPLOY_FTP_HOST:-${DEPLOY_HOST:-}}}"
-USER="${DEPLOY_SSH_USER:-root}"
+USER="${DEPLOY_SSH_USER:-githubdeploy}"
 PORT="${DEPLOY_SSH_PORT:-22}"
 WAIT_SEC="${DEPLOY_SSH_WAIT_SEC:-5}"
 PASSWORD="${DEPLOY_SSH_PASSWORD:-}"
@@ -47,7 +47,7 @@ ssh_opts=(
 echo "Waiting ${WAIT_SEC}s for FTPS upload to finish…"
 sleep "${WAIT_SEC}"
 
-remote_cmd='if command -v promote-theexonet-staging >/dev/null 2>&1; then promote-theexonet-staging; elif command -v restart-theexonet >/dev/null 2>&1; then restart-theexonet; else systemctl restart theexonet-api theexonet-status theexonet-admin theexonet-moderator theexonet-docs; fi'
+remote_cmd='sudo promote-theexonet-staging || sudo restart-theexonet'
 
 echo "SSH promote/restart on ${USER}@${HOST}:${PORT} (password auth)…"
 SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" "${remote_cmd}"

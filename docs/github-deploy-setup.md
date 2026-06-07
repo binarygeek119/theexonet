@@ -24,24 +24,25 @@ sudo bash scripts/install-staging-watcher.sh
 sudo systemctl status theexonet-staging-watcher
 ```
 
-### SSH password for CI restart (recommended)
+### SSH deploy user for CI restart (recommended)
 
-Pick a **strong password** used only for deploy (not your personal login). On the **VM** as root:
+Creates user **`githubdeploy`** with password SSH and sudo only for promote/restart/fix-permissions (not full root).
+
+On the **VM** as root:
 
 ```bash
-cd /opt/theexonet/theexonet && git pull
+cd /opt/theexonet/theexonet
+git -c safe.directory=/opt/theexonet/theexonet pull
 sudo DEPLOY_SSH_PASSWORD='YourStrongDeployPassword' bash scripts/theexonet/setup-github-ssh-restart.sh
 ```
 
-This sets the `root` password and enables password SSH for promote/restart.
-
-Test from your PC (with `sshpass` installed, or use PuTTY/plink):
+Test from your PC:
 
 ```bash
-SSHPASS='YourStrongDeployPassword' sshpass -e ssh -o PubkeyAuthentication=no root@35.188.26.155 'restart-theexonet'
+SSHPASS='YourStrongDeployPassword' sshpass -e ssh -o PubkeyAuthentication=no githubdeploy@35.188.26.155 'sudo restart-theexonet'
 ```
 
-**Personal SSH** with keys still works if you use `create-gcp-vm.sh` metadata keys; password login is added for CI.
+**Personal admin SSH** stays key-only on `root` (GCP metadata). Only `githubdeploy` may use password login.
 
 GCP firewall must allow **TCP 22** (SSH), **TCP 21**, and **40000-40050** (FTPS passive) from [GitHub Actions IP ranges](https://api.github.com/meta) (`actions` key), or CI deploy will fail.
 
@@ -53,10 +54,9 @@ GCP firewall must allow **TCP 22** (SSH), **TCP 21**, and **40000-40050** (FTPS 
 |------|--------|
 | `ENABLE_PRODUCTION_DEPLOY` | `true` |
 | `DEPLOY_HOST` | `theexonet.com` (or `35.188.26.155`) |
+| `DEPLOY_USER` | `githubdeploy` |
 
-Optional: `DEPLOY_FTP_HOST` if FTP hostname differs from `DEPLOY_HOST`.
-
-Optional: `DEPLOY_USER` (default `root`), `DEPLOY_SSH_PORT` (default `22`).
+Optional: `DEPLOY_FTP_HOST` if FTP hostname differs from `DEPLOY_HOST`. Optional: `DEPLOY_SSH_PORT` (default `22`).
 
 Remove obsolete variables if present: `DEPLOY_WWW_PATH`, `DEPLOY_API_PATH`, `DEPLOY_METHOD`, etc.
 
@@ -67,7 +67,7 @@ Remove obsolete variables if present: `DEPLOY_WWW_PATH`, `DEPLOY_API_PATH`, `DEP
 | Name | Value |
 |------|--------|
 | `DEPLOY_FTP_PASSWORD` | `gameftp` password |
-| `DEPLOY_SSH_PASSWORD` | Root (or `DEPLOY_USER`) SSH password — same value passed to `setup-github-ssh-restart.sh` |
+| `DEPLOY_SSH_PASSWORD` | `githubdeploy` password — same value passed to `setup-github-ssh-restart.sh` |
 
 Set FTPS password safely on the server:
 

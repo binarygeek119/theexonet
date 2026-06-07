@@ -1,4 +1,4 @@
-name: theexonet CI
+﻿name: theexonet CI
 
 on:
   push:
@@ -132,6 +132,13 @@ jobs:
           name: theexonet-website
           path: .
 
+      - name: Prepare release bundle
+        run: |
+          set -euo pipefail
+          rsync -a server/publish/ publish/
+          rsync -a server/data/ data/
+          test -f publish/Theexonet.Api.dll
+
       - name: Create release archive
         run: zip -r "theexonet-website-${{ needs.build.outputs.release_tag }}.zip" publish data
 
@@ -214,8 +221,13 @@ jobs:
           name: theexonet-website
           path: .
 
-      - name: Ensure html is in publish bundle
-        run: rsync -a server/Theexonet.Api/html/ publish/html/
+      - name: Prepare deploy bundle
+        run: |
+          set -euo pipefail
+          rsync -a server/publish/ publish/
+          rsync -a server/data/ data/
+          rsync -a server/Theexonet.Api/html/ publish/html/
+          test -f publish/Theexonet.Api.dll
 
       - name: Validate SSH deploy credentials
         env:

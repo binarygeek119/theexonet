@@ -47,7 +47,7 @@ ssh_opts=(
 echo "Waiting ${WAIT_SEC}s for FTPS upload to finish…"
 sleep "${WAIT_SEC}"
 
-remote_cmd='sudo promote-theexonet-staging || sudo restart-theexonet'
+remote_cmd='sudo promote-theexonet-staging'
 
 echo "SSH promote/restart on ${USER}@${HOST}:${PORT} (password auth)…"
 SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" "${remote_cmd}"

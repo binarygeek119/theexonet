@@ -27,20 +27,46 @@ if [ ! -d "${STAGING_DIR}" ] || [ -z "$(ls -A "${STAGING_DIR}" 2>/dev/null)" ]; 
   exit 1
 fi
 
+clean_unpack_dir() {
+  local unpack="${STAGING_DIR}/unpack"
+  if [ -d "${unpack}" ]; then
+    chmod -R u+w "${unpack}" 2>/dev/null || true
+    rm -rf "${unpack}"
+  fi
+}
+
 # Unpack zip if present
 shopt -s nullglob
 for zip in "${STAGING_DIR}"/*.zip "${STAGING_DIR}"/theexonet-website-*.zip "${STAGING_DIR}"/theexonet-website-deploy-*.zip; do
   echo "Unpacking ${zip}…"
+  clean_unpack_dir
+  mkdir -p "${STAGING_DIR}/unpack"
   unzip -o -q "${zip}" -d "${STAGING_DIR}/unpack"
   if [ -d "${STAGING_DIR}/unpack/publish" ]; then
+    if [ ! -f "${STAGING_DIR}/unpack/publish/Theexonet.Api.dll" ]; then
+      echo "ERROR: ${zip} is missing publish/Theexonet.Api.dll — refusing to rsync --delete over live publish." >&2
+      clean_unpack_dir
+      rm -f "${zip}"
+      exit 1
+    fi
     rsync -a --delete "${STAGING_DIR}/unpack/publish/" "${PUBLISH_DIR}/"
+  else
+    echo "ERROR: ${zip} has no publish/ folder." >&2
+    clean_unpack_dir
+    rm -f "${zip}"
+    exit 1
   fi
   if [ -d "${STAGING_DIR}/unpack/data" ]; then
     rsync -a "${STAGING_DIR}/unpack/data/" "${DATA_DIR}/"
   fi
-  rm -rf "${STAGING_DIR}/unpack"
+  clean_unpack_dir
   rm -f "${zip}"
 done
+
+if [ ! -f "${PUBLISH_DIR}/Theexonet.Api.dll" ]; then
+  echo "ERROR: ${PUBLISH_DIR}/Theexonet.Api.dll is missing after promote." >&2
+  exit 1
+fi
 
 # Direct rsync of publish/ or flat DLL layout
 if [ -d "${STAGING_DIR}/publish" ]; then

@@ -163,6 +163,29 @@ gcloud compute firewall-rules create theexonet-ftp \
 sftp -i ~/.ssh/id_ed25519 root@EXTERNAL_IP
 ```
 
+## 10. GitHub Actions SSH restart
+
+After FTPS upload, CI can SSH in and restart the game. One-time setup:
+
+```bash
+# On your PC
+ssh-keygen -t ed25519 -f ~/.ssh/theexonet-github-deploy -C "github-actions-deploy" -N ""
+
+# On the VM (paste public key from theexonet-github-deploy.pub)
+cd /opt/theexonet/theexonet && git pull
+sudo DEPLOY_SSH_PUBLIC_KEY='ssh-ed25519 AAAA...' bash scripts/theexonet/setup-github-ssh-restart.sh
+```
+
+Add the **private** key to GitHub → **Settings → Secrets → Actions → `DEPLOY_SSH_KEY`**.
+
+Manual restart anytime:
+
+```bash
+ssh -i ~/.ssh/id_ed25519 root@EXTERNAL_IP 'restart-theexonet'
+```
+
+See **[github-deploy-setup.md](github-deploy-setup.md)** for full CI secrets.
+
 ## Notes
 
 - **1 GB RAM** on e2-micro is tight for heavy stacks; fine for Apache + small Docker apps.  

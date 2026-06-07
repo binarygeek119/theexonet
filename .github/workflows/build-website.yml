@@ -198,6 +198,8 @@ jobs:
       DEPLOY_FTP_USER: ${{ vars.DEPLOY_FTP_USER || secrets.DEPLOY_FTP_USER || 'gameftp' }}
       DEPLOY_FTP_PORT: ${{ vars.DEPLOY_FTP_PORT || secrets.DEPLOY_FTP_PORT || '21' }}
       DEPLOY_FTP_STAGING_DIR: ${{ vars.DEPLOY_FTP_STAGING_DIR || secrets.DEPLOY_FTP_STAGING_DIR || 'staging' }}
+      DEPLOY_SSH_USER: ${{ vars.DEPLOY_USER || secrets.DEPLOY_USER || 'root' }}
+      DEPLOY_SSH_PORT: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
       GITHUB_SHA: ${{ github.sha }}
 
     steps:
@@ -256,7 +258,16 @@ jobs:
           set -euo pipefail
           chmod +x scripts/github-deploy-ftp.sh
           bash scripts/github-deploy-ftp.sh "theexonet-website-deploy-${GITHUB_SHA}.zip"
-          echo "Uploaded. Server staging-watcher will promote to /var/www/publish within ~30s."
+          echo "Uploaded deploy zip to staging."
+
+      - name: Promote and restart via SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_HOST: ${{ env.DEPLOY_FTP_HOST }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/github-deploy-restart.sh
+          bash scripts/github-deploy-restart.sh
 
       - name: Wait for production HTTP
         run: |

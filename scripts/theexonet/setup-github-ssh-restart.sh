@@ -68,7 +68,7 @@ fi
 sudoers="/etc/sudoers.d/theexonet-github-deploy"
 cat >"${sudoers}" <<EOF
 # Managed by setup-github-ssh-restart.sh — GitHub Actions game deploy only.
-Cmnd_Alias THEEXONET_PROMOTE = /usr/local/bin/promote-theexonet-staging, ${LIB_DIR}/promote-staging.sh, ${LIB_DIR}/theexonet/promote-staging.sh
+Cmnd_Alias THEEXONET_PROMOTE = /usr/local/bin/promote-theexonet-staging, ${LIB_DIR}/promote-staging.sh, ${LIB_DIR}/theexonet/promote-staging.sh, ${STAGING_DIR}/run-promote-staging.sh
 Cmnd_Alias THEEXONET_RESTART = /usr/local/bin/restart-theexonet, ${LIB_DIR}/restart-theexonet.sh
 Cmnd_Alias THEEXONET_FIX_PERMS = /usr/local/bin/fix-theexonet-permissions, ${LIB_DIR}/fix-hosting-permissions.sh
 Cmnd_Alias THEEXONET_SYSTEMCTL = /bin/systemctl restart theexonet-api, /bin/systemctl restart theexonet-status, /bin/systemctl restart theexonet-admin, /bin/systemctl restart theexonet-moderator, /bin/systemctl restart theexonet-docs

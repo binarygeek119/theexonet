@@ -78,22 +78,32 @@ SSHPASS="${PASSWORD}" sshpass -e scp "${scp_opts[@]}" "${PROMOTE_SCRIPT}" "${USE
 SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
   "chmod 755 '${REMOTE_PROMOTE}'"
 
-echo "Promote and restart (sudo promote-theexonet-staging)…"
+run_remote_promote() {
+  local sudo_cmd="$1"
+  SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
+    "sudo -n ${sudo_cmd} '${REMOTE_NAME}'" 2>&1
+}
+
+echo "Promote and restart (sudo ${REMOTE_PROMOTE})…"
 promote_output=""
-if ! promote_output="$(SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
-  "sudo -n promote-theexonet-staging '${REMOTE_NAME}'" 2>&1)"; then
+if ! promote_output="$(run_remote_promote "${REMOTE_PROMOTE}")"; then
   echo "${promote_output}"
-  echo "ERROR: promote-theexonet-staging failed." >&2
-  echo "On the VM (one-time after git pull):" >&2
-  echo "  sudo bash scripts/install-bin-scripts.sh scripts" >&2
-  exit 1
+  echo "Direct CI promote failed — trying installed promote-theexonet-staging…" >&2
+  if ! promote_output="$(run_remote_promote promote-theexonet-staging)"; then
+    echo "${promote_output}"
+    echo "ERROR: promote failed." >&2
+    echo "On the VM (one-time after git pull):" >&2
+    echo "  sudo bash scripts/theexonet/enable-ci-promote-sudoers.sh" >&2
+    echo "  sudo bash scripts/install-bin-scripts.sh scripts" >&2
+    exit 1
+  fi
 fi
 echo "${promote_output}"
 
 if ! printf '%s' "${promote_output}" | grep -q 'Unpacking '; then
-  echo "ERROR: promote did not unpack the staging archive (installed promote script is stale)." >&2
-  echo "On the VM:" >&2
-  echo "  cd /opt/theexonet/theexonet && git pull" >&2
+  echo "ERROR: promote did not unpack the staging archive." >&2
+  echo "On the VM (one-time after git pull):" >&2
+  echo "  sudo bash scripts/theexonet/enable-ci-promote-sudoers.sh" >&2
   echo "  sudo bash scripts/install-bin-scripts.sh scripts" >&2
   exit 1
 fi

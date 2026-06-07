@@ -1,5 +1,5 @@
 #!/bin/bash
-# Upload deploy zip via SSH (githubdeploy) and promote to /var/www/publish.
+# Upload deploy bundle via SSH (githubdeploy) and promote to /var/www/publish.
 # Replaces FTPS in GitHub Actions — one password (DEPLOY_SSH_PASSWORD).
 #
 # Env:
@@ -13,7 +13,7 @@
 #   bash scripts/github-deploy-ssh.sh theexonet-website-deploy-<sha>.tar.gz
 set -euo pipefail
 
-LOCAL_FILE="${1:?usage: github-deploy-ssh.sh <local-zip>}"
+LOCAL_FILE="${1:?usage: github-deploy-ssh.sh <local-tar.gz>}"
 if [ ! -f "${LOCAL_FILE}" ]; then
   echo "ERROR: file not found: ${LOCAL_FILE}" >&2
   exit 1
@@ -26,6 +26,10 @@ PASSWORD="${DEPLOY_SSH_PASSWORD:-}"
 STAGING_DIR="${DEPLOY_STAGING_DIR:-/var/www/staging}"
 REMOTE_NAME="$(basename "${LOCAL_FILE}")"
 REMOTE_PATH="${STAGING_DIR%/}/${REMOTE_NAME}"
+REMOTE_PROMOTE="${STAGING_DIR%/}/run-promote-staging.sh"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+PROMOTE_SCRIPT="${SCRIPT_DIR}/theexonet/promote-staging.sh"
+HTML_BUILD_MARKER="${HTML_BUILD_MARKER:-20260607-checkbox-grid}"
 
 if [ -z "${PASSWORD}" ]; then
   echo "ERROR: set DEPLOY_SSH_PASSWORD." >&2
@@ -33,6 +37,10 @@ if [ -z "${PASSWORD}" ]; then
 fi
 if [ -z "${HOST}" ]; then
   echo "ERROR: set DEPLOY_SSH_HOST or DEPLOY_HOST." >&2
+  exit 1
+fi
+if [ ! -f "${PROMOTE_SCRIPT}" ]; then
+  echo "ERROR: missing ${PROMOTE_SCRIPT}" >&2
   exit 1
 fi
 
@@ -65,16 +73,30 @@ if ! SSHPASS="${PASSWORD}" sshpass -e scp "${scp_opts[@]}" "${LOCAL_FILE}" "${US
     "sudo stage-theexonet-upload '${tmp_path}'"
 fi
 
-echo "Promote and restart…"
+echo "Uploading promote script from CI checkout…"
+SSHPASS="${PASSWORD}" sshpass -e scp "${scp_opts[@]}" "${PROMOTE_SCRIPT}" "${USER}@${HOST}:${REMOTE_PROMOTE}"
 SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
-  "sudo promote-theexonet-staging '${REMOTE_NAME}'"
+  "chmod 755 '${REMOTE_PROMOTE}'"
 
-echo "Verify game html on server…"
+echo "Promote and restart (CI promote script)…"
 if ! SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
-  "grep -q 'theexonet-html-build' /var/www/publish/html/index.html"; then
-  echo "ERROR: /var/www/publish/html/index.html was not updated by promote." >&2
-  echo "On the VM as root: sudo deploy-theexonet-html /opt/theexonet/theexonet/server/Theexonet.Api/html" >&2
+  "sudo '${REMOTE_PROMOTE}' '${REMOTE_NAME}'"; then
+  echo "CI promote script failed — trying installed promote-theexonet-staging…" >&2
+  SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
+    "sudo promote-theexonet-staging '${REMOTE_NAME}'"
+fi
+
+echo "Verify game html on production…"
+game_host="${HOST#https://}"
+game_host="${game_host#http://}"
+game_host="${game_host%%/*}"
+verify_url="https://${game_host}/index.html"
+if ! curl -sf --max-time 30 "${verify_url}" | grep -q "content=\"${HTML_BUILD_MARKER}\""; then
+  echo "ERROR: ${verify_url} is missing html build marker ${HTML_BUILD_MARKER}." >&2
+  echo "If CI promote failed with sudo, on the VM run:" >&2
+  echo "  sudo DEPLOY_SSH_PASSWORD='...' bash scripts/theexonet/setup-github-ssh-restart.sh" >&2
+  echo "  sudo deploy-theexonet-html /opt/theexonet/theexonet/server/Theexonet.Api/html" >&2
   exit 1
 fi
 
-echo "SSH deploy complete."
+echo "SSH deploy complete (${HTML_BUILD_MARKER} live on ${verify_url})."

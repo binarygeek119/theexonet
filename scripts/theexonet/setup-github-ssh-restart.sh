@@ -16,6 +16,7 @@ DEPLOY_USER="${DEPLOY_SSH_USER:-githubdeploy}"
 DEPLOY_PASSWORD="${DEPLOY_SSH_PASSWORD:-}"
 GAME_GROUP="${THEEXONET_SERVICE_GROUP:-theexonet}"
 LIB_DIR="${THEEXONET_LIB_DIR:-/usr/local/lib/theexonet/scripts}"
+STAGING_DIR="${THEEXONET_STAGING_DIR:-/var/www/staging}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run as root." >&2
@@ -72,18 +73,21 @@ Cmnd_Alias THEEXONET_RESTART = /usr/local/bin/restart-theexonet, ${LIB_DIR}/rest
 Cmnd_Alias THEEXONET_FIX_PERMS = /usr/local/bin/fix-theexonet-permissions, ${LIB_DIR}/fix-hosting-permissions.sh
 Cmnd_Alias THEEXONET_SYSTEMCTL = /bin/systemctl restart theexonet-api, /bin/systemctl restart theexonet-status, /bin/systemctl restart theexonet-admin, /bin/systemctl restart theexonet-moderator, /bin/systemctl restart theexonet-docs
 Cmnd_Alias THEEXONET_STAGE_UPLOAD = /usr/local/bin/stage-theexonet-upload, ${LIB_DIR}/theexonet/stage-github-upload.sh
+Cmnd_Alias THEEXONET_CI_PROMOTE = ${STAGING_DIR}/run-promote-staging.sh
+Cmnd_Alias THEEXONET_DEPLOY_HTML = /usr/local/bin/deploy-theexonet-html, ${LIB_DIR}/deploy-html.sh
 
 ${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_PROMOTE
+${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_CI_PROMOTE
 ${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_RESTART
 ${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_FIX_PERMS
 ${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_SYSTEMCTL
 ${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_STAGE_UPLOAD
+${DEPLOY_USER} ALL=(ALL) NOPASSWD: THEEXONET_DEPLOY_HTML
 EOF
 chmod 440 "${sudoers}"
 visudo -cf "${sudoers}" >/dev/null
 echo "Wrote ${sudoers}"
 
-STAGING_DIR="${THEEXONET_STAGING_DIR:-/var/www/staging}"
 mkdir -p "${STAGING_DIR}"
 chown root:"${GAME_GROUP}" "${STAGING_DIR}"
 chmod 2775 "${STAGING_DIR}"

@@ -169,7 +169,9 @@ builder.Services.AddMemoryCache();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+        policy.SetIsOriginAllowed(Theexonet.Api.Middleware.TheexonetCors.IsAllowedOrigin)
+            .AllowAnyHeader()
+            .AllowAnyMethod());
 });
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -326,6 +328,8 @@ catch (Exception ex)
         ex);
     return;
 }
+
+app.UseCors();
 
 app.Services.GetRequiredService<OffworldNewsAdminSettingsStore>().Load();
 app.Services.GetRequiredService<LunarWeatherAdminSettingsStore>().Load();
@@ -487,8 +491,6 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-
-app.UseCors();
 
 var hostingOptions = app.Configuration.GetSection(HostingOptions.SectionName).Get<HostingOptions>() ?? new HostingOptions();
 var serveGameUi = hostingOptions.ServeGameUi ?? !app.Environment.IsProduction();
@@ -652,20 +654,7 @@ if (serveGameUi)
 }
 else
 {
-    app.MapGet("/", () => Results.Content(
-        """
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="utf-8">
-          <title>theexonet API</title>
-          <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-          <link rel="alternate icon" href="/favicon.ico">
-        </head>
-        <body>API status is OK</body>
-        </html>
-        """,
-        "text/html; charset=utf-8"));
+    app.MapGet("/", () => Results.Redirect("/api/status"));
 }
 
 try

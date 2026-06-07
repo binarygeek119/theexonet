@@ -75,6 +75,12 @@ sudo CERTBOT_DRY_RUN=1 CERTBOT_EMAIL=you@example.com bash scripts/theexonet/inst
 
 Covers: `theexonet.com`, `www`, `api`, `status`, `admin`, `moderator`, `docs`. Requires **TCP 80** open for Let's Encrypt HTTP-01.
 
+If `https://api.theexonet.com/` shows the game UI, Apache HTTPS vhosts need reinstalling (certbot often only configures apex SSL):
+
+```bash
+sudo install-theexonet-apache-ssl
+```
+
 ## 5. Deploy game files
 
 ### Option A — GitHub Actions (recommended, FTPS)

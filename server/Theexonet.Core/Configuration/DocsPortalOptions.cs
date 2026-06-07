@@ -4,9 +4,9 @@ public class DocsPortalOptions
 {
     public const string SectionName = "DocsPortal";
 
-    public string PublicUrl { get; set; } = "https://theexonetdocs.binarygeek119.duckdns.org/";
+    public string PublicUrl { get; set; } = "https://docs.theexonet.com/";
 
-    public string GameUrl { get; set; } = "https://theexonet.binarygeek119.duckdns.org/";
+    public string GameUrl { get; set; } = "https://theexonet.com/";
 
     public string ContentPath { get; set; } = "content";
 

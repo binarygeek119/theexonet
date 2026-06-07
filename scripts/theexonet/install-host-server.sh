@@ -224,9 +224,26 @@ if [ ! -f "${PUBLISH_DIR}/appsettings.json" ]; then
   ln -sf "${APPS_SETTINGS}" "${PUBLISH_DIR}/appsettings.json"
 fi
 
+# Legacy RAVA / duckdns strings in an existing appsettings.json
+if [ -f "${APPS_SETTINGS}" ]; then
+  sed -i \
+    -e 's|"SiteTitle": "RAVA Game Docs"|"SiteTitle": "theexonet Game Docs"|g' \
+    -e "s|https://theexonet\\.binarygeek119\\.duckdns\\.org|https://${DOMAIN}|g" \
+    -e "s|https://theexonetapi\\.binarygeek119\\.duckdns\\.org|https://api.${DOMAIN}|g" \
+    -e "s|https://theexonetstatus\\.binarygeek119\\.duckdns\\.org|https://status.${DOMAIN}|g" \
+    -e "s|https://theexonetadmin\\.binarygeek119\\.duckdns\\.org|https://admin.${DOMAIN}|g" \
+    -e "s|https://theexonetmoderator\\.binarygeek119\\.duckdns\\.org|https://moderator.${DOMAIN}|g" \
+    -e "s|https://theexonetdocs\\.binarygeek119\\.duckdns\\.org|https://docs.${DOMAIN}|g" \
+    -e 's|Database=rava|Database=theexonet|g' \
+    -e 's|Username=postgres|Username=theexonet|g' \
+    -e 's|Host=localhost|Host=127.0.0.1|g' \
+    "${APPS_SETTINGS}" 2>/dev/null || true
+fi
+
 # --- Apache vhosts ---
 log "Configuring Apache for ${DOMAIN}…"
 a2enmod proxy proxy_http headers rewrite ssl 2>/dev/null || true
+a2enmod headers 2>/dev/null || true
 a2dissite 000-default.conf 2>/dev/null || true
 
 sed "s/@@DOMAIN@@/${DOMAIN}/g" "${SCRIPT_DIR}/apache-theexonet.conf" \

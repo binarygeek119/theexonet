@@ -2,7 +2,7 @@
 
 ## Create an account
 
-1. Open the [game](https://theexonet.binarygeek119.duckdns.org/).
+1. Open the [game](https://theexonet.com/).
 2. Choose **Create Account**.
 3. Enter a username, email, birthday, and password.
 4. Log in after registration.

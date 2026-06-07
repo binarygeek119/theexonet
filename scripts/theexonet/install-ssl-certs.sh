@@ -139,6 +139,9 @@ else
   exit 1
 fi
 
+log "Installing Apache HTTPS vhosts (per-subdomain proxy)…"
+bash "${SCRIPT_DIR}/install-apache-ssl-vhosts.sh"
+
 log "Testing renewal…"
 certbot renew --dry-run
 

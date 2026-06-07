@@ -14,8 +14,8 @@ theexonet is a point-and-click asteroid mining game. Register an account, assign
 
 ## Play the game
 
-Open the live game at [theexonet.binarygeek119.duckdns.org](https://theexonet.binarygeek119.duckdns.org/).
+Open the live game at [theexonet.com](https://theexonet.com/).
 
 ## Server status
 
-Check API and database health on the [status dashboard](https://theexonetstatus.binarygeek119.duckdns.org/).
+Check API and database health on the [status dashboard](https://status.theexonet.com/).

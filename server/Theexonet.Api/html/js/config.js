@@ -15,22 +15,47 @@ export const SUPPLY_TYPES = {
 export const GRID_SIZE = 8;
 
 const LOCAL_API_URL = "http://localhost:5000";
-/** HTTPS API host (reverse proxy → port 5000). */
-const PRODUCTION_API_HOST = "theexonetapi.binarygeek119.duckdns.org";
-/** HTTPS admin portal host (reverse proxy → port 7000). */
-const PRODUCTION_ADMIN_HOST = "theexonetadmin.binarygeek119.duckdns.org";
-/** HTTPS moderator portal host (reverse proxy → port 7050). */
-const PRODUCTION_MODERATOR_HOST = "theexonetmoderator.binarygeek119.duckdns.org";
-/** HTTPS game host (static html → port 80). */
-const PRODUCTION_GAME_HOST = "theexonet.binarygeek119.duckdns.org";
+/** Production apex domain — API is api.{apex}, game is {apex}. */
+export const PRODUCTION_APEX_DOMAIN = "theexonet.com";
 
 function normalizeHost(hostname) {
   return hostname.toLowerCase().replace(/^www\./, "");
 }
 
+export function productionApiHost(apex = PRODUCTION_APEX_DOMAIN) {
+  return `api.${apex}`;
+}
+
+export function productionGameHost(apex = PRODUCTION_APEX_DOMAIN) {
+  return apex;
+}
+
+export function productionAdminHost(apex = PRODUCTION_APEX_DOMAIN) {
+  return `admin.${apex}`;
+}
+
+export function productionModeratorHost(apex = PRODUCTION_APEX_DOMAIN) {
+  return `moderator.${apex}`;
+}
+
+function resolveApexDomain(hostname) {
+  const host = normalizeHost(hostname);
+  if (host === PRODUCTION_APEX_DOMAIN || host.endsWith(`.${PRODUCTION_APEX_DOMAIN}`)) {
+    return PRODUCTION_APEX_DOMAIN;
+  }
+  return null;
+}
+
 export function readMetaApiBase() {
   const value = document.querySelector('meta[name="theexonet-api-base"]')?.getAttribute("content")?.trim();
-  return value ? value.replace(/\/$/, "") : "";
+  if (!value) {
+    return "";
+  }
+  // Ignore legacy duckdns meta after migrating to theexonet.com.
+  if (value.includes("duckdns.org")) {
+    return "";
+  }
+  return value.replace(/\/$/, "");
 }
 
 /** Base URL for API requests (no trailing slash). */
@@ -44,9 +69,10 @@ export function resolveApiBaseUrl() {
     return metaBase;
   }
 
-  const { hostname, port, protocol } = window.location;
+  const { hostname, port } = window.location;
   const host = normalizeHost(hostname);
-  const apiHost = normalizeHost(PRODUCTION_API_HOST);
+  const apex = resolveApexDomain(host);
+  const apiHost = apex ? productionApiHost(apex) : productionApiHost();
 
   const isLocalHost =
     host === "localhost" ||
@@ -57,12 +83,11 @@ export function resolveApiBaseUrl() {
     return port === "5000" ? "" : LOCAL_API_URL;
   }
 
-  if (host === apiHost) {
+  if (host === normalizeHost(apiHost)) {
     return "";
   }
 
-  // Game site and any other public host: always use HTTPS for the API subdomain.
-  return `https://${PRODUCTION_API_HOST}`;
+  return `https://${apiHost}`;
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();

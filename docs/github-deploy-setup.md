@@ -24,35 +24,24 @@ sudo bash scripts/install-staging-watcher.sh
 sudo systemctl status theexonet-staging-watcher
 ```
 
-### SSH for CI restart (recommended)
+### SSH password for CI restart (recommended)
 
-On your **PC** (PowerShell or Git Bash), generate a key used only by GitHub Actions:
-
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/theexonet-github-deploy -C "github-actions-deploy" -N ""
-```
-
-On the **VM**, authorize the public key (one-liner from your **PC**):
+Pick a **strong password** used only for deploy (not your personal login). On the **VM** as root:
 
 ```bash
-ssh root@35.188.26.155 "cd /opt/theexonet/theexonet && git pull && \
-  sudo DEPLOY_SSH_PUBLIC_KEY='$(cat ~/.ssh/theexonet-github-deploy.pub)' \
-  bash scripts/theexonet/setup-github-ssh-restart.sh"
+cd /opt/theexonet/theexonet && git pull
+sudo DEPLOY_SSH_PASSWORD='YourStrongDeployPassword' bash scripts/theexonet/setup-github-ssh-restart.sh
 ```
 
-Or paste the `.pub` line manually on the VM:
+This sets the `root` password and enables password SSH for promote/restart.
+
+Test from your PC (with `sshpass` installed, or use PuTTY/plink):
 
 ```bash
-sudo DEPLOY_SSH_PUBLIC_KEY='ssh-ed25519 AAAA...' bash scripts/theexonet/setup-github-ssh-restart.sh
+SSHPASS='YourStrongDeployPassword' sshpass -e ssh -o PubkeyAuthentication=no root@35.188.26.155 'restart-theexonet'
 ```
 
-Test from your PC:
-
-```bash
-ssh -i ~/.ssh/theexonet-github-deploy root@35.188.26.155 'restart-theexonet'
-```
-
-**Personal SSH** (manual restarts): your normal `~/.ssh/id_ed25519` key is added automatically if you run the setup script from a machine that has it. Or re-run `create-gcp-vm.sh` to refresh VM metadata.
+**Personal SSH** with keys still works if you use `create-gcp-vm.sh` metadata keys; password login is added for CI.
 
 GCP firewall must allow **TCP 22** (SSH), **TCP 21**, and **40000-40050** (FTPS passive) from [GitHub Actions IP ranges](https://api.github.com/meta) (`actions` key), or CI deploy will fail.
 
@@ -78,7 +67,7 @@ Remove obsolete variables if present: `DEPLOY_WWW_PATH`, `DEPLOY_API_PATH`, `DEP
 | Name | Value |
 |------|--------|
 | `DEPLOY_FTP_PASSWORD` | `gameftp` password |
-| `DEPLOY_SSH_KEY` | Private key for `theexonet-github-deploy` (full PEM, including `BEGIN`/`END` lines) |
+| `DEPLOY_SSH_PASSWORD` | Root (or `DEPLOY_USER`) SSH password — same value passed to `setup-github-ssh-restart.sh` |
 
 Set FTPS password safely on the server:
 
@@ -86,7 +75,7 @@ Set FTPS password safely on the server:
 sudo GAME_FTP_PASSWORD='YourPassword' bash scripts/theexonet/set-gameftp-password.sh
 ```
 
-Remove unused secrets: `DEPLOY_SSH_PASSWORD` (password SSH not used).
+Remove unused secrets: `DEPLOY_SSH_KEY` (key-based SSH not used).
 
 ## 3. What the workflow does
 
@@ -95,7 +84,7 @@ Remove unused secrets: `DEPLOY_SSH_PASSWORD` (password SSH not used).
 1. Build and test
 2. Zip `publish/` + `data/`
 3. **FTPS upload** to `staging/theexonet-website-deploy-<sha>.zip`
-4. **SSH** `promote-theexonet-staging` (if `DEPLOY_SSH_KEY` is set; otherwise staging-watcher promotes within ~30s)
+4. **SSH** `promote-theexonet-staging` (if `DEPLOY_SSH_PASSWORD` is set; otherwise staging-watcher promotes within ~30s)
 5. Wait for `http://theexonet.com/` and API HTTP
 
 ## 4. Manual promote (if watcher is down)

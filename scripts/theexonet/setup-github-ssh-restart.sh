@@ -1,30 +1,27 @@
 #!/bin/bash
-# Allow GitHub Actions (or your laptop) to SSH in and promote/restart after FTPS deploy.
+# Enable password SSH so GitHub Actions can promote/restart after FTPS deploy.
 #
-# One-time on the GCP VM as root:
-#   1) On your PC, generate a deploy key:
-#        ssh-keygen -t ed25519 -f ~/.ssh/theexonet-github-deploy -C "github-actions-deploy" -N ""
-#   2) Copy the PUBLIC key to the server and run:
-#        sudo DEPLOY_SSH_PUBLIC_KEY="$(cat ~/.ssh/theexonet-github-deploy.pub)" \
-#          bash scripts/theexonet/setup-github-ssh-restart.sh
-#   3) Add the PRIVATE key to GitHub → Settings → Secrets → DEPLOY_SSH_KEY
+# One-time on the GCP VM as root (use the same password you will store in GitHub):
+#   sudo DEPLOY_SSH_PASSWORD='YourStrongPassword' bash scripts/theexonet/setup-github-ssh-restart.sh
 #
-# Optional: also authorize your personal key (default ~/.ssh/id_ed25519.pub on the machine you run this from):
-#   sudo bash scripts/theexonet/setup-github-ssh-restart.sh
+# Then GitHub → Settings → Secrets → DEPLOY_SSH_PASSWORD (same value).
 #
 # Env:
-#   DEPLOY_SSH_PUBLIC_KEY   — public key line for CI (required unless DEPLOY_SSH_PUBKEY_FILE)
-#   DEPLOY_SSH_PUBKEY_FILE  — path to CI public key file
-#   DEPLOY_SSH_USER         — login user (default root)
-#   PERSONAL_SSH_PUBKEY_FILE — extra authorized key (default $HOME/.ssh/id_ed25519.pub if present)
+#   DEPLOY_SSH_PASSWORD  — required; sets login password for DEPLOY_SSH_USER
+#   DEPLOY_SSH_USER      — default root
 set -euo pipefail
 
 DEPLOY_USER="${DEPLOY_SSH_USER:-root}"
-DEPLOY_PUBKEY_FILE="${DEPLOY_SSH_PUBKEY_FILE:-}"
-PERSONAL_PUBKEY_FILE="${PERSONAL_SSH_PUBKEY_FILE:-${HOME}/.ssh/id_ed25519.pub}"
+DEPLOY_PASSWORD="${DEPLOY_SSH_PASSWORD:-}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run as root." >&2
+  exit 1
+fi
+
+if [ -z "${DEPLOY_PASSWORD}" ]; then
+  echo "ERROR: Set DEPLOY_SSH_PASSWORD (the password GitHub Actions will use)." >&2
+  echo "  sudo DEPLOY_SSH_PASSWORD='...' bash scripts/theexonet/setup-github-ssh-restart.sh" >&2
   exit 1
 fi
 
@@ -33,42 +30,24 @@ if ! id "${DEPLOY_USER}" >/dev/null 2>&1; then
   exit 1
 fi
 
-home_dir="$(getent passwd "${DEPLOY_USER}" | cut -d: -f6)"
-auth_keys="${home_dir}/.ssh/authorized_keys"
-mkdir -p "${home_dir}/.ssh"
-chmod 700 "${home_dir}/.ssh"
-touch "${auth_keys}"
-chmod 600 "${auth_keys}"
+echo "${DEPLOY_USER}:${DEPLOY_PASSWORD}" | chpasswd
+echo "Set password for ${DEPLOY_USER}"
 
-add_key() {
-  local label="$1"
-  local pubkey="$2"
-  pubkey="$(printf '%s' "${pubkey}" | tr -d '\r\n')"
-  if [ -z "${pubkey}" ]; then
-    return 0
-  fi
-  if grep -qF "${pubkey}" "${auth_keys}" 2>/dev/null; then
-    echo "Already authorized (${label})"
-    return 0
-  fi
-  echo "${pubkey} ${label}" >>"${auth_keys}"
-  echo "Added SSH key (${label}) for ${DEPLOY_USER}"
-}
+mkdir -p /etc/ssh/sshd_config.d
+cat >/etc/ssh/sshd_config.d/99-theexonet-deploy-password.conf <<'EOF'
+# GitHub Actions deploy: password SSH for promote/restart (setup-github-ssh-restart.sh).
+PasswordAuthentication yes
+PermitRootLogin yes
+KbdInteractiveAuthentication no
+EOF
+chmod 644 /etc/ssh/sshd_config.d/99-theexonet-deploy-password.conf
 
-if [ -n "${DEPLOY_SSH_PUBLIC_KEY:-}" ]; then
-  add_key "github-actions-deploy" "${DEPLOY_SSH_PUBLIC_KEY}"
-elif [ -n "${DEPLOY_PUBKEY_FILE}" ] && [ -f "${DEPLOY_PUBKEY_FILE}" ]; then
-  add_key "github-actions-deploy" "$(cat "${DEPLOY_PUBKEY_FILE}")"
+if sshd -t 2>/dev/null; then
+  systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
+  echo "Reloaded sshd (password login enabled)."
 else
-  echo "WARN: No DEPLOY_SSH_PUBLIC_KEY — only personal key will be added (if found)." >&2
-  echo "      Generate a dedicated CI key; do not put your personal private key in GitHub." >&2
+  echo "WARN: sshd -t failed — check /etc/ssh/sshd_config.d/99-theexonet-deploy-password.conf" >&2
 fi
-
-if [ -f "${PERSONAL_PUBKEY_FILE}" ]; then
-  add_key "personal-$(basename "${PERSONAL_PUBKEY_FILE}" .pub)" "$(cat "${PERSONAL_PUBKEY_FILE}")"
-fi
-
-chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${home_dir}/.ssh"
 
 # Non-root deploy users need passwordless sudo for promote/restart.
 if [ "${DEPLOY_USER}" != "root" ]; then
@@ -86,10 +65,10 @@ EOF
 fi
 
 echo ""
-echo "=== SSH restart deploy ready ==="
+echo "=== Password SSH deploy ready ==="
 echo "Login user: ${DEPLOY_USER}"
-echo "Test from your PC:"
-echo "  ssh -i ~/.ssh/theexonet-github-deploy ${DEPLOY_USER}@\$(dig +short theexonet.com | head -1) 'promote-theexonet-staging || restart-theexonet'"
-echo ""
-echo "GitHub secret: DEPLOY_SSH_KEY = contents of theexonet-github-deploy (private key, including BEGIN/END lines)"
+echo "GitHub secret: DEPLOY_SSH_PASSWORD (same password you passed to this script)"
 echo "Optional vars: DEPLOY_USER=${DEPLOY_USER}, DEPLOY_SSH_PORT=22"
+echo ""
+echo "Test from your PC (install sshpass locally if needed):"
+echo "  SSHPASS='***' sshpass -e ssh -o PubkeyAuthentication=no ${DEPLOY_USER}@theexonet.com 'restart-theexonet'"

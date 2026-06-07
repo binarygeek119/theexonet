@@ -163,26 +163,24 @@ gcloud compute firewall-rules create theexonet-ftp \
 sftp -i ~/.ssh/id_ed25519 root@EXTERNAL_IP
 ```
 
-## 10. GitHub Actions SSH restart
+## 10. GitHub Actions SSH restart (password)
 
-After FTPS upload, CI can SSH in and restart the game. One-time setup:
+After FTPS upload, CI SSHs in with a password and runs `promote-theexonet-staging`. One-time on the VM:
 
 ```bash
-# On your PC
-ssh-keygen -t ed25519 -f ~/.ssh/theexonet-github-deploy -C "github-actions-deploy" -N ""
-
-# On the VM (paste public key from theexonet-github-deploy.pub)
 cd /opt/theexonet/theexonet && git pull
-sudo DEPLOY_SSH_PUBLIC_KEY='ssh-ed25519 AAAA...' bash scripts/theexonet/setup-github-ssh-restart.sh
+sudo DEPLOY_SSH_PASSWORD='YourStrongDeployPassword' bash scripts/theexonet/setup-github-ssh-restart.sh
 ```
 
-Add the **private** key to GitHub → **Settings → Secrets → Actions → `DEPLOY_SSH_KEY`**.
+Add the **same password** to GitHub → **Settings → Secrets → Actions → `DEPLOY_SSH_PASSWORD`**.
 
-Manual restart anytime:
+Manual restart (password):
 
 ```bash
-ssh -i ~/.ssh/id_ed25519 root@EXTERNAL_IP 'restart-theexonet'
+ssh -o PubkeyAuthentication=no root@EXTERNAL_IP 'restart-theexonet'
 ```
+
+Or with your SSH key if still configured via GCP metadata.
 
 See **[github-deploy-setup.md](github-deploy-setup.md)** for full CI secrets.
 

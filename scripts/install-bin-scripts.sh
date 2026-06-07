@@ -92,6 +92,10 @@ if [ -f "${SRC_DIR}/theexonet/setup-github-ssh-restart.sh" ]; then
   cp -f "${SRC_DIR}/theexonet/setup-github-ssh-restart.sh" "${LIB_DIR}/setup-github-ssh-restart.sh"
   chmod 755 "${LIB_DIR}/setup-github-ssh-restart.sh"
 fi
+if [ -f "${SRC_DIR}/theexonet/diagnose-ftps.sh" ]; then
+  cp -f "${SRC_DIR}/theexonet/diagnose-ftps.sh" "${LIB_DIR}/diagnose-ftps.sh"
+  chmod 755 "${LIB_DIR}/diagnose-ftps.sh"
+fi
 if [ -f "${SRC_DIR}/github-deploy-restart.sh" ]; then
   cp -f "${SRC_DIR}/github-deploy-restart.sh" "${LIB_DIR}/github-deploy-restart.sh"
   chmod 755 "${LIB_DIR}/github-deploy-restart.sh"
@@ -151,6 +155,7 @@ declare -A bin_links=(
   [install-apache-ssl-vhosts.sh]=install-theexonet-apache-ssl
   [sync-postgres-password.sh]=sync-theexonet-postgres-password
   [setup-github-ssh-restart.sh]=setup-theexonet-github-ssh
+  [diagnose-ftps.sh]=diagnose-theexonet-ftps
   [pull-server-repo.sh]=pull-theexonet-repo
 )
 

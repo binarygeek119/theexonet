@@ -4,7 +4,7 @@
 #
 # Env:
 #   DEPLOY_FTP_HOST          — server hostname or IP (default: DEPLOY_HOST)
-#   DEPLOY_FTP_USER          — default gameftp
+#   DEPLOY_FTP_USER          — must be gameftp (default gameftp)
 #   DEPLOY_FTP_PASSWORD      — required
 #   DEPLOY_FTP_PORT          — default 21
 #   DEPLOY_FTP_STAGING_DIR   — path under FTPS chroot /var/www (default: staging)
@@ -33,6 +33,11 @@ if [ -z "${FTP_PASSWORD}" ]; then
   echo "ERROR: set DEPLOY_FTP_PASSWORD" >&2
   exit 1
 fi
+if [ "${FTP_USER}" != "gameftp" ]; then
+  echo "ERROR: DEPLOY_FTP_USER must be gameftp (not ${FTP_USER}). githubdeploy is SSH-only." >&2
+  echo "Remove DEPLOY_FTP_USER from GitHub secrets/variables or set it to gameftp." >&2
+  exit 1
+fi
 
 if ! command -v lftp >/dev/null 2>&1; then
   echo "ERROR: lftp is required (apt install lftp)" >&2
@@ -40,9 +45,11 @@ if ! command -v lftp >/dev/null 2>&1; then
 fi
 
 REMOTE_NAME="$(basename "${LOCAL_FILE}")"
-echo "Uploading ${LOCAL_FILE} → ftps://${FTP_HOST}:${FTP_PORT}/${FTP_STAGING}/${REMOTE_NAME}"
+echo "Uploading ${LOCAL_FILE} → ftps://${FTP_HOST}:${FTP_PORT}/${FTP_STAGING}/${REMOTE_NAME} (user=${FTP_USER})"
 
-lftp -u "${FTP_USER},${FTP_PASSWORD}" -p "${FTP_PORT}" "${FTP_HOST}" <<EOF
+# LFTP_PASSWORD avoids special-character breakage from -u user,pass on the command line.
+export LFTP_PASSWORD="${FTP_PASSWORD}"
+lftp --env-password -u "${FTP_USER}" -p "${FTP_PORT}" "${FTP_HOST}" <<EOF
 set cmd:fail-exit yes
 set ftp:ssl-force true
 set ftp:ssl-protect-data true

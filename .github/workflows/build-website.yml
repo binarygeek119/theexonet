@@ -239,6 +239,13 @@ jobs:
           if [ "${DEPLOY_SSH_USER}" = "root" ]; then
             echo "WARN: DEPLOY_USER is root. Set GitHub variable DEPLOY_USER=githubdeploy for the deploy SSH user." >&2
           fi
+          ftp_user="${DEPLOY_FTP_USER:-gameftp}"
+          echo "FTPS user: ${ftp_user} (must be gameftp — githubdeploy is SSH-only)"
+          if [ "${ftp_user}" != "gameftp" ]; then
+            echo "ERROR: DEPLOY_FTP_USER is '${ftp_user}' but FTPS requires gameftp." >&2
+            echo "Remove DEPLOY_FTP_USER secret/variable or set it to gameftp." >&2
+            exit 1
+          fi
 
       - name: Normalize deploy host
         run: |

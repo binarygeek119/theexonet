@@ -101,7 +101,16 @@ Push to `main` under `server/` or `scripts/`, or run the workflow manually (unch
 
 ### `530 Login incorrect` (FTPS)
 
-Wrong `DEPLOY_FTP_PASSWORD`, wrong `DEPLOY_FTP_USER`, or `gameftp` not installed on the server.
+Wrong `DEPLOY_FTP_PASSWORD`, **`DEPLOY_FTP_USER` set to `githubdeploy` or `root`** (must be **`gameftp`**), or `gameftp` not installed on the server.
+
+**Common mistake:** `DEPLOY_FTP_USER` and `DEPLOY_USER` are different:
+
+| Variable | User | Purpose |
+|----------|------|---------|
+| `DEPLOY_FTP_USER` | `gameftp` | FTPS file upload |
+| `DEPLOY_USER` | `githubdeploy` | SSH promote/restart |
+
+Delete `DEPLOY_FTP_USER` from GitHub if unsure — the workflow defaults to `gameftp`.
 
 1. On the VM, reset the password and verify local login:
 

@@ -620,7 +620,10 @@ function setAuthMode(mode) {
   const isBanAppeal = mode === "ban-appeal";
 
   if (isRegister) {
-    resetRegisterTosGate();
+    // Only reset the ToS gate when entering register fresh — not after "Continue to sign up".
+    if (!state.registerTosFormUnlocked) {
+      resetRegisterTosGate();
+    }
   } else {
     state.registerTosFormUnlocked = false;
     closeRegisterTosPanel();

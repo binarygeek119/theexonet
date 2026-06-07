@@ -47,14 +47,16 @@ sudo bash scripts/install-bin-scripts.sh
    Install the **ASP.NET Core 10 runtime** (the published API targets `net10.0`; .NET 8 is not enough):
 
 ```bash
-wget https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O /tmp/packages-microsoft-prod.deb
-sudo dpkg -i /tmp/packages-microsoft-prod.deb
+sudo apt-get install -y software-properties-common
+sudo add-apt-repository -y ppa:dotnet/backports
 sudo apt-get update
 sudo apt-get install -y aspnetcore-runtime-10.0
 dotnet --list-runtimes
 ```
 
-   You should see `Microsoft.AspNetCore.App 10.0.x` in the list. If the package is unavailable on your distro, use the [install script](https://learn.microsoft.com/dotnet/core/install/linux-scripted-manual#scripted-install) with `--runtime aspnetcore --channel 10.0`.
+   On **Ubuntu 22.04 (jammy)**, Microsoft's `packages-microsoft-prod.deb` feed only ships .NET up to 9.x — use the **dotnet backports PPA** above (or the install script below).
+
+   You should see `Microsoft.AspNetCore.App 10.0.x` in the list. If apt still fails, use the [install script](https://learn.microsoft.com/dotnet/core/install/linux-scripted-manual#scripted-install) with `--runtime aspnetcore --channel 10.0`.
 
    **Optional — .NET SDK 10** (only for manual `sudo deploy-theexonet-portals` / `deploy-theexonet-status` on the server; GitHub Actions deploy does not need this):
 

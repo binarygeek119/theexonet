@@ -94,6 +94,30 @@ put theexonet-website-*.zip /var/www/staging/
 
 Then `sudo promote-theexonet-staging`.
 
+## Troubleshooting: ASP.NET 10 on Ubuntu 22.04
+
+Microsoft's apt feed for **jammy** does not include .NET 10. The installer uses Ubuntu's `ppa:dotnet/backports`. If install failed at the runtime step, run either:
+
+```bash
+# Option A — Ubuntu backports PPA (recommended for apt-managed servers)
+sudo apt-get install -y software-properties-common
+sudo add-apt-repository -y ppa:dotnet/backports
+sudo apt-get update -y
+sudo apt-get install -y aspnetcore-runtime-10.0
+dotnet --list-runtimes | grep AspNetCore
+```
+
+```bash
+# Option B — Microsoft install script (always works)
+wget -O /tmp/dotnet-install.sh https://dot.net/v1/dotnet-install.sh
+chmod +x /tmp/dotnet-install.sh
+sudo /tmp/dotnet-install.sh --runtime aspnetcore --channel 10.0 --install-dir /usr/share/dotnet
+sudo ln -sf /usr/share/dotnet/dotnet /usr/bin/dotnet
+dotnet --list-runtimes | grep AspNetCore
+```
+
+Then re-run: `sudo bash scripts/theexonet/install-host-server.sh` (completed steps are skipped).
+
 ## 6. Verify
 
 ```bash

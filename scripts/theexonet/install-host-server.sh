@@ -87,13 +87,42 @@ EOF
 fi
 
 # --- ASP.NET 10 runtime ---
-if ! dotnet --list-runtimes 2>/dev/null | grep -q 'Microsoft.AspNetCore.App 10.'; then
-  log "Installing ASP.NET Core 10 runtime…"
-  CODENAME="$(. /etc/os-release && echo "${VERSION_CODENAME}")"
-  wget -q "https://packages.microsoft.com/config/ubuntu/${CODENAME}/packages-microsoft-prod.deb" -O /tmp/packages-microsoft-prod.deb
-  dpkg -i /tmp/packages-microsoft-prod.deb
+# Ubuntu 22.04/24.04: .NET 10 is in ppa:dotnet/backports (Microsoft's jammy feed stops at 9.x).
+install_aspnetcore10_apt() {
+  . /etc/os-release
+  log "Installing ASP.NET Core 10 via Ubuntu dotnet backports (${VERSION_ID:-unknown})…"
+  apt-get install -y software-properties-common
+  add-apt-repository -y ppa:dotnet/backports
   apt-get update -y
+  log "Installing aspnetcore-runtime-10.0 (may take a few minutes)…"
   apt-get install -y aspnetcore-runtime-10.0
+}
+
+install_aspnetcore10_via_script() {
+  log "Using dotnet-install.sh (works on all Ubuntu LTS versions)…"
+  wget -O /tmp/dotnet-install.sh https://dot.net/v1/dotnet-install.sh
+  chmod +x /tmp/dotnet-install.sh
+  /tmp/dotnet-install.sh --runtime aspnetcore --channel 10.0 --install-dir /usr/share/dotnet
+  if [ ! -e /usr/bin/dotnet ]; then
+    ln -sf /usr/share/dotnet/dotnet /usr/bin/dotnet
+  fi
+}
+
+has_aspnetcore10_runtime() {
+  dotnet --list-runtimes 2>/dev/null | grep -q 'Microsoft.AspNetCore.App 10.'
+}
+
+if ! has_aspnetcore10_runtime; then
+  log "Installing ASP.NET Core 10 runtime…"
+  if ! install_aspnetcore10_apt; then
+    log "apt install failed — trying dotnet-install.sh…"
+    install_aspnetcore10_via_script
+  fi
+  if ! has_aspnetcore10_runtime; then
+    echo "ERROR: ASP.NET Core 10 runtime not found after install. Run: dotnet --list-runtimes" >&2
+    exit 1
+  fi
+  log "ASP.NET Core 10 runtime ready: $(dotnet --list-runtimes | grep 'Microsoft.AspNetCore.App 10.' | head -1)"
 else
   log "ASP.NET Core 10 runtime already installed."
 fi

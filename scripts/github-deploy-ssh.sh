@@ -151,11 +151,70 @@ fi
 STAGING_HTML="${STAGING_DIR%/}/publish/html"
 LIVE_HTML="/var/www/publish/html/index.html"
 
-echo "Deploy game html from staging (sudo deploy-theexonet-html)…"
+echo "Sync game html from staging…"
 html_output=""
-if ! html_output="$(run_remote_sudo deploy-theexonet-html "${STAGING_HTML}")"; then
+if ! html_output="$(SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
+  "STAGING_HTML='${STAGING_HTML}' LIVE_HTML='${LIVE_HTML}' HTML_BUILD_MARKER='${HTML_BUILD_MARKER}' bash -s" <<'REMOTE_HTML'
+set -euo pipefail
+MARKER="content=\"${HTML_BUILD_MARKER}\""
+STAGING_INDEX="${STAGING_HTML}/index.html"
+LIVE_DIR="$(dirname "${LIVE_HTML}")"
+
+if [ ! -f "${STAGING_INDEX}" ]; then
+  echo "ERROR: missing ${STAGING_INDEX}" >&2
+  exit 1
+fi
+if ! grep -q "${MARKER}" "${STAGING_INDEX}"; then
+  echo "ERROR: staging html missing build marker ${HTML_BUILD_MARKER}" >&2
+  exit 1
+fi
+
+if [ -f "${LIVE_HTML}" ] && grep -q "${MARKER}" "${LIVE_HTML}"; then
+  echo "Game html already has build marker ${HTML_BUILD_MARKER}."
+  exit 0
+fi
+
+sync_html() {
+  rsync -a --delete \
+    --exclude 'uploads/' \
+    --exclude 'images/profile/' \
+    --exclude 'images/profile-backgrounds/' \
+    --exclude 'exonet/offworld-news/editions/' \
+    --exclude 'exonet/offworld-news/images/' \
+    --exclude 'exonet/offworld-news/reporters/' \
+    "${STAGING_HTML}/" "${LIVE_DIR}/"
+}
+
+if sync_html 2>/dev/null; then
+  echo "Synced html from staging (as $(whoami))."
+  exit 0
+fi
+
+sudo -n fix-theexonet-permissions -q 2>/dev/null || true
+if sync_html 2>/dev/null; then
+  echo "Synced html from staging after fix-theexonet-permissions."
+  exit 0
+fi
+
+for deploy_cmd in deploy-theexonet-html /usr/local/bin/deploy-theexonet-html; do
+  if sudo -n "${deploy_cmd}" "${STAGING_HTML}" 2>/dev/null; then
+    echo "Deployed html via ${deploy_cmd}."
+    exit 0
+  fi
+done
+
+echo "ERROR: could not sync html to ${LIVE_DIR}." >&2
+echo "Staging perms:" >&2
+ls -ld "${STAGING_HTML}" "${STAGING_INDEX}" >&2 || true
+echo "Live perms:" >&2
+ls -ld "${LIVE_DIR}" "${LIVE_HTML}" >&2 || true
+echo "On the VM (one-time after git pull):" >&2
+echo "  sudo bash scripts/theexonet/enable-ci-promote-sudoers.sh" >&2
+echo "  sudo fix-theexonet-permissions -q" >&2
+exit 1
+REMOTE_HTML
+)"; then
   echo "${html_output}"
-  echo "ERROR: deploy-theexonet-html failed." >&2
   exit 1
 fi
 echo "${html_output}"
@@ -163,7 +222,7 @@ echo "${html_output}"
 echo "Verify html on server disk…"
 if ! SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
   "grep -q 'content=\"${HTML_BUILD_MARKER}\"' '${LIVE_HTML}'"; then
-  echo "ERROR: ${LIVE_HTML} is missing build marker ${HTML_BUILD_MARKER} after deploy-theexonet-html." >&2
+  echo "ERROR: ${LIVE_HTML} is missing build marker ${HTML_BUILD_MARKER} after html sync." >&2
   exit 1
 fi
 

@@ -59,6 +59,16 @@ fix_publish_tree() {
     say "OK  ${www_assets} (644/755, ${SERVICE_USER})"
   done
 
+  # CI deploy (githubdeploy) rsyncs html from staging; group write keeps Apache (www-data) readable.
+  if [ -d "${PUBLISH_DIR}/html" ]; then
+    chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "${PUBLISH_DIR}/html"
+    find "${PUBLISH_DIR}/html" -type d -exec chmod 2775 {} +
+    find "${PUBLISH_DIR}/html" -type f -exec chmod 664 {} +
+    say "OK  ${PUBLISH_DIR}/html (664/2775, ${SERVICE_USER})"
+  else
+    ensure_dir "${PUBLISH_DIR}/html" 2775 "${SERVICE_USER}:${SERVICE_GROUP}"
+  fi
+
   # Deploy rsync often leaves DLLs owned by the SSH user; www-data must read them to run portals/API.
   if [ -d "${PUBLISH_DIR}" ]; then
     chmod a+rx "${PUBLISH_DIR}" 2>/dev/null || true

@@ -38,6 +38,15 @@ prepare_publish_dir() {
     exit 1
   fi
 
+  if [ ! -f "${PUBLISH_DIR}/Theexonet.Api.dll" ]; then
+    echo "ERROR: ${PUBLISH_DIR}/Theexonet.Api.dll is missing — nothing deployed yet." >&2
+    echo "Deploy first:" >&2
+    echo "  • GitHub Actions FTPS deploy (set DEPLOY_HOST + DEPLOY_FTP_PASSWORD), or" >&2
+    echo "  • Upload theexonet-website-*.zip to /var/www/staging/ and run: sudo promote-theexonet-staging" >&2
+    echo "  • Or download a release zip from GitHub and promote from staging." >&2
+    exit 1
+  fi
+
   mkdir -p "${DATA_DIR}"
   if [ "$(id -u)" -eq 0 ]; then
     chown "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}" 2>/dev/null || true
@@ -45,7 +54,7 @@ prepare_publish_dir() {
 
   echo "Syncing data CSV spreadsheets to ${DATA_DIR}..."
   if [ -x /usr/local/bin/sync-theexonet-data ]; then
-    sync-theexonet-data "${PUBLISH_DIR}" || {
+    sync-theexonet-data || {
       echo "WARN: sync-theexonet-data failed. Run: sudo install-theexonet-scripts (from git checkout)" >&2
     }
   elif [ -f /usr/local/lib/theexonet/scripts/sync-publish-data.sh ]; then

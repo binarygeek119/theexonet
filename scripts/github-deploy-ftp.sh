@@ -1,6 +1,6 @@
 #!/bin/bash
 # Upload a deploy artifact to theexonet production via explicit FTPS (gameftp).
-# Used by GitHub Actions when DEPLOY_METHOD=ftp.
+# Used by GitHub Actions production deploy (FTPS only).
 #
 # Env:
 #   DEPLOY_FTP_HOST          — server hostname or IP (default: DEPLOY_HOST)

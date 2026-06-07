@@ -227,6 +227,9 @@ if [ "${SKIP_FTP:-0}" != "1" ]; then
   export GAME_FTP_STAGING="${STAGING_DIR}"
   export GAME_FTP_PASSWORD
   bash "${SCRIPT_DIR}/install-ftp-server.sh"
+  if [ -f "${SCRIPTS_SRC}/install-staging-watcher.sh" ]; then
+    bash "${SCRIPTS_SRC}/install-staging-watcher.sh"
+  fi
 fi
 
 # --- Permissions watcher ---

@@ -1,338 +1,75 @@
-# GitHub Actions deploy setup
+# GitHub Actions deploy setup (FTPS)
 
-Deploy runs automatically on pushes to `main` when **`ENABLE_PRODUCTION_DEPLOY`** is `true` and SSH credentials are configured.
+Production deploy uploads a zip bundle via **FTPS** to `/var/www/staging/`. The server's **staging watcher** auto-promotes to `/var/www/publish` and restarts services. **No SSH** is required in GitHub Actions.
 
-**Never commit passwords or private keys to the repo.** Add them only in GitHub **Settings → Secrets and variables → Actions**.
+**Never commit passwords to the repo.** Add them only in GitHub **Settings → Secrets and variables → Actions**.
 
-## Server (binarygeek119.duckdns.org)
+## Server (theexonet.com / GCP VM)
 
 | Setting | Value |
 |---------|--------|
-| Host | `binarygeek119.duckdns.org` |
-| Port | `22` |
-| SSH user | `root` |
-| Game + API publish root | `/var/www/publish` |
-| Game html (nginx docroot) | `/var/www/publish/html` |
-| API systemd unit | `theexonet-api` |
-| Status systemd unit | `theexonet-status` |
+| FTPS host | `theexonet.com` or VM IP |
+| FTPS user | `gameftp` |
+| FTPS chroot | `/var/www` (upload to `staging/`) |
+| Live publish | `/var/www/publish` |
+| Auto-promote | `theexonet-staging-watcher.service` |
 
-## 1. Repository variable (Variables tab — not Secrets)
-
-**Settings → Secrets and variables → Actions → Variables → New repository variable**
-
-Copy the **name** exactly (no backticks, no spaces):
-
-```text
-ENABLE_PRODUCTION_DEPLOY
-```
-
-| Value |
-|--------|
-| `true` |
-
-## 2. SSH password (Secrets tab)
-
-**Settings → Secrets and variables → Actions → Secrets → New repository secret**
-
-**Name** (copy exactly — underscores only, no spaces or hyphens):
-
-```text
-DEPLOY_SSH_PASSWORD
-```
-
-**Secret** (value field only): your root SSH password.
-
-### If GitHub says “Secret names can only contain alphanumeric…”
-
-You typed an invalid **name**. Common mistakes:
-
-| Wrong | Use instead |
-|-------|-------------|
-| `DEPLOY SSH PASSWORD` (spaces) | `DEPLOY_SSH_PASSWORD` |
-| `DEPLOY-SSH-PASSWORD` (hyphens) | `DEPLOY_SSH_PASSWORD` |
-| `` `DEPLOY_SSH_PASSWORD` `` (backticks) | `DEPLOY_SSH_PASSWORD` |
-| Password in the **name** field | Password goes in the **Secret** value field only |
-
-Valid characters: letters, numbers, underscore `_`. Must start with a letter or `_`.
-
-## 3. Optional repository variables (Variables tab)
-
-| Name | Value |
-|------|--------|
-| `DEPLOY_HOST` | `binarygeek119.duckdns.org` |
-| `DEPLOY_USER` | `root` |
-| `DEPLOY_SSH_PORT` | `22` |
-| `DEPLOY_WWW_PATH` | `/var/www/publish` |
-| `DEPLOY_API_PATH` | `/var/www/publish` |
-| `DEPLOY_API_SERVICE` | `theexonet-api` |
-| `DEPLOY_STATUS_SERVICE` | `theexonet-status` |
-| `DEPLOY_ADMIN_SERVICE` | `theexonet-admin` |
-| `DEPLOY_MODERATOR_SERVICE` | `theexonet-moderator` |
-| `DEPLOY_REPO_PATH` | `/opt/theexonet/theexonet` |
-| `DEPLOY_METHOD` | `ssh` (default) or `ftp` — see [FTP deploy](#ftp-deploy-via-github-actions) |
-| `DEPLOY_FTP_HOST` | Optional; defaults to `DEPLOY_HOST` (e.g. `theexonet.com` or VM IP) |
-| `DEPLOY_FTP_USER` | `gameftp` (default) |
-| `DEPLOY_FTP_STAGING_DIR` | `staging` (under FTPS chroot `/var/www`) |
-
-**Single-folder setup (recommended):** set both `DEPLOY_WWW_PATH` and `DEPLOY_API_PATH` to `/var/www/publish`. The workflow skips the separate html rsync and deploys game files under `publish/html/`. Point nginx/Apache for the game site at `/var/www/publish/html`.
-
-**Server git checkout:** each deploy rsyncs repository sources to `DEPLOY_REPO_PATH` (default `/opt/theexonet/theexonet`) from the GitHub Actions checkout — no git credentials are required on the server. The deployed commit SHA is written to `.deploy-commit`.
-
-Optional one-time clone if you want `git pull` on the server for manual work (requires GitHub SSH access):
-
-```bash
-sudo mkdir -p /opt/theexonet
-sudo git clone git@github.com:binarygeek119/theexonet.git /opt/theexonet/theexonet
-```
-
-Or run `sudo bash scripts/sync-server-repo.sh /opt/theexonet/theexonet origin/main git@github.com:binarygeek119/theexonet.git` after configuring a deploy key. CI deploy does not use this script.
-
-**Never use `/var/www` alone** for either path — that rsyncs html and portal `wwwroot` files beside `publish/` and creates `/var/www/.aspnet` outside the app folder.
-
-`DEPLOY_WWW_PATH` and `DEPLOY_API_PATH` must be **paths only** (`/var/www/publish`), not full rsync targets like `root@host:/var/www/publish`. Host and user go in `DEPLOY_HOST` and `DEPLOY_USER`.
-
-If these variables are set, you do not need the matching secrets.
-
-## 4. SSH key alternative (optional)
-
-On the server, for password login, ensure `/etc/ssh/sshd_config` has:
-
-```text
-PermitRootLogin yes
-PasswordAuthentication yes
-```
-
-Then restart SSH: `sudo systemctl restart ssh`
-
-Secret name for a key (if not using password):
-
-```text
-DEPLOY_SSH_KEY
-```
-
-### SSH key setup (recommended long-term)
-
-On your machine:
-
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/theexonet-deploy -N ""
-ssh-copy-id -i ~/.ssh/theexonet-deploy.pub root@binarygeek119.duckdns.org
-```
-
-Add the **private** key contents as secret `DEPLOY_SSH_KEY` (PEM/OpenSSH format).
-
-## FTP deploy via GitHub Actions
-
-Upload the publish bundle over **FTPS** instead of SSH rsync. SSH is still used after upload to run `promote-theexonet-staging` and restart services.
-
-### Repository settings
-
-| Type | Name | Value |
-|------|------|--------|
-| Variable | `DEPLOY_METHOD` | `ftp` |
-| Variable | `DEPLOY_HOST` | `theexonet.com` or VM IP |
-| Secret | `DEPLOY_FTP_PASSWORD` | `gameftp` password (set via `set-gameftp-password.sh`) |
-| Secret | `DEPLOY_SSH_KEY` or `DEPLOY_SSH_PASSWORD` | Still required for promote + restart |
-
-Optional: `DEPLOY_FTP_HOST` if FTP hostname differs from `DEPLOY_HOST`.
-
-### What the workflow does (`DEPLOY_METHOD=ftp`)
-
-1. Builds `publish/` + `data/` (same as SSH deploy)
-2. Zips → `theexonet-website-deploy-<sha>.zip`
-3. **FTPS upload** to `/var/www/staging/` (user `gameftp`)
-4. **SSH:** `promote-theexonet-staging` → `/var/www/publish` + restart
-
-### GCP firewall (required for CI FTP)
-
-GitHub-hosted runners use **dynamic IPs**. Your home-IP-only FTP rule blocks CI.
-
-Either:
-
-- Temporarily allow FTP from GitHub Actions IP ranges ([`api.github.com/meta`](https://api.github.com/meta) → `actions`), or
-- Open ports `21` and `40000-40050` more broadly for deploy (less secure), or
-- Keep `DEPLOY_METHOD=ssh` for CI and use FTP only for manual FileZilla uploads.
-
-Ensure vsftpd has `pasv_address` set to the VM external IP (see `install-ftp-server.sh`).
-
-### Switch back to SSH rsync
-
-Set `DEPLOY_METHOD` to `ssh` or remove the variable.
-
-## 5. One-time server prep
-
-See [deploy.md](deploy.md) for .NET 10, systemd units, `appsettings.json`, Apache/nginx, and `/usr/local/bin` helpers.
-
-Each deploy syncs `scripts/` to the server, runs `install-bin-scripts.sh`, then `restart-theexonet` (falls back to per-service `systemctl restart` if needed).
-
-After first deploy, confirm:
-
-```bash
-curl -s http://127.0.0.1:5000/
-curl -s http://127.0.0.1:6000/api/dashboard
-```
-
-## 6. Trigger a deploy
-
-One workflow handles everything: **Actions → theexonet CI** (file: `.github/workflows/build-website.yml`).
-
-Push to `main` under `server/` or `scripts/` (or run the workflow manually). It will:
-
-1. **Build and test** — restore, build, test, validate JavaScript
-
-With `DEPLOY_METHOD=ftp`, production file transfer uses FTPS; with `ssh` (default), rsync over SSH.
-2. **Publish GitHub release** — zip of `publish/` + `data/` with a **What's changed** section listing commits since the previous `website-*` tag (skipped on pull requests)
-3. **Deploy to production** — when `ENABLE_PRODUCTION_DEPLOY=true` (skipped on pull requests)
-
-Manual run options (**Run workflow**):
-
-- **skip deploy** — build + release only, no SSH/rsync to the server
-
-On the server you can also deploy without GitHub Actions:
-
-```bash
-sudo deploy-theexonet-html          # game html only
-sudo deploy-theexonet-status        # status dashboard publish + restart
-sudo deploy-theexonet-portals       # admin + moderator publish + restart
-```
-
-From a git checkout on the server (e.g. `/opt/theexonet/theexonet`):
+### One-time on the server
 
 ```bash
 cd /opt/theexonet/theexonet
 git pull
-sudo install-theexonet-scripts      # refresh /usr/local/bin helpers
-sudo deploy-theexonet-portals       # auto-finds ./server
+sudo bash scripts/theexonet/install-ftp-server.sh
+sudo bash scripts/install-staging-watcher.sh
+sudo systemctl status theexonet-staging-watcher
 ```
 
-Watch the **theexonet CI** workflow in the Actions tab.
+GCP firewall must allow **TCP 21** and **40000-40050** from [GitHub Actions IP ranges](https://api.github.com/meta) (`actions` key), or CI FTPS uploads will fail.
 
-## 7. Branch protection
+## 1. Enable deploy
 
-Protect `main` so PRs (including Dependabot) must pass CI before merge. See **[docs/branch-protection.md](branch-protection.md)** for rules, required checks, and setup:
+**Settings → Actions → Variables**
+
+| Name | Value |
+|------|--------|
+| `ENABLE_PRODUCTION_DEPLOY` | `true` |
+| `DEPLOY_HOST` | `theexonet.com` (or `35.188.26.155`) |
+
+Optional: `DEPLOY_FTP_HOST` if FTP hostname differs from `DEPLOY_HOST`.
+
+Remove obsolete variables if present: `DEPLOY_USER`, `DEPLOY_SSH_PORT`, `DEPLOY_WWW_PATH`, `DEPLOY_METHOD`, etc. (no longer used).
+
+## 2. FTPS password (required)
+
+**Settings → Secrets**
+
+| Name | Value |
+|------|--------|
+| `DEPLOY_FTP_PASSWORD` | `gameftp` password |
+
+Set safely on the server:
 
 ```bash
-gh auth login
-bash scripts/configure-branch-protection.sh
+sudo GAME_FTP_PASSWORD='YourPassword' bash scripts/theexonet/set-gameftp-password.sh
 ```
 
-## 8. Troubleshooting
+Remove unused secrets: `DEPLOY_SSH_PASSWORD`, `DEPLOY_SSH_KEY` (SSH deploy removed).
 
-### `hostname contains invalid characters` during rsync
+## 3. What the workflow does
 
-`DEPLOY_HOST` (or `DEPLOY_WWW_HOST` / `DEPLOY_API_HOST`) includes characters SSH/rsync reject — usually from copy-paste:
+**Actions → theexonet CI** on push to `main`:
 
-| Wrong | Correct |
-|-------|---------|
-| `https://binarygeek119.duckdns.org` | `binarygeek119.duckdns.org` |
-| `binarygeek119.duckdns.org/` | `binarygeek119.duckdns.org` |
-| trailing space or newline | remove in GitHub Variables UI |
+1. Build and test
+2. Zip `publish/` + `data/`
+3. **FTPS upload** to `staging/theexonet-website-deploy-<sha>.zip`
+4. Wait for `http://theexonet.com/` and API HTTP (after server auto-promote)
 
-The workflow now normalizes hostnames before deploy. Fix the variable in **Settings → Actions → Variables**, then re-run the workflow.
-
-### rsync `mkdir "user@host:/var/www/..." failed`
-
-`DEPLOY_WWW_PATH` or **`DEPLOY_API_PATH`** was set to a full rsync target (`user@host:/path`) instead of the path alone. Fix:
-
-| Variable | Value |
-|----------|--------|
-| `DEPLOY_HOST` | `binarygeek119.duckdns.org` |
-| `DEPLOY_USER` | `root` |
-| `DEPLOY_WWW_PATH` | `/var/www/publish` |
-| `DEPLOY_API_PATH` | `/var/www/publish` |
-
-The workflow now strips accidental `user@host:` prefixes, rejects `/var/www` as a deploy path, and creates remote directories before rsync.
-
-### Stray `/var/www/html`, `/var/www/wwwroot`, or `/var/www/.aspnet`
-
-`DEPLOY_WWW_PATH` or `DEPLOY_API_PATH` was `/var/www` (parent directory) instead of `/var/www/publish`. Fix both variables to `/var/www/publish`, then on the server move or remove the stray folders (see `docs/deploy.md` troubleshooting item 12).
-
-### `Add SSH host keys` fails (exit code 1)
-
-GitHub Actions could not reach your server on `DEPLOY_SSH_PORT` (default **22**). The workflow now prints DNS and TCP checks; fix the underlying reachability issue on the server or in your GitHub variables.
-
-**On the server** (SSH in locally or from your PC):
+## 4. Manual promote (if watcher is down)
 
 ```bash
-# sshd running and listening on all interfaces?
-sudo systemctl status ssh
-sudo ss -tlnp | grep ':22'
-
-# firewall allows inbound SSH?
-sudo ufw status
-sudo ufw allow 22/tcp    # if ufw is active and SSH is blocked
-
-# optional: confirm from outside (run on your PC, not the server)
-ssh -p 22 root@binarygeek119.duckdns.org
+sudo promote-theexonet-staging
 ```
 
-**In GitHub → Settings → Secrets and variables → Actions → Variables:**
+## 5. Trigger a deploy
 
-| Check | Correct | Wrong |
-|-------|---------|-------|
-| `DEPLOY_HOST` | `binarygeek119.duckdns.org` | `https://binarygeek119.duckdns.org` |
-| `DEPLOY_SSH_PORT` | `22` (or your custom port) | blank, `22/tcp`, or a closed port |
-| `DEPLOY_WWW_HOST` / `DEPLOY_API_HOST` | leave unset if same machine | invalid hostname |
-
-If SSH is only reachable on your home network (no port forward), GitHub Actions **cannot** deploy until port **22** is open to the public internet or you use a self-hosted runner on the same network.
-
-### Deploy job skipped entirely
-
-Set repository variable **`ENABLE_PRODUCTION_DEPLOY`** = `true` (Variables tab, not Secrets).
-
-### Auth fails after host keys succeed
-
-Configure **`DEPLOY_SSH_PASSWORD`** or **`DEPLOY_SSH_KEY`** under Secrets. See sections 2 and 4 above.
-
-### `Unit theexonet-admin.service not found` (or moderator)
-
-The deploy **synced files successfully** — only the service restart failed because those systemd units were never installed on the server.
-
-**On the server** (SSH as root), create the units and start them:
-
-```bash
-# If you have the repo cloned on the server (install to PATH first: sudo bash scripts/install-bin-scripts.sh):
-sudo install-theexonet-portals
-
-# Or install all five units (api, status, admin, moderator, docs):
-sudo install-theexonet-systemd
-```
-
-**Without a repo clone**, copy the unit files manually:
-
-```bash
-sudo cp theexonet-admin.service theexonet-moderator.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now theexonet-admin theexonet-moderator
-systemctl is-active theexonet-admin theexonet-moderator
-```
-
-Unit file sources: `scripts/systemd/theexonet-admin.service` and `scripts/systemd/theexonet-moderator.service`.
-
-Ensure `/var/www/publish/appsettings.json` includes **`AdminPortal`** and **`ModeratorPortal`** sections (see `appsettings.production.example.json`).
-
-After units exist, re-run the GitHub workflow or `sudo restart-theexonet`.
-
-On the latest workflow, missing units log a **WARNING** and are skipped instead of failing the deploy. The workflow installs helpers to `/usr/local/bin` automatically.
-
-### Portal files on disk but HTTP verify fails (`activating` / `currency.js`)
-
-Static files under `/var/www/publish/wwwroot/` are present, but `theexonet-admin` or `theexonet-moderator` is not listening on port 7000/7050.
-
-**On the server:**
-
-```bash
-sudo diagnose-theexonet-portals
-sudo journalctl -u theexonet-admin -n 50 --no-pager
-dotnet --list-runtimes | grep -E 'Microsoft.NETCore.App 10'
-sudo fix-theexonet-permissions
-sudo install-theexonet-systemd   # refresh unit files (portals no longer wait on theexonet-api)
-sudo restart-theexonet
-curl -sf http://127.0.0.1:7000/js/currency.js && echo OK
-```
-
-Common causes:
-
-- **Missing .NET 10 runtime** after a deploy built with `net10.0` (install the same runtime the CI publish uses).
-- **DLL permissions** — rsync leaves `*.dll` unreadable by `www-data`; `sudo fix-theexonet-permissions` adds world-read on publish assemblies.
-- **`/var/www/data/appsettings.json`** — add an **`OpenAi`** block (see `server/Theexonet.Api/appsettings.json.example`); move any legacy `OffworldNews:ApiKey` / `BaseUrl` / `TextModel` / `ImageModel` keys there.
+Push to `main` under `server/` or `scripts/`, or run the workflow manually (uncheck skip deploy).

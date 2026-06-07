@@ -45,7 +45,7 @@ Optional environment:
 export THEEXONET_DOMAIN=theexonet.com
 export POSTGRES_PASSWORD='your-strong-db-password'
 export GAME_FTP_PASSWORD='your-ftp-password'
-export SKIP_FTP=1                    # SSH/GitHub deploy only
+export SKIP_FTP=1                    # skip FTPS user (manual SFTP only)
 sudo -E bash scripts/theexonet/install-host-server.sh
 ```
 
@@ -70,22 +70,25 @@ sudo certbot --apache -d theexonet.com -d www.theexonet.com \
 
 ## 5. Deploy game files
 
-### Option A — GitHub Actions (recommended)
+### Option A — GitHub Actions (recommended, FTPS)
 
-Configure SSH deploy secrets per [deploy.md](deploy.md) and [github-deploy-setup.md](github-deploy-setup.md). Pushes to `main` rsync the publish bundle to `/var/www/publish`.
+See [github-deploy-setup.md](github-deploy-setup.md). CI uploads a zip to `staging/` via **FTPS**; `theexonet-staging-watcher.service` auto-promotes to `/var/www/publish`.
 
-### Option B — FTPS upload
-
-1. Open firewall: TCP 21 and passive ports 40000–40050 (restrict to your IP).
-2. FileZilla: **FTP over explicit TLS**, host = server IP, user `gameftp`.
-3. FTPS chroot is `/var/www` — upload `theexonet-website-*.zip` or `publish/` into `staging/`.
-4. Promote to live:
+Install the watcher once:
 
 ```bash
-sudo promote-theexonet-staging
+sudo bash scripts/install-staging-watcher.sh
 ```
 
-### Option C — SFTP (same as SSH key)
+Open firewall **TCP 21** and **40000–40050** for [GitHub Actions IPs](https://api.github.com/meta) (and your IP for manual FTP).
+
+### Option B — Manual FTPS (FileZilla)
+
+1. **FTP over explicit TLS**, host = server IP or domain, user `gameftp`.
+2. FTPS chroot is `/var/www` — upload `theexonet-website-*.zip` into `staging/`.
+3. Watcher promotes automatically, or run `sudo promote-theexonet-staging`.
+
+### Option C — SFTP (SSH key)
 
 ```bash
 sftp -i ~/.ssh/id_ed25519 root@YOUR_SERVER

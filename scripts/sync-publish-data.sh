@@ -20,8 +20,10 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 resolve_src_dir() {
-  if [ -n "${1:-}" ] && [ -d "$1" ]; then
-    printf '%s' "$1"
+  local requested="${1:-}"
+
+  if [ -n "${requested}" ] && [ -d "${requested}" ] && [ -f "${requested}/credits.csv" ]; then
+    printf '%s' "${requested}"
     return
   fi
 

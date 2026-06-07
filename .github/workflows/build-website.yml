@@ -1,4 +1,4 @@
-name: theexonet CI
+﻿name: theexonet CI
 
 on:
   push:

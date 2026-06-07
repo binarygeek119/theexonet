@@ -1,0 +1,15 @@
+[Unit]
+Description=theexonet FTP staging auto-promote watcher
+After=network.target vsftpd.service
+Wants=vsftpd.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/lib/theexonet/scripts/theexonet/staging-watcher.sh
+Restart=always
+RestartSec=10
+EnvironmentFile=-/etc/default/theexonet-staging-watcher
+
+[Install]
+WantedBy=multi-user.target

@@ -92,4 +92,38 @@ public sealed class VoidCorpAdminService(
             result.Generated,
             statusAfter.MissingImagesCount), null);
     }
+
+    public async Task<(AdminVoidCorpGenerateImagesResponse? Response, string? Error)> RegenerateImagesAsync(
+        CancellationToken cancellationToken)
+    {
+        var settings = voidCorpOptions.Value;
+        if (!settings.Enabled)
+        {
+            return (null, "VoidCorp is disabled in configuration.");
+        }
+
+        if (!imageGenerator.IsConfigured)
+        {
+            return (null, "OpenAi.ApiKey is not configured; AI product images are unavailable.");
+        }
+
+        var statusBefore = GetStatus();
+        if (statusBefore.WithImagesCount == 0)
+        {
+            return (null, "No product images found to regenerate.");
+        }
+
+        var result = await backfillService.RegenerateExistingAsync("admin:regenerate-images", cancellationToken);
+        if (result.Attempted == 0)
+        {
+            return (null, "No product images found to regenerate.");
+        }
+
+        var statusAfter = GetStatus();
+        return (new AdminVoidCorpGenerateImagesResponse(
+            $"Queued {result.Attempted} product image(s) for regeneration.",
+            result.Attempted,
+            0,
+            statusAfter.MissingImagesCount), null);
+    }
 }

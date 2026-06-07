@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Theexonet.Api.Services;
 using Theexonet.Api.Services.OpenAi;
+using Theexonet.Core.Configuration;
 using Theexonet.Core.Constants;
 using Theexonet.Core.Dtos;
 using Theexonet.Core.Enums;
@@ -23,7 +25,9 @@ public class StatusController(
     IMarketItemsCatalog marketItems,
     IGameCreditsConfig gameCreditsConfig,
     TradeAuctionService tradeAuctionService,
-    OpenAiStatusDetailService openAiStatusDetailService) : ControllerBase
+    OpenAiStatusDetailService openAiStatusDetailService,
+    AiImageQueueService aiImageQueueService,
+    IOptions<AiImageQueueOptions> aiImageQueueOptions) : ControllerBase
 {
     [AllowAnonymous]
     [HttpGet("status")]
@@ -65,6 +69,37 @@ public class StatusController(
     [HttpGet("status/openai")]
     public async Task<ActionResult<PublicOpenAiStatusDetailResponse>> GetOpenAiStatus(CancellationToken ct) =>
         Ok(await openAiStatusDetailService.BuildAsync(ct));
+
+    [AllowAnonymous]
+    [HttpGet("status/ai-queue")]
+    public async Task<ActionResult<PublicAiGenerationQueueStatusDto>> GetAiQueueStatus(CancellationToken ct)
+    {
+        if (!aiImageQueueOptions.Value.Enabled)
+        {
+            return Ok(new PublicAiGenerationQueueStatusDto(
+                DateTime.UtcNow,
+                false,
+                "disabled",
+                "AI generation queue is disabled in configuration.",
+                null,
+                0,
+                0,
+                0,
+                new Dictionary<string, int>()));
+        }
+
+        var status = await aiImageQueueService.GetStatusAsync(kindFilter: null, ct);
+        return Ok(new PublicAiGenerationQueueStatusDto(
+            DateTime.UtcNow,
+            true,
+            status.Status,
+            status.CurrentJobDescription,
+            status.CurrentJobKind,
+            status.QueuedCount,
+            status.CompletedToday,
+            status.FailedToday,
+            status.QueuedByKind));
+    }
 
     [AllowAnonymous]
     [HttpGet("status/economy")]

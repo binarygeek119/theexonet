@@ -19,10 +19,27 @@
         <a class="nav-link" href="/">Dashboard</a>
         <a class="nav-link" href="/values.html">Item values</a>
         <a class="nav-link active" href="/ai.html">AI</a>
+        <a class="nav-link" href="/queue.html">AI queue</a>
       </nav>
     </header>
 
     <section class="openai-summary-grid" aria-live="polite">
+      <article class="card">
+        <h2>OpenAI platform</h2>
+        <p class="status-pill checking" id="ai-platform-pill">Checking…</p>
+        <dl>
+          <div><dt>Status</dt><dd id="ai-platform-description">—</dd></div>
+          <div><dt>Indicator</dt><dd id="ai-platform-indicator">—</dd></div>
+          <div><dt>Status page latency</dt><dd id="ai-platform-response-ms">—</dd></div>
+          <div><dt>Checked (UTC)</dt><dd id="ai-platform-checked">—</dd></div>
+          <div><dt>Impacted components</dt><dd id="ai-platform-components">—</dd></div>
+          <div><dt>Platform error</dt><dd id="ai-platform-error">—</dd></div>
+        </dl>
+        <p class="card-foot">
+          <a id="link-platform-status" href="https://status.openai.com/" target="_blank" rel="noopener">status.openai.com</a>
+        </p>
+      </article>
+
       <article class="card">
         <h2>API requests</h2>
         <dl>
@@ -34,6 +51,8 @@
           <div><dt>Successful today</dt><dd id="ai-today-success">—</dd></div>
           <div><dt>Failed today</dt><dd id="ai-today-failed">—</dd></div>
           <div><dt>Last request (UTC)</dt><dd id="ai-last-request">—</dd></div>
+          <div><dt>Requests by type</dt><dd id="ai-requests-by-type">—</dd></div>
+          <div><dt>Usage error</dt><dd id="ai-usage-error">—</dd></div>
           <div><dt>theexonet API error</dt><dd id="ai-api-error">—</dd></div>
         </dl>
         <p class="card-foot">

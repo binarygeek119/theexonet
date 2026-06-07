@@ -13,6 +13,14 @@ const AI_FEATURES = [
 const els = {
   updated: document.getElementById("ai-updated"),
   overall: document.getElementById("ai-overall"),
+  platformPill: document.getElementById("ai-platform-pill"),
+  platformDescription: document.getElementById("ai-platform-description"),
+  platformIndicator: document.getElementById("ai-platform-indicator"),
+  platformResponseMs: document.getElementById("ai-platform-response-ms"),
+  platformChecked: document.getElementById("ai-platform-checked"),
+  platformComponents: document.getElementById("ai-platform-components"),
+  platformError: document.getElementById("ai-platform-error"),
+  linkPlatformStatus: document.getElementById("link-platform-status"),
   apiKey: document.getElementById("ai-api-key"),
   totalCalls: document.getElementById("ai-total-calls"),
   successful: document.getElementById("ai-successful"),
@@ -26,6 +34,8 @@ const els = {
   creditsGranted: document.getElementById("ai-credits-granted"),
   creditsRemaining: document.getElementById("ai-credits-remaining"),
   creditsUsed: document.getElementById("ai-credits-used"),
+  requestsByType: document.getElementById("ai-requests-by-type"),
+  usageError: document.getElementById("ai-usage-error"),
   statsRows: document.getElementById("ai-stats-rows"),
   statsFoot: document.getElementById("ai-stats-foot"),
 };
@@ -57,6 +67,75 @@ function formatUsd(value) {
 function formatYesNo(value) {
   if (value == null) return "—";
   return value ? "Yes" : "No";
+}
+
+function openAiIndicatorTone(indicator) {
+  const value = String(indicator ?? "").toLowerCase();
+  if (value === "none") {
+    return "online";
+  }
+
+  if (value === "maintenance" || value === "minor") {
+    return "degraded";
+  }
+
+  if (value === "major" || value === "critical") {
+    return "offline";
+  }
+
+  return "checking";
+}
+
+function formatOpenAiComponents(components) {
+  if (!Array.isArray(components) || components.length === 0) {
+    return "None";
+  }
+
+  return components
+    .map((component) => {
+      const name = component?.name ?? "Unknown";
+      const status = component?.status ?? "unknown";
+      return `${name} (${status})`;
+    })
+    .join("; ");
+}
+
+function formatOpenAiRequestsByCategory(byCategory) {
+  if (!byCategory || typeof byCategory !== "object") {
+    return "—";
+  }
+
+  const entries = Object.entries(byCategory).filter(([, count]) => count > 0);
+  if (entries.length === 0) {
+    return "None yet";
+  }
+
+  return entries
+    .sort((a, b) => b[1] - a[1])
+    .map(([key, count]) => `${key.replaceAll("_", " ")}: ${formatCount(count)}`)
+    .join("; ");
+}
+
+function renderPlatform(platform, checkedUtc) {
+  if (els.linkPlatformStatus && platform?.statusPageUrl) {
+    els.linkPlatformStatus.href = platform.statusPageUrl;
+  }
+
+  els.platformResponseMs.textContent = platform?.responseMs != null ? `${platform.responseMs} ms` : "—";
+  els.platformChecked.textContent = formatUtc(checkedUtc);
+  els.platformError.textContent = platform?.error || "—";
+  els.platformIndicator.textContent = platform?.indicator || "—";
+  els.platformDescription.textContent = platform?.description || "—";
+  els.platformComponents.textContent = formatOpenAiComponents(platform?.degradedComponents);
+
+  if (!platform?.reachable) {
+    setPill(els.platformPill, "Unreachable", "offline");
+    return;
+  }
+
+  const indicator = String(platform.indicator ?? "").toLowerCase();
+  const label = platform.description?.trim() || (indicator === "none" ? "Operational" : indicator || "Unknown");
+  setPill(els.platformPill, label, openAiIndicatorTone(indicator));
 }
 
 function escapeHtml(text) {
@@ -111,16 +190,20 @@ function renderStatsTable(theexonet) {
 function renderPage(data) {
   els.updated.textContent = `Last updated ${new Date().toLocaleString()} · polls every ${POLL_MS / 1000}s`;
   els.linkJson.href = `${data.apiPublicUrl.replace(/\/$/, "")}/api/status/openai`;
+  renderPlatform(data.platform, data.utc);
 
   const theexonet = data.theexonet;
   if (!theexonet) {
     setPill(els.overall, "API unreachable", "offline");
     els.apiError.textContent = data.theexonetError || "Could not load AI status from theexonet API";
+    els.usageError.textContent = data.theexonetError || "Could not load usage from theexonet API";
+    els.requestsByType.textContent = "—";
     els.statsRows.innerHTML = `<tr><td colspan="4">${escapeHtml(data.theexonetError || "Unavailable")}</td></tr>`;
     return;
   }
 
   els.apiError.textContent = data.theexonetError || "—";
+  els.usageError.textContent = theexonet.creditsNote?.trim() || "—";
   els.apiKey.textContent = formatYesNo(theexonet.apiKeyConfigured);
   els.totalCalls.textContent = formatCount(theexonet.totalRequests);
   els.successful.textContent = formatCount(theexonet.successfulRequests);
@@ -129,6 +212,7 @@ function renderPage(data) {
   els.todaySuccess.textContent = formatCount(theexonet.successfulRequestsToday);
   els.todayFailed.textContent = formatCount(theexonet.failedRequestsToday);
   els.lastRequest.textContent = formatUtc(theexonet.lastRequestUtc);
+  els.requestsByType.textContent = formatOpenAiRequestsByCategory(theexonet.requestsByCategory);
   els.creditsGranted.textContent = formatUsd(theexonet.creditsGrantedUsd);
   els.creditsRemaining.textContent = formatUsd(theexonet.creditsRemainingUsd);
   els.creditsUsed.textContent = formatUsd(theexonet.creditsUsedUsd);
@@ -151,6 +235,7 @@ function renderPage(data) {
 
 async function refresh() {
   setPill(els.overall, "Checking…", "checking");
+  setPill(els.platformPill, "Checking…", "checking");
   try {
     const response = await fetch("/api/openai");
     if (!response.ok) {

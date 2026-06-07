@@ -249,6 +249,86 @@ app.MapGet("/api/openai", async (
         theexonetError));
 });
 
+app.MapGet("/api/ai-queue", async (
+    IHttpClientFactory httpClientFactory,
+    IOptions<StatusMonitorOptions> options,
+    CancellationToken cancellationToken) =>
+{
+    var monitor = options.Value;
+    var apiBaseUrl = monitor.ApiBaseUrl.TrimEnd('/');
+    var client = httpClientFactory.CreateClient("TheexonetApi");
+    client.Timeout = TimeSpan.FromSeconds(12);
+
+    try
+    {
+        using var response = await client.GetAsync($"{apiBaseUrl}/api/status/ai-queue", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            return Results.Ok(new AiGenerationQueueStatusPayload(
+                DateTime.UtcNow,
+                false,
+                "unreachable",
+                null,
+                null,
+                0,
+                0,
+                0,
+                new Dictionary<string, int>(),
+                false,
+                $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}",
+                monitor.ApiPublicUrl));
+        }
+
+        var payload = await response.Content.ReadFromJsonAsync<PublicAiGenerationQueueStatusDto>(cancellationToken);
+        if (payload is null)
+        {
+            return Results.Ok(new AiGenerationQueueStatusPayload(
+                DateTime.UtcNow,
+                false,
+                "unreachable",
+                null,
+                null,
+                0,
+                0,
+                0,
+                new Dictionary<string, int>(),
+                false,
+                "Could not read AI queue payload from API.",
+                monitor.ApiPublicUrl));
+        }
+
+        return Results.Ok(new AiGenerationQueueStatusPayload(
+            payload.Utc,
+            payload.Enabled,
+            payload.Status,
+            payload.CurrentJobDescription,
+            payload.CurrentJobKind,
+            payload.QueuedCount,
+            payload.CompletedToday,
+            payload.FailedToday,
+            payload.QueuedByKind,
+            true,
+            null,
+            monitor.ApiPublicUrl));
+    }
+    catch (Exception ex)
+    {
+        return Results.Ok(new AiGenerationQueueStatusPayload(
+            DateTime.UtcNow,
+            false,
+            "unreachable",
+            null,
+            null,
+            0,
+            0,
+            0,
+            new Dictionary<string, int>(),
+            false,
+            ex.Message,
+            monitor.ApiPublicUrl));
+    }
+});
+
 app.MapGet("/api/economy", async (
     IHttpClientFactory httpClientFactory,
     IOptions<StatusMonitorOptions> options,

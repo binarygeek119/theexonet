@@ -88,6 +88,7 @@ const els = {
   voidcorpSummary: document.getElementById("admin-voidcorp-summary"),
   voidcorpStatus: document.getElementById("admin-voidcorp-status"),
   voidcorpGenerateBtn: document.getElementById("admin-voidcorp-generate-btn"),
+  voidcorpRegenerateBtn: document.getElementById("admin-voidcorp-regenerate-btn"),
   voidcorpBatchLimit: document.getElementById("admin-voidcorp-batch-limit"),
   eventsStatus: document.getElementById("admin-events-status"),
   eventsList: document.getElementById("admin-events-list"),
@@ -1555,6 +1556,10 @@ function renderVoidCorpSummary(status) {
   if (els.voidcorpGenerateBtn) {
     els.voidcorpGenerateBtn.disabled = !generationReady || missing === 0;
   }
+
+  if (els.voidcorpRegenerateBtn) {
+    els.voidcorpRegenerateBtn.disabled = !generationReady || withImages === 0;
+  }
 }
 
 async function loadVoidCorpSummary() {
@@ -1572,6 +1577,15 @@ async function loadVoidCorpPage() {
   await loadVoidCorpSummary();
 }
 
+function setVoidCorpButtonsDisabled(disabled) {
+  if (els.voidcorpGenerateBtn) {
+    els.voidcorpGenerateBtn.disabled = disabled;
+  }
+  if (els.voidcorpRegenerateBtn) {
+    els.voidcorpRegenerateBtn.disabled = disabled;
+  }
+}
+
 async function generateVoidCorpMissingImages() {
   if (
     !window.confirm(
@@ -1582,17 +1596,69 @@ async function generateVoidCorpMissingImages() {
   }
 
   setStatus(els.voidcorpStatus, "Generating product images…");
-  els.voidcorpGenerateBtn.disabled = true;
+  setVoidCorpButtonsDisabled(true);
   try {
     const result = await api.adminGenerateVoidCorpMissingImages();
-    await loadVoidCorpSummary();
-    const remaining = pickJson(result, "remainingMissing") ?? 0;
-    setStatus(
-      els.voidcorpStatus,
-      `${result.message}${remaining > 0 ? ` ${remaining} still missing — run again to continue.` : ""}`,
-    );
+    const attempted = pickJson(result, "attempted") ?? 0;
+    const baseMessage = result.message ?? "Product images queued.";
+    if (attempted > 0) {
+      setStatus(els.voidcorpStatus, `${baseMessage} Waiting for generation queue…`);
+      const job = await waitForAiImageQueue("voidcorp", (message) => setStatus(els.voidcorpStatus, message));
+      const queueResult = formatAiImageQueueStatus(job);
+      await loadVoidCorpSummary();
+      const remaining = pickJson(result, "remainingMissing") ?? 0;
+      setStatus(
+        els.voidcorpStatus,
+        `${baseMessage} ${queueResult.text}${remaining > 0 ? ` ${remaining} still missing — run again to continue.` : ""}`.trim(),
+        queueResult.isError,
+      );
+    } else {
+      await loadVoidCorpSummary();
+      const remaining = pickJson(result, "remainingMissing") ?? 0;
+      setStatus(
+        els.voidcorpStatus,
+        `${baseMessage}${remaining > 0 ? ` ${remaining} still missing — run again to continue.` : ""}`,
+      );
+    }
   } catch (error) {
     setStatus(els.voidcorpStatus, error.message, true);
+    await loadVoidCorpSummary();
+  } finally {
+    setVoidCorpButtonsDisabled(false);
+    await loadVoidCorpSummary();
+  }
+}
+
+async function regenerateVoidCorpImages() {
+  if (
+    !window.confirm(
+      "Regenerate all VoidCorp product images that already exist? This deletes current AI images and re-queues generation for every illustrated product.",
+    )
+  ) {
+    return;
+  }
+
+  setStatus(els.voidcorpStatus, "Regenerating product images…");
+  setVoidCorpButtonsDisabled(true);
+  try {
+    const result = await api.adminRegenerateVoidCorpImages();
+    const attempted = pickJson(result, "attempted") ?? 0;
+    const baseMessage = result.message ?? "Product images queued.";
+    if (attempted > 0) {
+      setStatus(els.voidcorpStatus, `${baseMessage} Waiting for generation queue…`);
+      const job = await waitForAiImageQueue("voidcorp", (message) => setStatus(els.voidcorpStatus, message));
+      const queueResult = formatAiImageQueueStatus(job);
+      await loadVoidCorpSummary();
+      setStatus(els.voidcorpStatus, `${baseMessage} ${queueResult.text}`.trim(), queueResult.isError);
+    } else {
+      await loadVoidCorpSummary();
+      setStatus(els.voidcorpStatus, baseMessage);
+    }
+  } catch (error) {
+    setStatus(els.voidcorpStatus, error.message, true);
+    await loadVoidCorpSummary();
+  } finally {
+    setVoidCorpButtonsDisabled(false);
     await loadVoidCorpSummary();
   }
 }
@@ -3149,6 +3215,10 @@ els.foreverfallRegenBtn?.addEventListener("click", () => {
 
 els.voidcorpGenerateBtn?.addEventListener("click", () => {
   generateVoidCorpMissingImages().catch((error) => setStatus(els.voidcorpStatus, error.message, true));
+});
+
+els.voidcorpRegenerateBtn?.addEventListener("click", () => {
+  regenerateVoidCorpImages().catch((error) => setStatus(els.voidcorpStatus, error.message, true));
 });
 
 els.messageLogSearchBtn.addEventListener("click", () => {

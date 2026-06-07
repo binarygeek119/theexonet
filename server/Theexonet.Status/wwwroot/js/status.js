@@ -38,19 +38,7 @@ const els = {
   moderatorError: document.getElementById("moderator-error"),
   openaiOverall: document.getElementById("openai-overall"),
   openaiDescription: document.getElementById("openai-description"),
-  openaiIndicator: document.getElementById("openai-indicator"),
-  openaiResponseMs: document.getElementById("openai-response-ms"),
-  openaiChecked: document.getElementById("openai-checked"),
-  openaiStatusPage: document.getElementById("openai-status-page"),
-  openaiComponents: document.getElementById("openai-components"),
   openaiApiKey: document.getElementById("openai-api-key"),
-  openaiCreditsRemaining: document.getElementById("openai-credits-remaining"),
-  openaiCreditsGranted: document.getElementById("openai-credits-granted"),
-  openaiRequestsTotal: document.getElementById("openai-requests-total"),
-  openaiRequestsToday: document.getElementById("openai-requests-today"),
-  openaiLastRequest: document.getElementById("openai-last-request"),
-  openaiRequestsByType: document.getElementById("openai-requests-by-type"),
-  openaiUsageError: document.getElementById("openai-usage-error"),
   openaiError: document.getElementById("openai-error"),
   monitorUptime: document.getElementById("monitor-uptime"),
   monitorFirstRun: document.getElementById("monitor-first-run"),
@@ -122,81 +110,12 @@ function openAiIndicatorTone(indicator) {
   return "checking";
 }
 
-function formatUsd(value) {
-  if (value == null || Number.isNaN(value)) {
-    return "—";
-  }
-
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
-function formatOpenAiRequestsByCategory(byCategory) {
-  if (!byCategory || typeof byCategory !== "object") {
-    return "—";
-  }
-
-  const entries = Object.entries(byCategory).filter(([, count]) => count > 0);
-  if (entries.length === 0) {
-    return "None yet";
-  }
-
-  return entries
-    .sort((a, b) => b[1] - a[1])
-    .map(([key, count]) => `${key.replaceAll("_", " ")}: ${formatCount(count)}`)
-    .join("; ");
-}
-
-function renderOpenAiUsage(usage) {
-  if (!usage?.reachable) {
-    els.openaiApiKey.textContent = "—";
-    els.openaiCreditsRemaining.textContent = "—";
-    els.openaiCreditsGranted.textContent = "—";
-    els.openaiRequestsTotal.textContent = "—";
-    els.openaiRequestsToday.textContent = "—";
-    els.openaiLastRequest.textContent = "—";
-    els.openaiRequestsByType.textContent = "—";
-    els.openaiUsageError.textContent = usage?.error || "Could not load usage from API";
-    return;
-  }
-
-  els.openaiUsageError.textContent = "—";
-  els.openaiApiKey.textContent = usage.apiKeyConfigured ? "Yes" : "No";
-  els.openaiCreditsRemaining.textContent = formatUsd(usage.creditsRemainingUsd);
-  els.openaiCreditsGranted.textContent = formatUsd(usage.creditsGrantedUsd);
-  els.openaiRequestsTotal.textContent = formatCount(usage.totalRequests);
-  els.openaiRequestsToday.textContent = formatCount(usage.requestsToday);
-  els.openaiLastRequest.textContent = formatUtc(usage.lastRequestUtc);
-  els.openaiRequestsByType.textContent = formatOpenAiRequestsByCategory(usage.requestsByCategory);
-}
-
-function formatOpenAiComponents(components) {
-  if (!Array.isArray(components) || components.length === 0) {
-    return "None";
-  }
-
-  return components
-    .map((component) => {
-      const name = component?.name ?? "Unknown";
-      const status = component?.status ?? "unknown";
-      return `${name} (${status})`;
-    })
-    .join("; ");
-}
-
-function renderOpenAiCard(openAi, checkedUtc) {
-  const statusPageUrl = openAi?.statusPageUrl || "https://status.openai.com/";
-  els.openaiStatusPage.textContent = statusPageUrl;
-
-  els.openaiResponseMs.textContent = openAi?.responseMs != null ? `${openAi.responseMs} ms` : "—";
-  els.openaiChecked.textContent = formatUtc(checkedUtc);
-  els.openaiError.textContent = openAi?.error || "—";
-  els.openaiIndicator.textContent = openAi?.indicator || "—";
+function renderOpenAiCard(openAi, usage, checkedUtc) {
+  els.openaiError.textContent = openAi?.error || usage?.error || "—";
   els.openaiDescription.textContent = openAi?.description || "—";
-  els.openaiComponents.textContent = formatOpenAiComponents(openAi?.degradedComponents);
+  els.openaiApiKey.textContent = usage?.reachable
+    ? (usage.apiKeyConfigured ? "Yes" : "No")
+    : "—";
 
   if (!openAi?.reachable) {
     setPill(els.openaiOverall, "Unreachable", "offline");
@@ -265,8 +184,7 @@ function renderDashboard(data) {
     error: els.moderatorError,
   }, data.utc);
 
-  renderOpenAiCard(data.openAi, data.utc);
-  renderOpenAiUsage(data.openAiUsage);
+  renderOpenAiCard(data.openAi, data.openAiUsage, data.utc);
 
   els.monitorUptime.textContent = formatDuration(data.monitorUptimeSeconds);
   els.monitorFirstRun.textContent = formatUtc(data.monitorFirstRunUtc);
@@ -334,7 +252,9 @@ async function refresh() {
     setPill(els.adminOverall, "Unknown", "offline");
     setPill(els.moderatorOverall, "Unknown", "offline");
     setPill(els.openaiOverall, "Unknown", "offline");
-    renderOpenAiUsage(null);
+    els.openaiApiKey.textContent = "—";
+    els.openaiDescription.textContent = "—";
+    els.openaiError.textContent = error.message;
     setGameVersion(null);
     els.apiError.textContent = error.message;
     els.lastUpdated.textContent = "Failed to load dashboard data";

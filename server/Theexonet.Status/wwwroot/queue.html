@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>theexonet — AI Generation Queue</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/status.css">
+</head>
+<body>
+  <main class="page ai-page">
+    <header class="hero">
+      <p class="eyebrow">Point-and-click asteroid mining</p>
+      <h1>AI Generation Queue</h1>
+      <p id="queue-updated" class="subtle">Loading…</p>
+      <p class="status-pill checking" id="queue-overall">Checking…</p>
+      <nav class="nav-links" aria-label="Status pages">
+        <a class="nav-link" href="/">Dashboard</a>
+        <a class="nav-link" href="/values.html">Item values</a>
+        <a class="nav-link" href="/ai.html">AI</a>
+        <a class="nav-link active" href="/queue.html">AI queue</a>
+      </nav>
+    </header>
+
+    <section class="openai-summary-grid" aria-live="polite">
+      <article class="card">
+        <h2>Queue status</h2>
+        <dl>
+          <div><dt>Enabled</dt><dd id="queue-enabled">—</dd></div>
+          <div><dt>Current job</dt><dd id="queue-current-job">—</dd></div>
+          <div><dt>Job kind</dt><dd id="queue-current-kind">—</dd></div>
+          <div><dt>Waiting</dt><dd id="queue-waiting">—</dd></div>
+          <div><dt>Completed today (UTC)</dt><dd id="queue-completed-today">—</dd></div>
+          <div><dt>Failed today (UTC)</dt><dd id="queue-failed-today">—</dd></div>
+          <div><dt>API error</dt><dd id="queue-api-error">—</dd></div>
+        </dl>
+        <p class="card-foot">
+          <a id="link-queue-json" href="#" target="_blank" rel="noopener">Raw JSON — /api/status/ai-queue</a>
+        </p>
+      </article>
+
+      <article class="card">
+        <h2>Waiting by category</h2>
+        <dl>
+          <div><dt>Text jobs</dt><dd id="queue-text-waiting">—</dd></div>
+          <div><dt>Image jobs</dt><dd id="queue-image-waiting">—</dd></div>
+        </dl>
+        <p class="section-hint">Text: ONN stories, Foreverfall intake, Lunar Weather. Images: portraits, story art, VoidCorp products, logos, and testing assets.</p>
+      </article>
+    </section>
+
+    <section class="card table-card">
+      <h2>Waiting by job kind</h2>
+      <p class="section-hint">Single FIFO line on the game server — jobs run one at a time in request order.</p>
+      <div class="ai-stats-table-wrap">
+        <table class="ai-stats-table" id="queue-kind-table">
+          <thead>
+            <tr>
+              <th scope="col">Kind</th>
+              <th scope="col">Type</th>
+              <th scope="col">Waiting</th>
+            </tr>
+          </thead>
+          <tbody id="queue-kind-rows">
+            <tr><td colspan="3">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p id="queue-kind-empty" class="section-hint" hidden>No jobs waiting in the queue.</p>
+    </section>
+  </main>
+  <script type="module" src="/js/queue.js"></script>
+</body>
+</html>

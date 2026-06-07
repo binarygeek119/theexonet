@@ -101,6 +101,31 @@ public static class VoidCorpCatalogSync
         File.Move(tempPath, path, overwrite: true);
     }
 
+    public static void ClearProductImage(string cacheRoot, string slug)
+    {
+        var filePath = VoidCorpStoragePaths.ImageFilePath(cacheRoot, slug);
+        if (File.Exists(filePath))
+        {
+            File.Delete(filePath);
+        }
+
+        var document = Load(cacheRoot);
+        var products = document.Products.ToList();
+        var index = products.FindIndex(entry => entry.Slug.Equals(slug, StringComparison.Ordinal));
+        if (index < 0)
+        {
+            return;
+        }
+
+        var existing = products[index];
+        products[index] = existing with { ImageFileName = null };
+        Save(cacheRoot, document with
+        {
+            UpdatedAtUtc = DateTime.UtcNow,
+            Products = products,
+        });
+    }
+
     public static void UpdateProductImage(string cacheRoot, string slug, string imageFileName, bool fromOpenAi)
     {
         var document = Load(cacheRoot);

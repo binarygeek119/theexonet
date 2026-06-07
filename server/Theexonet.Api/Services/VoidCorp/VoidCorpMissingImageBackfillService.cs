@@ -33,6 +33,46 @@ public sealed class VoidCorpMissingImageBackfillService(
         bool waitForLock = true) =>
         EnqueueMissingAsync(trigger, cancellationToken);
 
+    public async Task<VoidCorpMissingImageBackfillResult> RegenerateExistingAsync(
+        string trigger,
+        CancellationToken cancellationToken)
+    {
+        if (!IsConfigured)
+        {
+            logger.LogDebug("VoidCorp regenerate ({Trigger}) skipped: not configured.", trigger);
+            return new VoidCorpMissingImageBackfillResult(0, 0, Skipped: true);
+        }
+
+        VoidCorpCatalogSync.Sync(hostingPaths.VoidCorpCacheRoot, tradeItemsCatalog.GetSupplyItems());
+        var cacheRoot = hostingPaths.VoidCorpCacheRoot;
+        var document = VoidCorpCatalogSync.Load(cacheRoot);
+        var withImages = VoidCorpMissingImageSelection.SelectWithImages(cacheRoot, document.Products);
+        if (withImages.Count == 0)
+        {
+            return new VoidCorpMissingImageBackfillResult(0, 0, Skipped: false);
+        }
+
+        foreach (var product in withImages)
+        {
+            VoidCorpCatalogSync.ClearProductImage(cacheRoot, product.Slug);
+        }
+
+        var result = await aiImageQueuePublisher.EnqueueVoidCorpProductsAsync(
+            withImages.Select(product => product.Slug),
+            $"voidcorp:{trigger}",
+            cancellationToken);
+
+        logger.LogInformation(
+            "VoidCorp regenerate ({Trigger}) queued {Count} product image job(s).",
+            trigger,
+            result.EnqueuedCount);
+
+        return new VoidCorpMissingImageBackfillResult(
+            result.EnqueuedCount,
+            0,
+            Skipped: result.EnqueuedCount == 0);
+    }
+
     private async Task<VoidCorpMissingImageBackfillResult> EnqueueMissingAsync(
         string trigger,
         CancellationToken cancellationToken)

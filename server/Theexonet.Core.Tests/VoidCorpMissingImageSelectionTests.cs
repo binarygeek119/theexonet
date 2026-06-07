@@ -75,6 +75,31 @@ public class VoidCorpMissingImageSelectionTests
     }
 
     [Fact]
+    public void SelectWithImages_returns_products_that_have_image_files()
+    {
+        var root = CreateTempDirectory();
+        try
+        {
+            var products = new List<VoidCorpCatalogEntryDocument>
+            {
+                CreateProduct("DrillBits", imageFileName: null),
+                CreateProduct("FuelCells", imageFileName: "FuelCells.jpg"),
+            };
+
+            WriteImage(root, "FuelCells");
+
+            var withImages = VoidCorpMissingImageSelection.SelectWithImages(root, products);
+
+            Assert.Single(withImages);
+            Assert.Equal("FuelCells", withImages[0].Slug);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void SelectMissing_ignores_products_with_existing_image_files()
     {
         var root = CreateTempDirectory();

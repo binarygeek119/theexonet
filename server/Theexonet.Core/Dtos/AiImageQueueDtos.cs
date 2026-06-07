@@ -52,3 +52,14 @@ public record AiGenerationQueueWaitResult(
     bool Failed,
     string? Error,
     Guid? JobId);
+
+public record PublicAiGenerationQueueStatusDto(
+    DateTime Utc,
+    bool Enabled,
+    string Status,
+    string? CurrentJobDescription,
+    string? CurrentJobKind,
+    int QueuedCount,
+    int CompletedToday,
+    int FailedToday,
+    IReadOnlyDictionary<string, int> QueuedByKind);

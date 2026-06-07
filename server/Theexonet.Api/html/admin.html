@@ -300,13 +300,14 @@
           <p id="admin-voidcorp-summary" class="admin-page-desc">Loading catalog status…</p>
           <div class="button-row">
             <button id="admin-voidcorp-generate-btn" type="button" class="btn primary">Generate missing product images</button>
+            <button id="admin-voidcorp-regenerate-btn" type="button" class="btn ghost">Regenerate product images</button>
           </div>
           <p id="admin-voidcorp-status" class="status-text"></p>
         </section>
 
         <section class="admin-panel">
           <h2>Generation batch</h2>
-          <p class="admin-page-desc">Each run generates up to <span id="admin-voidcorp-batch-limit">4</span> missing images (configured in appsettings as VoidCorp:MaxImagesPerDay). Run again until the missing count reaches zero.</p>
+          <p class="admin-page-desc">Missing images: each run generates up to <span id="admin-voidcorp-batch-limit">4</span> (configured as VoidCorp:MaxImagesPerDay). Regenerate images re-queues every product that already has an AI image.</p>
         </section>
       </section>
 

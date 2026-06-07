@@ -8,6 +8,7 @@
   "nav.dashboard": "Dashboard",
   "nav.values": "Item values",
   "nav.ai": "AI",
+  "nav.queue": "AI queue",
   "card.api": "Game API",
   "card.database": "PostgreSQL",
   "card.checking": "Checking…",

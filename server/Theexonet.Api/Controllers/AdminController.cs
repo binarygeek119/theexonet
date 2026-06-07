@@ -302,6 +302,19 @@ public class AdminController(
         return Ok(response);
     }
 
+    [HttpPost("voidcorp/regenerate-images")]
+    public async Task<ActionResult<AdminVoidCorpGenerateImagesResponse>> RegenerateVoidCorpImages(
+        CancellationToken ct)
+    {
+        var (response, error) = await voidCorpAdminService.RegenerateImagesAsync(ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(response);
+    }
+
     [HttpGet("players")]
     public async Task<ActionResult<AdminPlayersResponse>> Players(
         [FromQuery] string? search,

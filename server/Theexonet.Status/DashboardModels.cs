@@ -81,6 +81,20 @@ public record OpenAiUsagePayload(
     bool Reachable,
     string? Error);
 
+public record AiGenerationQueueStatusPayload(
+    DateTime Utc,
+    bool Enabled,
+    string Status,
+    string? CurrentJobDescription,
+    string? CurrentJobKind,
+    int QueuedCount,
+    int CompletedToday,
+    int FailedToday,
+    IReadOnlyDictionary<string, int> QueuedByKind,
+    bool Reachable,
+    string? Error,
+    string ApiPublicUrl);
+
 public record DashboardResponse(
     DateTime Utc,
     double MonitorUptimeSeconds,

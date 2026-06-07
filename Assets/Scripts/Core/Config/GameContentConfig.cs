@@ -1,8 +1,8 @@
 using UnityEngine;
 
-namespace Rava.Core.Config
+namespace Theexonet.Core.Config
 {
-    [CreateAssetMenu(fileName = "GameContentConfig", menuName = "Rava/Game Content Config")]
+    [CreateAssetMenu(fileName = "GameContentConfig", menuName = "Theexonet/Game Content Config")]
     public class GameContentConfig : ScriptableObject
     {
         public OreTypeConfig oreConfig;

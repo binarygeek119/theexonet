@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copy admin/moderator portal static files from Rava.Api/html into a wwwroot folder.
+# Copy admin/moderator portal static files from Theexonet.Api/html into a wwwroot folder.
 # Used after dotnet publish and for direct deploy to production wwwroot.
 set -euo pipefail
 

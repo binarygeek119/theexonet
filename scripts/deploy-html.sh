@@ -1,14 +1,14 @@
 #!/bin/bash
 # Sync game html/ from a repo checkout or installed template to the live publish folder.
 # Run on the server as root:
-#   sudo deploy-rava-html
-#   sudo deploy-rava-html /path/to/rava-1/server/Rava.Api/html
+#   sudo deploy-theexonet-html
+#   sudo deploy-theexonet-html /path/to/theexonet/server/Theexonet.Api/html
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-HTML_TEMPLATE_DIR="${RAVA_HTML_TEMPLATE_DIR:-/usr/local/lib/rava/html}"
-DEST_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}/html"
-SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
+HTML_TEMPLATE_DIR="${THEEXONET_HTML_TEMPLATE_DIR:-/usr/local/lib/theexonet/html}"
+DEST_DIR="${THEEXONET_PUBLISH_DIR:-/var/www/publish}/html"
+SERVICE_USER="${THEEXONET_SERVICE_USER:-www-data}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run as root: sudo bash $0" >&2
@@ -21,7 +21,7 @@ resolve_src_dir() {
     return
   fi
 
-  local repo_html="${SCRIPT_DIR}/../server/Rava.Api/html"
+  local repo_html="${SCRIPT_DIR}/../server/Theexonet.Api/html"
   if [ -f "${repo_html}/index.html" ]; then
     printf '%s' "$repo_html"
     return
@@ -33,8 +33,8 @@ resolve_src_dir() {
   fi
 
   echo "Missing html source. Options:" >&2
-  echo "  1) Pass a path: sudo deploy-rava-html /path/to/server/Rava.Api/html" >&2
-  echo "  2) From a git checkout: sudo install-rava-scripts   # copies html to ${HTML_TEMPLATE_DIR}" >&2
+  echo "  1) Pass a path: sudo deploy-theexonet-html /path/to/server/Theexonet.Api/html" >&2
+  echo "  2) From a git checkout: sudo install-theexonet-scripts   # copies html to ${HTML_TEMPLATE_DIR}" >&2
   echo "  3) Let GitHub Actions deploy html on push to main" >&2
   exit 1
 }

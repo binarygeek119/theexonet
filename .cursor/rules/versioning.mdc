@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Game version bumps
 
-theexonet version lives in `server/Rava.Core/Constants/GameVersion.cs` (`Major`, `Minor`, `Patch` → `V1.0.0`).
+theexonet version lives in `server/Theexonet.Core/Constants/GameVersion.cs` (`Major`, `Minor`, `Patch` → `V1.0.0`).
 
 **Never change `Major`, `Minor`, or `Patch` unless the user explicitly asks to bump the version** (e.g. "bump patch to 1.0.1", "release V1.1.0").
 

@@ -1,7 +1,7 @@
 using System;
-using Rava.Core.Dtos;
+using Theexonet.Core.Dtos;
 
-namespace Rava.Core.Events
+namespace Theexonet.Core.Events
 {
 public static class GameEvents
 {

@@ -1,0 +1,16 @@
+{
+    "name": "Theexonet.Networking",
+    "rootNamespace": "Theexonet.Networking",
+    "references": [
+        "Theexonet.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

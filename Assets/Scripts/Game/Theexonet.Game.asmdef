@@ -1,0 +1,20 @@
+{
+    "name": "Theexonet.Game",
+    "rootNamespace": "Theexonet.Game",
+    "references": [
+        "Theexonet.Core",
+        "Theexonet.Networking",
+        "Theexonet.Mining",
+        "Theexonet.UI",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

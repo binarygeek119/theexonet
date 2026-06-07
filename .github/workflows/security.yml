@@ -47,14 +47,14 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore
-        run: dotnet restore Rava.slnx
+        run: dotnet restore Theexonet.slnx
 
       - name: List vulnerable packages
         continue-on-error: true
-        run: dotnet list Rava.slnx package --vulnerable --include-transitive
+        run: dotnet list Theexonet.slnx package --vulnerable --include-transitive
 
       - name: Fail on vulnerable packages
-        run: dotnet build Rava.slnx --configuration Release --no-restore
+        run: dotnet build Theexonet.slnx --configuration Release --no-restore
 
   codeql:
     name: CodeQL
@@ -78,7 +78,7 @@ jobs:
           dotnet-quality: preview
 
       - name: Build
-        run: dotnet build server/Rava.slnx --configuration Release
+        run: dotnet build server/Theexonet.slnx --configuration Release
 
       # Run CodeQL CLI directly instead of github/codeql-action/analyze, which calls
       # GitHub workflow-run APIs for SARIF fingerprints/telemetry and fails when code

@@ -3,10 +3,10 @@
 # Used by CI deploy and local publish so rsync --delete does not strip status assets.
 set -euo pipefail
 
-SERVER_DIR="${1:?server directory (contains Rava.Status and Rava.Api)}"
+SERVER_DIR="${1:?server directory (contains Theexonet.Status and Theexonet.Api)}"
 WWWROOT_DIR="${2:?wwwroot destination directory}"
 
-HTML_DIR="${SERVER_DIR}/Rava.Api/html"
+HTML_DIR="${SERVER_DIR}/Theexonet.Api/html"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STATUS_DEDICATED="$(dirname "$WWWROOT_DIR")/status-wwwroot"
 

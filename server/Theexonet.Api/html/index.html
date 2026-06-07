@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theexonet-api-base" content="https://theexonetapi.binarygeek119.duckdns.org">
+  <link rel="icon" href="/images/currency.png" type="image/png">
+  <title>theexonet</title>
+  <link rel="stylesheet" href="/css/app.css?v=20260529-tos-no-checkbox">
+  <link rel="stylesheet" href="/css/profile.css?v=20260529-profile-edit-media">
+  <link rel="stylesheet" href="/css/exonet.css?v=20260605-voidcorp">
+</head>
+<body>
+  <div id="login-screen" class="screen">
+    <div id="auth-toast" class="auth-toast" hidden role="status" aria-live="polite"></div>
+    <div class="login-card" id="login-card" data-auth-mode="login">
+      <h1 data-i18n="auth.title">theexonet</h1>
+      <p class="subtitle" data-i18n="auth.subtitle">Point-and-click asteroid mining</p>
+      <p class="tagline" data-i18n="auth.tagline">Point-and-click asteroid mining</p>
+
+      <div id="register-tos-gate" class="register-tos-gate" hidden>
+        <p class="register-tos-intro" data-i18n="auth.tos.intro">Before you create an account, please read our Terms of Service.</p>
+        <div class="register-tos-open-control">
+          <button id="register-tos-open-btn" type="button" class="btn ghost register-tos-open-btn" aria-expanded="false" aria-controls="register-tos-panel" data-i18n="auth.tos.open">Read Terms of Service</button>
+        </div>
+        <div id="register-tos-panel" class="register-tos-panel" hidden>
+          <h2 class="register-tos-panel-title" data-i18n="auth.tos.title">Terms of Service</h2>
+          <div id="register-tos-body" class="register-tos-body"></div>
+          <button id="register-tos-done-btn" type="button" class="btn primary register-tos-done-btn" data-i18n="auth.tos.done">I've read this</button>
+        </div>
+        <button id="register-tos-continue-btn" type="button" class="btn primary" disabled data-i18n="auth.tos.continue">Continue to sign up</button>
+      </div>
+
+      <div id="register-form-shell" class="register-form-shell">
+      <div id="username-group">
+        <label for="username" data-i18n="auth.username">Username</label>
+        <input id="username" type="text" autocomplete="username" data-i18n-placeholder="auth.usernamePlaceholder" placeholder="Username">
+      </div>
+
+      <div id="email-group" hidden>
+        <label for="email"><span data-i18n="auth.emailRequired">Email *</span></label>
+        <input id="email" type="email" autocomplete="email" data-i18n-placeholder="auth.emailPlaceholder" placeholder="you@example.com" required>
+      </div>
+
+      <div id="birthday-group" hidden>
+        <label><span data-i18n="auth.birthdayRequired">Birthday *</span></label>
+        <div class="birthday-selects">
+          <input id="birthday-month" list="birthday-month-options" data-i18n-placeholder="auth.birthMonthPlaceholder" placeholder="Month" autocomplete="bday-month" data-i18n-aria-label="auth.birthMonth">
+          <datalist id="birthday-month-options"></datalist>
+          <input id="birthday-day" list="birthday-day-options" data-i18n-placeholder="auth.birthDayPlaceholder" placeholder="Day" autocomplete="bday-day" inputmode="numeric" data-i18n-aria-label="auth.birthDay">
+          <datalist id="birthday-day-options"></datalist>
+          <input id="birthday-year" list="birthday-year-options" data-i18n-placeholder="auth.birthYearPlaceholder" placeholder="Year" autocomplete="bday-year" inputmode="numeric" data-i18n-aria-label="auth.birthYear">
+          <datalist id="birthday-year-options"></datalist>
+        </div>
+        <div class="register-privacy-options">
+          <label class="register-privacy-option">
+            <input id="register-birthday-public" type="checkbox">
+            <span data-i18n="auth.birthdayPublic">Show my birthday (month and day only) on my public profile</span>
+          </label>
+          <label class="register-privacy-option">
+            <input id="register-age-public" type="checkbox">
+            <span data-i18n="auth.agePublic">Show my age on my public profile</span>
+          </label>
+        </div>
+      </div>
+
+      <div id="register-profile-group" class="register-profile-group" hidden>
+        <label class="locale-select-label locale-select-label--auth" for="locale-select-register">
+          <span data-i18n="locale.label">Language</span> *
+        </label>
+        <select id="locale-select-register" data-locale-select class="locale-select" aria-label="Language">
+          <option value="en">English</option>
+        </select>
+
+        <label for="register-gender-input"><span data-i18n="auth.genderRequired">Gender *</span></label>
+        <select id="register-gender-input" aria-describedby="register-gender-hint">
+          <option value="" data-i18n="profile.edit.genderSelect">Select gender…</option>
+          <option value="male" data-i18n="profile.edit.gender.male">Male</option>
+          <option value="female" data-i18n="profile.edit.gender.female">Female</option>
+          <option value="trans-female" data-i18n="profile.edit.gender.transFemale">Trans female</option>
+          <option value="trans-male" data-i18n="profile.edit.gender.transMale">Trans male</option>
+          <option value="non-binary" data-i18n="profile.edit.gender.nonBinary">Non-binary</option>
+          <option value="prefer-not-to-say" data-i18n="profile.edit.gender.preferNot">Prefer not to say</option>
+        </select>
+        <p id="register-gender-hint" class="register-field-hint" data-i18n="profile.edit.genderHint">Used to choose how we address you in game text (he/him, she/her, they/them).</p>
+
+        <div id="register-pronouns-group" hidden>
+          <label for="register-pronouns-input"><span data-i18n="auth.pronounsRequired">Preferred pronouns *</span></label>
+          <select id="register-pronouns-input">
+            <option value="" data-i18n="profile.edit.pronounsSelect">Select pronouns…</option>
+            <option value="he-him" data-i18n="profile.edit.pronouns.he">he/him</option>
+            <option value="she-her" data-i18n="profile.edit.pronouns.she">she/her</option>
+            <option value="they-them" data-i18n="profile.edit.pronouns.they">they/them</option>
+          </select>
+          <p class="register-field-hint" data-i18n="profile.edit.pronounsRequired">Required for non-binary and prefer not to say.</p>
+        </div>
+      </div>
+      </div>
+
+      <div id="forgot-group" hidden>
+        <label for="forgot-email"><span data-i18n="auth.forgotEmailRequired">Account email *</span></label>
+        <input id="forgot-email" type="email" autocomplete="email" data-i18n-placeholder="auth.emailPlaceholder" placeholder="you@example.com">
+      </div>
+
+      <div id="reset-group" hidden>
+        <label for="reset-token" data-i18n="auth.resetToken">Reset token</label>
+        <input id="reset-token" type="text" autocomplete="off" data-i18n-placeholder="auth.resetTokenPlaceholder" placeholder="Paste token from email">
+        <label for="new-password" data-i18n="auth.newPassword">New password</label>
+        <input id="new-password" type="password" autocomplete="new-password" data-i18n-placeholder="auth.newPasswordPlaceholder" placeholder="At least 8 characters">
+        <label for="confirm-password" data-i18n="auth.confirmPassword">Confirm password</label>
+        <input id="confirm-password" type="password" autocomplete="new-password" data-i18n-placeholder="auth.confirmPasswordPlaceholder" placeholder="Repeat new password">
+      </div>
+
+      <div id="password-group">
+        <label for="password" data-i18n="auth.password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" data-i18n-placeholder="auth.passwordPlaceholder" placeholder="Password">
+      </div>
+
+      <div id="ban-appeal-group" hidden>
+        <p id="ban-appeal-notice" class="ban-appeal-notice"></p>
+        <label for="ban-appeal-message" data-i18n="auth.banAppealLabel">Message to admin</label>
+        <textarea
+          id="ban-appeal-message"
+          maxlength="2000"
+          rows="4"
+          data-i18n-placeholder="auth.banAppealPlaceholder"
+          placeholder="Explain why your ban should be removed..."></textarea>
+      </div>
+
+      <p id="login-status" class="status-text"></p>
+
+      <div class="button-row">
+        <button id="login-btn" type="button" class="btn primary" data-i18n="auth.login">Login</button>
+        <button id="register-btn" type="button" class="btn success" data-i18n="auth.register">Create Account</button>
+      </div>
+      <button id="toggle-mode" type="button" class="btn ghost" data-i18n="auth.switchToRegister">Switch to Register</button>
+      <button id="forgot-btn" type="button" class="btn ghost linkish" data-i18n="auth.forgotPassword">Forgot password?</button>
+      <button id="send-reset-btn" type="button" class="btn primary" hidden data-i18n="auth.sendReset">Send reset link</button>
+      <button id="reset-password-btn" type="button" class="btn primary" hidden data-i18n="auth.updatePassword">Update password</button>
+      <button id="ban-appeal-btn" type="button" class="btn primary" hidden data-i18n="auth.sendAppeal">Send appeal to admin</button>
+      <button id="back-login-btn" type="button" class="btn ghost" hidden data-i18n="auth.backToLogin">Back to login</button>
+    </div>
+  </div>
+  <p id="game-version" class="game-version" hidden aria-label="Game version"></p>
+
+  <div id="game-screen" class="screen" hidden>
+    <aside class="game-nav">
+      <button id="profile-btn" type="button" class="btn tab" data-i18n="nav.profile">Profile</button>
+      <button id="finance-btn" type="button" class="btn tab" data-i18n="nav.finances">Finances</button>
+      <button id="friends-btn" type="button" class="btn tab" data-i18n="nav.friends">Friends</button>
+      <button id="messages-btn" type="button" class="btn tab">
+        <span data-i18n="nav.messages">Messages</span>
+        <span id="messages-nav-badge" class="nav-badge" hidden>0</span>
+      </button>
+      <button id="trade-market-btn" type="button" class="btn tab" data-i18n="nav.tradeMarket">Trade Market</button>
+      <button id="store-btn" type="button" class="btn tab" data-i18n="nav.store">Store</button>
+      <button id="shipping-btn" type="button" class="btn tab" data-i18n="nav.shipping">Shipping</button>
+      <button id="exonet-btn" type="button" class="btn tab exonet-tab" data-i18n="nav.exonet">Exonet</button>
+      <button id="logout-btn" type="button" class="btn ghost" data-i18n="nav.logout">Logout</button>
+    </aside>
+
+    <div class="game-main">
+    <header class="hud">
+      <div class="hud-left">
+        <span id="player-name" class="player-name clickable" title="View your profile">Commander</span>
+        <span id="credits" class="rax-hud-balance" title="Rax">---</span>
+        <span id="day">Day ---</span>
+        <span id="utc-clock" class="utc-clock">UTC ---</span>
+      </div>
+    </header>
+
+    <main class="game-layout">
+      <section class="mine-panel">
+        <h2 data-i18n="mine.gridTitle">Asteroid Mine Grid</h2>
+        <div id="mine-grid" class="mine-grid"></div>
+      </section>
+
+      <aside class="side-panel">
+        <h2 data-i18n="mine.zoneDetails">Zone Details</h2>
+        <div id="zone-info" class="zone-info" data-i18n="mine.zoneHint">Select a zone on the grid.</div>
+        <h3 data-i18n="mine.assignWorker">Assign Worker</h3>
+        <div id="worker-list" class="worker-list"></div>
+      </aside>
+    </main>
+
+    <footer id="status-bar" class="status-bar"></footer>
+    </div>
+  </div>
+
+  <div id="finance-modal" class="modal" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 data-i18n="finance.title">Finances</h2>
+        <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
+      </div>
+      <div id="finance-summary" class="summary"></div>
+      <h3 data-i18n="finance.recentTransactions">Recent Transactions</h3>
+      <div id="finance-transactions" class="transaction-list"></div>
+      <button id="emergency-btn" type="button" class="btn danger" hidden data-i18n="finance.emergencyBuyback">
+        Emergency Ore Buyback (50%)
+      </button>
+    </div>
+  </div>
+
+  <div id="supply-modal" class="modal" hidden>
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h2 data-i18n="trade.title">Trade Market</h2>
+        <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
+      </div>
+      <p id="market-info" class="market-info" data-i18n="trade.loading">Market prices loading...</p>
+      <p id="trade-market-value" class="market-info trade-market-value"></p>
+      <div class="shop-columns">
+        <section>
+          <h3 data-i18n="trade.buySupplies">Buy Supplies (Earth Market Linked)</h3>
+          <div id="supply-list" class="shop-list"></div>
+        </section>
+        <section>
+          <h3 data-i18n="trade.sellOre">Sell Ore (NPC Refinery)</h3>
+          <div id="ore-list" class="shop-list"></div>
+        </section>
+      </div>
+      <section class="auction-panel">
+        <h3 data-i18n="trade.auctions">Player Auctions</h3>
+        <p class="market-info" data-i18n="trade.auctionsHint">List ore or supplies for auction. The timer starts when the first bid is placed. A market fee applies on completed sales.</p>
+        <form id="auction-create-form" class="auction-create-form">
+          <label for="auction-item" data-i18n="trade.item">Item</label>
+          <select id="auction-item" required></select>
+          <label for="auction-quantity" data-i18n="trade.quantity">Quantity</label>
+          <input id="auction-quantity" type="number" min="0.1" step="0.1" required>
+          <label for="auction-start-price" data-i18n="trade.startPrice">Start price (Rax)</label>
+          <input id="auction-start-price" type="number" min="1" step="1" required>
+          <label for="auction-duration" data-i18n="trade.duration">Auction length (after first bid)</label>
+          <select id="auction-duration" required data-i18n-options="trade.duration">
+            <option value="30">30 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="360">6 hours</option>
+            <option value="1440">24 hours</option>
+          </select>
+          <button id="auction-create-btn" type="submit" class="btn accent" data-i18n="trade.listAuction">List auction</button>
+        </form>
+        <p id="auction-status" class="market-info"></p>
+        <div id="auction-list" class="auction-list"></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="store-modal" class="modal" hidden>
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h2 data-i18n="store.title">Store</h2>
+        <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
+      </div>
+      <p id="store-market-info" class="market-info" data-i18n="trade.loading">Market prices loading...</p>
+      <section>
+        <h3 data-i18n="store.buySupplies">Buy Supplies (US Market Linked)</h3>
+        <div id="store-supply-list" class="shop-list"></div>
+      </section>
+      <section>
+        <h3 data-i18n="store.companyNames">Company Names (Player Trade)</h3>
+        <p class="market-info" data-i18n="store.companyNamesHint">Buy unique company names listed by other miners. Relinquished names stay reserved for 30 days.</p>
+        <div id="store-company-name-list" class="shop-list"></div>
+        <p id="store-company-name-status" class="market-info"></p>
+      </section>
+    </div>
+  </div>
+
+  <div id="shipping-modal" class="modal" hidden>
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h2 data-i18n="shipping.title">Shipping</h2>
+        <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
+      </div>
+      <p id="shipping-summary" class="market-info" data-i18n="shipping.summary">Load ore cargo and ship it to the NPC refinery.</p>
+      <section>
+        <h3 data-i18n="shipping.cargoHold">Cargo Hold</h3>
+        <div id="shipping-cargo-list" class="shop-list"></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="day-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h2 id="day-report-title" data-i18n="day.title">Day Report</h2>
+      <pre id="day-report-body" class="day-report"></pre>
+      <button id="close-day-report" type="button" class="btn primary" data-i18n="day.continue">Continue</button>
+    </div>
+  </div>
+
+  <div id="event-modal" class="modal" hidden>
+    <div class="modal-card event-modal-card">
+      <h2 id="event-modal-title" data-i18n="event.title">Special Event</h2>
+      <p id="event-modal-message" class="event-modal-message"></p>
+      <p id="event-modal-challenge" class="event-modal-challenge" hidden></p>
+      <h3 id="event-modal-rewards-heading" class="event-modal-rewards-heading" data-i18n="event.rewards">Rewards</h3>
+      <ul id="event-modal-rewards" class="event-rewards-list"></ul>
+      <button id="event-modal-close" type="button" class="btn primary" data-i18n="event.gotIt">Got it</button>
+    </div>
+  </div>
+
+  <div id="profile-modal" class="modal profile-modal" hidden>
+    <div id="profile-card" class="profile-card theme-classic">
+      <header class="profile-top">
+        <h2 data-i18n="profile.title">theexonet Profile</h2>
+        <div class="profile-top-actions">
+          <button id="profile-customize-btn" type="button" class="btn primary profile-customize-btn" hidden data-i18n="profile.customize">Customize Profile</button>
+          <button id="profile-close-btn" type="button" class="btn ghost profile-close" data-i18n="modal.close">Close</button>
+        </div>
+      </header>
+
+      <div id="profile-flag-notice" class="profile-flag-notice" hidden>
+        <strong data-i18n="profile.flaggedTitle">Profile flagged for review</strong>
+        <p id="profile-flag-comment" class="profile-flag-comment"></p>
+        <p class="profile-flag-hint" data-i18n="profile.flaggedHint">Please update your profile content. The flag clears automatically when you save changes.</p>
+      </div>
+
+      <div id="profile-banner" class="profile-banner">
+          <div id="profile-avatar-column" class="profile-avatar-column">
+          <div id="profile-avatar" class="profile-avatar">
+            <img id="profile-avatar-img" class="profile-avatar-img" alt="" hidden>
+            <span id="profile-avatar-initials" class="profile-avatar-initials">??</span>
+          </div>
+        </div>
+        <div class="profile-headline">
+          <h3 id="profile-username">Commander</h3>
+          <p id="profile-mood-display" class="profile-mood-display">Ready to mine.</p>
+          <p id="profile-number" class="profile-number">---</p>
+          <p id="profile-member-since" class="profile-member-since">Member since ---</p>
+          <p id="profile-public-info" class="profile-public-info" hidden></p>
+          <p id="profile-pronouns-hint" class="profile-pronouns-hint" hidden></p>
+        </div>
+        <div id="profile-company-column" class="profile-company-column">
+          <div id="profile-company-logo-slot" class="profile-company-logo-slot">
+            <img id="profile-company-logo" class="profile-company-logo" alt="" hidden>
+            <span id="profile-company-logo-placeholder" class="profile-company-logo-placeholder" aria-hidden="true"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-body">
+        <main class="profile-main">
+          <section class="profile-box">
+            <h4 data-i18n="profile.aboutMe">About Me</h4>
+            <div id="profile-about-view" class="profile-box-content empty" data-i18n="profile.aboutEmpty">No bio yet.</div>
+          </section>
+          <section class="profile-box">
+            <h4 data-i18n="profile.interests">Interests</h4>
+            <div id="profile-interests-view" class="profile-box-content empty" data-i18n="profile.interestsEmpty">Nothing listed yet.</div>
+          </section>
+          <section class="profile-box">
+            <h4 data-i18n="profile.nowPlaying">Now Playing</h4>
+            <div id="profile-music-view" class="profile-box-content empty" data-i18n="profile.musicEmpty">Silence in the void.</div>
+          </section>
+          <section class="profile-box">
+            <h4 data-i18n="profile.socialLinks">Social Links</h4>
+            <div id="profile-social-view" class="profile-box-content profile-social-view"></div>
+          </section>
+          <section class="profile-box">
+            <h4 data-i18n="profile.friends">Friends</h4>
+            <div id="profile-friends-list" class="profile-box-content profile-friends-list"></div>
+          </section>
+        </main>
+
+        <aside class="profile-sidebar">
+          <section class="profile-box">
+            <h4 data-i18n="profile.miningStats">Mining Stats</h4>
+            <div class="profile-box-content">
+              <dl class="profile-stats">
+                <dt data-i18n="profile.profileNumber">Profile !</dt>
+                <dd id="profile-sidebar-number" class="profile-sidebar-number">---</dd>
+                <dt data-i18n="profile.signedUp">Signed up</dt>
+                <dd id="profile-sidebar-member-since">---</dd>
+                <dt id="profile-gender-label" hidden data-i18n="profile.gender">Gender</dt>
+                <dd id="profile-gender-display" hidden>—</dd>
+                <dt data-i18n="profile.pronouns">Pronouns</dt>
+                <dd id="profile-pronouns-display">—</dd>
+                <dt data-i18n="profile.companyName">Company Name</dt>
+                <dd id="profile-mine-name" class="profile-mine-name-label">---</dd>
+                <dt data-i18n="profile.gameDay">Game Day</dt>
+                <dd id="profile-game-day">---</dd>
+                <dt data-i18n="profile.rax">Rax</dt>
+                <dd id="profile-credits">---</dd>
+                <dt data-i18n="profile.workers">Workers</dt>
+                <dd id="profile-workers">---</dd>
+                <dt data-i18n="profile.zones">Zones</dt>
+                <dd id="profile-zones">---</dd>
+              </dl>
+            </div>
+          </section>
+
+          <section id="profile-friend-panel" class="profile-box" hidden>
+            <h4 data-i18n="profile.friendship">Friendship</h4>
+            <div class="profile-box-content">
+              <p id="profile-friend-status" class="profile-friend-status"></p>
+              <div class="profile-friend-actions">
+                <button id="profile-add-friend-btn" type="button" class="btn primary" hidden data-i18n="profile.addFriend">Add Friend</button>
+                <button id="profile-accept-friend-btn" type="button" class="btn success" hidden data-i18n="profile.acceptRequest">Accept Request</button>
+                <button id="profile-message-friend-btn" type="button" class="btn primary" hidden data-i18n="profile.message">Message</button>
+                <button id="profile-remove-friend-btn" type="button" class="btn ghost" hidden data-i18n="profile.remove">Remove</button>
+              </div>
+              <p id="profile-friend-action-status" class="profile-save-status"></p>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <div id="profile-edit-modal" class="modal profile-modal" hidden>
+    <div id="profile-edit-card" class="profile-card theme-classic">
+      <header class="profile-top">
+        <h2 data-i18n="profile.edit.customizeTitle">Customize Profile</h2>
+        <div class="profile-top-actions">
+          <button id="profile-edit-back-btn" type="button" class="btn ghost profile-close" data-i18n="profile.edit.back">Back to Profile</button>
+        </div>
+      </header>
+
+      <div id="profile-edit-flag-notice" class="profile-flag-notice" hidden>
+        <strong data-i18n="profile.flaggedTitle">Profile flagged for review</strong>
+        <p id="profile-edit-flag-comment" class="profile-flag-comment"></p>
+        <p class="profile-flag-hint" data-i18n="profile.flaggedHint">Please update your profile content. The flag clears automatically when you save changes.</p>
+      </div>
+
+      <div class="profile-edit-body">
+        <section class="profile-box profile-edit-panel profile-edit-company-panel">
+          <h4 data-i18n="profile.edit.companyName">Company Name</h4>
+          <div class="profile-box-content profile-edit-company-content">
+            <p class="profile-number-hint" data-i18n="profile.edit.companyHeaderHint">Preview matches your public profile header. Use the controls below to upload photo, banner, company name, and logo.</p>
+            <div class="profile-edit-media-stage">
+              <div id="profile-edit-header-banner" class="profile-banner profile-edit-header-banner">
+                <div class="profile-avatar-column">
+                  <div id="profile-edit-avatar" class="profile-avatar">
+                    <img id="profile-edit-avatar-img" class="profile-avatar-img" alt="" hidden>
+                    <span id="profile-edit-avatar-initials" class="profile-avatar-initials">??</span>
+                  </div>
+                </div>
+                <div class="profile-headline">
+                  <h3 id="profile-edit-preview-username">Commander</h3>
+                  <p id="profile-edit-preview-mood" class="profile-mood-display">Ready to mine.</p>
+                  <p id="profile-edit-preview-number" class="profile-number">---</p>
+                  <p id="profile-edit-preview-member-since" class="profile-member-since">Member since ---</p>
+                </div>
+                <div class="profile-company-column">
+                  <div id="profile-edit-company-logo-slot" class="profile-company-logo-slot">
+                    <img id="profile-company-logo-preview" class="profile-company-logo" alt="" hidden>
+                    <span id="profile-edit-company-logo-placeholder" class="profile-company-logo-placeholder" aria-hidden="true"></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="profile-edit-media-toolbar">
+                <div class="profile-edit-media-row">
+                  <span class="profile-edit-media-row-label" data-i18n="profile.edit.photo">Profile Photo</span>
+                  <div class="profile-edit-media-row-body">
+                    <div id="profile-photo-upload" class="profile-edit-media-row-actions">
+                      <input id="profile-photo-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+                      <button id="profile-photo-choose-btn" type="button" class="btn primary profile-media-btn" data-i18n="profile.edit.choosePhotoShort">Choose photo</button>
+                      <button id="profile-photo-btn" type="button" class="btn ghost profile-media-btn" disabled data-i18n="profile.edit.uploadPhotoShort">Upload photo</button>
+                    </div>
+                    <p id="profile-photo-status" class="profile-save-status profile-edit-media-status"></p>
+                  </div>
+                </div>
+
+                <div class="profile-edit-media-row">
+                  <span class="profile-edit-media-row-label" data-i18n="profile.edit.banner">Profile Banner</span>
+                  <div class="profile-edit-media-row-body">
+                    <div class="profile-edit-media-row-actions">
+                      <input id="profile-background-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+                      <button id="profile-background-choose-btn" type="button" class="btn ghost profile-media-btn" data-i18n="profile.edit.chooseBanner">Choose banner</button>
+                      <button id="profile-background-upload-btn" type="button" class="btn ghost profile-media-btn" disabled data-i18n="profile.edit.uploadBanner">Upload banner</button>
+                      <button id="profile-background-remove-btn" type="button" class="btn ghost profile-media-btn" hidden data-i18n="profile.edit.removeBackground">Remove</button>
+                    </div>
+                    <p id="profile-background-status" class="profile-save-status profile-edit-media-status"></p>
+                  </div>
+                </div>
+
+                <div class="profile-edit-media-row">
+                  <span class="profile-edit-media-row-label" data-i18n="profile.edit.companyName">Company Name</span>
+                  <div class="profile-edit-media-row-body">
+                    <div class="profile-edit-media-row-actions profile-edit-company-row-actions">
+                      <input id="profile-company-name-input" class="profile-edit-company-name-field" type="text" maxlength="48" data-i18n-placeholder="company.namePlaceholder" placeholder="Orion Vein Works 472" autocomplete="off">
+                      <button id="profile-company-save-btn" type="button" class="btn primary profile-media-btn" data-i18n="profile.edit.saveCompany">Save Company Name</button>
+                      <button id="profile-company-regenerate-btn" type="button" class="btn ghost profile-media-btn" data-i18n="profile.edit.regenerate">Regenerate</button>
+                    </div>
+                    <p id="profile-company-status" class="profile-save-status profile-edit-media-status"></p>
+                  </div>
+                </div>
+
+                <div class="profile-edit-media-row">
+                  <span class="profile-edit-media-row-label" data-i18n="profile.edit.companyLogo">Company logo</span>
+                  <div class="profile-edit-media-row-body">
+                    <div class="profile-edit-media-row-actions">
+                      <input id="profile-company-logo-input" type="file" accept="image/png" hidden>
+                      <button id="profile-company-logo-choose-btn" type="button" class="btn primary profile-media-btn" data-i18n="profile.edit.chooseLogoShort">Choose logo</button>
+                      <button id="profile-company-logo-upload-btn" type="button" class="btn ghost profile-media-btn" disabled data-i18n="profile.edit.uploadLogoShort">Upload logo</button>
+                      <button id="profile-company-logo-generate-btn" type="button" class="btn ghost profile-media-btn" hidden data-i18n="profile.edit.generateLogoShort">Generate AI logo</button>
+                    </div>
+                    <p id="profile-company-logo-status" class="profile-save-status profile-edit-media-status"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p class="profile-number-label" data-i18n="profile.edit.listForTrade">List for trade</p>
+            <p class="profile-number-hint" data-i18n="profile.edit.listHint">Offer your current company name in the Store for other players to buy.</p>
+            <div class="profile-company-list-row">
+              <input id="profile-company-list-price" type="number" min="1" step="1" data-i18n-placeholder="profile.edit.pricePlaceholder" placeholder="Price in Rax">
+              <button id="profile-company-list-btn" type="button" class="btn primary" data-i18n="profile.edit.listInStore">List in Store</button>
+              <button id="profile-company-cancel-list-btn" type="button" class="btn ghost" hidden data-i18n="profile.edit.cancelListing">Cancel Listing</button>
+            </div>
+            <p id="profile-company-list-status" class="profile-save-status"></p>
+          </div>
+        </section>
+
+        <section class="profile-box profile-edit-panel">
+          <h4 data-i18n="profile.edit.details">Profile Details</h4>
+          <div class="profile-box-content">
+            <p class="profile-number-label" data-i18n="profile.edit.yourNumber">Your profile number</p>
+            <p id="profile-edit-number" class="profile-edit-number">---</p>
+            <p class="profile-number-hint" data-i18n="profile.edit.numberHint">Share this so others can add you as a friend.</p>
+
+            <label class="locale-select-label locale-select-label--auth" for="profile-locale-input">
+              <span data-i18n="locale.label">Language</span>
+            </label>
+            <select id="profile-locale-input" data-locale-select class="locale-select" aria-label="Language">
+              <option value="en">English</option>
+            </select>
+            <p class="profile-number-hint" data-i18n="profile.edit.languageHint">Interface language for menus and game text on this device.</p>
+
+            <label for="profile-gender-input" data-i18n="profile.edit.gender">Gender</label>
+            <select id="profile-gender-input" aria-describedby="profile-gender-hint">
+              <option value="" data-i18n="profile.edit.genderSelect">Select gender…</option>
+              <option value="male" data-i18n="profile.edit.gender.male">Male</option>
+              <option value="female" data-i18n="profile.edit.gender.female">Female</option>
+              <option value="trans-female" data-i18n="profile.edit.gender.transFemale">Trans female</option>
+              <option value="trans-male" data-i18n="profile.edit.gender.transMale">Trans male</option>
+              <option value="non-binary" data-i18n="profile.edit.gender.nonBinary">Non-binary</option>
+              <option value="prefer-not-to-say" data-i18n="profile.edit.gender.preferNot">Prefer not to say</option>
+            </select>
+            <p id="profile-gender-hint" class="profile-number-hint" data-i18n="profile.edit.genderHint">Used to choose how we address you in game text (he/him, she/her, they/them).</p>
+
+            <div id="profile-preferred-pronouns-section" class="profile-preferred-pronouns-section" hidden>
+              <label for="profile-preferred-pronouns-input" data-i18n="profile.edit.preferredPronouns">Preferred pronouns</label>
+              <select id="profile-preferred-pronouns-input">
+                <option value="" data-i18n="profile.edit.pronounsSelect">Select pronouns…</option>
+                <option value="he-him" data-i18n="profile.edit.pronouns.he">he/him</option>
+                <option value="she-her" data-i18n="profile.edit.pronouns.she">she/her</option>
+                <option value="they-them" data-i18n="profile.edit.pronouns.they">they/them</option>
+              </select>
+              <p class="profile-number-hint" data-i18n="profile.edit.pronounsRequired">Required for non-binary and prefer not to say.</p>
+            </div>
+
+            <div class="profile-privacy-options">
+              <p class="profile-number-label" data-i18n="profile.edit.publicInfo">Public profile info</p>
+              <p class="profile-number-hint" data-i18n="profile.edit.publicInfoHint">Choose what other players can see on your public profile and in Exonet lists. Birth year is never shared.</p>
+              <label class="profile-privacy-option">
+                <input id="profile-birthday-public-input" type="checkbox">
+                <span data-i18n="profile.edit.birthdayPublic">Show my birthday (month and day only) on my public profile</span>
+              </label>
+              <label class="profile-privacy-option">
+                <input id="profile-age-public-input" type="checkbox">
+                <span data-i18n="profile.edit.agePublic">Show my age on my public profile</span>
+              </label>
+            </div>
+
+            <label for="profile-mood-input" data-i18n="profile.edit.mood">Mood</label>
+            <input id="profile-mood-input" type="text" maxlength="120" data-i18n-placeholder="profile.edit.moodPlaceholder" placeholder="What's your mood today?">
+
+            <label for="profile-about-input" data-i18n="profile.edit.about">About Me</label>
+            <textarea id="profile-about-input" maxlength="2000" data-i18n-placeholder="profile.edit.aboutPlaceholder" placeholder="Tell the galaxy about yourself..."></textarea>
+
+            <label for="profile-interests-input" data-i18n="profile.edit.interests">Interests</label>
+            <textarea id="profile-interests-input" maxlength="500" data-i18n-placeholder="profile.edit.interestsPlaceholder" placeholder="Asteroids, ore, deep space jazz..."></textarea>
+
+            <label for="profile-music-input" data-i18n="profile.edit.music">Now Playing</label>
+            <input id="profile-music-input" type="text" maxlength="120" data-i18n-placeholder="profile.edit.musicPlaceholder" placeholder="Artist — Track">
+          </div>
+        </section>
+
+        <section class="profile-box profile-edit-panel">
+          <h4 data-i18n="profile.edit.social">Social Links</h4>
+          <div class="profile-box-content">
+            <label for="profile-discord-input" data-i18n="social.discord">Discord</label>
+            <input id="profile-discord-input" type="text" maxlength="120" data-i18n-placeholder="social.discordPlaceholder" placeholder="username or discord.gg/invite" autocomplete="off">
+            <label for="profile-bluesky-input" data-i18n="social.bluesky">Bluesky</label>
+            <input id="profile-bluesky-input" type="text" maxlength="120" data-i18n-placeholder="social.blueskyPlaceholder" placeholder="@handle.bsky.social" autocomplete="off">
+            <label for="profile-twitter-input" data-i18n="social.twitter">Twitter / X</label>
+            <input id="profile-twitter-input" type="text" maxlength="120" data-i18n-placeholder="social.twitterPlaceholder" placeholder="@handle" autocomplete="off">
+            <label for="profile-youtube-input" data-i18n="social.youtube">YouTube</label>
+            <input id="profile-youtube-input" type="text" maxlength="120" data-i18n-placeholder="social.youtubePlaceholder" placeholder="@channel or channel URL" autocomplete="off">
+            <label for="profile-facebook-input" data-i18n="social.facebook">Facebook</label>
+            <input id="profile-facebook-input" type="text" maxlength="120" data-i18n-placeholder="social.facebookPlaceholder" placeholder="username or profile URL" autocomplete="off">
+          </div>
+        </section>
+
+        <div class="profile-save-row profile-edit-save-row">
+          <button id="profile-save-btn" type="button" class="btn primary" data-i18n="profile.edit.saveProfile">Save Profile</button>
+          <span id="profile-save-status" class="profile-save-status"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="friends-modal" class="modal" hidden>
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h2 data-i18n="friends.title">Friends</h2>
+        <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
+      </div>
+
+      <section class="friends-add">
+        <label for="add-friend-number" data-i18n="friends.addByNumber">Add friend by profile number</label>
+        <div class="friends-add-row">
+          <input id="add-friend-number" type="text" data-i18n-placeholder="profile.edit.friendPlaceholder" placeholder="!K7R-8842-9F3A" autocomplete="off">
+          <button id="add-friend-btn" type="button" class="btn primary" data-i18n="friends.add">Add Friend</button>
+        </div>
+        <p id="add-friend-status" class="friends-status"></p>
+      </section>
+
+      <div class="friends-columns">
+        <section>
+          <h3 data-i18n="friends.myFriends">My Friends</h3>
+          <div id="friends-list" class="friends-list"></div>
+        </section>
+        <section>
+          <h3 data-i18n="friends.incoming">Incoming Requests</h3>
+          <div id="incoming-friends-list" class="friends-list"></div>
+        </section>
+        <section>
+          <h3 data-i18n="friends.outgoing">Pending Sent</h3>
+          <div id="outgoing-friends-list" class="friends-list"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="messages-modal" class="modal" hidden>
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h2 data-i18n="messages.title">Messages</h2>
+        <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
+      </div>
+      <p id="messages-status" class="friends-status"></p>
+      <div id="player-peer-panel" class="player-messages-panel">
+        <section id="player-peer-compose" class="player-message-compose">
+          <h3 data-i18n="messages.peerHeading">Send to friend</h3>
+          <label for="player-message-recipient" data-i18n="messages.peerTo">To</label>
+          <select id="player-message-recipient">
+            <option value="" data-i18n="messages.peerSelect">Select friend…</option>
+          </select>
+          <label for="player-message-body" data-i18n="messages.body">Message</label>
+          <textarea
+            id="player-message-body"
+            maxlength="4000"
+            rows="3"
+            data-i18n-placeholder="messages.peerPlaceholder"
+            placeholder="Write a message to a friend..."></textarea>
+          <button id="player-message-send-btn" type="button" class="btn primary" data-i18n="messages.send">Send</button>
+        </section>
+        <div class="staff-message-layout">
+          <div id="player-messages-inbox" class="staff-message-inbox"></div>
+          <div id="player-messages-detail" class="staff-message-detail"></div>
+        </div>
+        <div class="player-message-actions">
+          <button id="player-staff-toggle-btn" type="button" class="btn ghost" data-i18n="messages.staffToggle">Message staff</button>
+        </div>
+      </div>
+      <div id="player-staff-panel" class="player-messages-panel" hidden>
+        <div class="player-message-actions">
+          <button id="player-peer-toggle-btn" type="button" class="btn ghost" data-i18n="messages.peerToggle">Back to friends</button>
+        </div>
+        <p class="player-staff-intro" data-i18n="messages.staffIntro">For issues, reports, and appeals to moderators or admins—not for chatting with friends.</p>
+        <section id="player-staff-compose" class="player-message-compose">
+          <h3 data-i18n="messages.staffHeading">Report to staff</h3>
+          <label for="player-staff-recipient" data-i18n="messages.staffTo">To</label>
+          <select id="player-staff-recipient">
+            <option value="" data-i18n="messages.staffSelect">Select staff member…</option>
+          </select>
+          <label for="player-staff-body" data-i18n="messages.body">Message</label>
+          <textarea
+            id="player-staff-body"
+            maxlength="4000"
+            rows="3"
+            data-i18n-placeholder="messages.staffPlaceholder"
+            placeholder="Describe the issue or report…"></textarea>
+          <button id="player-staff-send-btn" type="button" class="btn accent" data-i18n="messages.staffSend">Send to staff</button>
+        </section>
+        <div class="staff-message-layout">
+          <div id="player-staff-messages-inbox" class="staff-message-inbox"></div>
+          <div id="player-staff-messages-detail" class="staff-message-detail"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="profile-completion-modal" class="modal profile-completion-modal" hidden role="dialog" aria-modal="true" aria-labelledby="profile-completion-title">
+    <div class="profile-completion-card">
+      <h2 id="profile-completion-title" data-i18n="profile.completion.title">Profile update required</h2>
+      <p class="profile-completion-intro" data-i18n="profile.completion.intro">We added new profile options. Please fill in the details below to continue playing.</p>
+      <div id="profile-completion-fields" class="profile-completion-fields">
+        <div id="profile-completion-locale-block" class="profile-completion-field" hidden>
+          <label class="locale-select-label locale-select-label--auth" for="profile-completion-locale-select">
+            <span data-i18n="locale.label">Language</span>
+          </label>
+          <select id="profile-completion-locale-select" data-locale-select class="locale-select" aria-label="Language">
+            <option value="en">English</option>
+          </select>
+          <p class="profile-number-hint" data-i18n="profile.completion.localeHint">Your saved language is used on this device when you play.</p>
+        </div>
+        <div id="profile-completion-gender-block" class="profile-completion-field" hidden>
+          <label for="profile-completion-gender-input" data-i18n="profile.edit.gender">Gender</label>
+          <select id="profile-completion-gender-input" aria-describedby="profile-completion-gender-hint">
+            <option value="" data-i18n="profile.edit.genderSelect">Select gender…</option>
+            <option value="male" data-i18n="profile.edit.gender.male">Male</option>
+            <option value="female" data-i18n="profile.edit.gender.female">Female</option>
+            <option value="trans-female" data-i18n="profile.edit.gender.transFemale">Trans female</option>
+            <option value="trans-male" data-i18n="profile.edit.gender.transMale">Trans male</option>
+            <option value="non-binary" data-i18n="profile.edit.gender.nonBinary">Non-binary</option>
+            <option value="prefer-not-to-say" data-i18n="profile.edit.gender.preferNot">Prefer not to say</option>
+          </select>
+          <p id="profile-completion-gender-hint" class="profile-number-hint" data-i18n="profile.edit.genderHint">Used to choose how we address you in game text (he/him, she/her, they/them).</p>
+        </div>
+        <div id="profile-completion-pronouns-block" class="profile-completion-field" hidden>
+          <label for="profile-completion-pronouns-input" data-i18n="profile.edit.preferredPronouns">Preferred pronouns</label>
+          <select id="profile-completion-pronouns-input">
+            <option value="" data-i18n="profile.edit.pronounsSelect">Select pronouns…</option>
+            <option value="he-him" data-i18n="profile.edit.pronouns.he">he/him</option>
+            <option value="she-her" data-i18n="profile.edit.pronouns.she">she/her</option>
+            <option value="they-them" data-i18n="profile.edit.pronouns.they">they/them</option>
+          </select>
+          <p class="profile-number-hint" data-i18n="profile.edit.pronounsRequired">Required for non-binary and prefer not to say.</p>
+        </div>
+      </div>
+      <div class="profile-completion-actions">
+        <button id="profile-completion-save-btn" type="button" class="btn primary" data-i18n="profile.completion.save">Save and continue</button>
+        <p id="profile-completion-status" class="profile-save-status"></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="moderation-modal" class="modal moderation-modal" hidden role="dialog" aria-modal="true" aria-labelledby="moderation-modal-title">
+    <div class="modal-card moderation-modal-card">
+      <h2 id="moderation-modal-title"></h2>
+      <p id="moderation-modal-message" class="moderation-modal-message"></p>
+      <p id="moderation-modal-meta" class="moderation-modal-meta"></p>
+      <div class="moderation-modal-actions">
+        <button id="moderation-appeal-btn" type="button" class="btn ghost" hidden data-i18n="auth.sendAppeal">Send appeal to admin</button>
+        <button id="moderation-ack-btn" type="button" class="btn primary" data-i18n="moderation.acknowledge">I understand</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="exonet-modal" class="modal exonet-modal" hidden>
+    <div class="exonet-shell">
+      <header class="exonet-chrome">
+        <div class="exonet-brand">◈ EXONET</div>
+        <div class="exonet-nav">
+          <button id="exonet-back" type="button" title="Back">←</button>
+          <button id="exonet-forward" type="button" title="Forward">→</button>
+          <button id="exonet-home" type="button" title="Home">⌂</button>
+        </div>
+        <form id="exonet-url-form" class="exonet-url-bar">
+          <span class="exonet-scheme">exo://</span>
+          <input id="exonet-url-input" type="text" spellcheck="false" autocomplete="off" aria-label="Exonet address">
+          <button type="submit">Go</button>
+        </form>
+        <button id="exonet-close" type="button" class="btn ghost exonet-close" data-i18n="exonet.close">Close</button>
+      </header>
+      <aside class="exonet-sidebar">
+        <h3 data-i18n="exonet.bookmarks">Bookmarks</h3>
+        <div id="exonet-bookmarks"></div>
+      </aside>
+      <main id="exonet-content" class="exonet-content"></main>
+      <footer id="exonet-status-bar" class="exonet-status">Interplanetary relay · establishing link…</footer>
+    </div>
+  </div>
+
+<script type="module" src="/js/app.js?v=20260605-voidcorp"></script>
+</body>
+</html>

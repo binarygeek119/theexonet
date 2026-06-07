@@ -1,13 +1,13 @@
 #!/bin/bash
 # Audit theexonet hosting directory ownership and writability.
 # Exit 0 when healthy, 1 when issues are found.
-#   sudo audit-rava-permissions
-#   sudo audit-rava-permissions -q    # no output unless issues
+#   sudo audit-theexonet-permissions
+#   sudo audit-theexonet-permissions -q    # no output unless issues
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-# shellcheck source=rava-hosting-env.sh
-source "${SCRIPT_DIR}/rava-hosting-env.sh"
+# shellcheck source=theexonet-hosting-env.sh
+source "${SCRIPT_DIR}/theexonet-hosting-env.sh"
 
 QUIET=0
 if [ "${1:-}" = "-q" ] || [ "${1:-}" = "--quiet" ]; then
@@ -117,7 +117,7 @@ if [ "$QUIET" -eq 0 ]; then
   if [ "$ISSUES" -eq 0 ]; then
     echo "OK  no permission issues detected"
   else
-    echo "Found ${ISSUES} issue(s). Run: sudo fix-rava-permissions"
+    echo "Found ${ISSUES} issue(s). Run: sudo fix-theexonet-permissions"
   fi
 fi
 

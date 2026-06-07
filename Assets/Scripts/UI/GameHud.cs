@@ -1,12 +1,12 @@
 using System;
 using System.Linq;
-using Rava.Core.Dtos;
-using Rava.Core.Events;
-using Rava.Mining;
+using Theexonet.Core.Dtos;
+using Theexonet.Core.Events;
+using Theexonet.Mining;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Rava.UI
+namespace Theexonet.UI
 {
     public class GameHud : MonoBehaviour
     {

@@ -1,19 +1,19 @@
 #!/bin/bash
 # Publish admin + moderator portals into the live publish folder and restart services.
 # Run on the server as root:
-#   cd /opt/rava/rava && sudo deploy-rava-portals
-#   sudo deploy-rava-portals /opt/rava/rava/server
-#   sudo deploy-rava-portals --static-only   # no SDK: sync wwwroot only
+#   cd /opt/theexonet/theexonet && sudo deploy-theexonet-portals
+#   sudo deploy-theexonet-portals /opt/theexonet/theexonet/server
+#   sudo deploy-theexonet-portals --static-only   # no SDK: sync wwwroot only
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 # shellcheck source=dotnet-sdk.sh
 source "${SCRIPT_DIR}/dotnet-sdk.sh"
 
-PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
-ADMIN_SERVICE="${RAVA_ADMIN_SERVICE:-rava-admin}"
-MODERATOR_SERVICE="${RAVA_MODERATOR_SERVICE:-rava-moderator}"
-SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
+PUBLISH_DIR="${THEEXONET_PUBLISH_DIR:-/var/www/publish}"
+ADMIN_SERVICE="${THEEXONET_ADMIN_SERVICE:-theexonet-admin}"
+MODERATOR_SERVICE="${THEEXONET_MODERATOR_SERVICE:-theexonet-moderator}"
+SERVICE_USER="${THEEXONET_SERVICE_USER:-www-data}"
 STATIC_ONLY=0
 SERVER_ARG=""
 
@@ -23,7 +23,7 @@ for arg in "$@"; do
       STATIC_ONLY=1
       ;;
     -h|--help)
-      echo "Usage: sudo deploy-rava-portals [--static-only] [server-directory]" >&2
+      echo "Usage: sudo deploy-theexonet-portals [--static-only] [server-directory]" >&2
       exit 0
       ;;
     *)
@@ -35,14 +35,14 @@ for arg in "$@"; do
 done
 
 if [ "$(id -u)" -ne 0 ]; then
-  echo "Run as root: sudo deploy-rava-portals" >&2
+  echo "Run as root: sudo deploy-theexonet-portals" >&2
   exit 1
 fi
 
 SERVER_DIR="$(bash "${SCRIPT_DIR}/resolve-server-dir.sh" "${SERVER_ARG}")"
 
-if [ ! -f "${SERVER_DIR}/Rava.Admin/Rava.Admin.csproj" ]; then
-  echo "Missing ${SERVER_DIR}/Rava.Admin/Rava.Admin.csproj" >&2
+if [ ! -f "${SERVER_DIR}/Theexonet.Admin/Theexonet.Admin.csproj" ]; then
+  echo "Missing ${SERVER_DIR}/Theexonet.Admin/Theexonet.Admin.csproj" >&2
   exit 1
 fi
 
@@ -91,10 +91,10 @@ restart_portals() {
 
 echo "Using server sources: ${SERVER_DIR}"
 
-if [ "$STATIC_ONLY" -eq 1 ] || ! rava_has_dotnet_sdk; then
+if [ "$STATIC_ONLY" -eq 1 ] || ! theexonet_has_dotnet_sdk; then
   if [ "$STATIC_ONLY" -eq 0 ]; then
     echo "WARNING: No .NET SDK — syncing portal wwwroot only (DLLs unchanged)." >&2
-    rava_print_missing_sdk_help >&2
+    theexonet_print_missing_sdk_help >&2
   else
     echo "Static-only mode: syncing portal wwwroot (DLLs unchanged)."
   fi
@@ -109,21 +109,21 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
 echo "Publishing admin portal..."
-dotnet publish "${SERVER_DIR}/Rava.Admin/Rava.Admin.csproj" \
+dotnet publish "${SERVER_DIR}/Theexonet.Admin/Theexonet.Admin.csproj" \
   --configuration Release \
   --output "${work}/publish-admin"
 
 echo "Publishing moderator portal..."
-dotnet publish "${SERVER_DIR}/Rava.Moderator/Rava.Moderator.csproj" \
+dotnet publish "${SERVER_DIR}/Theexonet.Moderator/Theexonet.Moderator.csproj" \
   --configuration Release \
   --output "${work}/publish-moderator"
 
 bash "${SCRIPT_DIR}/sync-portal-wwwroot.sh" \
-  "${SERVER_DIR}/Rava.Api/html" \
+  "${SERVER_DIR}/Theexonet.Api/html" \
   "${work}/publish-admin/wwwroot"
 
 bash "${SCRIPT_DIR}/sync-portal-wwwroot.sh" \
-  "${SERVER_DIR}/Rava.Api/html" \
+  "${SERVER_DIR}/Theexonet.Api/html" \
   "${work}/publish-moderator/wwwroot"
 
 rsync -a \
@@ -139,8 +139,8 @@ rsync -a \
 sync_portal_wwwroot
 
 for required in \
-  "${PUBLISH_DIR}/Rava.Admin.dll" \
-  "${PUBLISH_DIR}/Rava.Moderator.dll" \
+  "${PUBLISH_DIR}/Theexonet.Admin.dll" \
+  "${PUBLISH_DIR}/Theexonet.Moderator.dll" \
   "${PUBLISH_DIR}/wwwroot/admin.html" \
   "${PUBLISH_DIR}/wwwroot/moderator.html" \
   "${PUBLISH_DIR}/wwwroot/js/admin-testing-mode.js" \

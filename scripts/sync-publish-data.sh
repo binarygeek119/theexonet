@@ -1,18 +1,18 @@
 #!/bin/bash
 # Copy required CSV spreadsheets into the live data directory (/var/www/data by default).
 # Overwrites existing CSV files with the newest version from the source directory.
-# Source resolution (when no argument): publish dir, then git checkout Rava.Api, then templates.
+# Source resolution (when no argument): publish dir, then git checkout Theexonet.Api, then templates.
 # Run on the server as root after git pull or deploy:
 #   sudo bash scripts/sync-publish-data.sh
 #   sudo bash scripts/sync-publish-data.sh /var/www/publish
-#   sudo sync-rava-data
+#   sudo sync-theexonet-data
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-TEMPLATE_DIR="${RAVA_TEMPLATE_DATA_DIR:-/usr/local/lib/rava/data}"
-DEST_DIR="${RAVA_DATA_DIR:-/var/www/data}"
-PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
-SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
+TEMPLATE_DIR="${THEEXONET_TEMPLATE_DATA_DIR:-/usr/local/lib/theexonet/data}"
+DEST_DIR="${THEEXONET_DATA_DIR:-/var/www/data}"
+PUBLISH_DIR="${THEEXONET_PUBLISH_DIR:-/var/www/publish}"
+SERVICE_USER="${THEEXONET_SERVICE_USER:-www-data}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run as root: sudo bash $0" >&2
@@ -30,7 +30,7 @@ resolve_src_dir() {
     return
   fi
 
-  local repo_api="${SCRIPT_DIR}/../server/Rava.Api"
+  local repo_api="${SCRIPT_DIR}/../server/Theexonet.Api"
   if [ -f "${repo_api}/credits.csv" ]; then
     printf '%s' "$repo_api"
     return
@@ -41,7 +41,7 @@ resolve_src_dir() {
     return
   fi
 
-  echo "Missing CSV source. Pass server/Rava.Api, git pull + install-rava-scripts, or populate ${TEMPLATE_DIR}." >&2
+  echo "Missing CSV source. Pass server/Theexonet.Api, git pull + install-theexonet-scripts, or populate ${TEMPLATE_DIR}." >&2
   exit 1
 }
 

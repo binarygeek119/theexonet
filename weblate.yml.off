@@ -6,32 +6,32 @@
 translate:
   - name: Game UI
     slug: game-ui
-    filemask: server/Rava.Api/html/locales/*/game.json
-    template: server/Rava.Api/html/locales/en/game.json
-    new_base: server/Rava.Api/html/locales/en/game.json
+    filemask: server/Theexonet.Api/html/locales/*/game.json
+    template: server/Theexonet.Api/html/locales/en/game.json
+    new_base: server/Theexonet.Api/html/locales/en/game.json
     file_format: json
     source_language: en
 
   - name: Admin portal UI
     slug: admin-ui
-    filemask: server/Rava.Api/html/locales/*/admin.json
-    template: server/Rava.Api/html/locales/en/admin.json
-    new_base: server/Rava.Api/html/locales/en/admin.json
+    filemask: server/Theexonet.Api/html/locales/*/admin.json
+    template: server/Theexonet.Api/html/locales/en/admin.json
+    new_base: server/Theexonet.Api/html/locales/en/admin.json
     file_format: json
     source_language: en
 
   - name: Moderator portal UI
     slug: moderator-ui
-    filemask: server/Rava.Api/html/locales/*/moderator.json
-    template: server/Rava.Api/html/locales/en/moderator.json
-    new_base: server/Rava.Api/html/locales/en/moderator.json
+    filemask: server/Theexonet.Api/html/locales/*/moderator.json
+    template: server/Theexonet.Api/html/locales/en/moderator.json
+    new_base: server/Theexonet.Api/html/locales/en/moderator.json
     file_format: json
     source_language: en
 
   - name: Status dashboard UI
     slug: status-ui
-    filemask: server/Rava.Status/wwwroot/locales/*/status.json
-    template: server/Rava.Status/wwwroot/locales/en/status.json
-    new_base: server/Rava.Status/wwwroot/locales/en/status.json
+    filemask: server/Theexonet.Status/wwwroot/locales/*/status.json
+    template: server/Theexonet.Status/wwwroot/locales/en/status.json
+    new_base: server/Theexonet.Status/wwwroot/locales/en/status.json
     file_format: json
     source_language: en

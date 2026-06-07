@@ -1,16 +1,16 @@
 #!/bin/bash
-# Diagnose rava-api startup failures on production.
-# Run on the server: sudo diagnose-rava-api
+# Diagnose theexonet-api startup failures on production.
+# Run on the server: sudo diagnose-theexonet-api
 set -euo pipefail
 
-PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
-DATA_DIR="${RAVA_DATA_DIR:-/var/www/data}"
-SERVICE="${RAVA_API_SERVICE:-rava-api}"
-SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
+PUBLISH_DIR="${THEEXONET_PUBLISH_DIR:-/var/www/publish}"
+DATA_DIR="${THEEXONET_DATA_DIR:-/var/www/data}"
+SERVICE="${THEEXONET_API_SERVICE:-theexonet-api}"
+SERVICE_USER="${THEEXONET_SERVICE_USER:-www-data}"
 
 echo "=== theexonet API diagnostics ==="
 echo "Publish dir: ${PUBLISH_DIR}"
-echo "Data dir:    ${DATA_DIR} (RAVA_DATA_DIR)"
+echo "Data dir:    ${DATA_DIR} (THEEXONET_DATA_DIR)"
 echo
 
 echo "--- .NET runtimes ---"
@@ -27,7 +27,7 @@ echo
 
 echo "--- Required publish files ---"
 publish_required=(
-  "${PUBLISH_DIR}/Rava.Api.dll"
+  "${PUBLISH_DIR}/Theexonet.Api.dll"
 )
 missing=0
 for file in "${publish_required[@]}"; do
@@ -96,7 +96,7 @@ if [ -f "${DATA_DIR}/appsettings.json" ]; then
     missing=1
   fi
 elif [ -f "${PUBLISH_DIR}/appsettings.json" ]; then
-  echo "WARN: appsettings.json still in publish dir. Run: sudo migrate-rava-data"
+  echo "WARN: appsettings.json still in publish dir. Run: sudo migrate-theexonet-data"
   missing=1
 else
   echo "ERROR: ${DATA_DIR}/appsettings.json not found."
@@ -123,7 +123,7 @@ if command -v curl >/dev/null 2>&1; then
   if curl -sf --max-time 15 "http://127.0.0.1:5000/api/public/offworld-news" >/dev/null; then
     echo "Offworld News endpoint: OK (localhost:5000)"
   else
-    echo "Offworld News endpoint: FAILED — deploy latest Rava.Api.dll or check journalctl for errors"
+    echo "Offworld News endpoint: FAILED — deploy latest Theexonet.Api.dll or check journalctl for errors"
     missing=1
   fi
 fi
@@ -162,11 +162,11 @@ fi
 echo
 
 echo "--- Manual startup test (5s, as ${SERVICE_USER}, port 15000) ---"
-if [ -f "${PUBLISH_DIR}/Rava.Api.dll" ]; then
+if [ -f "${PUBLISH_DIR}/Theexonet.Api.dll" ]; then
   set +e
   timeout 5 sudo -u "${SERVICE_USER}" \
-    env ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_URLS=http://127.0.0.1:15000 RAVA_DATA_DIR="${DATA_DIR}" \
-    dotnet "${PUBLISH_DIR}/Rava.Api.dll" 2>&1 | head -n 40
+    env ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_URLS=http://127.0.0.1:15000 THEEXONET_DATA_DIR="${DATA_DIR}" \
+    dotnet "${PUBLISH_DIR}/Theexonet.Api.dll" 2>&1 | head -n 40
   test_status=${PIPESTATUS[0]}
   set -e
   if [ "$test_status" -eq 124 ]; then
@@ -181,14 +181,14 @@ echo
 if [ "$missing" -ne 0 ]; then
   echo "Fix the errors above, then run:"
   if [ ! -f "${DATA_DIR}/credits.csv" ]; then
-    echo "  sudo sync-rava-data   # after install-rava-scripts"
+    echo "  sudo sync-theexonet-data   # after install-theexonet-scripts"
     echo "  # or: sudo bash $(dirname "$0")/sync-publish-data.sh"
   fi
   if [ ! -f "${DATA_DIR}/appsettings.json" ] && [ -f "${PUBLISH_DIR}/appsettings.json" ]; then
-    echo "  sudo migrate-rava-data"
+    echo "  sudo migrate-theexonet-data"
   fi
   echo "  sudo systemctl reset-failed ${SERVICE}"
-  echo "  sudo restart-rava"
+  echo "  sudo restart-theexonet"
   exit 1
 fi
 

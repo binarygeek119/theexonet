@@ -602,14 +602,14 @@ PlayerSettings:
   editorAssembliesCompatibilityLevel: 1
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
-  metroPackageName: rava
+  metroPackageName: theexonet
   metroPackageVersion: 
   metroCertificatePath: 
   metroCertificatePassword: 
   metroCertificateSubject: 
   metroCertificateIssuer: 
   metroCertificateNotAfter: 0000000000000000
-  metroApplicationDescription: rava
+  metroApplicationDescription: theexonet
   wsaImages: {}
   metroTileShortName: 
   metroTileShowName: 0
@@ -684,7 +684,7 @@ PlayerSettings:
   cloudProjectId: 789a39e3-90bf-4106-9ed0-3337d6babd60
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: rava 2026-05-29_15-18-55
+  projectName: theexonet 2026-05-29_15-18-55
   organizationId: binarygeek119
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0

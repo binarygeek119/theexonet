@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Rava.UI
+namespace Theexonet.UI
 {
     public static class CurrencyFormat
     {

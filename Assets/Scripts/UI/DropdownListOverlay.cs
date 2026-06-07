@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace Rava.UI
+namespace Theexonet.UI
 {
     [RequireComponent(typeof(Dropdown))]
     public class DropdownListOverlay : MonoBehaviour

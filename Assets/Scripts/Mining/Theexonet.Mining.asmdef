@@ -1,0 +1,17 @@
+{
+    "name": "Theexonet.Mining",
+    "rootNamespace": "Theexonet.Mining",
+    "references": [
+        "Theexonet.Core",
+        "Theexonet.Networking"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

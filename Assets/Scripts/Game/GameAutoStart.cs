@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Rava.Game
+namespace Theexonet.Game
 {
     public static class GameAutoStart
     {
@@ -12,7 +12,7 @@ namespace Rava.Game
                 return;
             }
 
-            var go = new GameObject("RavaGameBootstrap");
+            var go = new GameObject("TheexonetGameBootstrap");
             go.AddComponent<GameBootstrap>();
         }
     }

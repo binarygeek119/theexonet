@@ -1,11 +1,11 @@
 using System.Text;
-using Rava.Core.Dtos;
-using Rava.Mining;
-using Rava.Networking;
+using Theexonet.Core.Dtos;
+using Theexonet.Mining;
+using Theexonet.Networking;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Rava.UI
+namespace Theexonet.UI
 {
     public class FriendsPanel : MonoBehaviour
     {

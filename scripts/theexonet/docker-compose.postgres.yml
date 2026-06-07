@@ -1,0 +1,21 @@
+# Production PostgreSQL for theexonet (run on the host server).
+# Password is read from /etc/theexonet/postgres.env (created by install-host-server.sh).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: theexonet-postgres
+    restart: unless-stopped
+    env_file:
+      - /etc/theexonet/postgres.env
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - theexonet_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U theexonet -d theexonet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  theexonet_pgdata:

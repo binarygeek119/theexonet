@@ -1,14 +1,14 @@
 #!/bin/bash
 # Install and enable the theexonet permissions watcher (runs as root).
-#   sudo install-rava-permissions-service
+#   sudo install-theexonet-permissions-service
 #   sudo bash scripts/install-permissions-service.sh
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-LIB_DIR="${RAVA_LIB_DIR:-/usr/local/lib/rava/scripts}"
+LIB_DIR="${THEEXONET_LIB_DIR:-/usr/local/lib/theexonet/scripts}"
 SYSTEMD_DST="/etc/systemd/system"
-DEFAULT_DST="/etc/default/rava-permissions"
-UNIT="rava-permissions"
+DEFAULT_DST="/etc/default/theexonet-permissions"
+UNIT="theexonet-permissions"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run as root: sudo bash $0" >&2
@@ -31,8 +31,8 @@ resolve_unit_file() {
 resolve_default_file() {
   local candidate
   for candidate in \
-    "${SCRIPT_DIR}/systemd/rava-permissions.default" \
-    "${LIB_DIR}/systemd/rava-permissions.default"; do
+    "${SCRIPT_DIR}/systemd/theexonet-permissions.default" \
+    "${LIB_DIR}/systemd/theexonet-permissions.default"; do
     if [ -f "${candidate}" ]; then
       printf '%s' "${candidate}"
       return 0
@@ -43,7 +43,7 @@ resolve_default_file() {
 
 mkdir -p "${LIB_DIR}/systemd"
 
-for script in rava-hosting-env.sh audit-hosting-permissions.sh fix-hosting-permissions.sh rava-permissions-watch.sh install-permissions-service.sh install-rava-permissions-service.sh; do
+for script in theexonet-hosting-env.sh audit-hosting-permissions.sh fix-hosting-permissions.sh theexonet-permissions-watch.sh install-permissions-service.sh install-theexonet-permissions-service.sh; do
   if [ -f "${SCRIPT_DIR}/${script}" ]; then
     cp -f "${SCRIPT_DIR}/${script}" "${LIB_DIR}/${script}"
     chmod 755 "${LIB_DIR}/${script}"
@@ -52,7 +52,7 @@ done
 
 unit_src="$(resolve_unit_file)" || {
   echo "Missing unit file ${UNIT}.service under ${SCRIPT_DIR}/systemd or ${LIB_DIR}/systemd." >&2
-  echo "Run from a git checkout or: sudo install-rava-scripts" >&2
+  echo "Run from a git checkout or: sudo install-theexonet-scripts" >&2
   exit 1
 }
 
@@ -64,7 +64,7 @@ if [ ! -f "${DEFAULT_DST}" ]; then
   if [ -n "${default_src:-}" ]; then
     cp -f "${default_src}" "${DEFAULT_DST}"
     chmod 644 "${DEFAULT_DST}"
-    cp -f "${default_src}" "${LIB_DIR}/systemd/rava-permissions.default"
+    cp -f "${default_src}" "${LIB_DIR}/systemd/theexonet-permissions.default"
     echo "Installed ${DEFAULT_DST}"
   fi
 fi
@@ -80,4 +80,4 @@ else
   exit 1
 fi
 
-echo "Done. Manual fix: sudo fix-rava-permissions | Audit: sudo audit-rava-permissions"
+echo "Done. Manual fix: sudo fix-theexonet-permissions | Audit: sudo audit-theexonet-permissions"

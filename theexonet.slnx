@@ -1,0 +1,8 @@
+﻿<Solution>
+  <Project Path="Theexonet.UI.csproj" />
+  <Project Path="Theexonet.Networking.csproj" />
+  <Project Path="Theexonet.Game.csproj" />
+  <Project Path="Theexonet.Core.csproj" />
+  <Project Path="Theexonet.Mining.csproj" />
+  <Project Path="Theexonet.Editor.csproj" />
+</Solution>

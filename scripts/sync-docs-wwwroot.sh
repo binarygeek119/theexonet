@@ -1,11 +1,11 @@
 #!/bin/bash
-# Copy Rava.Docs portal static files into a shared wwwroot folder.
+# Copy Theexonet.Docs portal static files into a shared wwwroot folder.
 set -euo pipefail
 
-SERVER_DIR="${1:?server directory (contains Rava.Docs)}"
+SERVER_DIR="${1:?server directory (contains Theexonet.Docs)}"
 WWWROOT_DIR="${2:?wwwroot destination directory}"
 
-DOCS_SRC="${SERVER_DIR}/Rava.Docs/wwwroot"
+DOCS_SRC="${SERVER_DIR}/Theexonet.Docs/wwwroot"
 
 if [ ! -d "$DOCS_SRC" ]; then
   echo "Missing docs wwwroot: ${DOCS_SRC}" >&2

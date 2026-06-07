@@ -1,8 +1,8 @@
 using UnityEngine;
 
-namespace Rava.Core.Config
+namespace Theexonet.Core.Config
 {
-    [CreateAssetMenu(fileName = "OreTypeConfig", menuName = "Rava/Ore Type Config")]
+    [CreateAssetMenu(fileName = "OreTypeConfig", menuName = "Theexonet/Ore Type Config")]
     public class OreTypeConfig : ScriptableObject
     {
         public OreTypeEntry[] oreTypes =

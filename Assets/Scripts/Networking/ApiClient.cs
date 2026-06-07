@@ -1,12 +1,12 @@
 using System;
 using System.Text;
 using System.Threading.Tasks;
-using Rava.Core.Dtos;
-using Rava.Core.Enums;
+using Theexonet.Core.Dtos;
+using Theexonet.Core.Enums;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace Rava.Networking
+namespace Theexonet.Networking
 {
     public class ApiClient : MonoBehaviour
     {
@@ -222,7 +222,7 @@ namespace Rava.Networking
         {
             if (request.result == UnityWebRequest.Result.ConnectionError)
             {
-                return "Cannot reach game server. Start the API (dotnet run --project Rava.Api) and check the URL.";
+                return "Cannot reach game server. Start the API (dotnet run --project Theexonet.Api) and check the URL.";
             }
 
             if (request.responseCode == 503)

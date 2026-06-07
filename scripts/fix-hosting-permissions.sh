@@ -2,13 +2,13 @@
 # Fix ownership and permissions for theexonet hosting directories on Linux.
 # Run on the server as root:
 #   sudo bash scripts/fix-hosting-permissions.sh
-#   sudo fix-rava-permissions
-#   sudo fix-rava-permissions -q
+#   sudo fix-theexonet-permissions
+#   sudo fix-theexonet-permissions -q
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-# shellcheck source=rava-hosting-env.sh
-source "${SCRIPT_DIR}/rava-hosting-env.sh"
+# shellcheck source=theexonet-hosting-env.sh
+source "${SCRIPT_DIR}/theexonet-hosting-env.sh"
 
 QUIET=0
 if [ "${1:-}" = "-q" ] || [ "${1:-}" = "--quiet" ]; then

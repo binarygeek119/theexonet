@@ -1,0 +1,19 @@
+# /etc/default/theexonet-permissions — optional overrides for theexonet-permissions.service
+# Copy on install: cp theexonet-permissions.default /etc/default/theexonet-permissions
+
+# theexonet paths (must match API systemd units)
+# THEEXONET_PUBLISH_DIR=/var/www/publish
+# THEEXONET_DATA_DIR=/var/www/data
+# THEEXONET_SERVICE_USER=theexonet
+
+# Poll writable directories every N seconds
+POLL_INTERVAL=30
+
+# Minimum seconds between automatic fixes (debounce)
+DEBOUNCE_SECONDS=10
+
+# systemd units to watch for permission errors in logs
+THEEXONET_JOURNAL_UNITS="theexonet-api theexonet-admin theexonet-moderator theexonet-docs theexonet-status"
+
+# Extended grep pattern (ERE) for journal lines that trigger an immediate fix
+# THEEXONET_JOURNAL_PATTERN='Permission denied|Access to the path|UnauthorizedAccessException|EACCES|is denied'

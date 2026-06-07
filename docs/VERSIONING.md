@@ -16,7 +16,7 @@ Reset lower numbers when you bump a higher part (e.g. `V1.2.5` → `V2.0.0`, not
 
 Single source of truth:
 
-`server/Rava.Core/Constants/GameVersion.cs`
+`server/Theexonet.Core/Constants/GameVersion.cs`
 
 ```csharp
 public const int Major = 1;
@@ -27,7 +27,7 @@ public const int Patch = 0;
 `GameVersion.Display` (e.g. `V1.0.0`) is returned by:
 
 - `GET /api/status` → `gameVersion`
-- [Server Status dashboard](https://ravastatus.binarygeek119.duckdns.org/) — Game API card
+- [Server Status dashboard](https://theexonetstatus.binarygeek119.duckdns.org/) — Game API card
 - Game login screen — bottom-right version tag
 
 After changing the constants, rebuild and deploy the API (and status site if bundled together).
@@ -37,4 +37,4 @@ After changing the constants, rebuild and deploy the API (and status site if bun
 1. Update `Major`, `Minor`, or `Patch` in `GameVersion.cs`.
 2. Note the change in your commit or release notes (GitHub releases auto-list commits since the previous `website-*` tag).
 3. Deploy to production (GitHub Actions or manual rsync).
-4. Confirm `curl -s https://ravaapi.binarygeek119.duckdns.org/api/status | grep gameVersion`.
+4. Confirm `curl -s https://theexonetapi.binarygeek119.duckdns.org/api/status | grep gameVersion`.

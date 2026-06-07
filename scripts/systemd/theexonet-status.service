@@ -1,0 +1,16 @@
+[Unit]
+Description=theexonet Status Dashboard
+After=network.target theexonet-api.service
+
+[Service]
+WorkingDirectory=/var/www/publish
+ExecStart=/usr/bin/dotnet /var/www/publish/Theexonet.Status.dll
+Restart=always
+Environment=ASPNETCORE_URLS=http://0.0.0.0:6000
+Environment=DOTNET_ENVIRONMENT=Production
+Environment=THEEXONET_DATA_DIR=/var/www/data
+User=theexonet
+Group=theexonet
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Theexonet.Core\Theexonet.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\Theexonet.Api\html\moderator.html" Link="wwwroot\moderator.html" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\css\app.css" Link="wwwroot\css\app.css" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\css\admin.css" Link="wwwroot\css\admin.css" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\css\moderator.css" Link="wwwroot\css\moderator.css" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\js\moderator.js" Link="wwwroot\js\moderator.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\js\api.js" Link="wwwroot\js\api.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\js\api-status.js" Link="wwwroot\js\api-status.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\js\config.js" Link="wwwroot\js\config.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\js\currency.js" Link="wwwroot\js\currency.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\js\flagged-messages.js" Link="wwwroot\js\flagged-messages.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\js\profile-social.js" Link="wwwroot\js\profile-social.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\js\staff-messages.js" Link="wwwroot\js\staff-messages.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\js\staff-player-inbox.js" Link="wwwroot\js\staff-player-inbox.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\js\staff-player-messages.js" Link="wwwroot\js\staff-player-messages.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\js\admin-messages-hub.js" Link="wwwroot\js\admin-messages-hub.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\js\ban-reason-ui.js" Link="wwwroot\js\ban-reason-ui.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\js\i18n.js" Link="wwwroot\js\i18n.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\js\status-feedback.js" Link="wwwroot\js\status-feedback.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\locales\**\*" Link="wwwroot\locales\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Theexonet.Api\html\images\currency.png" Link="wwwroot\images\currency.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

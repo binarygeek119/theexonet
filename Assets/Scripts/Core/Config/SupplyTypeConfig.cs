@@ -1,8 +1,8 @@
 using UnityEngine;
 
-namespace Rava.Core.Config
+namespace Theexonet.Core.Config
 {
-    [CreateAssetMenu(fileName = "SupplyTypeConfig", menuName = "Rava/Supply Type Config")]
+    [CreateAssetMenu(fileName = "SupplyTypeConfig", menuName = "Theexonet/Supply Type Config")]
     public class SupplyTypeConfig : ScriptableObject
     {
         public SupplyTypeEntry[] supplyTypes =

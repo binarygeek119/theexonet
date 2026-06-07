@@ -21,7 +21,7 @@ REPORTERS = [
     ("zara-pemberton", "ZP", "#b8ff6a", "#9fd0ff", "#101808", "#2a5030"),
 ]
 
-ROOT = Path(__file__).resolve().parents[1] / "server" / "Rava.Api" / "html" / "exonet" / "offworld-news" / "reporters"
+ROOT = Path(__file__).resolve().parents[1] / "server" / "Theexonet.Api" / "html" / "exonet" / "offworld-news" / "reporters"
 
 
 def avatar(slug: str, initials: str, accent: str, glow: str, bg1: str, bg2: str) -> str:

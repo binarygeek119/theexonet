@@ -1,7 +1,7 @@
 using System;
-using Rava.Core.Enums;
+using Theexonet.Core.Enums;
 
-namespace Rava.Core.Dtos
+namespace Theexonet.Core.Dtos
 {
 [Serializable]
 public class RegisterRequest

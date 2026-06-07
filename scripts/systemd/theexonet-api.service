@@ -1,0 +1,19 @@
+[Unit]
+Description=theexonet API
+After=network.target
+
+[Service]
+WorkingDirectory=/var/www/publish
+ExecStart=/usr/bin/dotnet /var/www/publish/Theexonet.Api.dll
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
+Environment=DOTNET_ENVIRONMENT=Production
+Environment=THEEXONET_DATA_DIR=/var/www/data
+User=theexonet
+Group=theexonet
+
+[Install]
+WantedBy=multi-user.target

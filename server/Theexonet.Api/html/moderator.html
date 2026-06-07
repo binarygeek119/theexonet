@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theexonet-api-base" content="https://theexonetapi.binarygeek119.duckdns.org">
+  <link rel="icon" href="/images/currency.png" type="image/png">
+  <title>theexonet Moderator</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/moderator.css">
+</head>
+<body>
+  <div id="mod-login-screen" class="screen">
+    <div class="login-card admin-login-card mod-login-card">
+      <label class="locale-select-label" for="locale-select-moderator">
+        <span data-i18n="locale.label">Language</span>
+        <select id="locale-select-moderator" data-locale-select class="locale-select" aria-label="Language">
+          <option value="en">English</option>
+        </select>
+      </label>
+      <h1 data-i18n="auth.title">theexonet Moderator</h1>
+      <p class="subtitle" data-i18n="auth.subtitle">Community oversight portal</p>
+      <p id="api-status" class="api-status checking" aria-live="polite" data-i18n="auth.checkingApi">Checking API…</p>
+
+      <label for="mod-username" data-i18n="auth.username">Username</label>
+      <input id="mod-username" type="text" autocomplete="username" data-i18n-placeholder="auth.usernamePlaceholder" placeholder="Moderator username">
+
+      <label for="mod-password" data-i18n="auth.password">Password</label>
+      <input id="mod-password" type="password" autocomplete="current-password" data-i18n-placeholder="auth.passwordPlaceholder" placeholder="Password">
+
+      <p id="mod-login-status" class="status-text"></p>
+
+      <div class="button-row">
+        <button id="mod-login-btn" type="button" class="btn accent mod-primary-btn" data-i18n="auth.signIn">Sign in</button>
+      </div>
+      <a class="admin-back-link" href="https://theexonet.binarygeek119.duckdns.org/" data-i18n="auth.backToGame">Back to game</a>
+    </div>
+  </div>
+
+  <div id="mod-denied-screen" class="screen" hidden>
+    <div class="login-card admin-login-card mod-login-card">
+      <h1 data-i18n="denied.title">Access denied</h1>
+      <p class="subtitle" data-i18n="denied.subtitle">Your account is not configured as a moderator.</p>
+      <p id="mod-denied-user" class="status-text"></p>
+      <div class="button-row">
+        <button id="mod-denied-logout-btn" type="button" class="btn ghost">Sign out</button>
+        <a class="btn ghost" href="https://theexonet.binarygeek119.duckdns.org/">Back to game</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="mod-portal-screen" class="screen" hidden>
+    <header class="admin-header mod-header">
+      <div>
+        <h1>theexonet Moderator</h1>
+        <p id="mod-signed-in" class="subtitle"></p>
+      </div>
+      <div class="admin-header-actions">
+        <a id="mod-admin-link" class="btn ghost" href="https://theexonetadmin.binarygeek119.duckdns.org/" hidden>Admin portal</a>
+        <a class="btn ghost" href="https://theexonet.binarygeek119.duckdns.org/">Game</a>
+        <button id="mod-logout-btn" type="button" class="btn ghost">Sign out</button>
+      </div>
+    </header>
+
+    <nav class="admin-nav" aria-label="Moderator sections">
+      <button type="button" class="admin-nav-btn active" data-mod-page="dashboard">Dashboard</button>
+      <button type="button" class="admin-nav-btn" data-mod-page="players">Players</button>
+      <button type="button" class="admin-nav-btn" data-mod-page="bans">Bans</button>
+      <button type="button" class="admin-nav-btn" data-mod-page="appeals">Ban appeals</button>
+      <button type="button" class="admin-nav-btn" data-mod-page="messages">
+        Messages
+        <span id="mod-messages-nav-badge" class="admin-nav-badge" hidden>0</span>
+      </button>
+      <button type="button" class="admin-nav-btn" data-mod-page="flagged">
+        Flagged
+        <span id="mod-flagged-nav-badge" class="admin-nav-badge" hidden>0</span>
+      </button>
+      <button type="button" class="admin-nav-btn" data-mod-page="message-log">Message Log</button>
+    </nav>
+
+    <main class="admin-main">
+      <p class="mod-readonly-note">Read-only access. Player Rax balances cannot be changed here.</p>
+
+      <section id="mod-page-dashboard" class="admin-page admin-page-active">
+        <section class="admin-panel mod-panel">
+          <h2>Dashboard</h2>
+          <div id="mod-stats" class="admin-stats"></div>
+        </section>
+      </section>
+
+      <section id="mod-page-players" class="admin-page" hidden>
+        <section class="admin-panel mod-panel">
+          <div class="admin-panel-head">
+            <h2>Players</h2>
+            <div class="admin-search-row">
+              <input id="mod-player-search" type="search" placeholder="Search username, email, profile #">
+              <button id="mod-player-search-btn" type="button" class="btn accent mod-primary-btn">Search</button>
+            </div>
+          </div>
+          <p id="mod-players-status" class="status-text"></p>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Rax</th>
+                  <th>Mines</th>
+                  <th>Joined</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="mod-players-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="mod-page-bans" class="admin-page" hidden>
+        <section class="admin-panel mod-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Bans</h2>
+              <p class="admin-page-desc">All active player bans with level, reason, and staff notes.</p>
+            </div>
+            <div class="admin-search-row">
+              <input id="mod-bans-search" type="search" placeholder="Search username, email, reason, staff…">
+              <label class="admin-bans-filter">
+                <input id="mod-bans-active-only" type="checkbox" checked>
+                Active only
+              </label>
+              <button id="mod-bans-search-btn" type="button" class="btn accent mod-primary-btn">Search</button>
+              <button id="mod-bans-refresh-btn" type="button" class="btn ghost">Refresh</button>
+            </div>
+          </div>
+          <p id="mod-bans-status" class="status-text"></p>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Email</th>
+                  <th>Ban level</th>
+                  <th>Reason</th>
+                  <th>Banned by</th>
+                  <th>Banned at</th>
+                  <th>Expires</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="mod-bans-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="mod-page-appeals" class="admin-page" hidden>
+        <section class="admin-panel mod-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Ban appeals</h2>
+              <p class="admin-page-desc">Players request ban removal from the login screen.</p>
+            </div>
+            <button id="mod-appeals-refresh-btn" type="button" class="btn accent mod-primary-btn">Refresh</button>
+          </div>
+          <p id="mod-appeals-status" class="status-text"></p>
+          <div id="mod-appeals-list" class="admin-appeals-list"></div>
+        </section>
+      </section>
+
+      <section id="mod-page-messages" class="admin-page" hidden>
+        <section class="admin-panel mod-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Messages</h2>
+              <p class="admin-page-desc">Staff ↔ staff and player → staff in one inbox. Each row is labeled <strong>Staff</strong> or <strong>Player</strong> so you know the source. For searchable history across all channels, use the <strong>Message Log</strong> tab.</p>
+            </div>
+            <button id="mod-messages-refresh-btn" type="button" class="btn accent mod-primary-btn">Refresh</button>
+          </div>
+          <p id="mod-messages-status" class="status-text"></p>
+
+          <h3 class="admin-subheading">Send to staff</h3>
+          <p class="admin-page-desc">Compose a message to another admin or moderator.</p>
+          <div class="staff-message-compose">
+            <label for="mod-messages-recipient">To</label>
+            <select id="mod-messages-recipient"></select>
+            <label for="mod-messages-body">Message</label>
+            <textarea id="mod-messages-body" maxlength="4000" rows="4" placeholder="Write a message to staff…"></textarea>
+            <button id="mod-messages-send-btn" type="button" class="btn accent mod-primary-btn">Send message</button>
+          </div>
+
+          <div class="admin-messages-filter" role="group" aria-label="Filter inbox">
+            <button type="button" class="btn ghost active" data-message-filter="all">All</button>
+            <button type="button" class="btn ghost" data-message-filter="staff">Staff only</button>
+            <button type="button" class="btn ghost" data-message-filter="player">Players only</button>
+          </div>
+
+          <div class="staff-message-layout">
+            <div id="mod-messages-unified-inbox" class="staff-message-inbox"></div>
+            <div id="mod-messages-unified-detail" class="staff-message-detail"></div>
+          </div>
+        </section>
+      </section>
+
+      <section id="mod-page-flagged" class="admin-page" hidden>
+        <section class="admin-panel mod-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Flagged messages</h2>
+              <p class="admin-page-desc">Auto-flagged messages for hate speech review. Players are not notified until you decide.</p>
+            </div>
+            <button id="mod-flagged-refresh-btn" type="button" class="btn accent mod-primary-btn">Refresh</button>
+          </div>
+          <p id="mod-flagged-status" class="status-text"></p>
+          <div class="staff-message-layout admin-flagged-layout">
+            <div id="mod-flagged-inbox" class="staff-message-inbox admin-flagged-inbox"></div>
+            <div id="mod-flagged-detail" class="staff-message-detail admin-flagged-detail"></div>
+          </div>
+          <p id="mod-flagged-action-status" class="status-text admin-flagged-action-status"></p>
+        </section>
+      </section>
+
+      <section id="mod-page-message-log" class="admin-page" hidden>
+        <section class="admin-panel mod-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Message Log</h2>
+              <p class="admin-page-desc">Searchable audit trail for staff, player, peer, and ban appeal messages.</p>
+            </div>
+            <div class="admin-search-row">
+              <input id="mod-message-log-search" type="search" placeholder="Search from, to, or body">
+              <select id="mod-message-log-channel" class="admin-select" aria-label="Message channel">
+                <option value="">All channels</option>
+                <option value="staff-to-staff">Staff → staff</option>
+                <option value="staff-to-player">Staff → player</option>
+                <option value="player-to-staff">Player → staff</option>
+                <option value="peer">Player → player</option>
+                <option value="ban-appeal">Ban appeal</option>
+              </select>
+              <button id="mod-message-log-search-btn" type="button" class="btn accent mod-primary-btn">Search</button>
+              <button id="mod-message-log-refresh-btn" type="button" class="btn ghost">Refresh</button>
+            </div>
+          </div>
+          <p id="mod-message-log-status" class="status-text"></p>
+          <div class="admin-table-wrap">
+            <table class="admin-table admin-message-log-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Channel</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Message</th>
+                  <th>Read</th>
+                </tr>
+              </thead>
+              <tbody id="mod-message-log-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div id="mod-profile-modal" class="modal admin-profile-modal" hidden>
+    <div class="admin-profile-card mod-profile-card">
+      <header class="admin-profile-top mod-profile-top">
+        <h2>Player Profile</h2>
+        <button id="mod-profile-close-btn" type="button" class="btn ghost">Close</button>
+      </header>
+
+      <div class="admin-profile-banner">
+        <div id="mod-profile-avatar" class="admin-profile-avatar mod-profile-avatar">
+          <img id="mod-profile-avatar-img" class="admin-profile-avatar-img" alt="" hidden>
+          <span id="mod-profile-avatar-initials" class="admin-profile-avatar-initials">??</span>
+        </div>
+        <div class="admin-profile-headline">
+          <h3 id="mod-profile-username">—</h3>
+          <p id="mod-profile-mood" class="admin-profile-mood">—</p>
+          <p id="mod-profile-number" class="admin-profile-number">—</p>
+          <p id="mod-profile-email" class="admin-profile-meta">—</p>
+          <p id="mod-profile-member-since" class="admin-profile-meta">—</p>
+        </div>
+      </div>
+
+      <div class="admin-profile-grid">
+        <section class="admin-profile-box mod-profile-box">
+          <h4>About</h4>
+          <p id="mod-profile-about" class="admin-profile-text empty">No bio yet.</p>
+        </section>
+        <section class="admin-profile-box mod-profile-box">
+          <h4>Interests</h4>
+          <p id="mod-profile-interests" class="admin-profile-text empty">Nothing listed yet.</p>
+        </section>
+        <section class="admin-profile-box mod-profile-box">
+          <h4>Now Playing</h4>
+          <p id="mod-profile-music" class="admin-profile-text empty">Silence in the void.</p>
+        </section>
+        <section class="admin-profile-box mod-profile-box">
+          <h4>Social Links</h4>
+          <div id="mod-profile-social" class="admin-profile-social"></div>
+        </section>
+        <section class="admin-profile-box mod-profile-box">
+          <h4>Account</h4>
+          <dl class="admin-profile-stats">
+            <dt>Email</dt>
+            <dd id="mod-profile-email-stat">—</dd>
+            <dt>Birthday</dt>
+            <dd id="mod-profile-birthday">—</dd>
+            <dt>Theme</dt>
+            <dd id="mod-profile-theme">—</dd>
+            <dt>Rax</dt>
+            <dd id="mod-profile-credits">—</dd>
+            <dt>Game day</dt>
+            <dd id="mod-profile-game-day">—</dd>
+            <dt>Company Name</dt>
+            <dd id="mod-profile-mine">—</dd>
+            <dt>Workers</dt>
+            <dd id="mod-profile-workers">—</dd>
+            <dt>Zones</dt>
+            <dd id="mod-profile-zones">—</dd>
+            <dt>Total mines</dt>
+            <dd id="mod-profile-mine-count">—</dd>
+          </dl>
+        </section>
+      </div>
+
+      <section class="admin-profile-box admin-profile-flag-box mod-profile-box">
+        <h4>Moderation</h4>
+        <div id="mod-profile-active-flag" class="admin-profile-flag-active" hidden>
+          <p class="admin-profile-flag-label">Active flag</p>
+          <p id="mod-profile-active-flag-comment" class="admin-profile-flag-comment"></p>
+          <p id="mod-profile-active-flag-meta" class="admin-profile-flag-meta"></p>
+        </div>
+        <label for="mod-profile-flag-comment-input">Flag comment</label>
+        <textarea
+          id="mod-profile-flag-comment-input"
+          maxlength="2000"
+          rows="4"
+          placeholder="Explain what content should be removed or changed..."></textarea>
+        <div class="admin-profile-flag-actions">
+          <button id="mod-profile-flag-btn" type="button" class="btn accent mod-primary-btn">Flag profile</button>
+          <span id="mod-profile-flag-status" class="admin-profile-flag-status"></span>
+        </div>
+        <div id="mod-profile-flag-history" class="admin-profile-flag-history"></div>
+      </section>
+
+      <section class="admin-profile-box admin-profile-warning-box mod-profile-box">
+        <h4>Moderation warnings</h4>
+        <p id="mod-profile-warning-summary" class="admin-profile-flag-meta">Active warnings: 0/2</p>
+        <p class="admin-profile-flag-meta">Each warning expires 30 days after it is issued. Players are not notified.</p>
+        <label for="mod-profile-warning-reason">Warning reason</label>
+        <textarea
+          id="mod-profile-warning-reason"
+          maxlength="2000"
+          rows="3"
+          placeholder="Explain why this warning was issued…"></textarea>
+        <div class="admin-profile-flag-actions">
+          <button id="mod-profile-warning-btn" type="button" class="btn accent mod-primary-btn">Issue warning</button>
+          <span id="mod-profile-warning-status" class="admin-profile-flag-status"></span>
+        </div>
+        <div id="mod-profile-warning-history" class="admin-profile-flag-history"></div>
+      </section>
+
+      <section class="admin-profile-box admin-profile-ban-box mod-profile-box">
+        <h4>Account ban</h4>
+        <div id="mod-profile-active-ban" class="admin-profile-ban-active" hidden>
+          <p class="admin-profile-flag-label">Active ban</p>
+          <p id="mod-profile-active-ban-summary" class="admin-profile-ban-summary"></p>
+          <p id="mod-profile-active-ban-meta" class="admin-profile-flag-meta"></p>
+        </div>
+        <label for="mod-profile-ban-level">Ban level</label>
+        <select id="mod-profile-ban-level" class="admin-select"></select>
+        <label for="mod-profile-ban-reason-preset">Ban reason</label>
+        <select id="mod-profile-ban-reason-preset" class="admin-select"></select>
+        <label for="mod-profile-ban-reason" id="mod-profile-ban-reason-label" hidden>Custom reason</label>
+        <textarea
+          id="mod-profile-ban-reason"
+          maxlength="2000"
+          rows="3"
+          hidden
+          placeholder="Explain why this player is banned…"></textarea>
+        <p class="admin-page-desc">The reason is shown to the player when they try to log in.</p>
+        <div class="admin-profile-ban-actions">
+          <button id="mod-profile-ban-btn" type="button" class="btn accent mod-primary-btn">Apply ban</button>
+          <button id="mod-profile-unban-btn" type="button" class="btn ghost">Lift ban</button>
+          <span id="mod-profile-ban-status" class="admin-profile-flag-status"></span>
+        </div>
+        <div id="mod-profile-ban-history" class="admin-profile-ban-history"></div>
+      </section>
+
+      <section class="admin-profile-box admin-profile-message-box mod-profile-box">
+        <h4>Message player</h4>
+        <label for="mod-profile-message-input">Message</label>
+        <textarea
+          id="mod-profile-message-input"
+          maxlength="4000"
+          rows="4"
+          placeholder="Send a message to this player..."></textarea>
+        <div class="admin-profile-flag-actions">
+          <button id="mod-profile-message-btn" type="button" class="btn accent mod-primary-btn">Send message</button>
+          <span id="mod-profile-message-status" class="admin-profile-flag-status"></span>
+        </div>
+        <div id="mod-profile-message-history" class="admin-profile-message-history"></div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module" src="/js/moderator.js?v=20260529-mod-tabs"></script>
+</body>
+</html>

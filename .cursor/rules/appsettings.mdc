@@ -9,7 +9,7 @@ globs:
 
 When you add or rename configuration bound to `IOptions<T>` (new properties on options classes, new sections):
 
-1. Add the key and a sensible default to `server/Rava.Api/appsettings.production.example.json` (source of truth for new keys).
+1. Add the key and a sensible default to `server/Theexonet.Api/appsettings.production.example.json` (source of truth for new keys).
 2. Do **not** change existing values in production `appsettings.json` on the server — deploy never overwrites that file.
 3. At API startup, `AppSettingsTemplateMerger` copies **only missing** keys from `appsettings.production.example.json` into:
    - `appsettings.json` (publish folder and `/var/www/data` when configured)

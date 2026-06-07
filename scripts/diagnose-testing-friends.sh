@@ -2,36 +2,36 @@
 # Check admin testing-mode flags and whether dummy friends are returned by the API.
 #
 # Host mode (on the server, no token):
-#   sudo diagnose-rava-testing-friends
-#   sudo diagnose-rava-testing-friends --enable
+#   sudo diagnose-theexonet-testing-friends
+#   sudo diagnose-theexonet-testing-friends --enable
 #   bash scripts/diagnose-testing-friends.sh --enable
 #
 # Remote/API mode (with a game session token):
 #   bash scripts/diagnose-testing-friends.sh <bearer-token>
-#   bash scripts/diagnose-testing-friends.sh <bearer-token> https://ravaapi.example.com
-#   RAVA_DIAG_TOKEN=... bash scripts/diagnose-testing-friends.sh
+#   bash scripts/diagnose-testing-friends.sh <bearer-token> https://theexonetapi.example.com
+#   THEEXONET_DIAG_TOKEN=... bash scripts/diagnose-testing-friends.sh
 #
 # API mode via login (optional):
-#   RAVA_DIAG_USERNAME=admin RAVA_DIAG_PASSWORD=secret bash scripts/diagnose-testing-friends.sh
+#   THEEXONET_DIAG_USERNAME=admin THEEXONET_DIAG_PASSWORD=secret bash scripts/diagnose-testing-friends.sh
 #
-# Game token (browser console): localStorage.getItem('rava_token')
+# Game token (browser console): localStorage.getItem('theexonet_token')
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-# shellcheck source=rava-hosting-env.sh
-[ -f "${SCRIPT_DIR}/rava-hosting-env.sh" ] && source "${SCRIPT_DIR}/rava-hosting-env.sh"
+# shellcheck source=theexonet-hosting-env.sh
+[ -f "${SCRIPT_DIR}/theexonet-hosting-env.sh" ] && source "${SCRIPT_DIR}/theexonet-hosting-env.sh"
 
-PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
-DATA_DIR="${RAVA_DATA_DIR:-/var/www/data}"
-API_INTERNAL="${RAVA_API_INTERNAL_URL:-http://127.0.0.1:5000}"
-API_PUBLIC="${RAVA_API_PUBLIC_URL:-https://ravaapi.binarygeek119.duckdns.org}"
+PUBLISH_DIR="${THEEXONET_PUBLISH_DIR:-/var/www/publish}"
+DATA_DIR="${THEEXONET_DATA_DIR:-/var/www/data}"
+API_INTERNAL="${THEEXONET_API_INTERNAL_URL:-http://127.0.0.1:5000}"
+API_PUBLIC="${THEEXONET_API_PUBLIC_URL:-https://theexonetapi.binarygeek119.duckdns.org}"
 
 usage() {
   echo "Usage:" >&2
   echo "  $0 [--enable|--disable]                      # host mode (DB + config, no token)" >&2
   echo "  $0 <bearer-token> [api-base-url]            # API checks with a game JWT" >&2
-  echo "  RAVA_DIAG_TOKEN=... $0 [api-base-url]" >&2
-  echo "  RAVA_DIAG_USERNAME=... RAVA_DIAG_PASSWORD=... $0 [api-base-url]" >&2
+  echo "  THEEXONET_DIAG_TOKEN=... $0 [api-base-url]" >&2
+  echo "  THEEXONET_DIAG_USERNAME=... THEEXONET_DIAG_PASSWORD=... $0 [api-base-url]" >&2
   echo >&2
   echo "  --enable   Set AdminTestingModeEnabled=true for configured admin players (host mode)" >&2
   echo "  --disable  Set AdminTestingModeEnabled=false for configured admin players (host mode)" >&2
@@ -63,8 +63,8 @@ if [ -n "$HOST_ENABLE" ] && [ -n "$HOST_DISABLE" ]; then
   exit 1
 fi
 
-TOKEN="${RAVA_DIAG_TOKEN:-${CLI_ARGS[0]:-}}"
-API_BASE="${CLI_ARGS[1]:-${RAVA_DIAG_API_BASE:-$API_PUBLIC}}"
+TOKEN="${THEEXONET_DIAG_TOKEN:-${CLI_ARGS[0]:-}}"
+API_BASE="${CLI_ARGS[1]:-${THEEXONET_DIAG_API_BASE:-$API_PUBLIC}}"
 API_BASE="${API_BASE%/}"
 
 require_python3() {
@@ -125,7 +125,7 @@ def load_appsettings(path):
     if not path:
         print("ERROR: appsettings.json not found.")
         print(f"  Expected: {data_dir / 'appsettings.json'}")
-        print("  Run: sudo migrate-rava-data")
+        print("  Run: sudo migrate-theexonet-data")
         return None
     try:
         return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -147,8 +147,8 @@ def check_api_health():
         return False
 
 def check_publish_dll():
-    dll = publish_dir / "Rava.Api.dll"
-    infra = publish_dir / "Rava.Infrastructure.dll"
+    dll = publish_dir / "Theexonet.Api.dll"
+    infra = publish_dir / "Theexonet.Infrastructure.dll"
     if dll.is_file():
         print(f"OK  {dll}")
     else:
@@ -194,7 +194,7 @@ if not which("psql"):
     print()
     print("WARN: psql not installed — skipping database checks.")
     print("Install postgresql-client or pass a bearer token for API-only checks:")
-    print("  RAVA_DIAG_USERNAME=... RAVA_DIAG_PASSWORD=... diagnose-rava-testing-friends")
+    print("  THEEXONET_DIAG_USERNAME=... THEEXONET_DIAG_PASSWORD=... diagnose-theexonet-testing-friends")
     sys.exit(0)
 
 admin_filter = ""
@@ -299,11 +299,11 @@ else:
     if enabled_any:
         print("Expected in-game: 12 dummy friends when logged in as an admin with testing mode ON.")
         print("If Friends is still empty after API redeploy, run API checks with a JWT:")
-        print("  RAVA_DIAG_USERNAME=<admin> RAVA_DIAG_PASSWORD=... diagnose-rava-testing-friends")
+        print("  THEEXONET_DIAG_USERNAME=<admin> THEEXONET_DIAG_PASSWORD=... diagnose-theexonet-testing-friends")
     else:
         print("Testing mode is OFF for all configured admin players.")
         print("Enable it in the admin portal (Testing page), or on the host run:")
-        print("  sudo diagnose-rava-testing-friends --enable")
+        print("  sudo diagnose-theexonet-testing-friends --enable")
         print("Then re-run this script and hard-refresh the game.")
 PY
 }
@@ -334,7 +334,7 @@ PY
   )"
 
   if [ "$status" != "200" ]; then
-    echo "ERROR: login failed (HTTP ${status}). Check RAVA_DIAG_USERNAME / RAVA_DIAG_PASSWORD." >&2
+    echo "ERROR: login failed (HTTP ${status}). Check THEEXONET_DIAG_USERNAME / THEEXONET_DIAG_PASSWORD." >&2
     return 1
   fi
 
@@ -440,7 +440,7 @@ if errors:
 if access.get("isAdmin") and access.get("testingModeEnabled") and len(testing_dummies) == 0:
     print()
     print("WARN: testing mode is ON but API returned no isTestingDummy friends.")
-    print("     Redeploy/restart rava-api so server-side dummy merge is live.")
+    print("     Redeploy/restart theexonet-api so server-side dummy merge is live.")
 PY
 }
 
@@ -449,12 +449,12 @@ if [ -n "$HOST_ENABLE" ] || [ -n "$HOST_DISABLE" ]; then
   exit 0
 fi
 
-if [ -z "$TOKEN" ] && [ -n "${RAVA_DIAG_USERNAME:-}" ] && [ -n "${RAVA_DIAG_PASSWORD:-}" ]; then
+if [ -z "$TOKEN" ] && [ -n "${THEEXONET_DIAG_USERNAME:-}" ] && [ -n "${THEEXONET_DIAG_PASSWORD:-}" ]; then
   tmpdir="$(mktemp -d)"
   trap 'rm -rf "$tmpdir"' EXIT
-  login_base="${RAVA_DIAG_API_BASE:-$API_INTERNAL}"
-  TOKEN="$(login_for_token "$RAVA_DIAG_USERNAME" "$RAVA_DIAG_PASSWORD" "$login_base")"
-  echo "Logged in as ${RAVA_DIAG_USERNAME} via ${login_base}"
+  login_base="${THEEXONET_DIAG_API_BASE:-$API_INTERNAL}"
+  TOKEN="$(login_for_token "$THEEXONET_DIAG_USERNAME" "$THEEXONET_DIAG_PASSWORD" "$login_base")"
+  echo "Logged in as ${THEEXONET_DIAG_USERNAME} via ${login_base}"
   echo
   run_api_diagnostics
   exit 0

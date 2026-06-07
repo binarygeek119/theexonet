@@ -3,9 +3,9 @@
 # Run on the server as root: sudo bash scripts/migrate-publish-data-to-var-www.sh
 set -euo pipefail
 
-PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
-DATA_DIR="${RAVA_DATA_DIR:-/var/www/data}"
-SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
+PUBLISH_DIR="${THEEXONET_PUBLISH_DIR:-/var/www/publish}"
+DATA_DIR="${THEEXONET_DATA_DIR:-/var/www/data}"
+SERVICE_USER="${THEEXONET_SERVICE_USER:-www-data}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run as root: sudo bash $0" >&2
@@ -102,4 +102,4 @@ chown -R "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}/images" 2>/dev/null || t
 chown -R "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}/exonet" 2>/dev/null || true
 chown "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}/"* 2>/dev/null || true
 
-echo "Ensure systemd units set RAVA_DATA_DIR=${DATA_DIR}, then run: sudo restart-rava"
+echo "Ensure systemd units set THEEXONET_DATA_DIR=${DATA_DIR}, then run: sudo restart-theexonet"

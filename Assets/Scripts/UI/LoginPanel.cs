@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Rava.Mining;
-using Rava.Networking;
+using Theexonet.Mining;
+using Theexonet.Networking;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Rava.UI
+namespace Theexonet.UI
 {
     public class LoginPanel : MonoBehaviour
     {

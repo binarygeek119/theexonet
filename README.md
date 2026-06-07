@@ -49,24 +49,24 @@ Staff-facing portals handle moderation, admin operations, and server health. Exo
 - **Admin portal** — players, bans, events, credits, Exonet tuning
 - **Moderator portal** — messages, appeals, flagged content
 
-The game exposes a REST API under `/api`. See source controllers in `server/Rava.Api/Controllers/` for routes.
+The game exposes a REST API under `/api`. See source controllers in `server/Theexonet.Api/Controllers/` for routes.
 
 ---
 
 ## Repository layout
 
 ```
-rava/
+theexonet/
 ├── Assets/Scripts/          Unity client (optional)
 ├── server/
-│   ├── Rava.Api/            Game API + browser client (html/)
-│   ├── Rava.Core/           Domain logic, DTOs, simulation
-│   ├── Rava.Infrastructure/ EF Core, services
-│   ├── Rava.Core.Tests/
-│   ├── Rava.Status/         Status dashboard (port 6000)
-│   ├── Rava.Admin/          Admin portal (port 7000)
-│   ├── Rava.Moderator/      Moderator portal (port 7050)
-│   └── Rava.Docs/           Game docs host (port 9000)
+│   ├── Theexonet.Api/            Game API + browser client (html/)
+│   ├── Theexonet.Core/           Domain logic, DTOs, simulation
+│   ├── Theexonet.Infrastructure/ EF Core, services
+│   ├── Theexonet.Core.Tests/
+│   ├── Theexonet.Status/         Status dashboard (port 6000)
+│   ├── Theexonet.Admin/          Admin portal (port 7000)
+│   ├── Theexonet.Moderator/      Moderator portal (port 7050)
+│   └── Theexonet.Docs/           Game docs host (port 9000)
 ├── docs/                    Deploy, translation, versioning
 ├── scripts/                 Server helpers and publish scripts
 └── docker-compose.yml       Local PostgreSQL (optional)
@@ -84,11 +84,11 @@ rava/
 ### Run locally
 
 ```bash
-cp server/Rava.Api/appsettings.json.example server/Rava.Api/appsettings.json
+cp server/Theexonet.Api/appsettings.json.example server/Theexonet.Api/appsettings.json
 # Edit DefaultConnection and secrets in appsettings.json
 
 cd server
-dotnet run --project Rava.Api
+dotnet run --project Theexonet.Api
 ```
 
 Open **http://localhost:5000**, register an account, and start mining.
@@ -96,17 +96,17 @@ Open **http://localhost:5000**, register an account, and start mining.
 Optional local Postgres connection string:
 
 ```
-Host=localhost;Port=5432;Database=rava;Username=rava;Password=rava_dev
+Host=localhost;Port=5432;Database=theexonet;Username=theexonet;Password=theexonet_dev
 ```
 
 ### Optional services
 
 ```bash
 cd server
-dotnet run --project Rava.Status      # http://localhost:6000
-dotnet run --project Rava.Admin       # http://localhost:7000
-dotnet run --project Rava.Moderator   # http://localhost:7050
-dotnet run --project Rava.Docs        # http://localhost:9000
+dotnet run --project Theexonet.Status      # http://localhost:6000
+dotnet run --project Theexonet.Admin       # http://localhost:7000
+dotnet run --project Theexonet.Moderator   # http://localhost:7050
+dotnet run --project Theexonet.Docs        # http://localhost:9000
 ```
 
 ### Tests
@@ -123,11 +123,11 @@ dotnet test
 | Service | Role | Port |
 |---------|------|------|
 | Game UI | Browser client (`html/`) | 80 (HTTPS via reverse proxy) |
-| Rava.Api | Game API | 5000 |
-| Rava.Status | Health and monitoring | 6000 |
-| Rava.Admin | Admin operations | 7000 |
-| Rava.Moderator | Moderation | 7050 |
-| Rava.Docs | Player documentation | 9000 |
+| Theexonet.Api | Game API | 5000 |
+| Theexonet.Status | Health and monitoring | 6000 |
+| Theexonet.Admin | Admin operations | 7000 |
+| Theexonet.Moderator | Moderation | 7050 |
+| Theexonet.Docs | Player documentation | 9000 |
 
 Production deploys all backends from one publish folder. Set `"Hosting": { "ServeGameUi": false }` on the API host so the game UI is served separately. See **[docs/deploy.md](docs/deploy.md)** and **[docs/github-deploy-setup.md](docs/github-deploy-setup.md)** for systemd, SSH deploy, and GitHub Actions.
 
@@ -160,9 +160,9 @@ Dependabot opens weekly update PRs for NuGet and GitHub Actions.
 | [docs/TRANSLATION.md](docs/TRANSLATION.md) | i18n and Weblate (currently English-only) |
 | [docs/VERSIONING.md](docs/VERSIONING.md) | Semantic versioning policy |
 | [docs/create-account.md](docs/create-account.md) | Manual account creation |
-| [docs/game/](docs/game/) | Player guide source (also served via Rava.Docs) |
+| [docs/game/](docs/game/) | Player guide source (also served via Theexonet.Docs) |
 
-UI strings live in `server/Rava.Api/html/locales/`. Exonet AI content is English-only and excluded from translation.
+UI strings live in `server/Theexonet.Api/html/locales/`. Exonet AI content is English-only and excluded from translation.
 
 ---
 
@@ -170,4 +170,4 @@ UI strings live in `server/Rava.Api/html/locales/`. Exonet AI content is English
 
 This project is licensed under the **Mozilla Public License 2.0** with additional project-specific terms. See **[License](License)** for the full text.
 
-Game version **V1.0.0** is defined in `server/Rava.Core/Constants/GameVersion.cs`. See [docs/VERSIONING.md](docs/VERSIONING.md) for release policy.
+Game version **V1.0.0** is defined in `server/Theexonet.Core/Constants/GameVersion.cs`. See [docs/VERSIONING.md](docs/VERSIONING.md) for release policy.

@@ -1,18 +1,18 @@
 #!/bin/bash
-# Publish the status dashboard into the live publish folder and restart rava-status.
+# Publish the status dashboard into the live publish folder and restart theexonet-status.
 # Run on the server as root:
-#   cd /opt/rava/rava && sudo deploy-rava-status
-#   sudo deploy-rava-status /opt/rava/rava/server
-#   sudo deploy-rava-status --static-only   # no SDK: sync wwwroot only
+#   cd /opt/theexonet/theexonet && sudo deploy-theexonet-status
+#   sudo deploy-theexonet-status /opt/theexonet/theexonet/server
+#   sudo deploy-theexonet-status --static-only   # no SDK: sync wwwroot only
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 # shellcheck source=dotnet-sdk.sh
 source "${SCRIPT_DIR}/dotnet-sdk.sh"
 
-PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
-STATUS_SERVICE="${RAVA_STATUS_SERVICE:-rava-status}"
-SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
+PUBLISH_DIR="${THEEXONET_PUBLISH_DIR:-/var/www/publish}"
+STATUS_SERVICE="${THEEXONET_STATUS_SERVICE:-theexonet-status}"
+SERVICE_USER="${THEEXONET_SERVICE_USER:-www-data}"
 STATIC_ONLY=0
 SERVER_ARG=""
 
@@ -22,7 +22,7 @@ for arg in "$@"; do
       STATIC_ONLY=1
       ;;
     -h|--help)
-      echo "Usage: sudo deploy-rava-status [--static-only] [server-directory]" >&2
+      echo "Usage: sudo deploy-theexonet-status [--static-only] [server-directory]" >&2
       exit 0
       ;;
     *)
@@ -34,14 +34,14 @@ for arg in "$@"; do
 done
 
 if [ "$(id -u)" -ne 0 ]; then
-  echo "Run as root: sudo deploy-rava-status" >&2
+  echo "Run as root: sudo deploy-theexonet-status" >&2
   exit 1
 fi
 
 SERVER_DIR="$(bash "${SCRIPT_DIR}/resolve-server-dir.sh" "${SERVER_ARG}")"
 
-if [ ! -f "${SERVER_DIR}/Rava.Status/Rava.Status.csproj" ]; then
-  echo "Missing ${SERVER_DIR}/Rava.Status/Rava.Status.csproj" >&2
+if [ ! -f "${SERVER_DIR}/Theexonet.Status/Theexonet.Status.csproj" ]; then
+  echo "Missing ${SERVER_DIR}/Theexonet.Status/Theexonet.Status.csproj" >&2
   exit 1
 fi
 
@@ -69,10 +69,10 @@ restart_status() {
 
 echo "Using server sources: ${SERVER_DIR}"
 
-if [ "$STATIC_ONLY" -eq 1 ] || ! rava_has_dotnet_sdk; then
+if [ "$STATIC_ONLY" -eq 1 ] || ! theexonet_has_dotnet_sdk; then
   if [ "$STATIC_ONLY" -eq 0 ]; then
-    echo "WARNING: No .NET SDK — syncing status wwwroot only (Rava.Status.dll unchanged)." >&2
-    rava_print_missing_sdk_help >&2
+    echo "WARNING: No .NET SDK — syncing status wwwroot only (Theexonet.Status.dll unchanged)." >&2
+    theexonet_print_missing_sdk_help >&2
   else
     echo "Static-only mode: syncing status wwwroot (DLL unchanged)."
   fi
@@ -96,7 +96,7 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
 echo "Publishing status dashboard..."
-dotnet publish "${SERVER_DIR}/Rava.Status/Rava.Status.csproj" \
+dotnet publish "${SERVER_DIR}/Theexonet.Status/Theexonet.Status.csproj" \
   --configuration Release \
   --output "${work}/publish-status"
 
@@ -109,7 +109,7 @@ rsync -a \
 sync_status_wwwroot
 
 for required in \
-  "${PUBLISH_DIR}/Rava.Status.dll" \
+  "${PUBLISH_DIR}/Theexonet.Status.dll" \
   "${PUBLISH_DIR}/status-wwwroot/index.html" \
   "${PUBLISH_DIR}/status-wwwroot/js/status.js"; do
   if [ ! -f "$required" ]; then

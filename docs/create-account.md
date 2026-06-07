@@ -1,6 +1,6 @@
 # Create Account → Database Flow
 
-How a new Rava account is created from the client through the API and into PostgreSQL.
+How a new theexonet account is created from the client through the API and into PostgreSQL.
 
 ## Overview
 
@@ -125,7 +125,7 @@ Same API call via `ApiClient.RegisterAsync`. Token stored in memory on `ApiClien
 
 ## Database tables written
 
-All tables live in the `rava` database (PostgreSQL). Schema is created on first API startup via EF Core `EnsureCreated`.
+All tables live in the `theexonet` database (PostgreSQL). Schema is created on first API startup via EF Core `EnsureCreated`.
 
 ### `Players` (1 row)
 
@@ -219,17 +219,17 @@ Connection string: `appsettings.json` → `ConnectionStrings:DefaultConnection`
 Example (remote Postgres):
 
 ```
-Host=192.168.1.2;Port=5432;Database=rava;Username=postgres;Password=...
+Host=192.168.1.2;Port=5432;Database=theexonet;Username=postgres;Password=...
 ```
 
 ## Related code
 
 | File | Role |
 |------|------|
-| `server/Rava.Api/Controllers/AuthController.cs` | HTTP endpoint |
-| `server/Rava.Infrastructure/Services/PlayerGameService.cs` | Registration orchestration |
-| `server/Rava.Core/Services/StarterMineGenerator.cs` | Mine + inventory generation |
-| `server/Rava.Core/Services/BcryptPasswordHasher.cs` | Password hashing |
-| `server/Rava.Core/Constants/GameBalance.cs` | Starter credits, grid size, supply qty |
-| `server/Rava.Infrastructure/Entities/Entities.cs` | EF entity definitions |
-| `server/Rava.Api/html/js/app.js` | Web client registration UI |
+| `server/Theexonet.Api/Controllers/AuthController.cs` | HTTP endpoint |
+| `server/Theexonet.Infrastructure/Services/PlayerGameService.cs` | Registration orchestration |
+| `server/Theexonet.Core/Services/StarterMineGenerator.cs` | Mine + inventory generation |
+| `server/Theexonet.Core/Services/BcryptPasswordHasher.cs` | Password hashing |
+| `server/Theexonet.Core/Constants/GameBalance.cs` | Starter credits, grid size, supply qty |
+| `server/Theexonet.Infrastructure/Entities/Entities.cs` | EF entity definitions |
+| `server/Theexonet.Api/html/js/app.js` | Web client registration UI |

@@ -6,8 +6,8 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const roots = [
-  join(repoRoot, "server/Rava.Api/html/locales/en"),
-  join(repoRoot, "server/Rava.Status/wwwroot/locales/en"),
+  join(repoRoot, "server/Theexonet.Api/html/locales/en"),
+  join(repoRoot, "server/Theexonet.Status/wwwroot/locales/en"),
 ];
 
 let failed = false;

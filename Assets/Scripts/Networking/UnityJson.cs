@@ -2,7 +2,7 @@ using System;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
-namespace Rava.Networking
+namespace Theexonet.Networking
 {
     internal static class UnityJson
     {

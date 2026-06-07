@@ -20,7 +20,7 @@ $reporters = @(
     @("zara-pemberton", "ZP", "#b8ff6a", "#9fd0ff", "#101808", "#2a5030")
 )
 
-$root = (Join-Path $PSScriptRoot "..\server\Rava.Api\html\exonet\offworld-news\reporters")
+$root = (Join-Path $PSScriptRoot "..\server\Theexonet.Api\html\exonet\offworld-news\reporters")
 New-Item -ItemType Directory -Force -Path $root | Out-Null
 
 foreach ($r in $reporters) {

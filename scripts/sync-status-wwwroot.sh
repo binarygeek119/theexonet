@@ -1,11 +1,11 @@
 #!/bin/bash
-# Copy Rava.Status dashboard static files into a wwwroot folder.
+# Copy Theexonet.Status dashboard static files into a wwwroot folder.
 set -euo pipefail
 
-SERVER_DIR="${1:?server directory (contains Rava.Status)}"
+SERVER_DIR="${1:?server directory (contains Theexonet.Status)}"
 WWWROOT_DIR="${2:?wwwroot destination directory}"
 
-STATUS_SRC="${SERVER_DIR}/Rava.Status/wwwroot"
+STATUS_SRC="${SERVER_DIR}/Theexonet.Status/wwwroot"
 
 if [ ! -d "$STATUS_SRC" ]; then
   echo "Missing status wwwroot: ${STATUS_SRC}" >&2

@@ -1,0 +1,121 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "Hosting": {
+    "ServeGameUi": false
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=YOUR_DB_HOST;Port=5432;Database=YOUR_DATABASE;Username=YOUR_DB_USER;Password=YOUR_PASSWORD"
+  },
+  "Jwt": {
+    "Key": "CHANGE_ME_MinimumLength32Characters!",
+    "Issuer": "Theexonet.Api",
+    "Audience": "Theexonet.Client"
+  },
+  "Admin": {
+    "Usernames": [ "your-admin-username" ]
+  },
+  "Moderator": {
+    "Usernames": [ "your-moderator-username" ]
+  },
+  "HateSpeech": {
+    "Enabled": true,
+    "TermsFile": "hate-speech-terms.csv",
+    "BadLanguageFile": "bad-language-terms.csv",
+    "PoliticalTermsFile": "political-terms.csv",
+    "SexualTermsFile": "sexual-terms.csv"
+  },
+  "Email": {
+    "Enabled": false,
+    "Host": "",
+    "Port": 587,
+    "Username": "",
+    "Password": "",
+    "FromAddress": "noreply@example.com",
+    "FromName": "theexonet",
+    "AppBaseUrl": "https://theexonet.binarygeek119.duckdns.org",
+    "UseStartTls": true,
+    "UseSsl": false
+  },
+  "Market": {
+    "UseLiveData": true,
+    "ItemsFile": "market-items.csv"
+  },
+  "Trade": {
+    "ItemsFile": "trade-items.csv"
+  },
+  "StatusMonitor": {
+    "ApiBaseUrl": "http://127.0.0.1:5000",
+    "GameUrl": "https://theexonet.binarygeek119.duckdns.org/",
+    "ApiPublicUrl": "https://theexonetapi.binarygeek119.duckdns.org/",
+    "StatusPublicUrl": "https://theexonetstatus.binarygeek119.duckdns.org/",
+    "DocsInternalUrl": "http://127.0.0.1:9000",
+    "DocsPublicUrl": "https://theexonetdocs.binarygeek119.duckdns.org/",
+    "AdminInternalUrl": "http://127.0.0.1:7000",
+    "AdminPublicUrl": "https://theexonetadmin.binarygeek119.duckdns.org/",
+    "ModeratorInternalUrl": "http://127.0.0.1:7050",
+    "ModeratorPublicUrl": "https://theexonetmoderator.binarygeek119.duckdns.org/"
+  },
+  "AdminPortal": {
+    "PublicUrl": "https://theexonetadmin.binarygeek119.duckdns.org/",
+    "GameUrl": "https://theexonet.binarygeek119.duckdns.org/",
+    "ApiBaseUrl": "http://127.0.0.1:5000"
+  },
+  "ModeratorPortal": {
+    "PublicUrl": "https://theexonetmoderator.binarygeek119.duckdns.org/",
+    "GameUrl": "https://theexonet.binarygeek119.duckdns.org/",
+    "AdminPortalUrl": "https://theexonetadmin.binarygeek119.duckdns.org/",
+    "ApiBaseUrl": "http://127.0.0.1:5000"
+  },
+  "DocsPortal": {
+    "PublicUrl": "https://theexonetdocs.binarygeek119.duckdns.org/",
+    "GameUrl": "https://theexonet.binarygeek119.duckdns.org/",
+    "ContentPath": "content",
+    "SiteTitle": "theexonet Game Docs"
+  },
+  "OpenAi": {
+    "ApiKey": "",
+    "AdminApiKey": "",
+    "BaseUrl": "https://api.openai.com/v1",
+    "TextModel": "gpt-4o-mini",
+    "ImageModel": "dall-e-3"
+  },
+  "OffworldNews": {
+    "Enabled": true,
+    "MaxImagesPerDay": 5,
+    "CacheDirectory": "offworld-news",
+    "ReportersFile": "offworld-news-reporters.csv"
+  },
+  "LunarWeather": {
+    "Enabled": true,
+    "CacheDirectory": "lunar-weather",
+    "RelaysFile": "weather-relays.csv"
+  },
+  "Foreverfall": {
+    "Enabled": true,
+    "CacheDirectory": "foreverfall",
+    "MaxInmateImages": 500,
+    "RetentionDays": 14,
+    "TargetDailyIntake": 15,
+    "IntakeVariance": 8,
+    "MinDailyIntake": 7,
+    "MaxDailyIntake": 23
+  },
+  "VoidCorp": {
+    "Enabled": true,
+    "CacheDirectory": "voidcorp",
+    "MaxImagesPerDay": 4
+  },
+  "ExonetAiAssetScanner": {
+    "Enabled": true
+  },
+  "CompanyLogo": {
+    "Enabled": true,
+    "SecondsBetweenGenerations": 8
+  }
+}

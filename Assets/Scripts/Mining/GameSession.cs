@@ -1,18 +1,18 @@
 using System.Threading.Tasks;
-using Rava.Core.Dtos;
-using Rava.Core.Enums;
-using Rava.Core.Events;
-using Rava.Networking;
+using Theexonet.Core.Dtos;
+using Theexonet.Core.Enums;
+using Theexonet.Core.Events;
+using Theexonet.Networking;
 using UnityEngine;
 
-namespace Rava.Mining
+namespace Theexonet.Mining
 {
     public class GameSession : MonoBehaviour
     {
-        private const string TokenKey = "rava_token";
-        private const string MineIdKey = "rava_mineId";
-        private const string PlayerIdKey = "rava_playerId";
-        private const string UsernameKey = "rava_username";
+        private const string TokenKey = "theexonet_token";
+        private const string MineIdKey = "theexonet_mineId";
+        private const string PlayerIdKey = "theexonet_playerId";
+        private const string UsernameKey = "theexonet_username";
 
         [SerializeField] private ApiClient apiClient;
 

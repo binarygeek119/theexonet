@@ -1,7 +1,7 @@
 #!/bin/bash
-# Install admin + moderator systemd units when rava-api and rava-status already exist.
+# Install admin + moderator systemd units when theexonet-api and theexonet-status already exist.
 # Run on the server as root:
-#   sudo install-rava-portals
+#   sudo install-theexonet-portals
 #   sudo bash scripts/install-portal-units.sh
 set -euo pipefail
 
@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 SYSTEMD_SRC="${SCRIPT_DIR}/systemd"
 SYSTEMD_DST="/etc/systemd/system"
 
-units=(rava-admin rava-moderator)
+units=(theexonet-admin theexonet-moderator)
 
 for unit in "${units[@]}"; do
   src="${SYSTEMD_SRC}/${unit}.service"

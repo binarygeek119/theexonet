@@ -4,17 +4,17 @@
 #
 # Usage:
 #   bash scripts/sync-server-repo.sh
-#   bash scripts/sync-server-repo.sh /opt/rava/rava abc123def git@github.com:owner/rava.git
+#   bash scripts/sync-server-repo.sh /opt/theexonet/theexonet abc123def git@github.com:owner/theexonet.git
 set -euo pipefail
 
-REPO_PATH="${1:-${RAVA_REPO_DIR:-/opt/rava/rava}}"
+REPO_PATH="${1:-${THEEXONET_REPO_DIR:-/opt/theexonet/theexonet}}"
 TARGET_REF="${2:-origin/main}"
-REPO_URL="${3:-${RAVA_REPO_URL:-git@github.com:binarygeek119/rava.git}}"
+REPO_URL="${3:-${THEEXONET_REPO_URL:-git@github.com:binarygeek119/theexonet.git}}"
 
 looks_like_repo() {
   local path="$1"
   [ -d "${path}/.git" ] \
-    && { [ -f "${path}/server/Rava.slnx" ] || [ -f "${path}/server/Rava.Api/Rava.Api.csproj" ]; }
+    && { [ -f "${path}/server/Theexonet.slnx" ] || [ -f "${path}/server/Theexonet.Api/Theexonet.Api.csproj" ]; }
 }
 
 sync_existing() {
@@ -51,7 +51,7 @@ else
   clone_repo
 fi
 
-if [ ! -f "${REPO_PATH}/server/Rava.Api/Rava.Api.csproj" ]; then
+if [ ! -f "${REPO_PATH}/server/Theexonet.Api/Theexonet.Api.csproj" ]; then
   echo "ERROR: ${REPO_PATH}/server is missing after sync." >&2
   exit 1
 fi

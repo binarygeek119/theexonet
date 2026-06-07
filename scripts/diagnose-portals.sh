@@ -1,13 +1,13 @@
 #!/bin/bash
-# Diagnose rava-admin, rava-moderator, and rava-docs startup failures.
-# Run on the server: sudo diagnose-rava-portals
+# Diagnose theexonet-admin, theexonet-moderator, and theexonet-docs startup failures.
+# Run on the server: sudo diagnose-theexonet-portals
 set -euo pipefail
 
-PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
-DATA_DIR="${RAVA_DATA_DIR:-/var/www/data}"
-SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
+PUBLISH_DIR="${THEEXONET_PUBLISH_DIR:-/var/www/publish}"
+DATA_DIR="${THEEXONET_DATA_DIR:-/var/www/data}"
+SERVICE_USER="${THEEXONET_SERVICE_USER:-www-data}"
 
-units=(rava-admin:7000:Rava.Admin.dll:wwwroot/admin.html rava-moderator:7050:Rava.Moderator.dll:wwwroot/moderator.html rava-docs:9000:Rava.Docs.dll:content/index.md)
+units=(theexonet-admin:7000:Theexonet.Admin.dll:wwwroot/admin.html theexonet-moderator:7050:Theexonet.Moderator.dll:wwwroot/moderator.html theexonet-docs:9000:Theexonet.Docs.dll:content/index.md)
 
 echo "=== theexonet portal diagnostics ==="
 echo "Publish dir: ${PUBLISH_DIR}"
@@ -16,7 +16,7 @@ echo
 
 echo "--- Required publish files ---"
 shared=(
-  "${PUBLISH_DIR}/Rava.Core.dll"
+  "${PUBLISH_DIR}/Theexonet.Core.dll"
 )
 for file in "${shared[@]}"; do
   if [ -f "$file" ]; then
@@ -30,7 +30,7 @@ echo
 if [ -f "${DATA_DIR}/appsettings.json" ]; then
   echo "OK  ${DATA_DIR}/appsettings.json"
 else
-  echo "MISSING  ${DATA_DIR}/appsettings.json (portals read config from RAVA_DATA_DIR)"
+  echo "MISSING  ${DATA_DIR}/appsettings.json (portals read config from THEEXONET_DATA_DIR)"
 fi
 echo
 
@@ -75,7 +75,7 @@ for spec in "${units[@]}"; do
     echo "Manual startup test (5s, as ${SERVICE_USER}):"
     set +e
     timeout 5 sudo -u "${SERVICE_USER}" \
-      env ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_URLS="http://127.0.0.1:${port}" RAVA_DATA_DIR="${DATA_DIR}" \
+      env ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_URLS="http://127.0.0.1:${port}" THEEXONET_DATA_DIR="${DATA_DIR}" \
       dotnet "$dll_path" 2>&1 | head -n 25
     test_status=${PIPESTATUS[0]}
     set -e

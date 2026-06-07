@@ -13,8 +13,8 @@ Deploy runs automatically on pushes to `main` when **`ENABLE_PRODUCTION_DEPLOY`*
 | SSH user | `root` |
 | Game + API publish root | `/var/www/publish` |
 | Game html (nginx docroot) | `/var/www/publish/html` |
-| API systemd unit | `rava-api` |
-| Status systemd unit | `rava-status` |
+| API systemd unit | `theexonet-api` |
+| Status systemd unit | `theexonet-status` |
 
 ## 1. Repository variable (Variables tab — not Secrets)
 
@@ -64,24 +64,24 @@ Valid characters: letters, numbers, underscore `_`. Must start with a letter or 
 | `DEPLOY_SSH_PORT` | `22` |
 | `DEPLOY_WWW_PATH` | `/var/www/publish` |
 | `DEPLOY_API_PATH` | `/var/www/publish` |
-| `DEPLOY_API_SERVICE` | `rava-api` |
-| `DEPLOY_STATUS_SERVICE` | `rava-status` |
-| `DEPLOY_ADMIN_SERVICE` | `rava-admin` |
-| `DEPLOY_MODERATOR_SERVICE` | `rava-moderator` |
-| `DEPLOY_REPO_PATH` | `/opt/rava/rava` |
+| `DEPLOY_API_SERVICE` | `theexonet-api` |
+| `DEPLOY_STATUS_SERVICE` | `theexonet-status` |
+| `DEPLOY_ADMIN_SERVICE` | `theexonet-admin` |
+| `DEPLOY_MODERATOR_SERVICE` | `theexonet-moderator` |
+| `DEPLOY_REPO_PATH` | `/opt/theexonet/theexonet` |
 
 **Single-folder setup (recommended):** set both `DEPLOY_WWW_PATH` and `DEPLOY_API_PATH` to `/var/www/publish`. The workflow skips the separate html rsync and deploys game files under `publish/html/`. Point nginx/Apache for the game site at `/var/www/publish/html`.
 
-**Server git checkout:** each deploy rsyncs repository sources to `DEPLOY_REPO_PATH` (default `/opt/rava/rava`) from the GitHub Actions checkout — no git credentials are required on the server. The deployed commit SHA is written to `.deploy-commit`.
+**Server git checkout:** each deploy rsyncs repository sources to `DEPLOY_REPO_PATH` (default `/opt/theexonet/theexonet`) from the GitHub Actions checkout — no git credentials are required on the server. The deployed commit SHA is written to `.deploy-commit`.
 
 Optional one-time clone if you want `git pull` on the server for manual work (requires GitHub SSH access):
 
 ```bash
-sudo mkdir -p /opt/rava
-sudo git clone git@github.com:binarygeek119/rava.git /opt/rava/rava
+sudo mkdir -p /opt/theexonet
+sudo git clone git@github.com:binarygeek119/theexonet.git /opt/theexonet/theexonet
 ```
 
-Or run `sudo bash scripts/sync-server-repo.sh /opt/rava/rava origin/main git@github.com:binarygeek119/rava.git` after configuring a deploy key. CI deploy does not use this script.
+Or run `sudo bash scripts/sync-server-repo.sh /opt/theexonet/theexonet origin/main git@github.com:binarygeek119/theexonet.git` after configuring a deploy key. CI deploy does not use this script.
 
 **Never use `/var/www` alone** for either path — that rsyncs html and portal `wwwroot` files beside `publish/` and creates `/var/www/.aspnet` outside the app folder.
 
@@ -111,8 +111,8 @@ DEPLOY_SSH_KEY
 On your machine:
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/rava-deploy -N ""
-ssh-copy-id -i ~/.ssh/rava-deploy.pub root@binarygeek119.duckdns.org
+ssh-keygen -t ed25519 -f ~/.ssh/theexonet-deploy -N ""
+ssh-copy-id -i ~/.ssh/theexonet-deploy.pub root@binarygeek119.duckdns.org
 ```
 
 Add the **private** key contents as secret `DEPLOY_SSH_KEY` (PEM/OpenSSH format).
@@ -121,7 +121,7 @@ Add the **private** key contents as secret `DEPLOY_SSH_KEY` (PEM/OpenSSH format)
 
 See [deploy.md](deploy.md) for .NET 10, systemd units, `appsettings.json`, Apache/nginx, and `/usr/local/bin` helpers.
 
-Each deploy syncs `scripts/` to the server, runs `install-bin-scripts.sh`, then `restart-rava` (falls back to per-service `systemctl restart` if needed).
+Each deploy syncs `scripts/` to the server, runs `install-bin-scripts.sh`, then `restart-theexonet` (falls back to per-service `systemctl restart` if needed).
 
 After first deploy, confirm:
 
@@ -147,18 +147,18 @@ Manual run options (**Run workflow**):
 On the server you can also deploy without GitHub Actions:
 
 ```bash
-sudo deploy-rava-html          # game html only
-sudo deploy-rava-status        # status dashboard publish + restart
-sudo deploy-rava-portals       # admin + moderator publish + restart
+sudo deploy-theexonet-html          # game html only
+sudo deploy-theexonet-status        # status dashboard publish + restart
+sudo deploy-theexonet-portals       # admin + moderator publish + restart
 ```
 
-From a git checkout on the server (e.g. `/opt/rava/rava`):
+From a git checkout on the server (e.g. `/opt/theexonet/theexonet`):
 
 ```bash
-cd /opt/rava/rava
+cd /opt/theexonet/theexonet
 git pull
-sudo install-rava-scripts      # refresh /usr/local/bin helpers
-sudo deploy-rava-portals       # auto-finds ./server
+sudo install-theexonet-scripts      # refresh /usr/local/bin helpers
+sudo deploy-theexonet-portals       # auto-finds ./server
 ```
 
 Watch the **theexonet CI** workflow in the Actions tab.
@@ -240,7 +240,7 @@ Set repository variable **`ENABLE_PRODUCTION_DEPLOY`** = `true` (Variables tab, 
 
 Configure **`DEPLOY_SSH_PASSWORD`** or **`DEPLOY_SSH_KEY`** under Secrets. See sections 2 and 4 above.
 
-### `Unit rava-admin.service not found` (or moderator)
+### `Unit theexonet-admin.service not found` (or moderator)
 
 The deploy **synced files successfully** — only the service restart failed because those systemd units were never installed on the server.
 
@@ -248,47 +248,47 @@ The deploy **synced files successfully** — only the service restart failed bec
 
 ```bash
 # If you have the repo cloned on the server (install to PATH first: sudo bash scripts/install-bin-scripts.sh):
-sudo install-rava-portals
+sudo install-theexonet-portals
 
 # Or install all five units (api, status, admin, moderator, docs):
-sudo install-rava-systemd
+sudo install-theexonet-systemd
 ```
 
 **Without a repo clone**, copy the unit files manually:
 
 ```bash
-sudo cp rava-admin.service rava-moderator.service /etc/systemd/system/
+sudo cp theexonet-admin.service theexonet-moderator.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now rava-admin rava-moderator
-systemctl is-active rava-admin rava-moderator
+sudo systemctl enable --now theexonet-admin theexonet-moderator
+systemctl is-active theexonet-admin theexonet-moderator
 ```
 
-Unit file sources: `scripts/systemd/rava-admin.service` and `scripts/systemd/rava-moderator.service`.
+Unit file sources: `scripts/systemd/theexonet-admin.service` and `scripts/systemd/theexonet-moderator.service`.
 
 Ensure `/var/www/publish/appsettings.json` includes **`AdminPortal`** and **`ModeratorPortal`** sections (see `appsettings.production.example.json`).
 
-After units exist, re-run the GitHub workflow or `sudo restart-rava`.
+After units exist, re-run the GitHub workflow or `sudo restart-theexonet`.
 
 On the latest workflow, missing units log a **WARNING** and are skipped instead of failing the deploy. The workflow installs helpers to `/usr/local/bin` automatically.
 
 ### Portal files on disk but HTTP verify fails (`activating` / `currency.js`)
 
-Static files under `/var/www/publish/wwwroot/` are present, but `rava-admin` or `rava-moderator` is not listening on port 7000/7050.
+Static files under `/var/www/publish/wwwroot/` are present, but `theexonet-admin` or `theexonet-moderator` is not listening on port 7000/7050.
 
 **On the server:**
 
 ```bash
-sudo diagnose-rava-portals
-sudo journalctl -u rava-admin -n 50 --no-pager
+sudo diagnose-theexonet-portals
+sudo journalctl -u theexonet-admin -n 50 --no-pager
 dotnet --list-runtimes | grep -E 'Microsoft.NETCore.App 10'
-sudo fix-rava-permissions
-sudo install-rava-systemd   # refresh unit files (portals no longer wait on rava-api)
-sudo restart-rava
+sudo fix-theexonet-permissions
+sudo install-theexonet-systemd   # refresh unit files (portals no longer wait on theexonet-api)
+sudo restart-theexonet
 curl -sf http://127.0.0.1:7000/js/currency.js && echo OK
 ```
 
 Common causes:
 
 - **Missing .NET 10 runtime** after a deploy built with `net10.0` (install the same runtime the CI publish uses).
-- **DLL permissions** — rsync leaves `*.dll` unreadable by `www-data`; `sudo fix-rava-permissions` adds world-read on publish assemblies.
-- **`/var/www/data/appsettings.json`** — add an **`OpenAi`** block (see `server/Rava.Api/appsettings.json.example`); move any legacy `OffworldNews:ApiKey` / `BaseUrl` / `TextModel` / `ImageModel` keys there.
+- **DLL permissions** — rsync leaves `*.dll` unreadable by `www-data`; `sudo fix-theexonet-permissions` adds world-read on publish assemblies.
+- **`/var/www/data/appsettings.json`** — add an **`OpenAi`** block (see `server/Theexonet.Api/appsettings.json.example`); move any legacy `OffworldNews:ApiKey` / `BaseUrl` / `TextModel` / `ImageModel` keys there.

@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="Theexonet.Api/Theexonet.Api.csproj" />
+  <Project Path="Theexonet.Moderator/Theexonet.Moderator.csproj" />
+  <Project Path="Theexonet.Admin/Theexonet.Admin.csproj" />
+  <Project Path="Theexonet.Status/Theexonet.Status.csproj" />
+  <Project Path="Theexonet.Docs/Theexonet.Docs.csproj" />
+  <Project Path="Theexonet.Core.Tests/Theexonet.Core.Tests.csproj" />
+  <Project Path="Theexonet.Core/Theexonet.Core.csproj" />
+  <Project Path="Theexonet.Infrastructure/Theexonet.Infrastructure.csproj" />
+</Solution>

@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theexonet-api-base" content="https://theexonetapi.binarygeek119.duckdns.org">
+  <link rel="icon" href="/images/currency.png" type="image/png">
+  <title>theexonet Admin</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/admin.css?v=20260529-testing-profile">
+</head>
+<body>
+  <div id="admin-login-screen" class="screen">
+    <div class="login-card admin-login-card">
+      <label class="locale-select-label" for="locale-select-admin">
+        <span data-i18n="locale.label">Language</span>
+        <select id="locale-select-admin" data-locale-select class="locale-select" aria-label="Language">
+          <option value="en">English</option>
+        </select>
+      </label>
+      <h1 data-i18n="auth.title">theexonet Admin</h1>
+      <p class="subtitle" data-i18n="auth.subtitle">Operations portal</p>
+      <p id="api-status" class="api-status checking" aria-live="polite" data-i18n="auth.checkingApi">Checking API…</p>
+
+      <label for="admin-username" data-i18n="auth.username">Username</label>
+      <input id="admin-username" type="text" autocomplete="username" data-i18n-placeholder="auth.usernamePlaceholder" placeholder="Admin username">
+
+      <label for="admin-password" data-i18n="auth.password">Password</label>
+      <input id="admin-password" type="password" autocomplete="current-password" data-i18n-placeholder="auth.passwordPlaceholder" placeholder="Password">
+
+      <p id="admin-login-status" class="status-text"></p>
+
+      <div class="button-row">
+        <button id="admin-login-btn" type="button" class="btn primary" data-i18n="auth.signIn">Sign in</button>
+      </div>
+      <a class="admin-back-link" href="https://theexonet.binarygeek119.duckdns.org/" data-i18n="auth.backToGame">Back to game</a>
+    </div>
+  </div>
+
+  <div id="admin-denied-screen" class="screen" hidden>
+    <div class="login-card admin-login-card">
+      <h1 data-i18n="denied.title">Access denied</h1>
+      <p class="subtitle" data-i18n="denied.subtitle">Your account is not configured as an admin.</p>
+      <p id="admin-denied-user" class="status-text"></p>
+      <div class="button-row">
+        <button id="admin-denied-logout-btn" type="button" class="btn ghost">Sign out</button>
+        <a class="btn ghost" href="https://theexonet.binarygeek119.duckdns.org/">Back to game</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="admin-portal-screen" class="screen" hidden>
+    <header class="admin-header">
+      <div>
+        <h1>theexonet Admin</h1>
+        <p id="admin-signed-in" class="subtitle"></p>
+      </div>
+      <div class="admin-header-actions">
+        <a class="btn ghost" href="https://theexonetmoderator.binarygeek119.duckdns.org/">Moderator</a>
+        <a class="btn ghost" href="https://theexonet.binarygeek119.duckdns.org/">Game</a>
+        <button id="admin-logout-btn" type="button" class="btn ghost">Sign out</button>
+      </div>
+    </header>
+
+    <nav class="admin-nav" aria-label="Admin sections">
+      <button type="button" class="admin-nav-btn active" data-admin-page="dashboard">Dashboard</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="testing">Testing</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="players">Players</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="bans">Bans</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="appeals">Ban appeals</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="messages">
+        Messages
+        <span id="admin-messages-nav-badge" class="admin-nav-badge" hidden>0</span>
+      </button>
+      <button type="button" class="admin-nav-btn" data-admin-page="flagged">
+        Flagged
+        <span id="admin-flagged-nav-badge" class="admin-nav-badge" hidden>0</span>
+      </button>
+      <button type="button" class="admin-nav-btn" data-admin-page="message-log">Message Log</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="credits">Rax</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="events">Events</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="offworld-news">Offworld News</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="lunar-weather">Lunar Weather</button>
+      <button type="button" class="admin-nav-btn" data-admin-page="foreverfall-penitentiary">Foreverfall Penitentiary</button>
+    <button type="button" class="admin-nav-btn" data-admin-page="voidcorp">VoidCorp</button>
+    </nav>
+
+    <main class="admin-main">
+      <section id="admin-page-dashboard" class="admin-page admin-page-active">
+        <section class="admin-panel">
+          <h2>Dashboard</h2>
+          <div id="admin-stats" class="admin-stats"></div>
+        </section>
+      </section>
+
+      <section id="admin-page-testing" class="admin-page" hidden>
+        <section class="admin-panel admin-testing-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Testing mode</h2>
+              <p class="admin-page-desc">Adds synthetic players with random profiles, Rax balances, and mining stats on the Players and Rax pages. Nothing is saved to the database.</p>
+            </div>
+          </div>
+          <label class="admin-testing-toggle" for="admin-testing-mode-toggle">
+            <input id="admin-testing-mode-toggle" type="checkbox">
+            <span>Enable testing mode</span>
+          </label>
+          <p id="admin-testing-mode-hint" class="admin-page-desc" hidden>Testing players are marked <span class="admin-testing-badge">TEST</span> in lists and appear as accepted friends in-game while you are logged in as admin.</p>
+          <p id="admin-testing-status" class="status-text"></p>
+          <div id="admin-testing-actions" class="admin-testing-actions" hidden>
+            <h3 class="admin-subheading">Test actions</h3>
+            <p class="admin-page-desc">Run real moderation and messaging flows as a selected testing player. Records are saved to the database and appear on Messages, Flagged messages, and Ban appeals.</p>
+            <label for="admin-testing-dummy-select">Testing player</label>
+            <select id="admin-testing-dummy-select" class="admin-testing-dummy-select"></select>
+            <div class="button-row admin-testing-action-buttons">
+              <button id="admin-testing-staff-message-btn" type="button" class="btn primary">Send test message to staff</button>
+              <button id="admin-testing-peer-message-btn" type="button" class="btn ghost">Send test message to you</button>
+              <button id="admin-testing-flagged-message-btn" type="button" class="btn ghost">Flag player message</button>
+              <button id="admin-testing-ban-appeal-btn" type="button" class="btn ghost">Ask for ban appeal</button>
+            </div>
+            <p id="admin-testing-actions-status" class="status-text"></p>
+          </div>
+          <div id="admin-testing-dummy-list" class="admin-testing-dummy-list"></div>
+        </section>
+      </section>
+
+      <section id="admin-page-offworld-news" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Offworld News</h2>
+              <p class="admin-page-desc">Regenerate today's ONN edition on Exonet. Story regeneration replaces headlines and bodies; image regeneration re-rolls only today's existing AI illustrations and leaves archive editions untouched.</p>
+            </div>
+          </div>
+          <p id="admin-offworld-news-summary" class="admin-page-desc">Loading today's edition…</p>
+          <div class="button-row">
+            <button id="admin-offworld-news-regen-edition-btn" type="button" class="btn primary">Regenerate today's stories</button>
+            <button id="admin-offworld-news-regen-images-btn" type="button" class="btn ghost">Regenerate today's images only</button>
+            <button id="admin-offworld-news-regen-reporter-portraits-btn" type="button" class="btn ghost">Regenerate all reporter portraits</button>
+          </div>
+          <p id="admin-offworld-news-status" class="status-text"></p>
+        </section>
+
+        <section class="admin-panel">
+          <h2>Daily story count</h2>
+          <p class="admin-page-desc">Each UTC midnight the edition includes a date-seeded fuzzy number of stories between your minimum and maximum. Changes apply on the next generation or when you regenerate today's stories.</p>
+          <form id="admin-onn-stories-form" class="admin-onn-pool-form">
+            <label>
+              Target stories per day
+              <input id="admin-onn-stories-target" type="number" min="1" step="1" value="5">
+            </label>
+            <label>
+              Story count variance (±)
+              <input id="admin-onn-stories-variance" type="number" min="0" step="1" value="3">
+            </label>
+            <label>
+              Minimum stories per day
+              <input id="admin-onn-stories-min" type="number" min="1" step="1" value="1">
+            </label>
+            <label>
+              Maximum stories per day
+              <input id="admin-onn-stories-max" type="number" min="1" step="1" value="10">
+            </label>
+            <button id="admin-onn-stories-save-btn" type="submit" class="btn ghost">Save story settings</button>
+            <p id="admin-onn-stories-status" class="status-text"></p>
+          </form>
+        </section>
+
+        <section class="admin-panel admin-onn-reporters">
+          <h2>Reporter roster</h2>
+          <p class="admin-page-desc">Manage ONN correspondent personalities, names, portraits, and which reporters appear in the daily story pool.</p>
+          <p id="admin-onn-reporters-path" class="admin-page-desc"></p>
+          <form id="admin-onn-pool-form" class="admin-onn-pool-form">
+            <label>
+              Story pool size
+              <input id="admin-onn-pool-size" type="number" min="0" step="1" value="0">
+            </label>
+            <span class="admin-page-desc">0 = use all reporters in CSV order.</span>
+            <button id="admin-onn-pool-save-btn" type="submit" class="btn ghost">Save reporter pool</button>
+            <p id="admin-onn-pool-status" class="status-text"></p>
+          </form>
+          <p id="admin-onn-reporters-status" class="status-text"></p>
+          <div id="admin-onn-reporters-list" class="admin-onn-reporters-list"></div>
+        </section>
+      </section>
+
+      <section id="admin-page-lunar-weather" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Lunar Weather Service</h2>
+              <p class="admin-page-desc">Configure the relay network and fuzzy daily reporting count. Changes apply to the next bulletin generation (UTC midnight or manual regenerate).</p>
+            </div>
+          </div>
+          <p id="admin-lunar-weather-summary" class="admin-page-desc">Loading today's bulletin…</p>
+          <div class="button-row">
+            <button id="admin-lunar-weather-regen-btn" type="button" class="btn primary">Regenerate today's bulletin</button>
+          </div>
+          <p id="admin-lunar-weather-status" class="status-text"></p>
+        </section>
+
+        <section class="admin-panel">
+          <h2>Relay network</h2>
+          <p class="admin-page-desc">The catalog holds up to 100 relays. Pool size limits how many relays participate each day; the rest are not used until you raise the pool.</p>
+          <form id="admin-lunar-weather-settings-form" class="admin-onn-pool-form admin-lunar-weather-form">
+            <label>
+              Relay pool size
+              <input id="admin-lws-relay-pool" type="number" min="1" max="100" step="1" value="100">
+            </label>
+            <label>
+              Target operational relays
+              <input id="admin-lws-target" type="number" min="1" max="100" step="1" value="30">
+            </label>
+            <span class="admin-page-desc">Midnight reporting aims for this count (date-seeded fuzzy variance below).</span>
+            <label>
+              Operational variance (±)
+              <input id="admin-lws-variance" type="number" min="0" max="50" step="1" value="5">
+            </label>
+            <label>
+              Minimum operational relays
+              <input id="admin-lws-min" type="number" min="1" max="100" step="1" value="22">
+            </label>
+            <label>
+              Maximum operational relays
+              <input id="admin-lws-max" type="number" min="1" max="100" step="1" value="38">
+            </label>
+            <button id="admin-lws-save-btn" type="submit" class="btn ghost">Save settings</button>
+            <p id="admin-lws-settings-status" class="status-text"></p>
+          </form>
+        </section>
+      </section>
+
+      <section id="admin-page-foreverfall-penitentiary" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Foreverfall Penitentiary</h2>
+              <p class="admin-page-desc">Configure galactic lifetime-sentence inmate intake. New rosters publish at UTC midnight; portrait images accumulate until the pool cap, then reuse.</p>
+            </div>
+          </div>
+          <p id="admin-foreverfall-summary" class="admin-page-desc">Loading status…</p>
+          <div class="button-row">
+            <button id="admin-foreverfall-regen-btn" type="button" class="btn primary">Regenerate today's intake</button>
+          </div>
+          <p id="admin-foreverfall-status" class="status-text"></p>
+        </section>
+
+        <section class="admin-panel">
+          <h2>Intake settings</h2>
+          <p class="admin-page-desc">Fuzzy daily count uses date-seeded variance around the target (e.g. 15 ± 8). Inmate records purge after retention days; portrait images are kept permanently.</p>
+          <form id="admin-foreverfall-settings-form" class="admin-onn-pool-form admin-foreverfall-form">
+            <label class="admin-checkbox-row">
+              <input id="admin-ffp-enabled" type="checkbox" checked>
+              Enabled
+            </label>
+            <label>
+              Max inmate portrait images
+              <input id="admin-ffp-max-images" type="number" min="1" max="5000" step="1" value="500">
+            </label>
+            <label>
+              Retention days (inmate history)
+              <input id="admin-ffp-retention" type="number" min="1" max="365" step="1" value="14">
+            </label>
+            <label>
+              Target daily intake
+              <input id="admin-ffp-target" type="number" min="1" max="5000" step="1" value="15">
+            </label>
+            <label>
+              Intake variance (±)
+              <input id="admin-ffp-variance" type="number" min="0" max="50" step="1" value="8">
+            </label>
+            <label>
+              Minimum daily intake
+              <input id="admin-ffp-min" type="number" min="1" max="5000" step="1" value="7">
+            </label>
+            <label>
+              Maximum daily intake
+              <input id="admin-ffp-max" type="number" min="1" max="5000" step="1" value="23">
+            </label>
+            <button id="admin-ffp-save-btn" type="submit" class="btn ghost">Save settings</button>
+            <p id="admin-ffp-settings-status" class="status-text"></p>
+          </form>
+        </section>
+      </section>
+
+      <section id="admin-page-voidcorp" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>VoidCorp</h2>
+              <p class="admin-page-desc">Generate AI product listing images for the Exonet VoidCorp catalog. New trade supplies sync into the catalog automatically; missing images backfill on API reads, at UTC midnight, and when you run generation here.</p>
+            </div>
+          </div>
+          <p id="admin-voidcorp-summary" class="admin-page-desc">Loading catalog status…</p>
+          <div class="button-row">
+            <button id="admin-voidcorp-generate-btn" type="button" class="btn primary">Generate missing product images</button>
+          </div>
+          <p id="admin-voidcorp-status" class="status-text"></p>
+        </section>
+
+        <section class="admin-panel">
+          <h2>Generation batch</h2>
+          <p class="admin-page-desc">Each run generates up to <span id="admin-voidcorp-batch-limit">4</span> missing images (configured in appsettings as VoidCorp:MaxImagesPerDay). Run again until the missing count reaches zero.</p>
+        </section>
+      </section>
+
+      <section id="admin-page-players" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <h2>Players</h2>
+            <div class="admin-search-row">
+              <input id="admin-player-search" type="search" placeholder="Search username, email, profile #">
+              <button id="admin-player-search-btn" type="button" class="btn primary">Search</button>
+            </div>
+          </div>
+          <p id="admin-players-status" class="status-text"></p>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Rax</th>
+                  <th>Mines</th>
+                  <th>Joined</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="admin-players-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="admin-page-bans" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Bans</h2>
+              <p class="admin-page-desc">All active player bans with level, reason, and staff notes.</p>
+            </div>
+            <div class="admin-search-row">
+              <input id="admin-bans-search" type="search" placeholder="Search username, email, reason, staff…">
+              <label class="admin-bans-filter">
+                <input id="admin-bans-active-only" type="checkbox" checked>
+                Active only
+              </label>
+              <button id="admin-bans-search-btn" type="button" class="btn primary">Search</button>
+              <button id="admin-bans-refresh-btn" type="button" class="btn ghost">Refresh</button>
+            </div>
+          </div>
+          <p id="admin-bans-status" class="status-text"></p>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Email</th>
+                  <th>Ban level</th>
+                  <th>Reason</th>
+                  <th>Banned by</th>
+                  <th>Banned at</th>
+                  <th>Expires</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="admin-bans-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="admin-page-appeals" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Ban appeals</h2>
+              <p class="admin-page-desc">Players request ban removal from the login screen.</p>
+            </div>
+            <button id="admin-appeals-refresh-btn" type="button" class="btn primary">Refresh</button>
+          </div>
+          <p id="admin-appeals-status" class="status-text"></p>
+          <div id="admin-appeals-list" class="admin-appeals-list"></div>
+        </section>
+      </section>
+
+      <section id="admin-page-messages" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Messages</h2>
+              <p class="admin-page-desc">Staff ↔ staff and player → staff in one inbox. Each row is labeled <strong>Staff</strong> or <strong>Player</strong> so you know the source. For searchable history across all channels, use the <strong>Message Log</strong> tab.</p>
+            </div>
+            <button id="admin-messages-refresh-btn" type="button" class="btn primary">Refresh</button>
+          </div>
+          <p id="admin-messages-status" class="status-text"></p>
+
+          <h3 class="admin-subheading">Send to staff</h3>
+          <p class="admin-page-desc">Compose a message to another admin or moderator.</p>
+          <div class="staff-message-compose">
+            <label for="admin-messages-recipient">To</label>
+            <select id="admin-messages-recipient"></select>
+            <label for="admin-messages-body">Message</label>
+            <textarea id="admin-messages-body" maxlength="4000" rows="4" placeholder="Write a message to staff…"></textarea>
+            <button id="admin-messages-send-btn" type="button" class="btn accent">Send message</button>
+          </div>
+
+          <div class="admin-messages-filter" role="group" aria-label="Filter inbox">
+            <button type="button" class="btn ghost active" data-message-filter="all">All</button>
+            <button type="button" class="btn ghost" data-message-filter="staff">Staff only</button>
+            <button type="button" class="btn ghost" data-message-filter="player">Players only</button>
+          </div>
+
+          <div class="staff-message-layout">
+            <div id="admin-messages-unified-inbox" class="staff-message-inbox"></div>
+            <div id="admin-messages-unified-detail" class="staff-message-detail"></div>
+          </div>
+        </section>
+      </section>
+
+      <section id="admin-page-flagged" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Flagged messages</h2>
+              <p class="admin-page-desc">Auto-flagged messages for hate speech review. Players are not notified until you decide.</p>
+            </div>
+            <button id="admin-flagged-refresh-btn" type="button" class="btn primary">Refresh</button>
+          </div>
+          <p id="admin-flagged-status" class="status-text"></p>
+          <div class="staff-message-layout admin-flagged-layout">
+            <div id="admin-flagged-inbox" class="staff-message-inbox admin-flagged-inbox"></div>
+            <div id="admin-flagged-detail" class="staff-message-detail admin-flagged-detail"></div>
+          </div>
+          <p id="admin-flagged-action-status" class="status-text admin-flagged-action-status"></p>
+        </section>
+      </section>
+
+      <section id="admin-page-message-log" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Message Log</h2>
+              <p class="admin-page-desc">Searchable audit trail for staff, player, peer, and ban appeal messages.</p>
+            </div>
+            <div class="admin-search-row">
+              <input id="admin-message-log-search" type="search" placeholder="Search from, to, or body">
+              <select id="admin-message-log-channel" class="admin-select" aria-label="Message channel">
+                <option value="">All channels</option>
+                <option value="staff-to-staff">Staff → staff</option>
+                <option value="staff-to-player">Staff → player</option>
+                <option value="player-to-staff">Player → staff</option>
+                <option value="peer">Player → player</option>
+                <option value="ban-appeal">Ban appeal</option>
+              </select>
+              <button id="admin-message-log-search-btn" type="button" class="btn primary">Search</button>
+              <button id="admin-message-log-refresh-btn" type="button" class="btn ghost">Refresh</button>
+            </div>
+          </div>
+          <p id="admin-message-log-status" class="status-text"></p>
+          <div class="admin-table-wrap">
+            <table class="admin-table admin-message-log-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Channel</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Message</th>
+                  <th>Read</th>
+                </tr>
+              </thead>
+              <tbody id="admin-message-log-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="admin-page-credits" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Game Rax settings</h2>
+              <p class="admin-page-desc">Edit <code>credits.csv</code> — sign-up Rax, birthday bonus, and company name reclaim fee. Opens in Excel or Google Sheets.</p>
+            </div>
+          </div>
+          <p id="admin-game-credits-path" class="admin-page-desc admin-config-path"></p>
+          <form id="admin-game-credits-form" class="admin-config-form">
+            <label for="admin-game-credits-signup">Sign-up Rax</label>
+            <input id="admin-game-credits-signup" type="number" min="0" step="1" required>
+            <label for="admin-game-credits-birthday">Birthday bonus</label>
+            <input id="admin-game-credits-birthday" type="number" min="0" step="1" required>
+            <label for="admin-game-credits-reclaim">Company name reclaim fee</label>
+            <input id="admin-game-credits-reclaim" type="number" min="0" step="1" required>
+            <div class="admin-config-actions">
+              <button id="admin-game-credits-save-btn" type="submit" class="btn primary">Save config file</button>
+              <button id="admin-game-credits-reset-btn" type="button" class="btn ghost">Reset</button>
+            </div>
+          </form>
+          <p id="admin-game-credits-status" class="status-text"></p>
+        </section>
+
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Player balances</h2>
+              <p class="admin-page-desc">Search players and set individual Rax balances.</p>
+            </div>
+            <div class="admin-search-row">
+              <input id="admin-credits-search" type="search" placeholder="Search username, email, profile #">
+              <button id="admin-credits-search-btn" type="button" class="btn primary">Search</button>
+            </div>
+          </div>
+          <p id="admin-credits-status" class="status-text"></p>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Current</th>
+                  <th>New balance</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="admin-credits-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="admin-page-events" class="admin-page" hidden>
+        <section class="admin-panel">
+          <div class="admin-panel-head">
+            <div>
+              <h2>Special events</h2>
+              <p class="admin-page-desc">Players see active events on login and win rewards by completing in-game challenges during the event.</p>
+            </div>
+            <button id="admin-events-new-btn" type="button" class="btn primary">New event</button>
+          </div>
+          <p id="admin-events-status" class="status-text"></p>
+          <div id="admin-events-list" class="admin-events-list"></div>
+        </section>
+
+        <section id="admin-event-editor" class="admin-panel" hidden>
+          <h2 id="admin-event-editor-title">New event</h2>
+          <form id="admin-event-form" class="admin-config-form admin-event-form">
+            <label for="admin-event-title">Title</label>
+            <input id="admin-event-title" type="text" required maxlength="120" placeholder="Holiday bonus">
+
+            <label for="admin-event-message">Message (shown in login popup)</label>
+            <textarea id="admin-event-message" rows="3" required maxlength="1000" placeholder="Thanks for playing during our special event!"></textarea>
+
+            <label class="admin-checkbox-row">
+              <input id="admin-event-active" type="checkbox" checked>
+              Active
+            </label>
+
+            <label for="admin-event-starts">Starts (UTC, optional)</label>
+            <input id="admin-event-starts" type="datetime-local">
+
+            <label for="admin-event-ends">Ends (UTC, optional)</label>
+            <input id="admin-event-ends" type="datetime-local">
+
+            <label for="admin-event-challenge-type">Challenge (what players must do)</label>
+            <select id="admin-event-challenge-type" required>
+              <option value="AdvanceDay">Advance game days</option>
+              <option value="SellOre">Sell ore</option>
+              <option value="BuySupply">Buy supplies</option>
+              <option value="AssignWorker">Assign worker to zone</option>
+            </select>
+
+            <label for="admin-event-challenge-target">Times required</label>
+            <input id="admin-event-challenge-target" type="number" min="1" step="1" value="1" required>
+
+            <label for="admin-event-challenge-detail">Specific item (optional)</label>
+            <input id="admin-event-challenge-detail" type="text" placeholder="e.g. Ferroxite or DrillBits — leave blank for any">
+
+            <div class="admin-event-rewards-head">
+              <h3>Market bonuses</h3>
+              <p class="admin-page-desc">Extra Rax while the event is active. Percentages stack if multiple events overlap.</p>
+            </div>
+            <label for="admin-event-sale-bonus">Sale bonus (% extra Rax on ore sales)</label>
+            <input id="admin-event-sale-bonus" type="number" min="0" max="100" step="0.1" value="0">
+
+            <label for="admin-event-trade-bonus">Trade bonus (% Rax back on supply purchases)</label>
+            <input id="admin-event-trade-bonus" type="number" min="0" max="100" step="0.1" value="0">
+
+            <div class="admin-event-rewards-head">
+              <h3>Challenge rewards</h3>
+              <p class="admin-page-desc">Item type examples: Credits (= Rax), Ferroxite, DrillBits, FuelCells</p>
+            </div>
+            <div id="admin-event-rewards" class="admin-event-rewards"></div>
+            <button id="admin-event-add-reward-btn" type="button" class="btn ghost">Add reward</button>
+
+            <div class="admin-config-actions">
+              <button id="admin-event-save-btn" type="submit" class="btn primary">Save event</button>
+              <button id="admin-event-cancel-btn" type="button" class="btn ghost">Cancel</button>
+              <button id="admin-event-delete-btn" type="button" class="btn danger" hidden>Delete</button>
+            </div>
+          </form>
+          <p id="admin-event-form-status" class="status-text"></p>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div id="admin-profile-modal" class="modal admin-profile-modal" hidden>
+    <div class="admin-profile-card">
+      <header class="admin-profile-top">
+        <h2 id="admin-profile-title">Player Profile</h2>
+        <button id="admin-profile-close-btn" type="button" class="btn ghost">Close</button>
+      </header>
+      <p id="admin-profile-testing-banner" class="admin-testing-profile-banner" hidden>
+        Testing dummy profile — moderation and messaging are disabled.
+      </p>
+
+      <div class="admin-profile-banner">
+        <div id="admin-profile-avatar" class="admin-profile-avatar">
+          <img id="admin-profile-avatar-img" class="admin-profile-avatar-img" alt="" hidden>
+          <span id="admin-profile-avatar-initials" class="admin-profile-avatar-initials">??</span>
+        </div>
+        <div class="admin-profile-headline">
+          <h3 id="admin-profile-username">—</h3>
+          <p id="admin-profile-mood" class="admin-profile-mood">—</p>
+          <p id="admin-profile-number" class="admin-profile-number">—</p>
+          <p id="admin-profile-email" class="admin-profile-meta">—</p>
+          <p id="admin-profile-member-since" class="admin-profile-meta">—</p>
+        </div>
+      </div>
+
+      <div class="admin-profile-grid">
+        <section class="admin-profile-box">
+          <h4>About</h4>
+          <p id="admin-profile-about" class="admin-profile-text empty">No bio yet.</p>
+        </section>
+        <section class="admin-profile-box">
+          <h4>Interests</h4>
+          <p id="admin-profile-interests" class="admin-profile-text empty">Nothing listed yet.</p>
+        </section>
+        <section class="admin-profile-box">
+          <h4>Now Playing</h4>
+          <p id="admin-profile-music" class="admin-profile-text empty">Silence in the void.</p>
+        </section>
+        <section class="admin-profile-box">
+          <h4>Social Links</h4>
+          <div id="admin-profile-social" class="admin-profile-social"></div>
+        </section>
+        <section class="admin-profile-box">
+          <h4>Account</h4>
+          <dl class="admin-profile-stats">
+            <dt>Email</dt>
+            <dd id="admin-profile-email-stat">—</dd>
+            <dt>Birthday</dt>
+            <dd id="admin-profile-birthday">—</dd>
+            <dt>Theme</dt>
+            <dd id="admin-profile-theme">—</dd>
+            <dt>Rax</dt>
+            <dd id="admin-profile-credits">—</dd>
+            <dt>Game day</dt>
+            <dd id="admin-profile-game-day">—</dd>
+            <dt>Company Name</dt>
+            <dd id="admin-profile-mine">—</dd>
+            <dt>Workers</dt>
+            <dd id="admin-profile-workers">—</dd>
+            <dt>Zones</dt>
+            <dd id="admin-profile-zones">—</dd>
+            <dt>Total mines</dt>
+            <dd id="admin-profile-mine-count">—</dd>
+          </dl>
+        </section>
+      </div>
+
+      <section class="admin-profile-box admin-profile-flag-box">
+        <h4>Moderation</h4>
+        <div id="admin-profile-active-flag" class="admin-profile-flag-active" hidden>
+          <p class="admin-profile-flag-label">Active flag</p>
+          <p id="admin-profile-active-flag-comment" class="admin-profile-flag-comment"></p>
+          <p id="admin-profile-active-flag-meta" class="admin-profile-flag-meta"></p>
+        </div>
+        <label for="admin-profile-flag-comment-input">Flag comment</label>
+        <textarea
+          id="admin-profile-flag-comment-input"
+          maxlength="2000"
+          rows="4"
+          placeholder="Explain what content should be removed or changed..."></textarea>
+        <div class="admin-profile-flag-actions">
+          <button id="admin-profile-flag-btn" type="button" class="btn accent">Flag profile</button>
+          <span id="admin-profile-flag-status" class="admin-profile-flag-status"></span>
+        </div>
+        <div id="admin-profile-flag-history" class="admin-profile-flag-history"></div>
+      </section>
+
+      <section class="admin-profile-box admin-profile-warning-box">
+        <h4>Moderation warnings</h4>
+        <p id="admin-profile-warning-summary" class="admin-profile-flag-meta">Active warnings: 0/2</p>
+        <p class="admin-profile-flag-meta">Each warning expires 30 days after it is issued. Players are not notified.</p>
+        <label for="admin-profile-warning-reason">Warning reason</label>
+        <textarea
+          id="admin-profile-warning-reason"
+          maxlength="2000"
+          rows="3"
+          placeholder="Explain why this warning was issued…"></textarea>
+        <div class="admin-profile-flag-actions">
+          <button id="admin-profile-warning-btn" type="button" class="btn accent">Issue warning</button>
+          <span id="admin-profile-warning-status" class="admin-profile-flag-status"></span>
+        </div>
+        <div id="admin-profile-warning-history" class="admin-profile-flag-history"></div>
+      </section>
+
+      <section class="admin-profile-box admin-profile-ban-box">
+        <h4>Account ban</h4>
+        <div id="admin-profile-active-ban" class="admin-profile-ban-active" hidden>
+          <p class="admin-profile-flag-label">Active ban</p>
+          <p id="admin-profile-active-ban-summary" class="admin-profile-ban-summary"></p>
+          <p id="admin-profile-active-ban-meta" class="admin-profile-flag-meta"></p>
+        </div>
+        <label for="admin-profile-ban-level">Ban level</label>
+        <select id="admin-profile-ban-level" class="admin-select"></select>
+        <label for="admin-profile-ban-reason-preset">Ban reason</label>
+        <select id="admin-profile-ban-reason-preset" class="admin-select"></select>
+        <label for="admin-profile-ban-reason" id="admin-profile-ban-reason-label" hidden>Custom reason</label>
+        <textarea
+          id="admin-profile-ban-reason"
+          maxlength="2000"
+          rows="3"
+          hidden
+          placeholder="Explain why this player is banned…"></textarea>
+        <p class="admin-page-desc">The reason is shown to the player when they try to log in.</p>
+        <div class="admin-profile-ban-actions">
+          <button id="admin-profile-ban-btn" type="button" class="btn accent">Apply ban</button>
+          <button id="admin-profile-unban-btn" type="button" class="btn ghost">Lift ban</button>
+          <span id="admin-profile-ban-status" class="admin-profile-flag-status"></span>
+        </div>
+        <div id="admin-profile-ban-history" class="admin-profile-ban-history"></div>
+      </section>
+
+      <section class="admin-profile-box admin-profile-message-box">
+        <h4>Message player</h4>
+        <label for="admin-profile-message-input">Message</label>
+        <textarea
+          id="admin-profile-message-input"
+          maxlength="4000"
+          rows="4"
+          placeholder="Send a message to this player..."></textarea>
+        <div class="admin-profile-flag-actions">
+          <button id="admin-profile-message-btn" type="button" class="btn accent">Send message</button>
+          <span id="admin-profile-message-status" class="admin-profile-flag-status"></span>
+        </div>
+        <div id="admin-profile-message-history" class="admin-profile-message-history"></div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module" src="/js/admin.js?v=20260529-locale-fix"></script>
+</body>
+</html>

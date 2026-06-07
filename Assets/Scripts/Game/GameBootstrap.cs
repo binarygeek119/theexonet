@@ -1,14 +1,14 @@
-using Rava.Core.Config;
-using Rava.Core.Events;
-using Rava.Mining;
-using Rava.Networking;
-using Rava.UI;
+using Theexonet.Core.Config;
+using Theexonet.Core.Events;
+using Theexonet.Mining;
+using Theexonet.Networking;
+using Theexonet.UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
-namespace Rava.Game
+namespace Theexonet.Game
 {
     public class GameBootstrap : MonoBehaviour
     {

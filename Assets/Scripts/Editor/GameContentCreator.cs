@@ -1,13 +1,13 @@
 #if UNITY_EDITOR
-using Rava.Core.Config;
+using Theexonet.Core.Config;
 using UnityEditor;
 using UnityEngine;
 
-namespace Rava.Editor
+namespace Theexonet.Editor
 {
     public static class GameContentCreator
     {
-        [MenuItem("Rava/Create Default Game Content Assets")]
+        [MenuItem("Theexonet/Create Default Game Content Assets")]
         public static void CreateAssets()
         {
             if (!AssetDatabase.IsValidFolder("Assets/Config"))
@@ -29,7 +29,7 @@ namespace Rava.Editor
             AssetDatabase.SaveAssets();
             EditorUtility.FocusProjectWindow();
             Selection.activeObject = content;
-            Debug.Log("Created default Rava game content assets in Assets/Config/");
+            Debug.Log("Created default theexonet game content assets in Assets/Config/");
         }
     }
 }

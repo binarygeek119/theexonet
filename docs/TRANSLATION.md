@@ -1,6 +1,6 @@
 # Translating theexonet with Weblate
 
-Player-facing UI strings live in JSON locale files and are loaded by [`server/Rava.Api/html/js/i18n.js`](../server/Rava.Api/html/js/i18n.js).
+Player-facing UI strings live in JSON locale files and are loaded by [`server/Theexonet.Api/html/js/i18n.js`](../server/Theexonet.Api/html/js/i18n.js).
 
 ## Status: disabled (pre–go-live)
 
@@ -9,7 +9,7 @@ Weblate is **not** active yet. The UI stays **English-only** and language picker
 ### Go-live checklist
 
 1. Rename [`weblate.yml.off`](../weblate.yml.off) → `weblate.yml` and connect the repo in Weblate.
-2. Set `WEBLATE_LIVE = true` in `server/Rava.Api/html/js/i18n.js` and `server/Rava.Status/wwwroot/js/i18n.js`.
+2. Set `WEBLATE_LIVE = true` in `server/Theexonet.Api/html/js/i18n.js` and `server/Theexonet.Status/wwwroot/js/i18n.js`.
 3. Merge translated `es/`, `fr/`, etc. locale folders and deploy HTML/wwwroot.
 4. Pause or remove any test Weblate project that was pointed at a fork.
 
@@ -20,16 +20,16 @@ Weblate is **not** active yet. The UI stays **English-only** and language picker
 3. Source language: **English (`en`)**.
 4. Translators work in `game.json`, `admin.json`, `moderator.json`, and `status.json`; merged PRs add `es/`, `fr/`, etc.
 
-See also [`server/Rava.Api/html/locales/README.md`](../server/Rava.Api/html/locales/README.md).
+See also [`server/Theexonet.Api/html/locales/README.md`](../server/Theexonet.Api/html/locales/README.md).
 
 ## In scope
 
 | Component | Path |
 |-----------|------|
-| Game UI | `server/Rava.Api/html/locales/*/game.json` |
-| Admin portal | `server/Rava.Api/html/locales/*/admin.json` |
-| Moderator portal | `server/Rava.Api/html/locales/*/moderator.json` |
-| Status dashboard | `server/Rava.Status/wwwroot/locales/*/status.json` |
+| Game UI | `server/Theexonet.Api/html/locales/*/game.json` |
+| Admin portal | `server/Theexonet.Api/html/locales/*/admin.json` |
+| Moderator portal | `server/Theexonet.Api/html/locales/*/moderator.json` |
+| Status dashboard | `server/Theexonet.Status/wwwroot/locales/*/status.json` |
 
 ## Out of scope (do not add to Weblate)
 
@@ -54,8 +54,8 @@ Exonet stays English-only so AI-generated news is not mixed with translator work
 
 ## Deploy
 
-Locale files ship with `deploy-rava-html` / API wwwroot sync. No separate build step.
+Locale files ship with `deploy-theexonet-html` / API wwwroot sync. No separate build step.
 
 ## Profile completion prompts
 
-When new required profile columns ship (e.g. gender, `ProfileLocale`), `ProfileCompletionEvaluator` in `Rava.Core` lists missing fields on `PlayerProfileResponse.missingProfileFields`. Existing players see a blocking modal on login until they save. Add a new check in that class when another field becomes mandatory. Field ids: `gender`, `preferredPronouns`, `locale`.
+When new required profile columns ship (e.g. gender, `ProfileLocale`), `ProfileCompletionEvaluator` in `Theexonet.Core` lists missing fields on `PlayerProfileResponse.missingProfileFields`. Existing players see a blocking modal on login until they save. Add a new check in that class when another field becomes mandatory. Field ids: `gender`, `preferredPronouns`, `locale`.

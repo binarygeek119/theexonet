@@ -1,4 +1,4 @@
-namespace Rava.Core.Enums
+namespace Theexonet.Core.Enums
 {
 public enum SupplyType
 {

@@ -1,15 +1,15 @@
 #!/bin/bash
 # Install theexonet systemd units on production. Run on the server as root:
-#   sudo install-rava-systemd
+#   sudo install-theexonet-systemd
 #   sudo bash scripts/install-systemd-units.sh
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 SYSTEMD_SRC="${SCRIPT_DIR}/systemd"
 SYSTEMD_DST="/etc/systemd/system"
-LIB_DIR="${RAVA_LIB_DIR:-/usr/local/lib/rava/scripts}"
+LIB_DIR="${THEEXONET_LIB_DIR:-/usr/local/lib/theexonet/scripts}"
 
-units=(rava-api rava-status rava-admin rava-moderator rava-docs rava-permissions)
+units=(theexonet-api theexonet-status theexonet-admin theexonet-moderator theexonet-docs theexonet-permissions)
 
 for unit in "${units[@]}"; do
   src="${SYSTEMD_SRC}/${unit}.service"
@@ -22,14 +22,14 @@ for unit in "${units[@]}"; do
   echo "Installed ${dst}"
 done
 
-if [ -f "${SYSTEMD_SRC}/rava-permissions.default" ] && [ ! -f /etc/default/rava-permissions ]; then
-  cp -f "${SYSTEMD_SRC}/rava-permissions.default" /etc/default/rava-permissions
-  chmod 644 /etc/default/rava-permissions
-  echo "Installed /etc/default/rava-permissions"
+if [ -f "${SYSTEMD_SRC}/theexonet-permissions.default" ] && [ ! -f /etc/default/theexonet-permissions ]; then
+  cp -f "${SYSTEMD_SRC}/theexonet-permissions.default" /etc/default/theexonet-permissions
+  chmod 644 /etc/default/theexonet-permissions
+  echo "Installed /etc/default/theexonet-permissions"
 fi
 
 mkdir -p "${LIB_DIR}/systemd"
-for script in rava-hosting-env.sh audit-hosting-permissions.sh fix-hosting-permissions.sh rava-permissions-watch.sh install-permissions-service.sh install-rava-permissions-service.sh; do
+for script in theexonet-hosting-env.sh audit-hosting-permissions.sh fix-hosting-permissions.sh theexonet-permissions-watch.sh install-permissions-service.sh install-theexonet-permissions-service.sh; do
   if [ -f "${SCRIPT_DIR}/${script}" ]; then
     cp -f "${SCRIPT_DIR}/${script}" "${LIB_DIR}/${script}"
     chmod 755 "${LIB_DIR}/${script}"
@@ -37,19 +37,19 @@ for script in rava-hosting-env.sh audit-hosting-permissions.sh fix-hosting-permi
 done
 if [ -d "${SYSTEMD_SRC}" ]; then
   cp -f "${SYSTEMD_SRC}/"*.service "${LIB_DIR}/systemd/" 2>/dev/null || true
-  if [ -f "${SYSTEMD_SRC}/rava-permissions.default" ]; then
-    cp -f "${SYSTEMD_SRC}/rava-permissions.default" "${LIB_DIR}/systemd/rava-permissions.default"
+  if [ -f "${SYSTEMD_SRC}/theexonet-permissions.default" ]; then
+    cp -f "${SYSTEMD_SRC}/theexonet-permissions.default" "${LIB_DIR}/systemd/theexonet-permissions.default"
   fi
 fi
 
 BIN_DIR="/usr/local/bin"
-for link in install-rava-permissions-service fix-rava-permissions audit-rava-permissions; do
+for link in install-theexonet-permissions-service fix-theexonet-permissions audit-theexonet-permissions; do
   case "${link}" in
-    install-rava-permissions-service)
-      target="${LIB_DIR}/install-rava-permissions-service.sh" ;;
-    fix-rava-permissions)
+    install-theexonet-permissions-service)
+      target="${LIB_DIR}/install-theexonet-permissions-service.sh" ;;
+    fix-theexonet-permissions)
       target="${LIB_DIR}/fix-hosting-permissions.sh" ;;
-    audit-rava-permissions)
+    audit-theexonet-permissions)
       target="${LIB_DIR}/audit-hosting-permissions.sh" ;;
   esac
   if [ -f "${target}" ]; then

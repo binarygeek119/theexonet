@@ -1,7 +1,7 @@
 using System.IO;
-using Rava.Core.Dtos;
-using Rava.Mining;
-using Rava.Networking;
+using Theexonet.Core.Dtos;
+using Theexonet.Mining;
+using Theexonet.Networking;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
@@ -9,7 +9,7 @@ using UnityEngine.UI;
 using UnityEditor;
 #endif
 
-namespace Rava.UI
+namespace Theexonet.UI
 {
     public class ProfilePanel : MonoBehaviour
     {

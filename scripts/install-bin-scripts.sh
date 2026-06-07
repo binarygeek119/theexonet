@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Install theexonet helper scripts to /usr/local/bin (files live under /usr/local/lib/rava/scripts).
+# Install theexonet helper scripts to /usr/local/bin (files live under /usr/local/lib/theexonet/scripts).
 # Run on the server as root (always use bash — do not rely on ./ if the file has Windows line endings):
 #   sudo bash scripts/install-bin-scripts.sh
 # Re-run after git pull to refresh lib files and symlinks:
-#   sudo install-rava-scripts
+#   sudo install-theexonet-scripts
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 SRC_DIR="${1:-$SCRIPT_DIR}"
-LIB_DIR="${RAVA_LIB_DIR:-/usr/local/lib/rava/scripts}"
-TEMPLATE_DIR="${RAVA_TEMPLATE_DATA_DIR:-/usr/local/lib/rava/data}"
-HTML_TEMPLATE_DIR="${RAVA_HTML_TEMPLATE_DIR:-/usr/local/lib/rava/html}"
+LIB_DIR="${THEEXONET_LIB_DIR:-/usr/local/lib/theexonet/scripts}"
+TEMPLATE_DIR="${THEEXONET_TEMPLATE_DATA_DIR:-/usr/local/lib/theexonet/data}"
+HTML_TEMPLATE_DIR="${THEEXONET_HTML_TEMPLATE_DIR:-/usr/local/lib/theexonet/html}"
 BIN_DIR="/usr/local/bin"
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -26,7 +26,7 @@ fi
 mkdir -p "${LIB_DIR}/systemd"
 
 for script in \
-  restart-rava.sh \
+  restart-theexonet.sh \
   diagnose-api.sh \
   diagnose-portals.sh \
   diagnose-testing-friends.sh \
@@ -45,10 +45,10 @@ for script in \
   sync-publish-data.sh \
   fix-hosting-permissions.sh \
   audit-hosting-permissions.sh \
-  rava-hosting-env.sh \
-  rava-permissions-watch.sh \
+  theexonet-hosting-env.sh \
+  theexonet-permissions-watch.sh \
   install-permissions-service.sh \
-  install-rava-permissions-service.sh \
+  install-theexonet-permissions-service.sh \
   install-bin-scripts.sh; do
   if [ ! -f "${SRC_DIR}/${script}" ]; then
     echo "Missing ${SRC_DIR}/${script}" >&2
@@ -58,12 +58,17 @@ for script in \
   chmod 755 "${LIB_DIR}/${script}"
 done
 
-cp -f "${SRC_DIR}/systemd/"*.service "${LIB_DIR}/systemd/"
-if [ -f "${SRC_DIR}/systemd/rava-permissions.default" ]; then
-  cp -f "${SRC_DIR}/systemd/rava-permissions.default" "${LIB_DIR}/systemd/rava-permissions.default"
+if [ -f "${SRC_DIR}/theexonet/promote-staging.sh" ]; then
+  cp -f "${SRC_DIR}/theexonet/promote-staging.sh" "${LIB_DIR}/promote-staging.sh"
+  chmod 755 "${LIB_DIR}/promote-staging.sh"
 fi
 
-REPO_API_DIR="${SRC_DIR}/../server/Rava.Api"
+cp -f "${SRC_DIR}/systemd/"*.service "${LIB_DIR}/systemd/"
+if [ -f "${SRC_DIR}/systemd/theexonet-permissions.default" ]; then
+  cp -f "${SRC_DIR}/systemd/theexonet-permissions.default" "${LIB_DIR}/systemd/theexonet-permissions.default"
+fi
+
+REPO_API_DIR="${SRC_DIR}/../server/Theexonet.Api"
 if [ -d "${REPO_API_DIR}" ]; then
   mkdir -p "${TEMPLATE_DIR}"
   for csv in credits.csv market-items.csv trade-items.csv hate-speech-terms.csv bad-language-terms.csv political-terms.csv sexual-terms.csv offworld-news-reporters.csv; do
@@ -88,22 +93,23 @@ if [ -d "${REPO_API_DIR}" ]; then
 fi
 
 declare -A bin_links=(
-  [restart-rava.sh]=restart-rava
-  [diagnose-api.sh]=diagnose-rava-api
-  [diagnose-portals.sh]=diagnose-rava-portals
-  [diagnose-testing-friends.sh]=diagnose-rava-testing-friends
-  [install-systemd-units.sh]=install-rava-systemd
-  [install-portal-units.sh]=install-rava-portals
-  [install-bin-scripts.sh]=install-rava-scripts
-  [deploy-html.sh]=deploy-rava-html
-  [deploy-portals.sh]=deploy-rava-portals
-  [deploy-status.sh]=deploy-rava-status
-  [sync-publish-data.sh]=sync-rava-data
-  [migrate-publish-data-to-var-www.sh]=migrate-rava-data
-  [fix-hosting-permissions.sh]=fix-rava-permissions
-  [audit-hosting-permissions.sh]=audit-rava-permissions
-  [install-permissions-service.sh]=install-rava-permissions-service
-  [install-rava-permissions-service.sh]=install-rava-permissions-service
+  [restart-theexonet.sh]=restart-theexonet
+  [diagnose-api.sh]=diagnose-theexonet-api
+  [diagnose-portals.sh]=diagnose-theexonet-portals
+  [diagnose-testing-friends.sh]=diagnose-theexonet-testing-friends
+  [install-systemd-units.sh]=install-theexonet-systemd
+  [install-portal-units.sh]=install-theexonet-portals
+  [install-bin-scripts.sh]=install-theexonet-scripts
+  [deploy-html.sh]=deploy-theexonet-html
+  [deploy-portals.sh]=deploy-theexonet-portals
+  [deploy-status.sh]=deploy-theexonet-status
+  [sync-publish-data.sh]=sync-theexonet-data
+  [migrate-publish-data-to-var-www.sh]=migrate-theexonet-data
+  [fix-hosting-permissions.sh]=fix-theexonet-permissions
+  [audit-hosting-permissions.sh]=audit-theexonet-permissions
+  [install-permissions-service.sh]=install-theexonet-permissions-service
+  [install-theexonet-permissions-service.sh]=install-theexonet-permissions-service
+  [promote-staging.sh]=promote-theexonet-staging
 )
 
 for src in "${!bin_links[@]}"; do
@@ -111,4 +117,4 @@ for src in "${!bin_links[@]}"; do
   echo "Installed ${BIN_DIR}/${bin_links[$src]}"
 done
 
-echo "Done. Example: sudo restart-rava | sudo install-rava-permissions-service"
+echo "Done. Example: sudo restart-theexonet | sudo install-theexonet-permissions-service"

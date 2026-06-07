@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>theexonet — OpenAI Status &amp; Usage</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/status.css">
+</head>
+<body>
+  <main class="page openai-page">
+    <header class="hero">
+      <p class="eyebrow">Point-and-click asteroid mining</p>
+      <h1>OpenAI in theexonet</h1>
+      <p id="openai-updated" class="subtle">Loading…</p>
+      <p class="status-pill checking" id="platform-overall">Checking platform…</p>
+      <nav class="nav-links" aria-label="Status pages">
+        <a class="nav-link" href="/">Dashboard</a>
+        <a class="nav-link" href="/values.html">Item values</a>
+        <a class="nav-link" href="/ai.html">AI</a>
+      </nav>
+    </header>
+
+    <section class="openai-summary-grid" aria-live="polite">
+      <article class="card">
+        <h2>OpenAI platform</h2>
+        <dl>
+          <div><dt>Status</dt><dd id="platform-description">—</dd></div>
+          <div><dt>Indicator</dt><dd id="platform-indicator">—</dd></div>
+          <div><dt>Status page latency</dt><dd id="platform-response-ms">—</dd></div>
+          <div><dt>Checked (UTC)</dt><dd id="platform-checked">—</dd></div>
+          <div><dt>Impacted services</dt><dd id="platform-degraded">—</dd></div>
+          <div><dt>Platform error</dt><dd id="platform-error">—</dd></div>
+        </dl>
+        <p class="card-foot">
+          <a id="link-platform-status" href="https://status.openai.com/" target="_blank" rel="noopener">status.openai.com</a>
+          ·
+          <a id="link-openai-billing" href="https://platform.openai.com/settings/organization/billing" target="_blank" rel="noopener">Billing dashboard</a>
+        </p>
+      </article>
+
+      <article class="card">
+        <h2>theexonet API &amp; billing</h2>
+        <p class="section-hint">Prepaid balance cannot be read with a standard secret API key (OpenAI returns HTTP 403). Use the billing dashboard link below. Optional: set <code>OffworldNews:AdminApiKey</code> (org admin key) on the API server to show month-to-date spend here.</p>
+        <dl>
+          <div><dt>API key configured</dt><dd id="theexonet-api-key">—</dd></div>
+          <div><dt>Prepaid credits remaining</dt><dd id="theexonet-credits-remaining">—</dd></div>
+          <div><dt>Prepaid credits granted</dt><dd id="theexonet-credits-granted">—</dd></div>
+          <div><dt>Month-to-date spend / credits used</dt><dd id="theexonet-credits-used">—</dd></div>
+          <div><dt>Credits note</dt><dd id="theexonet-credits-note">—</dd></div>
+          <div><dt>Total OpenAI HTTP requests</dt><dd id="theexonet-requests-total">—</dd></div>
+          <div><dt>Requests today (UTC)</dt><dd id="theexonet-requests-today">—</dd></div>
+          <div><dt>Last request (UTC)</dt><dd id="theexonet-last-request">—</dd></div>
+          <div><dt>theexonet API error</dt><dd id="theexonet-api-error">—</dd></div>
+        </dl>
+        <p class="card-foot">
+          <a id="link-theexonet-openai-json" href="#" target="_blank" rel="noopener">Raw JSON — /api/status/openai</a>
+        </p>
+      </article>
+
+      <article class="card">
+        <h2>Server configuration</h2>
+        <dl>
+          <div><dt>API base URL</dt><dd id="cfg-base-url">—</dd></div>
+          <div><dt>API key hint</dt><dd id="cfg-api-key-hint">—</dd></div>
+          <div><dt>Text model (Exonet)</dt><dd id="cfg-text-model">—</dd></div>
+          <div><dt>Image model (Exonet)</dt><dd id="cfg-image-model">—</dd></div>
+          <div><dt>Stories per day</dt><dd id="cfg-stories-per-day">—</dd></div>
+          <div><dt>Max AI images / day</dt><dd id="cfg-max-images">—</dd></div>
+          <div><dt>Offworld News enabled</dt><dd id="cfg-offworld-enabled">—</dd></div>
+          <div><dt>Company logos enabled</dt><dd id="cfg-logo-enabled">—</dd></div>
+          <div><dt>Logo image model</dt><dd id="cfg-logo-model">—</dd></div>
+          <div><dt>Logo queue delay</dt><dd id="cfg-logo-delay">—</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="card table-card">
+      <h2>Request breakdown (this server)</h2>
+      <p class="section-hint">Counts every outbound HTTP call to OpenAI from theexonet (stories, images, portraits, logos).</p>
+      <div id="usage-bars" class="usage-bars"></div>
+      <p id="usage-bars-empty" class="section-hint" hidden>No requests recorded yet.</p>
+    </section>
+
+    <section class="card">
+      <h2>AI features in the game</h2>
+      <p class="section-hint">What uses OpenAI in production — English-only Exonet copy is excluded from Weblate.</p>
+      <div id="feature-grid" class="feature-grid"></div>
+    </section>
+
+    <section class="openai-two-col">
+      <article class="card">
+        <h2>Exonet / Offworld News</h2>
+        <dl>
+          <div><dt>Service enabled</dt><dd id="exonet-enabled">—</dd></div>
+          <div><dt>Today’s edition (UTC)</dt><dd id="exonet-edition-date">—</dd></div>
+          <div><dt>Edition source</dt><dd id="exonet-edition-source">—</dd></div>
+          <div><dt>Stories today</dt><dd id="exonet-story-count">—</dd></div>
+          <div><dt>AI illustrations today</dt><dd id="exonet-illustrated">—</dd></div>
+          <div><dt>Archived editions on disk</dt><dd id="exonet-archives">—</dd></div>
+          <div><dt>Reporters in roster</dt><dd id="exonet-reporters-total">—</dd></div>
+          <div><dt>Active story pool</dt><dd id="exonet-reporters-pool">—</dd></div>
+          <div><dt>Portrait job</dt><dd id="exonet-portrait-job">—</dd></div>
+          <div><dt>Portrait job detail</dt><dd id="exonet-portrait-detail">—</dd></div>
+        </dl>
+        <p class="card-foot">
+          <a id="link-game-exonet" href="#" target="_blank" rel="noopener">Open game (Exonet tab)</a>
+        </p>
+      </article>
+
+      <article class="card table-card">
+        <h2>OpenAI platform components</h2>
+        <p class="section-hint">Live component status from status.openai.com (refreshes every 15s).</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="platform-components-rows">
+              <tr><td colspan="2">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+  <script type="module" src="/js/openai.js"></script>
+</body>
+</html>

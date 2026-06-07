@@ -3,10 +3,16 @@
 # Run on the server: sudo diagnose-theexonet-api
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+# shellcheck source=theexonet-hosting-env.sh
+[ -f "${SCRIPT_DIR}/theexonet-hosting-env.sh" ] && source "${SCRIPT_DIR}/theexonet-hosting-env.sh"
+
 PUBLISH_DIR="${THEEXONET_PUBLISH_DIR:-/var/www/publish}"
 DATA_DIR="${THEEXONET_DATA_DIR:-/var/www/data}"
 SERVICE="${THEEXONET_API_SERVICE:-theexonet-api}"
-SERVICE_USER="${THEEXONET_SERVICE_USER:-www-data}"
+SERVICE_USER="${THEEXONET_SERVICE_USER:-theexonet}"
+SERVICE_GROUP="${THEEXONET_SERVICE_GROUP:-${SERVICE_USER}}"
+API_DOMAIN="${THEEXONET_API_DOMAIN:-api.theexonet.com}"
 
 echo "=== theexonet API diagnostics ==="
 echo "Publish dir: ${PUBLISH_DIR}"
@@ -75,8 +81,8 @@ for dir in \
 done
 if [ "$(id -u)" -eq 0 ]; then
   mkdir -p "${DATA_DIR}/images/profile" "${DATA_DIR}/images/profile-backgrounds"
-  chown -R "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}/images" 2>/dev/null || true
-  echo "Ensured upload folders exist under ${DATA_DIR}/images and are owned by ${SERVICE_USER}."
+  chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "${DATA_DIR}/images" 2>/dev/null || true
+  echo "Ensured upload folders exist under ${DATA_DIR}/images and are owned by ${SERVICE_USER}:${SERVICE_GROUP}."
 fi
 echo
 
@@ -117,7 +123,7 @@ if [ "$(id -u)" -eq 0 ]; then
   mkdir -p "${news_cache}/editions" "${news_cache}/images"
   mkdir -p "${DATA_DIR}/exonet/foreverfall/images" "${DATA_DIR}/exonet/foreverfall/rosters"
   mkdir -p "${DATA_DIR}/exonet/lunar-weather/editions"
-  chown -R "${SERVICE_USER}:${SERVICE_USER}" "${DATA_DIR}/exonet" 2>/dev/null || true
+  chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "${DATA_DIR}/exonet" 2>/dev/null || true
 fi
 if command -v curl >/dev/null 2>&1; then
   if curl -sf --max-time 15 "http://127.0.0.1:5000/api/public/offworld-news" >/dev/null; then
@@ -141,7 +147,7 @@ for dir in "${foreverfall_cache}/images" "${foreverfall_cache}/rosters"; do
 done
 if [ "$(id -u)" -eq 0 ]; then
   mkdir -p "${foreverfall_cache}/images" "${foreverfall_cache}/rosters"
-  chown -R "${SERVICE_USER}:${SERVICE_USER}" "${foreverfall_cache}" 2>/dev/null || true
+  chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "${foreverfall_cache}" 2>/dev/null || true
 fi
 echo
 
@@ -158,6 +164,50 @@ if systemctl is-active --quiet "${SERVICE}" 2>/dev/null; then
   echo "${SERVICE} is running (port 5000 may already be in use)."
 else
   echo "${SERVICE} is not active."
+fi
+echo
+
+echo "--- API /api/status ---"
+if command -v curl >/dev/null 2>&1; then
+  if curl -sf --max-time 15 "http://127.0.0.1:5000/api/status" >/dev/null; then
+    echo "OK  http://127.0.0.1:5000/api/status"
+  else
+    echo "FAILED  http://127.0.0.1:5000/api/status"
+    missing=1
+  fi
+else
+  echo "SKIP  curl not installed"
+fi
+echo
+
+echo "--- CORS (Access-Control-Allow-Origin) ---"
+check_cors_origin() {
+  local label="$1"
+  local origin="$2"
+  local url="$3"
+  local header
+  header="$(curl -sI --max-time 15 -H "Origin: ${origin}" "${url}" 2>/dev/null \
+    | tr -d '\r' | awk -F': ' 'tolower($1)=="access-control-allow-origin" {print $2; exit}')"
+  if [ -z "${header}" ]; then
+    echo "MISSING  ${label} (${origin} → ${url})"
+    missing=1
+    return
+  fi
+  if [ "${header}" = "${origin}" ]; then
+    echo "OK  ${label}: ${header}"
+    return
+  fi
+  echo "WARN  ${label}: got '${header}' (expected '${origin}')"
+  missing=1
+}
+
+if command -v curl >/dev/null 2>&1; then
+  check_cors_origin "game (localhost)" "https://theexonet.com" "http://127.0.0.1:5000/api/status"
+  check_cors_origin "moderator (localhost)" "https://moderator.theexonet.com" "http://127.0.0.1:5000/api/status"
+  check_cors_origin "game (HTTPS)" "https://theexonet.com" "https://${API_DOMAIN}/api/status"
+  check_cors_origin "moderator (HTTPS)" "https://moderator.theexonet.com" "https://${API_DOMAIN}/api/status"
+else
+  echo "SKIP  curl not installed"
 fi
 echo
 

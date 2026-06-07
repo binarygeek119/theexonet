@@ -78,13 +78,14 @@ SSHPASS="${PASSWORD}" sshpass -e scp "${scp_opts[@]}" "${PROMOTE_SCRIPT}" "${USE
 SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
   "chmod 755 '${REMOTE_PROMOTE}'"
 
-run_remote_promote() {
+run_remote_sudo() {
   local sudo_cmd="$1"
-  local archive_arg="${2:-}"
+  shift
   local remote_cmd="sudo -n ${sudo_cmd}"
-  if [ -n "${archive_arg}" ]; then
-    remote_cmd+=" '$(printf '%s' "${archive_arg}" | sed "s/'/'\\\\''/g")'"
-  fi
+  local arg
+  for arg in "$@"; do
+    remote_cmd+=" '$(printf '%s' "${arg}" | sed "s/'/'\\\\''/g")'"
+  done
   SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
     "${remote_cmd}" 2>&1
 }
@@ -102,6 +103,11 @@ unpack_dir="$(mktemp -d "${STAGING}/.unpack.XXXXXX")"
 tar -xzf "${ARCHIVE}" -C "${unpack_dir}"
 if [ ! -f "${unpack_dir}/publish/Theexonet.Api.dll" ]; then
   echo "ERROR: archive missing publish/Theexonet.Api.dll" >&2
+  rm -rf "${unpack_dir}"
+  exit 1
+fi
+if [ ! -f "${unpack_dir}/publish/html/index.html" ]; then
+  echo "ERROR: archive missing publish/html/index.html" >&2
   rm -rf "${unpack_dir}"
   exit 1
 fi
@@ -123,10 +129,10 @@ echo "${unpack_output}"
 
 echo "Promote and restart (sudo promote-theexonet-staging)…"
 promote_output=""
-if ! promote_output="$(run_remote_promote promote-theexonet-staging)"; then
+if ! promote_output="$(run_remote_sudo promote-theexonet-staging)"; then
   echo "${promote_output}"
   echo "Installed promote failed — trying CI-uploaded ${REMOTE_PROMOTE}…" >&2
-  if ! promote_output="$(run_remote_promote "${REMOTE_PROMOTE}")"; then
+  if ! promote_output="$(run_remote_sudo "${REMOTE_PROMOTE}")"; then
     echo "${promote_output}"
     echo "ERROR: promote failed." >&2
     echo "On the VM (one-time after git pull):" >&2
@@ -142,15 +148,34 @@ if ! printf '%s' "${promote_output}" | grep -q 'Promoted staging'; then
   exit 1
 fi
 
+STAGING_HTML="${STAGING_DIR%/}/publish/html"
+LIVE_HTML="/var/www/publish/html/index.html"
+
+echo "Deploy game html from staging (sudo deploy-theexonet-html)…"
+html_output=""
+if ! html_output="$(run_remote_sudo deploy-theexonet-html "${STAGING_HTML}")"; then
+  echo "${html_output}"
+  echo "ERROR: deploy-theexonet-html failed." >&2
+  exit 1
+fi
+echo "${html_output}"
+
+echo "Verify html on server disk…"
+if ! SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
+  "grep -q 'content=\"${HTML_BUILD_MARKER}\"' '${LIVE_HTML}'"; then
+  echo "ERROR: ${LIVE_HTML} is missing build marker ${HTML_BUILD_MARKER} after deploy-theexonet-html." >&2
+  exit 1
+fi
+
 echo "Verify game html on production…"
 game_host="${HOST#https://}"
 game_host="${game_host#http://}"
 game_host="${game_host%%/*}"
-verify_url="https://${game_host}/index.html"
-if ! curl -sf --max-time 30 "${verify_url}" | grep -q "content=\"${HTML_BUILD_MARKER}\""; then
+cache_bust="${GITHUB_SHA:-ci}"
+verify_url="https://${game_host}/index.html?ci=${cache_bust}"
+if ! curl -sf --max-time 30 -H 'Cache-Control: no-cache' "${verify_url}" | grep -q "content=\"${HTML_BUILD_MARKER}\""; then
   echo "ERROR: ${verify_url} is missing html build marker ${HTML_BUILD_MARKER}." >&2
-  echo "On the VM:" >&2
-  echo "  sudo deploy-theexonet-html /opt/theexonet/theexonet/server/Theexonet.Api/html" >&2
+  echo "Disk copy is updated; check Apache vhost DocumentRoot or CDN cache for ${game_host}." >&2
   exit 1
 fi
 

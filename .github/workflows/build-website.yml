@@ -52,7 +52,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          lfs: true
+          sparse-checkout: |
+            server
+            scripts
+          lfs: false
 
       - name: Set release tag
         id: meta
@@ -128,16 +131,20 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
       - name: Download publish artifact
         uses: actions/download-artifact@v8
         with:
           name: theexonet-website
           path: .
+
+      - name: Checkout release metadata
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          sparse-checkout: |
+            scripts
+            server/Theexonet.Core
+          lfs: false
 
       - name: Verify release bundle
         run: test -f publish/Theexonet.Api.dll

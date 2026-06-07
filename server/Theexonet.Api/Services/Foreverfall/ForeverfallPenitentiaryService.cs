@@ -89,7 +89,8 @@ public sealed class ForeverfallPenitentiaryService(
                     intakeCount = roster.IntakeCount;
                     maleCount = roster.MaleCount;
                     femaleCount = roster.FemaleCount;
-                    intakeOfficer = roster.IntakeOfficer;
+                    intakeOfficer = roster.IntakeOfficer
+                        ?? ForeverfallIntakeOfficerGenerator.Resolve(date);
                 }
             }
             catch (Exception ex)

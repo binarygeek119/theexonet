@@ -12,27 +12,69 @@ namespace Theexonet.Api.Services.AiImageQueue;
 /// </summary>
 public sealed class AiImageQueueRecoveryService(
     IServiceScopeFactory scopeFactory,
+    StartupReadiness readiness,
     ILogger<AiImageQueueRecoveryService> logger) : IHostedService
 {
+    private static readonly TimeSpan ReadinessPollInterval = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromMinutes(10);
+
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var queue = scope.ServiceProvider.GetRequiredService<AiImageQueueService>();
-
-        var recovered = await queue.RecoverStaleProcessingAsync(cancellationToken);
-        var migrated = await MigrateCompanyLogoQueueAsync(db, queue, cancellationToken);
-
-        if (recovered > 0 || migrated > 0)
+        if (!await WaitForDatabaseReadyAsync(cancellationToken))
         {
-            logger.LogInformation(
-                "AI image queue recovery finished: {Recovered} stale job(s), {Migrated} company logo job(s) migrated.",
-                recovered,
-                migrated);
+            logger.LogWarning(
+                "AI image queue recovery skipped; database was not ready within {Timeout}.",
+                ReadinessTimeout);
+            return;
+        }
+
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var queue = scope.ServiceProvider.GetRequiredService<AiImageQueueService>();
+
+            var recovered = await queue.RecoverStaleProcessingAsync(cancellationToken);
+            var migrated = await MigrateCompanyLogoQueueAsync(db, queue, cancellationToken);
+
+            if (recovered > 0 || migrated > 0)
+            {
+                logger.LogInformation(
+                    "AI image queue recovery finished: {Recovered} stale job(s), {Migrated} company logo job(s) migrated.",
+                    recovered,
+                    migrated);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "AI image queue recovery failed during startup; API will continue without queue recovery.");
         }
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    private async Task<bool> WaitForDatabaseReadyAsync(CancellationToken cancellationToken)
+    {
+        if (readiness.IsDatabaseReady)
+        {
+            return true;
+        }
+
+        var deadline = DateTime.UtcNow + ReadinessTimeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            if (readiness.IsDatabaseReady)
+            {
+                return true;
+            }
+
+            await Task.Delay(ReadinessPollInterval, cancellationToken);
+        }
+
+        return readiness.IsDatabaseReady;
+    }
 
     private static async Task<int> MigrateCompanyLogoQueueAsync(
         AppDbContext db,

@@ -225,8 +225,6 @@ builder.Services.AddScoped<IAiImageJobHandler, TestingDummyAvatarJobHandler>();
 builder.Services.AddScoped<IAiImageJobHandler, TestingDummyBackgroundJobHandler>();
 builder.Services.AddScoped<IAiImageJobHandler, TestingDummyLogoJobHandler>();
 builder.Services.AddScoped<IAiImageJobHandler, CompanyLogoJobHandler>();
-builder.Services.AddHostedService<AiImageQueueProcessorService>();
-builder.Services.AddHostedService<AiImageQueueRecoveryService>();
 builder.Services.AddSingleton<OffworldNewsReporterPortraitGenerator>(sp =>
     new OffworldNewsReporterPortraitGenerator(
         sp.GetRequiredService<OpenAiConnectionResolver>(),
@@ -238,6 +236,8 @@ builder.Services.AddSingleton<TestingDummyFriendsAssetGenerator>();
 builder.Services.AddSingleton<TestingDummyFriendsAssetService>();
 builder.Services.AddSingleton<OffworldNewsAdminSettingsStore>();
 builder.Services.AddScoped<OffworldNewsReporterRosterAdminService>();
+builder.Services.AddSingleton<StartupReadiness>();
+builder.Services.AddHostedService<DatabaseStartupService>();
 builder.Services.AddHostedService<OffworldNewsSchedulerService>();
 builder.Services.AddSingleton<LunarWeatherAdminSettingsStore>();
 builder.Services.AddSingleton<LunarWeatherService>();
@@ -285,6 +285,10 @@ builder.Services.AddSingleton<FallbackMarketDataProvider>();
 builder.Services.AddSingleton<IMarketDataProvider>(sp => sp.GetRequiredService<FallbackMarketDataProvider>());
 builder.Services.AddHostedService<MarketMidnightRefreshService>();
 builder.Services.AddHostedService<CompanyLogoMidnightSchedulerService>();
+builder.Services.AddHostedService<AiImageQueueProcessorService>();
+builder.Services.AddHostedService<AiImageQueueRecoveryService>();
+builder.Services.AddSingleton<ClientBuildInfo>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<ClientBuildInfo>());
 builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddSingleton<ITokenService, JwtTokenService>();
 
@@ -341,11 +345,6 @@ builder.Services.AddSingleton<IAuthorizationHandler, ModeratorAuthorizationHandl
 builder.Services.AddSingleton<ServerRuntimeInfo>();
 builder.Services.AddSingleton<LiveUpdateBroadcaster>();
 builder.Services.AddSingleton<ILiveUpdateBroadcaster>(sp => sp.GetRequiredService<LiveUpdateBroadcaster>());
-builder.Services.AddSingleton<StartupReadiness>();
-builder.Services.AddHostedService<DatabaseStartupService>();
-builder.Services.AddSingleton<ClientBuildInfo>();
-builder.Services.AddHostedService(sp => sp.GetRequiredService<ClientBuildInfo>());
-
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
 {

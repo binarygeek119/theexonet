@@ -19,26 +19,48 @@ echo "Publish dir: ${PUBLISH_DIR}"
 echo "Data dir:    ${DATA_DIR} (THEEXONET_DATA_DIR)"
 echo
 
+describe_port_5000() {
+  if ! command -v ss >/dev/null 2>&1; then
+    return
+  fi
+  if ss -tlnp 2>/dev/null | grep ':5000' >/dev/null; then
+    echo "Port 5000 listeners:"
+    ss -tlnp 2>/dev/null | grep ':5000' || true
+  else
+    echo "Port 5000: not listening."
+  fi
+}
+
 wait_for_http() {
   local label="$1"
   local url="$2"
   local attempts="${3:-18}"
   local delay="${4:-5}"
   local i=1
+  local last_code=""
   while [ "$i" -le "$attempts" ]; do
-    if curl -sf --max-time 10 "${url}" >/dev/null; then
+    last_code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "${url}" 2>/dev/null || true)"
+    if [ "${last_code}" = "200" ]; then
       echo "OK  ${url}"
       return 0
     fi
     if command -v ss >/dev/null 2>&1 && ss -tln 2>/dev/null | grep -q ':5000'; then
-      echo "WAIT  ${label} (${i}/${attempts}) — port 5000 is listening; endpoint not ready yet"
+      if [ -n "${last_code}" ] && [ "${last_code}" != "000" ]; then
+        echo "WAIT  ${label} (${i}/${attempts}) — port 5000 listening; HTTP ${last_code}"
+      else
+        echo "WAIT  ${label} (${i}/${attempts}) — port 5000 listening; endpoint not ready yet"
+      fi
     else
       echo "WAIT  ${label} (${i}/${attempts}) — API still starting (port 5000 not listening)"
     fi
     sleep "${delay}"
     i=$((i + 1))
   done
-  echo "FAILED  ${url} (after ${attempts} attempts, ~$((attempts * delay))s)"
+  if [ -n "${last_code}" ] && [ "${last_code}" != "000" ]; then
+    echo "FAILED  ${url} (last HTTP ${last_code}, after ${attempts} attempts, ~$((attempts * delay))s)"
+  else
+    echo "FAILED  ${url} (connection failed, after ${attempts} attempts, ~$((attempts * delay))s)"
+  fi
   return 1
 }
 
@@ -169,21 +191,27 @@ ls -ld "${PUBLISH_DIR}" "${DATA_DIR}" "${PUBLISH_DIR}/html" 2>/dev/null || true
 echo
 
 echo "--- Recent service logs ---"
-journalctl -u "${SERVICE}" -n 40 --no-pager || true
+journalctl -u "${SERVICE}" -n 60 --no-pager || true
+echo
+echo "--- Startup errors (last 2 hours) ---"
+journalctl -u "${SERVICE}" --since "2 hours ago" --no-pager 2>/dev/null \
+  | grep -E 'startup failed|CRITICAL|fail|Exception|error while running' -i \
+  | tail -n 20 || true
 echo
 
 echo "--- Service status ---"
 if systemctl is-active --quiet "${SERVICE}" 2>/dev/null; then
   echo "${SERVICE} is active."
-  if command -v ss >/dev/null 2>&1; then
-    if ss -tln 2>/dev/null | grep -q ':5000'; then
-      echo "Port 5000: listening."
-    else
-      echo "Port 5000: not listening yet (API may still be applying database migrations on startup)."
-    fi
+  describe_port_5000
+  if command -v ss >/dev/null 2>&1 && ! ss -tln 2>/dev/null | grep -q ':5000'; then
+    echo "Hint: service is active but port 5000 is not listening — check journalctl for hosted-service startup failures."
   fi
 else
   echo "${SERVICE} is not active."
+  describe_port_5000
+  if command -v ss >/dev/null 2>&1 && ss -tln 2>/dev/null | grep -q ':5000'; then
+    echo "WARN: port 5000 is in use while ${SERVICE} is inactive — a stale dotnet process may be holding the port."
+  fi
 fi
 echo
 
@@ -199,7 +227,8 @@ echo
 
 echo "--- Offworld News HTTP ---"
 if command -v curl >/dev/null 2>&1; then
-  if ! wait_for_http "Offworld News" "http://127.0.0.1:5000/api/public/offworld-news" 18 5; then
+  if ! wait_for_http "Offworld News" "http://127.0.0.1:5000/api/public/offworld-news" 6 5; then
+    echo "Offworld News endpoint: FAILED — deploy latest Theexonet.Api.dll or check journalctl for errors"
     echo "Hint: if /api/status works but Offworld News fails, check OffworldNews:Enabled and journalctl for scheduler errors."
     missing=1
   fi

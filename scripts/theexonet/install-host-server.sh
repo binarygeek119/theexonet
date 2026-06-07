@@ -249,6 +249,9 @@ if [ -f "${APPS_SETTINGS}" ]; then
     -e 's|Username=postgres|Username=theexonet|g' \
     -e 's|Host=localhost|Host=127.0.0.1|g' \
     "${APPS_SETTINGS}" 2>/dev/null || true
+  if [ -f "${SCRIPTS_SRC}/sync-postgres-password.sh" ]; then
+    bash "${SCRIPTS_SRC}/sync-postgres-password.sh" || log "WARN: sync-postgres-password failed."
+  fi
 fi
 
 # --- Apache vhosts ---

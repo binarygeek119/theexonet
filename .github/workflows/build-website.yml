@@ -167,11 +167,11 @@ jobs:
             echo
             echo "Download \`theexonet-website-*.zip\`, extract \`publish/\`, copy \`appsettings.json.example\` to \`appsettings.json\`, configure secrets, then run:"
             echo
-            echo "- **\`Theexonet.Api.dll\`** — port 5000"
-            echo "- **\`Theexonet.Status.dll\`** — port 6000 (same folder; add \`StatusMonitor\` section to \`appsettings.json\`)"
-            echo "- **\`Theexonet.Admin.dll\`** — port 7000 (same folder; add \`AdminPortal\` section to \`appsettings.json\`)"
-            echo "- **\`Theexonet.Moderator.dll\`** — port 7050 (same folder; add \`ModeratorPortal\` section to \`appsettings.json\`)"
-            echo "- **\`Theexonet.Docs.dll\`** — port 9000 (same folder; add \`DocsPortal\` section to \`appsettings.json\`)"
+            echo "- **\`Theexonet.Api.dll\`** â€” port 5000"
+            echo "- **\`Theexonet.Status.dll\`** â€” port 6000 (same folder; add \`StatusMonitor\` section to \`appsettings.json\`)"
+            echo "- **\`Theexonet.Admin.dll\`** â€” port 7000 (same folder; add \`AdminPortal\` section to \`appsettings.json\`)"
+            echo "- **\`Theexonet.Moderator.dll\`** â€” port 7050 (same folder; add \`ModeratorPortal\` section to \`appsettings.json\`)"
+            echo "- **\`Theexonet.Docs.dll\`** â€” port 9000 (same folder; add \`DocsPortal\` section to \`appsettings.json\`)"
           } > release-body.md
 
       - name: Create GitHub release
@@ -182,8 +182,9 @@ jobs:
           body_path: release-body.md
           files: theexonet-website-*.zip
 
+
   deploy:
-    name: Deploy to production
+    name: Deploy to production (FTPS)
     needs: build
     if: >
       github.event_name != 'pull_request' &&
@@ -193,24 +194,10 @@ jobs:
     environment: production
     env:
       DEPLOY_HOST: ${{ vars.DEPLOY_HOST || secrets.DEPLOY_HOST || 'theexonet.com' }}
-      DEPLOY_USER: ${{ vars.DEPLOY_USER || secrets.DEPLOY_USER || 'root' }}
-      DEPLOY_SSH_PORT: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
-      DEPLOY_WWW_PATH: ${{ vars.DEPLOY_WWW_PATH || secrets.DEPLOY_WWW_PATH || '/var/www/publish' }}
-      DEPLOY_API_PATH: ${{ vars.DEPLOY_API_PATH || secrets.DEPLOY_API_PATH || '/var/www/publish' }}
-      DEPLOY_WWW_HOST: ${{ vars.DEPLOY_WWW_HOST || secrets.DEPLOY_WWW_HOST || '' }}
-      DEPLOY_API_HOST: ${{ vars.DEPLOY_API_HOST || secrets.DEPLOY_API_HOST || '' }}
-      DEPLOY_API_SERVICE: ${{ vars.DEPLOY_API_SERVICE || secrets.DEPLOY_API_SERVICE || 'theexonet-api' }}
-      DEPLOY_STATUS_SERVICE: ${{ vars.DEPLOY_STATUS_SERVICE || secrets.DEPLOY_STATUS_SERVICE || 'theexonet-status' }}
-      DEPLOY_ADMIN_SERVICE: ${{ vars.DEPLOY_ADMIN_SERVICE || secrets.DEPLOY_ADMIN_SERVICE || 'theexonet-admin' }}
-      DEPLOY_MODERATOR_SERVICE: ${{ vars.DEPLOY_MODERATOR_SERVICE || secrets.DEPLOY_MODERATOR_SERVICE || 'theexonet-moderator' }}
-      DEPLOY_DOCS_SERVICE: ${{ vars.DEPLOY_DOCS_SERVICE || secrets.DEPLOY_DOCS_SERVICE || 'theexonet-docs' }}
-      DEPLOY_REPO_PATH: ${{ vars.DEPLOY_REPO_PATH || secrets.DEPLOY_REPO_PATH || '/opt/theexonet/theexonet' }}
-      DEPLOY_DATA_PATH: ${{ vars.DEPLOY_DATA_PATH || secrets.DEPLOY_DATA_PATH || '/var/www/data' }}
-      DEPLOY_METHOD: ${{ vars.DEPLOY_METHOD || 'ssh' }}
+      DEPLOY_FTP_HOST: ${{ vars.DEPLOY_FTP_HOST || secrets.DEPLOY_FTP_HOST || '' }}
       DEPLOY_FTP_USER: ${{ vars.DEPLOY_FTP_USER || secrets.DEPLOY_FTP_USER || 'gameftp' }}
       DEPLOY_FTP_PORT: ${{ vars.DEPLOY_FTP_PORT || secrets.DEPLOY_FTP_PORT || '21' }}
       DEPLOY_FTP_STAGING_DIR: ${{ vars.DEPLOY_FTP_STAGING_DIR || secrets.DEPLOY_FTP_STAGING_DIR || 'staging' }}
-      GITHUB_REPOSITORY: ${{ github.repository }}
       GITHUB_SHA: ${{ github.sha }}
 
     steps:
@@ -228,875 +215,70 @@ jobs:
       - name: Ensure html is in publish bundle
         run: rsync -a server/Theexonet.Api/html/ publish/html/
 
-      - name: Detect deploy auth method
-        id: auth
-        env:
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          if [ -n "$DEPLOY_SSH_KEY" ]; then
-            echo "method=key" >> "$GITHUB_OUTPUT"
-          elif [ -n "$DEPLOY_SSH_PASSWORD" ]; then
-            echo "method=password" >> "$GITHUB_OUTPUT"
-          else
-            echo "Configure DEPLOY_SSH_KEY or DEPLOY_SSH_PASSWORD in repository secrets." >&2
-            echo "SSH is required for deploy (rsync or post-FTP promote). See docs/github-deploy-setup.md" >&2
-            exit 1
-          fi
-
-      - name: Detect deploy transport
-        id: transport
+      - name: Validate FTPS deploy credentials
         env:
           DEPLOY_FTP_PASSWORD: ${{ secrets.DEPLOY_FTP_PASSWORD }}
         run: |
           set -euo pipefail
-          method="$(printf '%s' "${DEPLOY_METHOD}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
-          case "${method}" in
-            ssh)
-              echo "method=ssh" >> "$GITHUB_OUTPUT"
-              ;;
-            ftp)
-              if [ -z "${DEPLOY_FTP_PASSWORD}" ]; then
-                echo "DEPLOY_METHOD=ftp requires repository secret DEPLOY_FTP_PASSWORD." >&2
-                exit 1
-              fi
-              echo "method=ftp" >> "$GITHUB_OUTPUT"
-              ;;
-            *)
-              echo "ERROR: DEPLOY_METHOD must be ssh or ftp (got '${DEPLOY_METHOD}')." >&2
-              exit 1
-              ;;
-          esac
-          echo "Deploy transport: ${method}"
+          if [ -z "${DEPLOY_FTP_PASSWORD}" ]; then
+            echo "Add repository secret DEPLOY_FTP_PASSWORD (gameftp password)." >&2
+            echo "On the server install the staging watcher: sudo bash scripts/install-staging-watcher.sh" >&2
+            exit 1
+          fi
 
-      - name: Setup SSH (key)
-        if: steps.auth.outputs.method == 'key'
-        uses: webfactory/ssh-agent@v0.10.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
-
-      - name: Setup SSH (password)
-        if: steps.auth.outputs.method == 'password'
-        run: sudo apt-get update && sudo apt-get install -y sshpass
-
-      - name: Normalize deploy settings
+      - name: Normalize deploy host
         run: |
           set -euo pipefail
-          normalize_host() {
-            local h="${1:-}"
-            h="${h#https://}"
-            h="${h#http://}"
-            h="${h%%/*}"
-            h="${h%%:*}"
-            h="$(printf '%s' "$h" | tr -d '[:space:]')"
-            printf '%s' "$h"
-          }
-          normalize_path() {
-            local p="${1:-}"
-            p="$(printf '%s' "$p" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-            # Strip accidental rsync destination pasted into a path variable.
-            if [[ "$p" =~ ^[^/@[:space:]]+@[^:]+:(/.+)$ ]]; then
-              p="${BASH_REMATCH[1]}"
-            elif [[ "$p" =~ ^[^/@[:space:]]+:(/.+)$ ]]; then
-              p="${BASH_REMATCH[1]}"
-            fi
-            while [[ "$p" == */ ]] && [[ "$p" != "/" ]]; do
-              p="${p%/}"
-            done
-            printf '%s' "$p"
-          }
-          validate_path() {
-            local name="$1"
-            local p="$2"
-            if [ -z "$p" ]; then
-              echo "ERROR: ${name} is empty. Use an absolute path, e.g. /var/www/publish." >&2
-              exit 1
-            fi
-            if [[ "$p" != /* ]]; then
-              echo "ERROR: ${name} must start with / (got '${p}'). Do not include user@host: — set DEPLOY_HOST and DEPLOY_USER separately." >&2
-              exit 1
-            fi
-            if [[ "$p" == *@* ]] || [[ "$p" == *:* ]]; then
-              echo "ERROR: ${name} must be a filesystem path only (got '${p}'). Use /var/www/publish, not user@host:/var/www/publish." >&2
-              exit 1
-            fi
-            if [ "$p" = "/var/www" ]; then
-              echo "ERROR: ${name} must not be /var/www alone — that drops html, wwwroot, and .aspnet beside publish." >&2
-              echo "Use /var/www/publish for API + portals + game html (recommended)." >&2
-              exit 1
-            fi
-            if [ "$p" = "/var/www/html" ] || [ "$p" = "/var/www/wwwroot" ]; then
-              echo "ERROR: ${name} should be /var/www/publish, not a subfolder created by a bad deploy (${p})." >&2
-              exit 1
-            fi
-          }
-
-          host="$(normalize_host "$DEPLOY_HOST")"
+          host="${DEPLOY_FTP_HOST:-$DEPLOY_HOST}"
+          host="${host#https://}"
+          host="${host#http://}"
+          host="${host%%/*}"
+          host="${host%%:*}"
+          host="$(printf '%s' "$host" | tr -d '[:space:]')"
           if [ -z "$host" ]; then
-            echo "DEPLOY_HOST is empty. Set it to your server hostname (e.g. theexonet.com)." >&2
+            echo "Set DEPLOY_HOST or DEPLOY_FTP_HOST (e.g. theexonet.com)." >&2
             exit 1
           fi
-          if ! [[ "$host" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]]; then
-            echo "ERROR: DEPLOY_HOST '${host}' is not a valid hostname. Use hostname only — no https://, paths, or spaces." >&2
-            exit 1
-          fi
-          echo "DEPLOY_HOST=$host" >> "$GITHUB_ENV"
-
-          www_host="$(normalize_host "${DEPLOY_WWW_HOST:-}")"
-          api_host="$(normalize_host "${DEPLOY_API_HOST:-}")"
-          echo "DEPLOY_WWW_HOST=$www_host" >> "$GITHUB_ENV"
-          echo "DEPLOY_API_HOST=$api_host" >> "$GITHUB_ENV"
-
-          user="$(printf '%s' "$DEPLOY_USER" | tr -d '[:space:]')"
-          if [ -z "$user" ]; then
-            echo "DEPLOY_USER is empty." >&2
-            exit 1
-          fi
-          echo "DEPLOY_USER=$user" >> "$GITHUB_ENV"
-
-          port="$(printf '%s' "$DEPLOY_SSH_PORT" | tr -d '[:space:]')"
-          if ! [[ "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
-            echo "ERROR: DEPLOY_SSH_PORT must be 1-65535, got '${port}'." >&2
-            exit 1
-          fi
-          echo "DEPLOY_SSH_PORT=$port" >> "$GITHUB_ENV"
-
-          www_path="$(normalize_path "$DEPLOY_WWW_PATH")"
-          api_path="$(normalize_path "$DEPLOY_API_PATH")"
-          validate_path "DEPLOY_WWW_PATH" "$www_path"
-          validate_path "DEPLOY_API_PATH" "$api_path"
-          echo "DEPLOY_WWW_PATH=$www_path" >> "$GITHUB_ENV"
-          echo "DEPLOY_API_PATH=$api_path" >> "$GITHUB_ENV"
-
-          repo_path="$(normalize_path "$DEPLOY_REPO_PATH")"
-          validate_path "DEPLOY_REPO_PATH" "$repo_path"
-          echo "DEPLOY_REPO_PATH=$repo_path" >> "$GITHUB_ENV"
-
-          data_path="$(normalize_path "$DEPLOY_DATA_PATH")"
-          validate_path "DEPLOY_DATA_PATH" "$data_path"
-          echo "DEPLOY_DATA_PATH=$data_path" >> "$GITHUB_ENV"
-
-          effective_www_host="${www_host:-$host}"
-          effective_api_host="${api_host:-$host}"
-          skip_www_rsync=false
-          if [ "$effective_www_host" = "$effective_api_host" ] && { [ "$www_path" = "$api_path" ] || [ "$www_path" = "${api_path}/html" ]; }; then
-            skip_www_rsync=true
-            echo "DEPLOY_SKIP_WWW_RSYNC=true" >> "$GITHUB_ENV"
-            echo "DEPLOY_WWW_PATH is under publish — game html ships in publish/html/ (skipping separate www rsync)."
-          else
-            echo "DEPLOY_SKIP_WWW_RSYNC=false" >> "$GITHUB_ENV"
-          fi
-
+          echo "DEPLOY_FTP_HOST=$host" >> "$GITHUB_ENV"
           deploy_ip="$(getent ahostsv4 "$host" 2>/dev/null | awk 'NR==1 {print $1}' || true)"
-          echo "Deploy host: ${host}${deploy_ip:+ (A ${deploy_ip})}"
+          echo "FTPS target: ${host}${deploy_ip:+ (A ${deploy_ip})} -> ${DEPLOY_FTP_STAGING_DIR}/"
 
-          echo "Deploy targets:"
-          if [ "$skip_www_rsync" = "true" ]; then
-            echo "  publish (api + html + portals): ${user}@${effective_api_host}:${api_path}/"
-          else
-            echo "  www: ${user}@${effective_www_host}:${www_path}/"
-            echo "  api: ${user}@${effective_api_host}:${api_path}/"
-          fi
-          echo "  repo: ${repo_path}"
-          echo "  data: ${data_path}"
-
-      - name: Add SSH host keys
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-
-          unique_hosts=()
-          for host in "$DEPLOY_HOST" "$DEPLOY_WWW_HOST" "$DEPLOY_API_HOST"; do
-            host="${host#https://}"
-            host="${host#http://}"
-            host="${host%%/*}"
-            host="${host%%:*}"
-            host="$(printf '%s' "$host" | tr -d '[:space:]')"
-            if [ -n "$host" ]; then
-              duplicate=0
-              for seen in "${unique_hosts[@]:-}"; do
-                if [ "$seen" = "$host" ]; then
-                  duplicate=1
-                  break
-                fi
-              done
-              if [ "$duplicate" -eq 0 ]; then
-                unique_hosts+=("$host")
-              fi
-            fi
-          done
-
-          if [ "${#unique_hosts[@]}" -eq 0 ]; then
-            echo "No deploy host configured. Set repository variable DEPLOY_HOST (hostname only, e.g. theexonet.com)." >&2
-            exit 1
-          fi
-
-          failed=0
-          for host in "${unique_hosts[@]}"; do
-            echo "Checking SSH reachability for ${host}:${DEPLOY_SSH_PORT}..."
-            if ! getent ahosts "$host" >/dev/null; then
-              echo "ERROR: DNS lookup failed for '${host}'. Check DEPLOY_HOST in GitHub Actions variables." >&2
-              failed=1
-              continue
-            fi
-            getent ahosts "$host" | head -n 3
-
-            if ! timeout 15 bash -c "exec 3<>/dev/tcp/${host}/${DEPLOY_SSH_PORT}" 2>/dev/null; then
-              echo "ERROR: Cannot open TCP ${host}:${DEPLOY_SSH_PORT} from GitHub Actions." >&2
-              echo "On the server: ensure sshd listens on 0.0.0.0:${DEPLOY_SSH_PORT}, firewall allows inbound SSH, and router forwards port ${DEPLOY_SSH_PORT} if needed." >&2
-              failed=1
-              continue
-            fi
-
-            scan_err="$(mktemp)"
-            if ! ssh-keyscan -T 15 -H -p "$DEPLOY_SSH_PORT" "$host" >> ~/.ssh/known_hosts 2>"$scan_err"; then
-              echo "ERROR: ssh-keyscan failed for ${host}:${DEPLOY_SSH_PORT}." >&2
-              sed 's/^/  /' "$scan_err" >&2
-              failed=1
-            else
-              echo "Added host key for ${host}:${DEPLOY_SSH_PORT}"
-            fi
-            rm -f "$scan_err"
-          done
-
-          if [ "$failed" -ne 0 ]; then
-            exit 1
-          fi
-
-      - name: Ensure remote deploy directories exist
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          if [ "$DEPLOY_USER" = "root" ]; then
-            mkdir_cmd="mkdir -p"
-          else
-            mkdir_cmd="sudo mkdir -p"
-          fi
-
-          run_remote() {
-            local rc=0
-            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$1" "$2" || rc=$?
-            else
-              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$1" "$2" || rc=$?
-            fi
-            if [ "$rc" -ne 0 ]; then
-              echo "ERROR: SSH to $1 failed (exit ${rc})." >&2
-              echo "  DEPLOY_HOST=${DEPLOY_HOST} — confirm this is your GCP VM (not an old duckdns/home host)." >&2
-              if [ "${{ steps.auth.outputs.method }}" = "password" ]; then
-                echo "  theexonet GCP uses key-only SSH. Add secret DEPLOY_SSH_KEY (private key) and remove DEPLOY_SSH_PASSWORD." >&2
-              else
-                echo "  Ensure the public key for DEPLOY_SSH_KEY is in ${DEPLOY_USER}@server:~/.ssh/authorized_keys" >&2
-              fi
-              exit "$rc"
-            fi
-          }
-
-          ensure_dir() {
-            local host="$1"
-            local path="$2"
-            local label="$3"
-            local remote="${DEPLOY_USER}@${host}"
-            echo "Ensuring ${label} directory exists: ${path}"
-            run_remote "$remote" "${mkdir_cmd} '${path}'"
-          }
-
-          www_host="${DEPLOY_WWW_HOST:-$DEPLOY_HOST}"
-          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          if [ "${DEPLOY_SKIP_WWW_RSYNC:-false}" = "true" ]; then
-            ensure_dir "$api_host" "$DEPLOY_API_PATH" "publish"
-            ensure_dir "$api_host" "${DEPLOY_API_PATH}/html" "publish html"
-            ensure_dir "$api_host" "${DEPLOY_API_PATH}/wwwroot" "admin/moderator wwwroot"
-            ensure_dir "$api_host" "${DEPLOY_API_PATH}/status-wwwroot" "status dashboard wwwroot"
-            ensure_dir "$api_host" "$(dirname "${DEPLOY_REPO_PATH}")" "server git checkout parent"
-            ensure_dir "$api_host" "${DEPLOY_API_PATH}/.aspnet" "aspnet keys"
-          else
-            ensure_dir "$www_host" "$DEPLOY_WWW_PATH" "www"
-            ensure_dir "$api_host" "$DEPLOY_API_PATH" "api"
-          fi
-          if [ "${{ steps.transport.outputs.method }}" = "ftp" ]; then
-            ensure_dir "$api_host" "/var/www/staging" "FTP staging"
-            ensure_dir "$api_host" "$DEPLOY_DATA_PATH" "data"
-          fi
-
-      - name: Install helper scripts (FTP deploy)
-        if: steps.transport.outputs.method == 'ftp'
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${host}"
-          if [ "$DEPLOY_USER" = "root" ]; then
-            sudo_prefix=""
-          else
-            sudo_prefix="sudo "
-          fi
-          run_remote() {
-            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            else
-              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            fi
-          }
-          repo_scripts="${DEPLOY_REPO_PATH}/scripts"
-          if run_remote "test -f '${repo_scripts}/install-bin-scripts.sh'"; then
-            run_remote "${sudo_prefix}bash '${repo_scripts}/install-bin-scripts.sh' '${repo_scripts}'"
-          else
-            staging="/tmp/theexonet-scripts-install"
-            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-              rsync -az --delete scripts/ \
-                -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-                "${remote}:${staging}/"
-            else
-              SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -az --delete scripts/ \
-                -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-                "${remote}:${staging}/"
-            fi
-            run_remote "${sudo_prefix}bash ${staging}/install-bin-scripts.sh ${staging}"
-          fi
-
-      - name: Install lftp (FTP deploy)
-        if: steps.transport.outputs.method == 'ftp'
+      - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
-      - name: Create deploy archive (FTP)
-        if: steps.transport.outputs.method == 'ftp'
+      - name: Create deploy archive
         run: zip -r "theexonet-website-deploy-${GITHUB_SHA}.zip" publish data
 
       - name: Upload deploy bundle via FTPS
-        if: steps.transport.outputs.method == 'ftp'
         env:
           DEPLOY_FTP_PASSWORD: ${{ secrets.DEPLOY_FTP_PASSWORD }}
-          DEPLOY_FTP_HOST: ${{ vars.DEPLOY_FTP_HOST || secrets.DEPLOY_FTP_HOST || '' }}
         run: |
           set -euo pipefail
-          export DEPLOY_FTP_HOST="${DEPLOY_FTP_HOST:-$DEPLOY_HOST}"
           chmod +x scripts/github-deploy-ftp.sh
           bash scripts/github-deploy-ftp.sh "theexonet-website-deploy-${GITHUB_SHA}.zip"
+          echo "Uploaded. Server staging-watcher will promote to /var/www/publish within ~30s."
 
-      - name: Promote FTP staging on server
-        if: steps.transport.outputs.method == 'ftp'
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+      - name: Wait for production HTTP
         run: |
           set -euo pipefail
-          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${host}"
-          if [ "$DEPLOY_USER" = "root" ]; then
-            sudo_prefix=""
-          else
-            sudo_prefix="sudo "
-          fi
-          run_remote() {
-            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            else
-              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            fi
-          }
-          if run_remote "command -v promote-theexonet-staging >/dev/null 2>&1"; then
-            run_remote "${sudo_prefix}promote-theexonet-staging"
-          else
-            run_remote "${sudo_prefix}bash '${DEPLOY_REPO_PATH}/scripts/theexonet/promote-staging.sh'"
-          fi
-          run_remote "test -f '${DEPLOY_API_PATH}/Theexonet.Api.dll'"
-
-      - name: Deploy static web client (html)
-        if: steps.transport.outputs.method == 'ssh' && env.DEPLOY_SKIP_WWW_RSYNC != 'true'
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          host="${DEPLOY_WWW_HOST:-$DEPLOY_HOST}"
-          target="${DEPLOY_USER}@${host}:${DEPLOY_WWW_PATH}/"
-          www_rsync_args=(
-            -avz
-            --delete
-            --filter 'P appsettings.json'
-            --filter 'P appsettings.Development.json'
-          )
-          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            rsync "${www_rsync_args[@]}" \
-              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              server/Theexonet.Api/html/ \
-              "$target"
-          else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${www_rsync_args[@]}" \
-              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              server/Theexonet.Api/html/ \
-              "$target"
-          fi
-
-      - name: Deploy game html to publish/html
-        if: steps.transport.outputs.method == 'ssh'
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${api_host}"
-          target="${remote}:${DEPLOY_API_PATH}/html/"
-          html_rsync_args=(
-            -avz
-            --exclude 'uploads/'
-            --exclude 'images/profile/'
-            --exclude 'images/profile-backgrounds/'
-            --exclude 'exonet/offworld-news/editions/'
-            --exclude 'exonet/offworld-news/images/'
-          )
-          echo "Deploying game html from checkout to ${target}"
-          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            rsync "${html_rsync_args[@]}" \
-              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              server/Theexonet.Api/html/ \
-              "$target"
-          else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${html_rsync_args[@]}" \
-              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              server/Theexonet.Api/html/ \
-              "$target"
-          fi
-
-      - name: Deploy API publish output
-        if: steps.transport.outputs.method == 'ssh'
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          target="${DEPLOY_USER}@${host}:${DEPLOY_API_PATH}/"
-          # --exclude skips transfer; --filter P* prevents --delete from removing server-only files.
-          api_rsync_args=(
-            -avz
-            --delete
-            --filter 'P appsettings.json'
-            --filter 'P appsettings.Development.json'
-            --filter 'P server-runtime.json'
-            --filter 'P status-runtime.json'
-            --filter 'P .aspnet/'
-            --filter 'P .aspnet/***'
-            --exclude 'appsettings.json'
-            --exclude 'appsettings.Development.json'
-            --exclude 'server-runtime.json'
-            --exclude 'status-runtime.json'
-          )
-          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            rsync "${api_rsync_args[@]}" \
-              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              publish/ \
-              "$target"
-          else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${api_rsync_args[@]}" \
-              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              publish/ \
-              "$target"
-          fi
-
-      - name: Deploy data CSV spreadsheets
-        if: steps.transport.outputs.method == 'ssh'
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${api_host}"
-          data_target="${remote}:${DEPLOY_DATA_PATH}/"
-          csv_files=(
-            credits.csv
-            market-items.csv
-            trade-items.csv
-            hate-speech-terms.csv
-            bad-language-terms.csv
-            political-terms.csv
-            sexual-terms.csv
-            offworld-news-reporters.csv
-          )
-
-          run_remote() {
-            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            else
-              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            fi
-          }
-
-          for file in "${csv_files[@]}"; do
-            if [ ! -f "data/${file}" ]; then
-              echo "ERROR: missing deploy CSV artifact data/${file}" >&2
-              exit 1
-            fi
-          done
-
-          if [ "$DEPLOY_USER" = "root" ]; then
-            mkdir_cmd="mkdir -p '${DEPLOY_DATA_PATH}'"
-            chown_cmd="chown theexonet:theexonet '${DEPLOY_DATA_PATH}'/*.csv"
-          else
-            mkdir_cmd="sudo mkdir -p '${DEPLOY_DATA_PATH}'"
-            chown_cmd="sudo chown theexonet:theexonet '${DEPLOY_DATA_PATH}'/*.csv"
-          fi
-
-          echo "Deploying CSV spreadsheets to ${data_target}"
-          run_remote "$mkdir_cmd"
-          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            rsync -avz \
-              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              "${csv_files[@]/#/data/}" \
-              "$data_target"
-          else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -avz \
-              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              "${csv_files[@]/#/data/}" \
-              "$data_target"
-          fi
-          run_remote "$chown_cmd" || true
-
-          for file in "${csv_files[@]}"; do
-            if ! run_remote "test -f '${DEPLOY_DATA_PATH}/${file}'"; then
-              echo "ERROR: CSV missing on server after deploy: ${DEPLOY_DATA_PATH}/${file}" >&2
-              exit 1
-            fi
-          done
-          echo "Data CSV spreadsheets updated in ${DEPLOY_DATA_PATH}"
-
-      - name: Deploy merged status and portal wwwroot to host
-        if: steps.transport.outputs.method == 'ssh'
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${api_host}"
-          www_target="${remote}:${DEPLOY_API_PATH}/wwwroot/"
-          status_target="${remote}:${DEPLOY_API_PATH}/status-wwwroot/"
-          staging="$(mktemp -d)"
-          mkdir -p "${staging}/wwwroot"
-          bash scripts/sync-publish-wwwroot.sh server "${staging}/wwwroot"
-          test -f "${staging}/wwwroot/admin.html"
-          test -f "${staging}/wwwroot/index.html"
-          test -f "${staging}/wwwroot/ai.html"
-          test -f "${staging}/wwwroot/js/admin-testing-mode.js"
-          test -f "${staging}/status-wwwroot/index.html"
-          test -f "${staging}/status-wwwroot/ai.html"
-          test -f "${staging}/wwwroot/css/docs.css"
-          echo "Deploying status + portal + docs wwwroot to ${www_target} and ${status_target}"
-          rsync_common=( -avz --delete )
-          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            rsync "${rsync_common[@]}" \
-              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              "${staging}/wwwroot/" \
-              "$www_target"
-            rsync "${rsync_common[@]}" \
-              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              "${staging}/status-wwwroot/" \
-              "$status_target"
-          else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${rsync_common[@]}" \
-              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              "${staging}/wwwroot/" \
-              "$www_target"
-            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${rsync_common[@]}" \
-              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              "${staging}/status-wwwroot/" \
-              "$status_target"
-          fi
-
-      - name: Update server git checkout
-        continue-on-error: true
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${api_host}"
-          run_remote() {
-            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            else
-              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            fi
-          }
-          repo_rsync_args=(
-            -az
-            --delete
-            --exclude '.git/'
-            --exclude 'server/publish/'
-            --exclude 'server/publish-*/'
-            --exclude 'server/**/bin/'
-            --exclude 'server/**/obj/'
-            --exclude 'server/Theexonet.Api/html/uploads/'
-            --exclude 'server/Theexonet.Api/*.dll'
-            --exclude 'server/Theexonet.Api/publish/'
-          )
-          echo "Rsyncing repository sources to ${DEPLOY_REPO_PATH} (${GITHUB_SHA})"
-          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            rsync "${repo_rsync_args[@]}" \
-              -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              ./ \
-              "${remote}:${DEPLOY_REPO_PATH}/"
-          else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" rsync "${repo_rsync_args[@]}" \
-              -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-              ./ \
-              "${remote}:${DEPLOY_REPO_PATH}/"
-          fi
-          run_remote "test -f '${DEPLOY_REPO_PATH}/server/Theexonet.Api/Theexonet.Api.csproj'"
-          run_remote "printf '%s\\n' '${GITHUB_SHA}' > '${DEPLOY_REPO_PATH}/.deploy-commit'"
-          echo "Server sources updated at ${DEPLOY_REPO_PATH}"
-
-      - name: Fix portal wwwroot ownership
-        if: steps.transport.outputs.method == 'ssh'
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${api_host}"
-          if [ "$DEPLOY_USER" = "root" ]; then
-            chown_cmd="chown -R theexonet:theexonet '${DEPLOY_API_PATH}/wwwroot'"
-          else
-            chown_cmd="sudo chown -R theexonet:theexonet '${DEPLOY_API_PATH}/wwwroot'"
-          fi
-          if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-            ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$chown_cmd"
-          else
-            SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$chown_cmd"
-          fi
-
-      - name: Fix publish permissions for theexonet
-        if: steps.transport.outputs.method == 'ssh'
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${api_host}"
-          if [ "$DEPLOY_USER" = "root" ]; then
-            sudo_prefix=""
-          else
-            sudo_prefix="sudo "
-          fi
-          run_remote() {
-            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            else
-              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            fi
-          }
-          if run_remote "command -v fix-theexonet-permissions >/dev/null 2>&1"; then
-            run_remote "${sudo_prefix}fix-theexonet-permissions -q"
-          else
-            run_remote "${sudo_prefix}chmod a+rx '${DEPLOY_API_PATH}' && ${sudo_prefix}find '${DEPLOY_API_PATH}' -maxdepth 1 -type f \\( -name '*.dll' -o -name '*.json' \\) -exec chmod a+r {} +"
-          fi
-
-      - name: Restart services
-        if: steps.transport.outputs.method == 'ssh'
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${host}"
-          if [ "$DEPLOY_USER" = "root" ]; then
-            sudo_prefix=""
-          else
-            sudo_prefix="sudo "
-          fi
-
-          run_remote() {
-            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            else
-              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            fi
-          }
-
-          restart_unit() {
-            local unit="$1"
-            if [ -z "$unit" ]; then
-              return 0
-            fi
-            if ! run_remote "${sudo_prefix}systemctl cat ${unit}.service >/dev/null 2>&1"; then
-              echo "WARNING: ${unit}.service is not installed on the server; skipping restart."
-              echo "Run sudo install-theexonet-systemd on the server (see docs/deploy.md)."
-              return 0
-            fi
-            if run_remote "${sudo_prefix}systemctl restart ${unit}"; then
-              echo "Restarted ${unit}"
-            else
-              echo "WARNING: systemctl restart ${unit} failed (deploy files were still synced)." >&2
-            fi
-          }
-
-          if run_remote "command -v restart-theexonet >/dev/null 2>&1"; then
-            if run_remote "${sudo_prefix}restart-theexonet"; then
-              echo "Restarted services via restart-theexonet"
-            else
-              echo "WARNING: restart-theexonet failed; trying individual service restarts." >&2
-              restart_unit "${DEPLOY_API_SERVICE}"
-              restart_unit "${DEPLOY_STATUS_SERVICE}"
-              restart_unit "${DEPLOY_ADMIN_SERVICE}"
-              restart_unit "${DEPLOY_MODERATOR_SERVICE}"
-              restart_unit "${DEPLOY_DOCS_SERVICE}"
-            fi
-          else
-            echo "WARNING: restart-theexonet not found; falling back to systemctl restart." >&2
-            restart_unit "${DEPLOY_API_SERVICE}"
-            restart_unit "${DEPLOY_STATUS_SERVICE}"
-            restart_unit "${DEPLOY_ADMIN_SERVICE}"
-            restart_unit "${DEPLOY_MODERATOR_SERVICE}"
-            restart_unit "${DEPLOY_DOCS_SERVICE}"
-          fi
-
-      - name: Install helper scripts
-        if: steps.transport.outputs.method == 'ssh'
-        continue-on-error: true
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${host}"
-          if [ "$DEPLOY_USER" = "root" ]; then
-            sudo_prefix=""
-          else
-            sudo_prefix="sudo "
-          fi
-
-          run_remote() {
-            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            else
-              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            fi
-          }
-
-          repo_scripts="${DEPLOY_REPO_PATH}/scripts"
-          if run_remote "test -f '${repo_scripts}/install-bin-scripts.sh'"; then
-            echo "Installing helper scripts from ${repo_scripts}"
-            run_remote "${sudo_prefix}bash '${repo_scripts}/install-bin-scripts.sh' '${repo_scripts}'"
-          else
-            staging="/tmp/theexonet-scripts-install"
-            echo "Repo scripts missing — syncing scripts/ to ${remote}:${staging}"
-            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-              rsync -az --delete scripts/ \
-                -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-                "${remote}:${staging}/"
-            else
-              SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -az --delete scripts/ \
-                -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
-                "${remote}:${staging}/"
-            fi
-            run_remote "${sudo_prefix}bash ${staging}/install-bin-scripts.sh ${staging}"
-          fi
-          echo "Installed /usr/local/bin/restart-theexonet and related helpers."
-
-      - name: Verify portal assets on server
-        env:
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          api_host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
-          remote="${DEPLOY_USER}@${api_host}"
-          if [ "$DEPLOY_USER" = "root" ]; then
-            sudo_prefix=""
-          else
-            sudo_prefix="sudo "
-          fi
-
-          run_remote() {
-            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
-              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            else
-              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
-                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
-            fi
-          }
-
-          verify_file() {
-            local label="$1"
-            local path="$2"
-            if ! run_remote "test -f '${path}'"; then
-              echo "ERROR: ${label} missing at ${path}" >&2
-              run_remote "ls -la '${DEPLOY_API_PATH}/wwwroot/js' '${DEPLOY_API_PATH}/wwwroot/images' 2>&1 || true"
-              exit 1
-            fi
-            echo "${label}: on disk"
-          }
-
-          verify_file "Admin admin.html" "${DEPLOY_API_PATH}/wwwroot/admin.html"
-          verify_file "Admin currency.js" "${DEPLOY_API_PATH}/wwwroot/js/currency.js"
-          verify_file "Admin admin-testing-mode.js" "${DEPLOY_API_PATH}/wwwroot/js/admin-testing-mode.js"
-          verify_file "Admin currency.png" "${DEPLOY_API_PATH}/wwwroot/images/currency.png"
-          verify_file "Game currency.png" "${DEPLOY_API_PATH}/html/images/currency.png"
-          verify_file "Status index.html" "${DEPLOY_API_PATH}/status-wwwroot/index.html"
-          verify_file "Status ai.html" "${DEPLOY_API_PATH}/status-wwwroot/ai.html"
-          verify_file "Status favicon.svg" "${DEPLOY_API_PATH}/status-wwwroot/favicon.svg"
-          verify_file "Docs docs.css" "${DEPLOY_API_PATH}/wwwroot/css/docs.css"
-          verify_file "Docs content index" "${DEPLOY_API_PATH}/content/index.md"
-
-          wait_for_active() {
-            local unit="$1"
-            local attempt=1
-            while [ "$attempt" -le 24 ]; do
-              local state
-              state="$(run_remote "systemctl is-active ${unit} 2>/dev/null || true")"
-              if [ "$state" = "active" ]; then
-                echo "${unit}: active"
-                return 0
-              fi
-              if [ "$state" = "failed" ]; then
-                echo "ERROR: ${unit} failed to start" >&2
-                run_remote "${sudo_prefix}journalctl -u ${unit} -n 40 --no-pager 2>&1 || true"
-                return 1
-              fi
-              echo "${unit}: ${state:-unknown} (attempt ${attempt}/24)..."
-              sleep 5
-              attempt=$((attempt + 1))
-            done
-            echo "ERROR: ${unit} did not reach active state" >&2
-            run_remote "${sudo_prefix}journalctl -u ${unit} -n 40 --no-pager 2>&1 || true"
-            return 1
-          }
-
-          for unit in "${DEPLOY_ADMIN_SERVICE}" "${DEPLOY_MODERATOR_SERVICE}" "${DEPLOY_DOCS_SERVICE}"; do
-            if [ -n "$unit" ]; then
-              wait_for_active "$unit" || exit 1
-            fi
-          done
-
-          verify_http() {
+          host="${DEPLOY_FTP_HOST}"
+          wait_http() {
             local label="$1"
             local url="$2"
             local attempt=1
-            while [ "$attempt" -le 12 ]; do
-              if run_remote "curl -sf -o /dev/null '${url}'"; then
-                echo "${label}: HTTP OK"
+            while [ "$attempt" -le 24 ]; do
+              if curl -sf --max-time 20 "$url" >/dev/null; then
+                echo "${label}: OK (${url})"
                 return 0
               fi
-              echo "${label}: waiting for HTTP (attempt ${attempt}/12)..."
-              sleep 5
+              echo "${label}: waiting (attempt ${attempt}/24)..."
+              sleep 10
               attempt=$((attempt + 1))
             done
-            echo "ERROR: ${label} not served at ${url}" >&2
-            run_remote "systemctl is-active ${DEPLOY_ADMIN_SERVICE} ${DEPLOY_MODERATOR_SERVICE} ${DEPLOY_DOCS_SERVICE} 2>&1 || true"
-            run_remote "command -v diagnose-theexonet-portals >/dev/null 2>&1 && ${sudo_prefix}diagnose-theexonet-portals || ${sudo_prefix}journalctl -u ${DEPLOY_ADMIN_SERVICE} -n 25 --no-pager 2>&1 || true"
-            exit 1
+            echo "ERROR: ${label} not reachable at ${url}" >&2
+            echo "Ensure theexonet-staging-watcher.service is running on the server." >&2
+            return 1
           }
-
-          verify_http "Admin currency.js" "http://127.0.0.1:7000/js/currency.js"
-          verify_http "Admin admin-testing-mode.js" "http://127.0.0.1:7000/js/admin-testing-mode.js"
-          verify_http "Moderator currency.js" "http://127.0.0.1:7050/js/currency.js"
-          verify_http "Docs CSS" "http://127.0.0.1:9000/css/docs.css"
+          wait_http "Game" "http://${host}/"
+          wait_http "API status" "http://api.${host}/api/status" || \
+            wait_http "API root" "http://api.${host}/"

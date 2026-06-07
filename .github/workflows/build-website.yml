@@ -206,6 +206,10 @@ jobs:
       DEPLOY_DOCS_SERVICE: ${{ vars.DEPLOY_DOCS_SERVICE || secrets.DEPLOY_DOCS_SERVICE || 'theexonet-docs' }}
       DEPLOY_REPO_PATH: ${{ vars.DEPLOY_REPO_PATH || secrets.DEPLOY_REPO_PATH || '/opt/theexonet/theexonet' }}
       DEPLOY_DATA_PATH: ${{ vars.DEPLOY_DATA_PATH || secrets.DEPLOY_DATA_PATH || '/var/www/data' }}
+      DEPLOY_METHOD: ${{ vars.DEPLOY_METHOD || 'ssh' }}
+      DEPLOY_FTP_USER: ${{ vars.DEPLOY_FTP_USER || secrets.DEPLOY_FTP_USER || 'gameftp' }}
+      DEPLOY_FTP_PORT: ${{ vars.DEPLOY_FTP_PORT || secrets.DEPLOY_FTP_PORT || '21' }}
+      DEPLOY_FTP_STAGING_DIR: ${{ vars.DEPLOY_FTP_STAGING_DIR || secrets.DEPLOY_FTP_STAGING_DIR || 'staging' }}
       GITHUB_REPOSITORY: ${{ github.repository }}
       GITHUB_SHA: ${{ github.sha }}
 
@@ -237,9 +241,34 @@ jobs:
             echo "method=password" >> "$GITHUB_OUTPUT"
           else
             echo "Configure DEPLOY_SSH_KEY or DEPLOY_SSH_PASSWORD in repository secrets." >&2
-            echo "See docs/github-deploy-setup.md" >&2
+            echo "SSH is required for deploy (rsync or post-FTP promote). See docs/github-deploy-setup.md" >&2
             exit 1
           fi
+
+      - name: Detect deploy transport
+        id: transport
+        env:
+          DEPLOY_FTP_PASSWORD: ${{ secrets.DEPLOY_FTP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          method="$(printf '%s' "${DEPLOY_METHOD}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+          case "${method}" in
+            ssh)
+              echo "method=ssh" >> "$GITHUB_OUTPUT"
+              ;;
+            ftp)
+              if [ -z "${DEPLOY_FTP_PASSWORD}" ]; then
+                echo "DEPLOY_METHOD=ftp requires repository secret DEPLOY_FTP_PASSWORD." >&2
+                exit 1
+              fi
+              echo "method=ftp" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "ERROR: DEPLOY_METHOD must be ssh or ftp (got '${DEPLOY_METHOD}')." >&2
+              exit 1
+              ;;
+          esac
+          echo "Deploy transport: ${method}"
 
       - name: Setup SSH (key)
         if: steps.auth.outputs.method == 'key'
@@ -472,9 +501,98 @@ jobs:
             ensure_dir "$www_host" "$DEPLOY_WWW_PATH" "www"
             ensure_dir "$api_host" "$DEPLOY_API_PATH" "api"
           fi
+          if [ "${{ steps.transport.outputs.method }}" = "ftp" ]; then
+            ensure_dir "$api_host" "/var/www/staging" "FTP staging"
+            ensure_dir "$api_host" "$DEPLOY_DATA_PATH" "data"
+          fi
+
+      - name: Install helper scripts (FTP deploy)
+        if: steps.transport.outputs.method == 'ftp'
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${host}"
+          if [ "$DEPLOY_USER" = "root" ]; then
+            sudo_prefix=""
+          else
+            sudo_prefix="sudo "
+          fi
+          run_remote() {
+            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            else
+              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
+                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            fi
+          }
+          repo_scripts="${DEPLOY_REPO_PATH}/scripts"
+          if run_remote "test -f '${repo_scripts}/install-bin-scripts.sh'"; then
+            run_remote "${sudo_prefix}bash '${repo_scripts}/install-bin-scripts.sh' '${repo_scripts}'"
+          else
+            staging="/tmp/theexonet-scripts-install"
+            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+              rsync -az --delete scripts/ \
+                -e "ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+                "${remote}:${staging}/"
+            else
+              SSHPASS="$DEPLOY_SSH_PASSWORD" rsync -az --delete scripts/ \
+                -e "sshpass -e ssh -p ${DEPLOY_SSH_PORT} -o StrictHostKeyChecking=yes" \
+                "${remote}:${staging}/"
+            fi
+            run_remote "${sudo_prefix}bash ${staging}/install-bin-scripts.sh ${staging}"
+          fi
+
+      - name: Install lftp (FTP deploy)
+        if: steps.transport.outputs.method == 'ftp'
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Create deploy archive (FTP)
+        if: steps.transport.outputs.method == 'ftp'
+        run: zip -r "theexonet-website-deploy-${GITHUB_SHA}.zip" publish data
+
+      - name: Upload deploy bundle via FTPS
+        if: steps.transport.outputs.method == 'ftp'
+        env:
+          DEPLOY_FTP_PASSWORD: ${{ secrets.DEPLOY_FTP_PASSWORD }}
+          DEPLOY_FTP_HOST: ${{ vars.DEPLOY_FTP_HOST || secrets.DEPLOY_FTP_HOST || '' }}
+        run: |
+          set -euo pipefail
+          export DEPLOY_FTP_HOST="${DEPLOY_FTP_HOST:-$DEPLOY_HOST}"
+          chmod +x scripts/github-deploy-ftp.sh
+          bash scripts/github-deploy-ftp.sh "theexonet-website-deploy-${GITHUB_SHA}.zip"
+
+      - name: Promote FTP staging on server
+        if: steps.transport.outputs.method == 'ftp'
+        env:
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          host="${DEPLOY_API_HOST:-$DEPLOY_HOST}"
+          remote="${DEPLOY_USER}@${host}"
+          if [ "$DEPLOY_USER" = "root" ]; then
+            sudo_prefix=""
+          else
+            sudo_prefix="sudo "
+          fi
+          run_remote() {
+            if [ "${{ steps.auth.outputs.method }}" = "key" ]; then
+              ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            else
+              SSHPASS="$DEPLOY_SSH_PASSWORD" sshpass -e \
+                ssh -p "$DEPLOY_SSH_PORT" -o StrictHostKeyChecking=yes "$remote" "$1"
+            fi
+          }
+          if run_remote "command -v promote-theexonet-staging >/dev/null 2>&1"; then
+            run_remote "${sudo_prefix}promote-theexonet-staging"
+          else
+            run_remote "${sudo_prefix}bash '${DEPLOY_REPO_PATH}/scripts/theexonet/promote-staging.sh'"
+          fi
+          run_remote "test -f '${DEPLOY_API_PATH}/Theexonet.Api.dll'"
 
       - name: Deploy static web client (html)
-        if: env.DEPLOY_SKIP_WWW_RSYNC != 'true'
+        if: steps.transport.outputs.method == 'ssh' && env.DEPLOY_SKIP_WWW_RSYNC != 'true'
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
         run: |
@@ -500,6 +618,7 @@ jobs:
           fi
 
       - name: Deploy game html to publish/html
+        if: steps.transport.outputs.method == 'ssh'
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
         run: |
@@ -529,6 +648,7 @@ jobs:
           fi
 
       - name: Deploy API publish output
+        if: steps.transport.outputs.method == 'ssh'
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
         run: |
@@ -563,6 +683,7 @@ jobs:
           fi
 
       - name: Deploy data CSV spreadsheets
+        if: steps.transport.outputs.method == 'ssh'
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
         run: |
@@ -629,6 +750,7 @@ jobs:
           echo "Data CSV spreadsheets updated in ${DEPLOY_DATA_PATH}"
 
       - name: Deploy merged status and portal wwwroot to host
+        if: steps.transport.outputs.method == 'ssh'
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
         run: |
@@ -714,6 +836,7 @@ jobs:
           echo "Server sources updated at ${DEPLOY_REPO_PATH}"
 
       - name: Fix portal wwwroot ownership
+        if: steps.transport.outputs.method == 'ssh'
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
         run: |
@@ -733,6 +856,7 @@ jobs:
           fi
 
       - name: Fix publish permissions for theexonet
+        if: steps.transport.outputs.method == 'ssh'
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
         run: |
@@ -759,6 +883,7 @@ jobs:
           fi
 
       - name: Restart services
+        if: steps.transport.outputs.method == 'ssh'
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
         run: |
@@ -818,6 +943,7 @@ jobs:
           fi
 
       - name: Install helper scripts
+        if: steps.transport.outputs.method == 'ssh'
         continue-on-error: true
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}

@@ -1,4 +1,4 @@
-import { TheexonetApi } from "./api.js?v=20260605-voidcorp";
+import { TheexonetApi } from "./api.js?v=20260607-api-syntax";
 import { GRID_SIZE, ORE_TYPES, SUPPLY_TYPES, API_BASE_URL, readMetaApiBase } from "./config.js";
 import {
   formatRaxHtml,

@@ -1,4 +1,4 @@
-import { TheexonetApi } from "./api.js?v=20260529-testing-actions";
+import { TheexonetApi } from "./api.js?v=20260607-api-syntax";
 import { API_BASE_URL, readMetaApiBase } from "./config.js";
 import { initApiStatusMonitor } from "./api-status.js";
 import { initStaffMessaging } from "./staff-messages.js";

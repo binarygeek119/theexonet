@@ -856,7 +856,7 @@ export class TheexonetApi {
     return this.request("/api/admin/voidcorp/regenerate-images", {
       method: "POST",
     });
-  },
+  }
 
   adminGenerateVoidCorpMissingImages() {
     return this.request("/api/admin/voidcorp/generate-missing-images", {

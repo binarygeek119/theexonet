@@ -133,12 +133,6 @@ jobs:
       contents: write
 
     steps:
-      - name: Download publish artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: theexonet-website
-          path: .
-
       - name: Checkout release metadata
         uses: actions/checkout@v6
         with:
@@ -147,6 +141,12 @@ jobs:
             scripts
             server/Theexonet.Core
           lfs: false
+
+      - name: Download publish artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: theexonet-website
+          path: .
 
       - name: Verify release bundle
         run: test -f publish/Theexonet.Api.dll
@@ -222,18 +222,18 @@ jobs:
       GITHUB_SHA: ${{ github.sha }}
 
     steps:
-      - name: Download publish artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: theexonet-website
-          path: .
-
       - name: Checkout deploy scripts
         uses: actions/checkout@v6
         with:
           sparse-checkout: |
             scripts
           lfs: false
+
+      - name: Download publish artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: theexonet-website
+          path: .
 
       - name: Prepare deploy bundle
         run: |

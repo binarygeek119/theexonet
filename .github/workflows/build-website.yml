@@ -1,4 +1,4 @@
-name: theexonet CI
+﻿name: theexonet CI
 
 on:
   push:
@@ -213,16 +213,18 @@ jobs:
       GITHUB_SHA: ${{ github.sha }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          lfs: true
-
       - name: Download publish artifact
         uses: actions/download-artifact@v8
         with:
           name: theexonet-website
           path: .
+
+      - name: Checkout deploy scripts
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            scripts
+          lfs: false
 
       - name: Prepare deploy bundle
         run: |
@@ -232,7 +234,10 @@ jobs:
             find . -name 'Theexonet.Api.dll' >&2 || true
             exit 1
           fi
-          rsync -a server/Theexonet.Api/html/ publish/html/
+          if [ ! -f publish/html/index.html ]; then
+            echo "ERROR: publish/html/index.html missing from build artifact." >&2
+            exit 1
+          fi
           test -f publish/Theexonet.Api.dll
           grep -q 'theexonet-html-build' publish/html/index.html
           grep -q 'content="20260607-checkbox-grid"' publish/html/index.html

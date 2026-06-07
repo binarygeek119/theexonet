@@ -22,15 +22,32 @@ public static class ForeverfallStoragePaths
     public static string ImageRegistryPath(string cacheRoot) =>
         Path.Combine(cacheRoot, ImageRegistryFileName);
 
-    public static string PublicImageUrl(string imageId) =>
-        $"{PublicImagesPath}/{Uri.EscapeDataString(imageId)}.jpg";
+    public static string PublicImageUrl(string imageId, string? cacheBust = null)
+    {
+        var url = $"{PublicImagesPath}/{Uri.EscapeDataString(imageId)}.jpg";
+        if (!string.IsNullOrWhiteSpace(cacheBust))
+        {
+            url += $"?v={Uri.EscapeDataString(cacheBust)}";
+        }
+
+        return url;
+    }
 
     public static bool ImageFileExists(string cacheRoot, string imageId) =>
         !string.IsNullOrWhiteSpace(imageId)
         && File.Exists(ImageFilePath(cacheRoot, imageId));
 
-    public static string ResolvePublicImageUrl(string cacheRoot, string imageId) =>
-        ImageFileExists(cacheRoot, imageId) ? PublicImageUrl(imageId) : string.Empty;
+    public static string ResolvePublicImageUrl(string cacheRoot, string imageId)
+    {
+        if (!ImageFileExists(cacheRoot, imageId))
+        {
+            return string.Empty;
+        }
+
+        var cacheBust = File.GetLastWriteTimeUtc(ImageFilePath(cacheRoot, imageId))
+            .ToString("yyyyMMddHHmmss");
+        return PublicImageUrl(imageId, cacheBust);
+    }
 
     public static void EnsureDirectories(string cacheRoot)
     {

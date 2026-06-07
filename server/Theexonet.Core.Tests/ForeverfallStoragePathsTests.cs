@@ -54,7 +54,7 @@ public class ForeverfallStoragePathsTests
 
             var url = ForeverfallStoragePaths.ResolvePublicImageUrl(cacheRoot, "FF-0042");
 
-            Assert.Equal("/exonet/foreverfall/images/FF-0042.jpg", url);
+            Assert.StartsWith("/exonet/foreverfall/images/FF-0042.jpg?v=", url);
         }
         finally
         {

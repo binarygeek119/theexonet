@@ -58,7 +58,8 @@ public sealed class VoidCorpCatalogService(
             var imagePath = VoidCorpStoragePaths.ImageFilePath(hostingPaths.VoidCorpCacheRoot, entry.Slug);
             if (File.Exists(imagePath))
             {
-                imageUrl = VoidCorpStoragePaths.PublicProductUrl(entry.Slug);
+                var cacheBust = File.GetLastWriteTimeUtc(imagePath).ToString("yyyyMMddHHmmss");
+                imageUrl = VoidCorpStoragePaths.PublicProductUrl(entry.Slug, cacheBust);
             }
         }
 

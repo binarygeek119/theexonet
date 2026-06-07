@@ -1783,13 +1783,22 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       : "";
   }
 
+  function resolveVoidCorpProductImageUrl(imageUrl) {
+    if (!imageUrl) {
+      return VOIDCORP_MISSING_PRODUCT;
+    }
+
+    return resolveExonetAssetUrl(imageUrl);
+  }
+
   function voidCorpProductCard(product) {
-    const image = product.imageUrl || VOIDCORP_MISSING_PRODUCT;
+    const image = resolveVoidCorpProductImageUrl(product.imageUrl);
+    const fallback = escapeHtml(VOIDCORP_MISSING_PRODUCT);
     return `
       <article class="exonet-vc-card" data-vc-product="${escapeHtml(product.slug)}">
         <div class="exonet-vc-image-wrap">
           <img class="exonet-vc-image" src="${escapeHtml(image)}" alt="" loading="lazy"
-            onerror="this.onerror=null;this.src='${VOIDCORP_MISSING_PRODUCT}'">
+            onerror="this.onerror=null;this.src='${fallback}'">
           ${voidCorpImageCaptionHtml(product)}
         </div>
         <div class="exonet-vc-card-body">
@@ -1801,13 +1810,14 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
   }
 
   function voidCorpProductDetail(product) {
-    const image = product.imageUrl || VOIDCORP_MISSING_PRODUCT;
+    const image = resolveVoidCorpProductImageUrl(product.imageUrl);
+    const fallback = escapeHtml(VOIDCORP_MISSING_PRODUCT);
     return `
       <article class="exonet-vc-detail">
         <div class="exonet-vc-detail-head">
           <div class="exonet-vc-image-wrap exonet-vc-image-wrap--large">
             <img class="exonet-vc-image" src="${escapeHtml(image)}" alt="" loading="lazy"
-              onerror="this.onerror=null;this.src='${VOIDCORP_MISSING_PRODUCT}'">
+              onerror="this.onerror=null;this.src='${fallback}'">
             ${voidCorpImageCaptionHtml(product)}
           </div>
           <div>
@@ -1877,13 +1887,22 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     setStatus(`VoidCorp · ${products.length} products`);
   }
 
+  function resolveForeverfallPortraitUrl(imageUrl) {
+    if (!imageUrl) {
+      return FOREVERFALL_MISSING_PORTRAIT;
+    }
+
+    return resolveExonetAssetUrl(imageUrl);
+  }
+
   function foreverfallInmateCard(inmate) {
-    const portrait = inmate.imageUrl || FOREVERFALL_MISSING_PORTRAIT;
+    const portrait = resolveForeverfallPortraitUrl(inmate.imageUrl);
+    const fallback = escapeHtml(FOREVERFALL_MISSING_PORTRAIT);
     return `
       <article class="exonet-ffp-card" data-ffp-inmate="${escapeHtml(inmate.id)}">
         <div class="exonet-ffp-portrait-wrap">
           <img class="exonet-ffp-portrait" src="${escapeHtml(portrait)}" alt="" loading="lazy"
-            onerror="this.onerror=null;this.src='${FOREVERFALL_MISSING_PORTRAIT}'">
+            onerror="this.onerror=null;this.src='${fallback}'">
         </div>
         <div class="exonet-ffp-card-body">
           <h3>${escapeHtml(inmate.displayName)}</h3>
@@ -1896,13 +1915,14 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
   }
 
   function foreverfallInmateDetail(inmate) {
-    const portrait = inmate.imageUrl || FOREVERFALL_MISSING_PORTRAIT;
+    const portrait = resolveForeverfallPortraitUrl(inmate.imageUrl);
+    const fallback = escapeHtml(FOREVERFALL_MISSING_PORTRAIT);
     return `
       <article class="exonet-ffp-detail">
         <div class="exonet-ffp-detail-head">
           <div class="exonet-ffp-portrait-wrap exonet-ffp-portrait-wrap--large">
             <img class="exonet-ffp-portrait" src="${escapeHtml(portrait)}" alt="" loading="lazy"
-              onerror="this.onerror=null;this.src='${FOREVERFALL_MISSING_PORTRAIT}'">
+              onerror="this.onerror=null;this.src='${fallback}'">
           </div>
           <div>
             <h2>${escapeHtml(inmate.displayName)}</h2>

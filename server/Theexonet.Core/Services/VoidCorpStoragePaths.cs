@@ -12,8 +12,16 @@ public static class VoidCorpStoragePaths
     public static string ImageFilePath(string cacheRoot, string slug) =>
         Path.Combine(cacheRoot, ImagesFolder, $"{slug}.jpg");
 
-    public static string PublicProductUrl(string slug) =>
-        $"{PublicProductsPath}/{Uri.EscapeDataString(slug)}.jpg";
+    public static string PublicProductUrl(string slug, string? cacheBust = null)
+    {
+        var url = $"{PublicProductsPath}/{Uri.EscapeDataString(slug)}.jpg";
+        if (!string.IsNullOrWhiteSpace(cacheBust))
+        {
+            url += $"?v={Uri.EscapeDataString(cacheBust)}";
+        }
+
+        return url;
+    }
 
     public static void EnsureDirectories(string cacheRoot) =>
         Directory.CreateDirectory(Path.Combine(cacheRoot, ImagesFolder));

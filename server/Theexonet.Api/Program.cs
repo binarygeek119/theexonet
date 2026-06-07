@@ -166,14 +166,6 @@ builder.Services.AddControllers()
     });
 builder.Services.AddOpenApi();
 builder.Services.AddMemoryCache();
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-        policy.SetIsOriginAllowed(Theexonet.Api.Middleware.TheexonetCors.IsAllowedOrigin)
-            .AllowAnyHeader()
-            .AllowAnyMethod());
-});
-
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -329,7 +321,7 @@ catch (Exception ex)
     return;
 }
 
-app.UseCors();
+app.UseMiddleware<Theexonet.Api.Middleware.TheexonetCorsMiddleware>();
 
 app.Services.GetRequiredService<OffworldNewsAdminSettingsStore>().Load();
 app.Services.GetRequiredService<LunarWeatherAdminSettingsStore>().Load();

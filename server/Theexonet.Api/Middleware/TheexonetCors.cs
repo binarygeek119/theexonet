@@ -19,7 +19,7 @@ public static class TheexonetCors
         return host == "theexonet.com" || host.EndsWith(".theexonet.com", StringComparison.Ordinal);
     }
 
-    public static void ApplyHeaders(HttpContext context)
+    public static void ApplyHeaders(HttpContext context, bool includePreflight = false)
     {
         var origin = context.Request.Headers.Origin.ToString();
         if (!IsAllowedOrigin(origin))
@@ -30,5 +30,11 @@ public static class TheexonetCors
         var headers = context.Response.Headers;
         headers.AccessControlAllowOrigin = origin;
         headers.Append("Vary", "Origin");
+
+        if (includePreflight)
+        {
+            headers.AccessControlAllowMethods = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
+            headers.AccessControlAllowHeaders = "Authorization, Content-Type, Accept";
+        }
     }
 }

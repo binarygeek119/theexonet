@@ -110,17 +110,18 @@ jobs:
       - name: Stage publish artifact
         run: |
           set -euo pipefail
-          stage="${GITHUB_WORKSPACE}/theexonet-artifact"
-          mkdir -p "${stage}/publish" "${stage}/data"
-          rsync -a publish/ "${stage}/publish/"
-          rsync -a data/ "${stage}/data/"
-          test -f "${stage}/publish/Theexonet.Api.dll"
+          mkdir -p "${GITHUB_WORKSPACE}/publish" "${GITHUB_WORKSPACE}/data"
+          rsync -a publish/ "${GITHUB_WORKSPACE}/publish/"
+          rsync -a data/ "${GITHUB_WORKSPACE}/data/"
+          test -f "${GITHUB_WORKSPACE}/publish/Theexonet.Api.dll"
 
       - name: Upload publish artifact
         uses: actions/upload-artifact@v7
         with:
           name: theexonet-website
-          path: theexonet-artifact/
+          path: |
+            publish/
+            data/
           if-no-files-found: error
 
   release:

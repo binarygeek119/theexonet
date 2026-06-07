@@ -178,8 +178,11 @@ if [ -n "${REQUESTED_ARCHIVE}" ]; then
   done
   promote_archive "${TARGET_ARCHIVE}"
 elif [ "${#STAGING_ARCHIVES[@]}" -eq 0 ]; then
-  echo "Nothing to promote in ${STAGING_DIR}" >&2
-  exit 1
+  if [ ! -d "${STAGING_DIR}/publish" ] && [ ! -f "${STAGING_DIR}/Theexonet.Api.dll" ]; then
+    echo "Nothing to promote in ${STAGING_DIR}" >&2
+    exit 1
+  fi
+  echo "Promoting pre-staged publish/ from ${STAGING_DIR}…"
 else
   TARGET_ARCHIVE="$(newest_archive "${STAGING_ARCHIVES[@]}")"
   if [ -z "${TARGET_ARCHIVE}" ]; then

@@ -80,16 +80,53 @@ SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
 
 run_remote_promote() {
   local sudo_cmd="$1"
+  local archive_arg="${2:-}"
+  local remote_cmd="sudo -n ${sudo_cmd}"
+  if [ -n "${archive_arg}" ]; then
+    remote_cmd+=" '$(printf '%s' "${archive_arg}" | sed "s/'/'\\\\''/g")'"
+  fi
   SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
-    "sudo -n ${sudo_cmd} '${REMOTE_NAME}'" 2>&1
+    "${remote_cmd}" 2>&1
 }
 
-echo "Promote and restart (sudo ${REMOTE_PROMOTE})…"
+echo "Unpacking ${REMOTE_NAME} in staging (as ${USER})…"
+unpack_output=""
+if ! unpack_output="$(SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
+  "STAGING='${STAGING_DIR}' ARCHIVE='${REMOTE_PATH}' bash -s" <<'REMOTE_UNPACK'
+set -euo pipefail
+if [ ! -f "${ARCHIVE}" ]; then
+  echo "ERROR: missing archive: ${ARCHIVE}" >&2
+  exit 1
+fi
+unpack_dir="$(mktemp -d "${STAGING}/.unpack.XXXXXX")"
+tar -xzf "${ARCHIVE}" -C "${unpack_dir}"
+if [ ! -f "${unpack_dir}/publish/Theexonet.Api.dll" ]; then
+  echo "ERROR: archive missing publish/Theexonet.Api.dll" >&2
+  rm -rf "${unpack_dir}"
+  exit 1
+fi
+rm -rf "${STAGING}/publish" "${STAGING}/data"
+mv "${unpack_dir}/publish" "${STAGING}/"
+if [ -d "${unpack_dir}/data" ]; then
+  mv "${unpack_dir}/data" "${STAGING}/"
+fi
+rm -rf "${unpack_dir}"
+rm -f "${ARCHIVE}"
+echo "Unpacking ${ARCHIVE}…"
+REMOTE_UNPACK
+)"; then
+  echo "${unpack_output}"
+  echo "ERROR: failed to unpack deploy bundle in staging." >&2
+  exit 1
+fi
+echo "${unpack_output}"
+
+echo "Promote and restart (sudo promote-theexonet-staging)…"
 promote_output=""
-if ! promote_output="$(run_remote_promote "${REMOTE_PROMOTE}")"; then
+if ! promote_output="$(run_remote_promote promote-theexonet-staging)"; then
   echo "${promote_output}"
-  echo "Direct CI promote failed — trying installed promote-theexonet-staging…" >&2
-  if ! promote_output="$(run_remote_promote promote-theexonet-staging)"; then
+  echo "Installed promote failed — trying CI-uploaded ${REMOTE_PROMOTE}…" >&2
+  if ! promote_output="$(run_remote_promote "${REMOTE_PROMOTE}")"; then
     echo "${promote_output}"
     echo "ERROR: promote failed." >&2
     echo "On the VM (one-time after git pull):" >&2
@@ -100,11 +137,8 @@ if ! promote_output="$(run_remote_promote "${REMOTE_PROMOTE}")"; then
 fi
 echo "${promote_output}"
 
-if ! printf '%s' "${promote_output}" | grep -q 'Unpacking '; then
-  echo "ERROR: promote did not unpack the staging archive." >&2
-  echo "On the VM (one-time after git pull):" >&2
-  echo "  sudo bash scripts/theexonet/enable-ci-promote-sudoers.sh" >&2
-  echo "  sudo bash scripts/install-bin-scripts.sh scripts" >&2
+if ! printf '%s' "${promote_output}" | grep -q 'Promoted staging'; then
+  echo "ERROR: promote did not sync staging to /var/www/publish." >&2
   exit 1
 fi
 

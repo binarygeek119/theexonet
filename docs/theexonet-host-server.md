@@ -12,6 +12,7 @@ One-shot installer for **Ubuntu 22.04 / 24.04 LTS** (GCP VM or any VPS): Apache2
 | **ASP.NET 10** | Runtime for published DLLs |
 | **Users** | `theexonet` runs services; `gameftp` uploads to staging (FTPS) |
 | **Paths** | `/var/www/publish` (live), `/var/www/data` (config + CSVs), `/var/www/staging` (FTP uploads) |
+| **Deploy tools** | `unzip`, `rsync`, FTPS (`gameftp`), `theexonet-staging-watcher` (auto-promote zips) |
 | **systemd** | `theexonet-api`, `theexonet-status`, `theexonet-admin`, `theexonet-moderator`, `theexonet-docs` |
 
 ## Subdomains
@@ -59,28 +60,30 @@ Point **A records** at the server public IP:
 
 ## 4. HTTPS
 
-After DNS resolves:
+After all DNS A records resolve to the server IP:
 
 ```bash
-sudo apt install -y certbot python3-certbot-apache
-sudo certbot --apache -d theexonet.com -d www.theexonet.com \
-  -d api.theexonet.com -d status.theexonet.com -d admin.theexonet.com \
-  -d moderator.theexonet.com -d docs.theexonet.com
+sudo CERTBOT_EMAIL=you@example.com bash scripts/theexonet/install-ssl-certs.sh
+# or: sudo install-theexonet-ssl
 ```
+
+Dry run first (no certs issued):
+
+```bash
+sudo CERTBOT_DRY_RUN=1 CERTBOT_EMAIL=you@example.com bash scripts/theexonet/install-ssl-certs.sh
+```
+
+Covers: `theexonet.com`, `www`, `api`, `status`, `admin`, `moderator`, `docs`. Requires **TCP 80** open for Let's Encrypt HTTP-01.
 
 ## 5. Deploy game files
 
 ### Option A — GitHub Actions (recommended, FTPS)
 
-See [github-deploy-setup.md](github-deploy-setup.md). CI uploads a zip to `staging/` via **FTPS**; `theexonet-staging-watcher.service` auto-promotes to `/var/www/publish`.
-
-Install the watcher once:
-
-```bash
-sudo bash scripts/install-staging-watcher.sh
-```
+See [github-deploy-setup.md](github-deploy-setup.md). CI uploads a zip to `staging/` via **FTPS**; `theexonet-staging-watcher.service` (installed by `install-host-server.sh`) auto-promotes to `/var/www/publish`.
 
 Open firewall **TCP 21** and **40000–40050** for [GitHub Actions IPs](https://api.github.com/meta) (and your IP for manual FTP).
+
+Services stay **stopped** until the first publish bundle lands (`Theexonet.Api.dll` in `/var/www/publish`).
 
 ### Option B — Manual FTPS (FileZilla)
 

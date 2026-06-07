@@ -172,12 +172,15 @@ FileZilla / WinSCP:
   Passive IP: ${EXTERNAL_IP} (required on GCP — pasv_address in vsftpd.conf)
 
 GCP firewall (run from Cloud Shell or WSL with gcloud):
-  # Replace YOUR.HOME.IP with your public IP (https://ifconfig.me)
+  # Your IP (manual FileZilla):
   gcloud compute firewall-rules create theexonet-ftp \\
     --direction=INGRESS --action=ALLOW \\
     --rules=tcp:21,tcp:${PASV_MIN}-${PASV_MAX} \\
     --source-ranges=YOUR.HOME.IP/32 \\
     --target-tags=theexonet-web
+  # GitHub Actions FTPS deploy — allow https://api.github.com/meta "actions" CIDRs too.
+
+After upload, staging-watcher or: sudo promote-theexonet-staging
 
 Safer alternative (no extra ports): SFTP over SSH with your existing key:
   sftp -i ~/.ssh/id_ed25519 root@${EXTERNAL_IP}

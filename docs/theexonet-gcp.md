@@ -83,11 +83,11 @@ Check: `dig theexonet.com +short`
 
 ## 6. HTTPS (after DNS works)
 
-On the VM:
+On the VM (all subdomains):
 
 ```bash
-apt install -y certbot python3-certbot-apache
-certbot --apache -d theexonet.com -d www.theexonet.com
+cd /opt/theexonet/theexonet
+sudo CERTBOT_EMAIL=you@example.com bash scripts/theexonet/install-ssl-certs.sh
 ```
 
 ## 7. Verify services

@@ -147,13 +147,11 @@ External IP:  ${EXTERNAL_IP}
 Zone:         ${ZONE}
 SSH (root):     ssh -i ${PRIVATE_KEY_HINT} root@${EXTERNAL_IP}
 
-DNS (theexonet.com):
-  A record @    -> ${EXTERNAL_IP}
-  A record www  -> ${EXTERNAL_IP}  (optional)
+DNS (theexonet.com — A records → ${EXTERNAL_IP}):
+  @, www, api, status, admin, moderator, docs
 
 After DNS propagates, HTTPS:
-  sudo apt install -y certbot python3-certbot-apache
-  sudo certbot --apache -d theexonet.com -d www.theexonet.com
+  sudo CERTBOT_EMAIL=you@example.com bash scripts/theexonet/install-ssl-certs.sh
 
 Verify stack:
   systemctl status apache2 docker

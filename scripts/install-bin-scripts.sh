@@ -62,6 +62,23 @@ if [ -f "${SRC_DIR}/theexonet/promote-staging.sh" ]; then
   cp -f "${SRC_DIR}/theexonet/promote-staging.sh" "${LIB_DIR}/promote-staging.sh"
   chmod 755 "${LIB_DIR}/promote-staging.sh"
 fi
+if [ -f "${SRC_DIR}/install-staging-watcher.sh" ]; then
+  cp -f "${SRC_DIR}/install-staging-watcher.sh" "${LIB_DIR}/install-staging-watcher.sh"
+  chmod 755 "${LIB_DIR}/install-staging-watcher.sh"
+fi
+if [ -f "${SRC_DIR}/theexonet/staging-watcher.sh" ]; then
+  mkdir -p "${LIB_DIR}/theexonet"
+  cp -f "${SRC_DIR}/theexonet/staging-watcher.sh" "${LIB_DIR}/theexonet/staging-watcher.sh"
+  cp -f "${SRC_DIR}/theexonet/promote-staging.sh" "${LIB_DIR}/theexonet/promote-staging.sh"
+  chmod 755 "${LIB_DIR}/theexonet/staging-watcher.sh" "${LIB_DIR}/theexonet/promote-staging.sh"
+fi
+if [ -f "${SRC_DIR}/theexonet/install-ssl-certs.sh" ]; then
+  cp -f "${SRC_DIR}/theexonet/install-ssl-certs.sh" "${LIB_DIR}/install-ssl-certs.sh"
+  chmod 755 "${LIB_DIR}/install-ssl-certs.sh"
+fi
+if ! command -v unzip >/dev/null 2>&1 || ! command -v rsync >/dev/null 2>&1; then
+  echo "WARN: install unzip rsync for promote-theexonet-staging (apt install unzip rsync)" >&2
+fi
 
 cp -f "${SRC_DIR}/systemd/"*.service "${LIB_DIR}/systemd/"
 if [ -f "${SRC_DIR}/systemd/theexonet-permissions.default" ]; then
@@ -110,6 +127,7 @@ declare -A bin_links=(
   [install-permissions-service.sh]=install-theexonet-permissions-service
   [install-theexonet-permissions-service.sh]=install-theexonet-permissions-service
   [promote-staging.sh]=promote-theexonet-staging
+  [install-ssl-certs.sh]=install-theexonet-ssl
 )
 
 for src in "${!bin_links[@]}"; do

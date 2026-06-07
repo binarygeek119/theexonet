@@ -15,6 +15,13 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+for cmd in unzip rsync; do
+  if ! command -v "${cmd}" >/dev/null 2>&1; then
+    echo "ERROR: ${cmd} is required to promote deploy zips. Run: sudo apt-get install -y unzip rsync" >&2
+    exit 1
+  fi
+done
+
 if [ ! -d "${STAGING_DIR}" ] || [ -z "$(ls -A "${STAGING_DIR}" 2>/dev/null)" ]; then
   echo "Nothing to promote in ${STAGING_DIR}" >&2
   exit 1

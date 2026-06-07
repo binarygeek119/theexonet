@@ -14,7 +14,7 @@
 #   THEEXONET_REPO_PATH=/opt/theexonet/theexonet
 #   POSTGRES_PASSWORD=...          # generated if unset
 #   GAME_FTP_PASSWORD=...          # generated if unset; skip FTP with SKIP_FTP=1
-#   SKIP_FTP=1                     # use SSH/GitHub deploy only
+#   SKIP_FTP=1                     # skip FTPS user (use SFTP/manual staging only)
 #   SKIP_REPO_CLONE=1              # scripts already on disk
 set -euo pipefail
 
@@ -53,6 +53,9 @@ if ! command -v docker >/dev/null 2>&1 || ! systemctl is-active --quiet apache2 
 else
   log "Apache and Docker already present."
 fi
+
+wait_for_apt_lock
+apt-get install -y unzip rsync curl
 
 # --- Game users ---
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(rand_secret)}"
@@ -170,7 +173,19 @@ fi
 
 export THEEXONET_SERVICE_USER="${SERVICE_USER}"
 export THEEXONET_SERVICE_GROUP="${SERVICE_GROUP}"
+export THEEXONET_PUBLISH_DIR="${PUBLISH_DIR}"
+export THEEXONET_DATA_DIR="${DATA_DIR}"
+export THEEXONET_STAGING_DIR="${STAGING_DIR}"
 bash "${SCRIPTS_SRC}/install-bin-scripts.sh" "${SCRIPTS_SRC}"
+
+log "Seeding data CSV spreadsheets to ${DATA_DIR}…"
+if command -v sync-theexonet-data >/dev/null 2>&1; then
+  sync-theexonet-data || log "WARN: sync-theexonet-data failed — CSV templates may be missing from repo."
+else
+  bash "${SCRIPTS_SRC}/sync-publish-data.sh" || log "WARN: sync-publish-data failed."
+fi
+
+log "Installing systemd units…"
 install-theexonet-systemd || bash "${SCRIPTS_SRC}/install-systemd-units.sh"
 
 # --- appsettings for API + portals ---
@@ -227,9 +242,13 @@ if [ "${SKIP_FTP:-0}" != "1" ]; then
   export GAME_FTP_STAGING="${STAGING_DIR}"
   export GAME_FTP_PASSWORD
   bash "${SCRIPT_DIR}/install-ftp-server.sh"
-  if [ -f "${SCRIPTS_SRC}/install-staging-watcher.sh" ]; then
-    bash "${SCRIPTS_SRC}/install-staging-watcher.sh"
-  fi
+else
+  log "SKIP_FTP=1 — skipping vsftpd (upload zips to ${STAGING_DIR} via SFTP if needed)."
+fi
+
+# Auto-promote CI/FTP uploads from staging (needs unzip + rsync, installed above).
+if [ -f "${SCRIPTS_SRC}/install-staging-watcher.sh" ]; then
+  bash "${SCRIPTS_SRC}/install-staging-watcher.sh"
 fi
 
 # --- Permissions watcher ---
@@ -242,18 +261,22 @@ fix-theexonet-permissions -q 2>/dev/null || \
 
 # --- Credentials summary ---
 CREDS_FILE="${SECRETS_DIR}/install-credentials.txt"
-cat >"${CREDS_FILE}" <<EOF
-theexonet host install — $(date -u +%Y-%m-%dT%H:%M:%SZ)
-Domain:            ${DOMAIN}
-Service user:      ${SERVICE_USER}
-FTP user:          ${GAME_FTP_USER:-gameftp} (upload → ${STAGING_DIR})
-Postgres user:     theexonet
-Postgres password: ${POSTGRES_PASSWORD}
-JWT key:           ${JWT_KEY}
-Repo path:         ${REPO_PATH}
-Publish dir:       ${PUBLISH_DIR}
-Data dir:          ${DATA_DIR}
-EOF
+{
+  echo "theexonet host install — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "Domain:            ${DOMAIN}"
+  echo "Service user:      ${SERVICE_USER}"
+  if [ "${SKIP_FTP:-0}" != "1" ]; then
+    echo "FTP user:          ${GAME_FTP_USER:-gameftp} (FTPS upload → ${STAGING_DIR}/)"
+    echo "FTP password:      ${GAME_FTP_PASSWORD}  (GitHub secret DEPLOY_FTP_PASSWORD)"
+  fi
+  echo "Postgres user:     theexonet"
+  echo "Postgres password: ${POSTGRES_PASSWORD}"
+  echo "JWT key:           ${JWT_KEY}"
+  echo "Repo path:         ${REPO_PATH}"
+  echo "Publish dir:       ${PUBLISH_DIR}"
+  echo "Data dir:          ${DATA_DIR}"
+  echo "Staging watcher:   theexonet-staging-watcher.service"
+} >"${CREDS_FILE}"
 chmod 600 "${CREDS_FILE}"
 
 cat <<EOF
@@ -277,18 +300,22 @@ URLs after DNS:
   Moderator:  https://moderator.${DOMAIN}/
   Docs:       https://docs.${DOMAIN}/
 
-HTTPS (after DNS works):
-  apt install -y certbot python3-certbot-apache
-  certbot --apache -d ${DOMAIN} -d www.${DOMAIN} \\
-    -d api.${DOMAIN} -d status.${DOMAIN} -d admin.${DOMAIN} \\
-    -d moderator.${DOMAIN} -d docs.${DOMAIN}
+HTTPS (after DNS A records resolve to this server):
+  sudo CERTBOT_EMAIL=you@example.com bash ${SCRIPT_DIR}/install-ssl-certs.sh
+  # or: sudo install-theexonet-ssl
 
-Deploy game (GitHub Actions rsync or manual):
-  1. Upload publish zip to ${STAGING_DIR} via FTPS (user gameftp), then:
-     sudo bash ${SCRIPT_DIR}/promote-staging.sh
-  2. Or let GitHub Actions SSH deploy to ${PUBLISH_DIR} (see docs/deploy.md)
+Deploy game (first publish bundle required before services run):
+  1. GitHub Actions FTPS (recommended): set ENABLE_PRODUCTION_DEPLOY=true,
+     DEPLOY_HOST=${DOMAIN}, secret DEPLOY_FTP_PASSWORD=<FTP password above>.
+     See docs/github-deploy-setup.md
+  2. Manual: upload theexonet-website-*.zip to ${STAGING_DIR}/ via FTPS (gameftp)
+     or SFTP; staging-watcher auto-promotes, or: sudo promote-theexonet-staging
+  3. Open GCP firewall TCP 21 and 40000-40050 for GitHub Actions + your IP
+
+Until deploy completes, API/portals stay stopped (no Theexonet.Api.dll yet).
 
 Credentials saved: ${CREDS_FILE}
+Promote staging:   sudo promote-theexonet-staging
 Restart stack:     sudo restart-theexonet
 Diagnostics:       sudo diagnose-theexonet-api
 

@@ -12,6 +12,11 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+if ! command -v unzip >/dev/null 2>&1 || ! command -v rsync >/dev/null 2>&1; then
+  apt-get update -y
+  apt-get install -y unzip rsync
+fi
+
 mkdir -p "${LIB_DIR}/theexonet" "${LIB_DIR}/systemd"
 cp -f "${SCRIPT_DIR}/theexonet/staging-watcher.sh" "${LIB_DIR}/theexonet/staging-watcher.sh"
 cp -f "${SCRIPT_DIR}/theexonet/promote-staging.sh" "${LIB_DIR}/theexonet/promote-staging.sh"

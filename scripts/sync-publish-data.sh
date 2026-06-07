@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 TEMPLATE_DIR="${THEEXONET_TEMPLATE_DATA_DIR:-/usr/local/lib/theexonet/data}"
 DEST_DIR="${THEEXONET_DATA_DIR:-/var/www/data}"
 PUBLISH_DIR="${THEEXONET_PUBLISH_DIR:-/var/www/publish}"
-SERVICE_USER="${THEEXONET_SERVICE_USER:-www-data}"
+SERVICE_USER="${THEEXONET_SERVICE_USER:-theexonet}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run as root: sudo bash $0" >&2

@@ -59,13 +59,25 @@ done
 
 systemctl daemon-reload
 
+PUBLISH_DIR="${THEEXONET_PUBLISH_DIR:-/var/www/publish}"
+can_start_services=1
+if [ ! -f "${PUBLISH_DIR}/Theexonet.Api.dll" ]; then
+  can_start_services=0
+  echo "Publish bundle not deployed yet (${PUBLISH_DIR}/Theexonet.Api.dll missing) — enabling units only."
+fi
+
 for unit in "${units[@]}"; do
   systemctl enable "$unit"
-  systemctl restart "$unit" || systemctl start "$unit"
-  if systemctl is-active --quiet "$unit"; then
-    echo "${unit}: running"
+  if [ "${can_start_services}" -eq 1 ]; then
+    systemctl restart "$unit" || systemctl start "$unit"
+    if systemctl is-active --quiet "$unit"; then
+      echo "${unit}: running"
+    else
+      echo "${unit}: FAILED (check journalctl -u ${unit})" >&2
+    fi
   else
-    echo "${unit}: FAILED (check journalctl -u ${unit})" >&2
+    systemctl stop "$unit" 2>/dev/null || true
+    echo "${unit}: enabled (waiting for deploy)"
   fi
 done
 

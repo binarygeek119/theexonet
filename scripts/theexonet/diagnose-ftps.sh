@@ -59,7 +59,7 @@ if [ -z "${GAME_FTP_PASSWORD}" ]; then
   exit 1
 fi
 
-python3 - "${GAME_FTP_USER}" "${GAME_FTP_PASSWORD}" <<'PY' || {
+if ! python3 - "${GAME_FTP_USER}" "${GAME_FTP_PASSWORD}" <<'PY'
 import crypt
 import spwd
 import sys
@@ -69,10 +69,11 @@ rec = spwd.getspnam(user)
 if crypt.crypt(password, rec.sp_pwdp) != rec.sp_pwdp:
     raise SystemExit(1)
 PY
+then
   echo "ERROR: password does not match /etc/shadow for ${GAME_FTP_USER}" >&2
   echo "  Re-run: sudo GAME_FTP_PASSWORD='...' bash scripts/theexonet/set-gameftp-password.sh" >&2
   exit 1
-}
+fi
 echo "OK  password matches /etc/shadow"
 
 test_ftps() {

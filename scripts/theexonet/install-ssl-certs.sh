@@ -117,6 +117,7 @@ certbot_args=(
   --no-eff-email
   -m "${CERTBOT_EMAIL}"
   --redirect
+  --expand
 )
 for host in "${hosts[@]}"; do
   certbot_args+=(-d "${host}")

@@ -83,6 +83,10 @@ fi
 if [ -f "${SRC_DIR}/theexonet/apache-theexonet-ssl.conf" ]; then
   cp -f "${SRC_DIR}/theexonet/apache-theexonet-ssl.conf" "${LIB_DIR}/apache-theexonet-ssl.conf"
 fi
+if [ -f "${SRC_DIR}/theexonet/sync-postgres-password.sh" ]; then
+  cp -f "${SRC_DIR}/theexonet/sync-postgres-password.sh" "${LIB_DIR}/sync-postgres-password.sh"
+  chmod 755 "${LIB_DIR}/sync-postgres-password.sh"
+fi
 if ! command -v unzip >/dev/null 2>&1 || ! command -v rsync >/dev/null 2>&1; then
   echo "WARN: install unzip rsync for promote-theexonet-staging (apt install unzip rsync)" >&2
 fi
@@ -136,6 +140,7 @@ declare -A bin_links=(
   [promote-staging.sh]=promote-theexonet-staging
   [install-ssl-certs.sh]=install-theexonet-ssl
   [install-apache-ssl-vhosts.sh]=install-theexonet-apache-ssl
+  [sync-postgres-password.sh]=sync-theexonet-postgres-password
 )
 
 for src in "${!bin_links[@]}"; do

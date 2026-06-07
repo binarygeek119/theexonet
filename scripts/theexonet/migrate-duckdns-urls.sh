@@ -63,10 +63,12 @@ if [ -f "${DATA_DIR}/appsettings.json" ]; then
   sed -i \
     -e 's|"SiteTitle": "RAVA Game Docs"|"SiteTitle": "theexonet Game Docs"|g' \
     -e 's|"FromName": "RAVA |"FromName": "theexonet |g' \
-    -e 's|Database=rava|Database=theexonet|g' \
-    -e 's|Username=postgres|Username=theexonet|g' \
-    -e 's|Host=localhost|Host=127.0.0.1|g' \
     "${DATA_DIR}/appsettings.json"
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+if [ -f "${SCRIPT_DIR}/sync-postgres-password.sh" ]; then
+  bash "${SCRIPT_DIR}/sync-postgres-password.sh"
 fi
 
 echo "Done. Restart services: sudo restart-theexonet"

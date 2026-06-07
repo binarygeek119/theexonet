@@ -143,7 +143,7 @@ On the VM as **root** (after SSH key login):
 sudo bash scripts/theexonet/install-ftp-server.sh
 ```
 
-Creates user **`gameftp`**, upload dir **`/var/www/staging`**, **FTPS** (TLS) via vsftpd.
+Creates user **`gameftp`**, FTPS chroot **`/var/www`** (upload to **`staging/`**), **FTPS** (TLS) via vsftpd.
 
 Open firewall **only for your IP** (passive ports required):
 

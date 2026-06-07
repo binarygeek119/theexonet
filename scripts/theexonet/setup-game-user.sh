@@ -36,7 +36,7 @@ usermod -aG docker "${SERVICE_USER}" 2>/dev/null || true
 if ! id "${FTP_USER}" >/dev/null 2>&1; then
   useradd \
     --gid "${SERVICE_GROUP}" \
-    --home-dir /var/www/staging \
+    --home-dir /var/www \
     --shell /usr/sbin/nologin \
     --comment "theexonet FTP deploy" \
     "${FTP_USER}"

@@ -22,7 +22,7 @@ fi
 
 # Unpack zip if present
 shopt -s nullglob
-for zip in "${STAGING_DIR}"/*.zip "${STAGING_DIR}"/theexonet-website-*.zip; do
+for zip in "${STAGING_DIR}"/*.zip "${STAGING_DIR}"/theexonet-website-*.zip "${STAGING_DIR}"/theexonet-website-deploy-*.zip; do
   echo "Unpacking ${zip}…"
   unzip -o -q "${zip}" -d "${STAGING_DIR}/unpack"
   if [ -d "${STAGING_DIR}/unpack/publish" ]; then

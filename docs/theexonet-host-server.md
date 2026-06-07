@@ -11,7 +11,7 @@ One-shot installer for **Ubuntu 22.04 / 24.04 LTS** (GCP VM or any VPS): Apache2
 | **PostgreSQL 16** | Container `theexonet-postgres`, bound to `127.0.0.1:5432` |
 | **ASP.NET 10** | Runtime for published DLLs |
 | **Users** | `theexonet` runs services; `gameftp` uploads to staging (FTPS) |
-| **Paths** | `/var/www/publish` (live), `/var/www/data` (config + CSVs), `/var/www/staging` (FTP) |
+| **Paths** | `/var/www/publish` (live), `/var/www/data` (config + CSVs), `/var/www/staging` (FTP uploads) |
 | **systemd** | `theexonet-api`, `theexonet-status`, `theexonet-admin`, `theexonet-moderator`, `theexonet-docs` |
 
 ## Subdomains
@@ -78,7 +78,7 @@ Configure SSH deploy secrets per [deploy.md](deploy.md) and [github-deploy-setup
 
 1. Open firewall: TCP 21 and passive ports 40000–40050 (restrict to your IP).
 2. FileZilla: **FTP over explicit TLS**, host = server IP, user `gameftp`.
-3. Upload `theexonet-website-*.zip` or a `publish/` folder to `/var/www/staging`.
+3. FTPS chroot is `/var/www` — upload `theexonet-website-*.zip` or `publish/` into `staging/`.
 4. Promote to live:
 
 ```bash
@@ -130,7 +130,7 @@ curl -sI -H 'Host: theexonet.com' http://127.0.0.1/
 ## Folder permissions
 
 - **`theexonet`** owns `/var/www/publish` and `/var/www/data` (systemd `User=theexonet`).
-- **`gameftp`** uploads to `/var/www/staging` (group `theexonet`, mode `2775`).
+- **`gameftp`** FTPS root is `/var/www` (chroot); uploads go in `staging/` (group `theexonet`, mode `2775`).
 - **`www-data`** is in group `theexonet` so Apache can read game static files.
 
 Fix permissions anytime:

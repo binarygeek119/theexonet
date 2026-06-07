@@ -69,6 +69,10 @@ Valid characters: letters, numbers, underscore `_`. Must start with a letter or 
 | `DEPLOY_ADMIN_SERVICE` | `theexonet-admin` |
 | `DEPLOY_MODERATOR_SERVICE` | `theexonet-moderator` |
 | `DEPLOY_REPO_PATH` | `/opt/theexonet/theexonet` |
+| `DEPLOY_METHOD` | `ssh` (default) or `ftp` — see [FTP deploy](#ftp-deploy-via-github-actions) |
+| `DEPLOY_FTP_HOST` | Optional; defaults to `DEPLOY_HOST` (e.g. `theexonet.com` or VM IP) |
+| `DEPLOY_FTP_USER` | `gameftp` (default) |
+| `DEPLOY_FTP_STAGING_DIR` | `staging` (under FTPS chroot `/var/www`) |
 
 **Single-folder setup (recommended):** set both `DEPLOY_WWW_PATH` and `DEPLOY_API_PATH` to `/var/www/publish`. The workflow skips the separate html rsync and deploys game files under `publish/html/`. Point nginx/Apache for the game site at `/var/www/publish/html`.
 
@@ -117,6 +121,44 @@ ssh-copy-id -i ~/.ssh/theexonet-deploy.pub root@binarygeek119.duckdns.org
 
 Add the **private** key contents as secret `DEPLOY_SSH_KEY` (PEM/OpenSSH format).
 
+## FTP deploy via GitHub Actions
+
+Upload the publish bundle over **FTPS** instead of SSH rsync. SSH is still used after upload to run `promote-theexonet-staging` and restart services.
+
+### Repository settings
+
+| Type | Name | Value |
+|------|------|--------|
+| Variable | `DEPLOY_METHOD` | `ftp` |
+| Variable | `DEPLOY_HOST` | `theexonet.com` or VM IP |
+| Secret | `DEPLOY_FTP_PASSWORD` | `gameftp` password (set via `set-gameftp-password.sh`) |
+| Secret | `DEPLOY_SSH_KEY` or `DEPLOY_SSH_PASSWORD` | Still required for promote + restart |
+
+Optional: `DEPLOY_FTP_HOST` if FTP hostname differs from `DEPLOY_HOST`.
+
+### What the workflow does (`DEPLOY_METHOD=ftp`)
+
+1. Builds `publish/` + `data/` (same as SSH deploy)
+2. Zips → `theexonet-website-deploy-<sha>.zip`
+3. **FTPS upload** to `/var/www/staging/` (user `gameftp`)
+4. **SSH:** `promote-theexonet-staging` → `/var/www/publish` + restart
+
+### GCP firewall (required for CI FTP)
+
+GitHub-hosted runners use **dynamic IPs**. Your home-IP-only FTP rule blocks CI.
+
+Either:
+
+- Temporarily allow FTP from GitHub Actions IP ranges ([`api.github.com/meta`](https://api.github.com/meta) → `actions`), or
+- Open ports `21` and `40000-40050` more broadly for deploy (less secure), or
+- Keep `DEPLOY_METHOD=ssh` for CI and use FTP only for manual FileZilla uploads.
+
+Ensure vsftpd has `pasv_address` set to the VM external IP (see `install-ftp-server.sh`).
+
+### Switch back to SSH rsync
+
+Set `DEPLOY_METHOD` to `ssh` or remove the variable.
+
 ## 5. One-time server prep
 
 See [deploy.md](deploy.md) for .NET 10, systemd units, `appsettings.json`, Apache/nginx, and `/usr/local/bin` helpers.
@@ -137,6 +179,8 @@ One workflow handles everything: **Actions → theexonet CI** (file: `.github/wo
 Push to `main` under `server/` or `scripts/` (or run the workflow manually). It will:
 
 1. **Build and test** — restore, build, test, validate JavaScript
+
+With `DEPLOY_METHOD=ftp`, production file transfer uses FTPS; with `ssh` (default), rsync over SSH.
 2. **Publish GitHub release** — zip of `publish/` + `data/` with a **What's changed** section listing commits since the previous `website-*` tag (skipped on pull requests)
 3. **Deploy to production** — when `ENABLE_PRODUCTION_DEPLOY=true` (skipped on pull requests)
 

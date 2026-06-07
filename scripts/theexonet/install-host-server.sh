@@ -34,6 +34,9 @@ SECRETS_DIR="/etc/theexonet"
 
 log() { echo "[install-host-server] $*"; }
 
+# shellcheck source=wait-for-apt-lock.sh
+source "${SCRIPT_DIR}/wait-for-apt-lock.sh"
+
 rand_secret() {
   openssl rand -base64 32 | tr -d '/+=' | head -c 32
 }
@@ -91,6 +94,7 @@ fi
 install_aspnetcore10_apt() {
   . /etc/os-release
   log "Installing ASP.NET Core 10 via Ubuntu dotnet backports (${VERSION_ID:-unknown})…"
+  wait_for_apt_lock
   apt-get install -y software-properties-common
   add-apt-repository -y ppa:dotnet/backports
   apt-get update -y
@@ -217,12 +221,12 @@ systemctl reload apache2
 
 # --- FTP (FTPS) for manual / CI uploads to staging ---
 if [ "${SKIP_FTP:-0}" != "1" ]; then
+  wait_for_apt_lock
   export GAME_FTP_USER="${GAME_FTP_USER:-gameftp}"
-  export GAME_FTP_ROOT="${STAGING_DIR}"
+  export GAME_FTP_ROOT="/var/www"
+  export GAME_FTP_STAGING="${STAGING_DIR}"
   export GAME_FTP_PASSWORD
   bash "${SCRIPT_DIR}/install-ftp-server.sh"
-  chown "${GAME_FTP_USER}:${SERVICE_GROUP}" "${STAGING_DIR}"
-  chmod 2775 "${STAGING_DIR}"
 fi
 
 # --- Permissions watcher ---

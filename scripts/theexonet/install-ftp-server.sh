@@ -130,10 +130,13 @@ EOF
 echo "${GAME_FTP_USER}" >/etc/vsftpd.userlist
 
 # Ubuntu PAM: drop pam_shells (FTP-only users use /usr/sbin/nologin).
-if [ -f /etc/pam.d/vsftpd ] && grep -q 'pam_shells.so' /etc/pam.d/vsftpd; then
-  cp -a /etc/pam.d/vsftpd "/etc/pam.d/vsftpd.bak.$(date +%Y%m%d%H%M%S)"
-  sed -i '/pam_shells\.so/d' /etc/pam.d/vsftpd
-fi
+cp -a /etc/pam.d/vsftpd "/etc/pam.d/vsftpd.bak.$(date +%Y%m%d%H%M%S)" 2>/dev/null || true
+cat >/etc/pam.d/vsftpd <<'EOF'
+auth    required    pam_listfile.so item=user sense=deny file=/etc/ftpusers onerr=succeed
+auth    required    pam_unix.so
+account required    pam_unix.so
+session required    pam_loginuid.so
+EOF
 # Remove from legacy deny list if present.
 if [ -f /etc/ftpusers ] && grep -qx "${GAME_FTP_USER}" /etc/ftpusers; then
   sed -i "/^${GAME_FTP_USER}\$/d" /etc/ftpusers

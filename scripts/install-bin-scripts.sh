@@ -96,6 +96,10 @@ if [ -f "${SRC_DIR}/theexonet/diagnose-ftps.sh" ]; then
   cp -f "${SRC_DIR}/theexonet/diagnose-ftps.sh" "${LIB_DIR}/diagnose-ftps.sh"
   chmod 755 "${LIB_DIR}/diagnose-ftps.sh"
 fi
+if [ -f "${SRC_DIR}/theexonet/set-gameftp-password.sh" ]; then
+  cp -f "${SRC_DIR}/theexonet/set-gameftp-password.sh" "${LIB_DIR}/set-gameftp-password.sh"
+  chmod 755 "${LIB_DIR}/set-gameftp-password.sh"
+fi
 if [ -f "${SRC_DIR}/github-deploy-restart.sh" ]; then
   cp -f "${SRC_DIR}/github-deploy-restart.sh" "${LIB_DIR}/github-deploy-restart.sh"
   chmod 755 "${LIB_DIR}/github-deploy-restart.sh"
@@ -156,6 +160,7 @@ declare -A bin_links=(
   [sync-postgres-password.sh]=sync-theexonet-postgres-password
   [setup-github-ssh-restart.sh]=setup-theexonet-github-ssh
   [diagnose-ftps.sh]=diagnose-theexonet-ftps
+  [set-gameftp-password.sh]=set-theexonet-gameftp-password
   [pull-server-repo.sh]=pull-theexonet-repo
 )
 

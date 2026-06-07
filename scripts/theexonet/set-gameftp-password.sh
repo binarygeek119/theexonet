@@ -56,6 +56,7 @@ systemctl restart vsftpd
 if command -v curl >/dev/null 2>&1; then
   if curl -fsS --ftp-ssl-reqd --insecure -u "${GAME_FTP_USER}:${GAME_FTP_PASSWORD}" "ftp://127.0.0.1/" >/dev/null; then
     echo "Password updated. Local FTPS login test: OK"
+    echo "Update GitHub secret DEPLOY_FTP_PASSWORD to this same password."
     echo "Update FileZilla Site Manager password (do not rely on saved old password)."
   else
     echo "ERROR: password set but local FTPS login test failed." >&2

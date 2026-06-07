@@ -224,8 +224,20 @@ jobs:
           set -euo pipefail
           if [ -z "${DEPLOY_FTP_PASSWORD}" ]; then
             echo "Add repository secret DEPLOY_FTP_PASSWORD (gameftp password)." >&2
-            echo "On the server install the staging watcher: sudo bash scripts/install-staging-watcher.sh" >&2
+            echo "On the server: sudo GAME_FTP_PASSWORD='...' bash scripts/theexonet/set-gameftp-password.sh" >&2
             exit 1
+          fi
+          if printf '%s' "${DEPLOY_FTP_PASSWORD}" | grep -q ':'; then
+            echo "ERROR: DEPLOY_FTP_PASSWORD cannot contain ':' (vsftpd chpasswd limitation)." >&2
+            exit 1
+          fi
+          case "${DEPLOY_HOST}" in
+            *duckdns.org*)
+              echo "WARN: DEPLOY_HOST is still ${DEPLOY_HOST}. Set DEPLOY_HOST to theexonet.com or the VM IP." >&2
+              ;;
+          esac
+          if [ "${DEPLOY_SSH_USER}" = "root" ]; then
+            echo "WARN: DEPLOY_USER is root. Set GitHub variable DEPLOY_USER=githubdeploy for the deploy SSH user." >&2
           fi
 
       - name: Normalize deploy host

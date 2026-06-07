@@ -12,14 +12,19 @@ public class TheexonetCorsMiddleware(RequestDelegate next)
             return;
         }
 
-        if (HttpMethods.IsOptions(context.Request.Method))
+        var isOptions = HttpMethods.IsOptions(context.Request.Method);
+        context.Response.OnStarting(() =>
         {
-            TheexonetCors.ApplyHeaders(context, includePreflight: true);
+            TheexonetCors.ApplyHeaders(context, includePreflight: isOptions);
+            return Task.CompletedTask;
+        });
+
+        if (isOptions)
+        {
             context.Response.StatusCode = StatusCodes.Status204NoContent;
             return;
         }
 
         await next(context);
-        TheexonetCors.ApplyHeaders(context);
     }
 }

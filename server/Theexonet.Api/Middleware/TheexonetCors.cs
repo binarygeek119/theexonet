@@ -1,6 +1,6 @@
 namespace Theexonet.Api.Middleware;
 
-/// <summary>Cross-origin rules for the game site (theexonet.com) calling api.theexonet.com.</summary>
+/// <summary>Cross-origin rules for theexonet.com and all subdomains calling api.theexonet.com.</summary>
 public static class TheexonetCors
 {
     public static bool IsAllowedOrigin(string? origin)
@@ -28,8 +28,15 @@ public static class TheexonetCors
         }
 
         var headers = context.Response.Headers;
-        headers.AccessControlAllowOrigin = origin;
-        headers.Append("Vary", "Origin");
+        if (string.IsNullOrEmpty(headers.AccessControlAllowOrigin))
+        {
+            headers.AccessControlAllowOrigin = origin;
+        }
+
+        if (!headers.Vary.ToString().Contains("Origin", StringComparison.OrdinalIgnoreCase))
+        {
+            headers.Append("Vary", "Origin");
+        }
 
         if (includePreflight)
         {

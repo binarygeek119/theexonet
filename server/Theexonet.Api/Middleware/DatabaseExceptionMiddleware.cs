@@ -15,7 +15,6 @@ public class DatabaseExceptionMiddleware(RequestDelegate next, ILogger<DatabaseE
         catch (Exception ex) when (IsDatabaseException(ex))
         {
             logger.LogError(ex, "Database error during request {Method} {Path}", context.Request.Method, context.Request.Path);
-            TheexonetCors.ApplyHeaders(context);
             context.Response.StatusCode = (int)HttpStatusCode.ServiceUnavailable;
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsJsonAsync(new

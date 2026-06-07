@@ -195,7 +195,7 @@ function renderRava(rava, ravaError, apiPublicUrl, gameUrl) {
   els.linkGameExonet.href = gameUrl;
 
   if (!rava) {
-    els.ravaApiError.textContent = ravaError || "Could not load RAVA OpenAI status from API";
+    els.ravaApiError.textContent = ravaError || "Could not load theexonet OpenAI status from API";
     return;
   }
 

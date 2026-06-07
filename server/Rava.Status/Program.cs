@@ -272,7 +272,7 @@ app.MapGet("/api/economy", async (
         : Results.Ok(payload);
 });
 
-app.Logger.LogInformation("RAVA status dashboard listening on {Urls}", builder.Configuration["Urls"] ?? "http://0.0.0.0:6000");
+app.Logger.LogInformation("theexonet status dashboard listening on {Urls}", builder.Configuration["Urls"] ?? "http://0.0.0.0:6000");
 app.Run();
 
 static IFileProvider BuildStatusStaticFileProvider(string contentRootPath, IWebHostEnvironment environment)

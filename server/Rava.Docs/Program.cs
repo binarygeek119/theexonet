@@ -45,7 +45,7 @@ try
     });
 
     app.Logger.LogInformation(
-        "RAVA docs portal listening on {Urls} (public URL: {PublicUrl}, content: {ContentRoot})",
+        "theexonet docs portal listening on {Urls} (public URL: {PublicUrl}, content: {ContentRoot})",
         builder.Configuration["Urls"] ?? Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://0.0.0.0:9000",
         publicUrl,
         contentRoot);
@@ -54,7 +54,7 @@ try
 }
 catch (Exception ex)
 {
-    Console.Error.WriteLine("RAVA docs portal startup failed.");
+    Console.Error.WriteLine("theexonet docs portal startup failed.");
     Console.Error.WriteLine(ex);
     Environment.Exit(1);
 }

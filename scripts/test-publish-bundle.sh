@@ -26,7 +26,7 @@ require_png() {
   fi
 }
 
-echo "Publishing RAVA web bundle..."
+echo "Publishing theexonet web bundle..."
 
 dotnet publish Rava.Status/Rava.Status.csproj --configuration Release --output ./publish-status
 dotnet publish Rava.Admin/Rava.Admin.csproj --configuration Release --output ./publish-admin

@@ -53,12 +53,12 @@ public sealed class MarkdownDocRenderer(MarkdownDocCatalog catalog, DocsPortalOp
   <div class="docs-layout">
     <header class="docs-header">
       <div>
-        <p class="docs-eyebrow">Reactive Asteroid Venturing Agency</p>
+        <p class="docs-eyebrow">Point-and-click asteroid mining</p>
         <h1>{{Escape(options.SiteTitle)}}</h1>
         <p class="docs-version">{{Escape(GameVersion.Display)}}</p>
       </div>
       <nav class="docs-header-links" aria-label="Related sites">
-        <a href="{{gameUrl}}">Play RAVA</a>
+        <a href="{{gameUrl}}">Play theexonet</a>
       </nav>
     </header>
     <div class="docs-body">

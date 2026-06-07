@@ -132,7 +132,7 @@ curl -s http://127.0.0.1:6000/api/dashboard
 
 ## 6. Trigger a deploy
 
-One workflow handles everything: **Actions → RAVA CI** (file: `.github/workflows/build-website.yml`).
+One workflow handles everything: **Actions → theexonet CI** (file: `.github/workflows/build-website.yml`).
 
 Push to `main` under `server/` or `scripts/` (or run the workflow manually). It will:
 
@@ -161,7 +161,7 @@ sudo install-rava-scripts      # refresh /usr/local/bin helpers
 sudo deploy-rava-portals       # auto-finds ./server
 ```
 
-Watch the **RAVA CI** workflow in the Actions tab.
+Watch the **theexonet CI** workflow in the Actions tab.
 
 ## 7. Branch protection
 

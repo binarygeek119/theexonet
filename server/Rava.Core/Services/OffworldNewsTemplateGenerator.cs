@@ -179,7 +179,7 @@ public static partial class OffworldNewsTemplateGenerator
 
     private static readonly string[] BodyActors =
     [
-        "Reactive Asteroid Venturing Agency observers",
+        "theexonet observers",
         "NPC refinery buyers",
         "public Exonet directories",
         "orbital cargo inspectors",
@@ -221,7 +221,7 @@ public static partial class OffworldNewsTemplateGenerator
         new(
             "Interplanetary council debates charter for {3}",
             "{0} and rival syndicates clash over who may open the next claim window.",
-            "Delegates from the Orbital Commons Alliance opened hearings on whether {3} should host a new public claim lottery. {0} argued that established operators like itself deserve first survey rights, while {1} lobbyists pushed for open access to independent miners.\n\n{2} said the vote could reshape how new planets enter the public Exonet registry. Observers expect a compromise that keeps RAVA starter rules intact while allowing limited outer-rim pilots."),
+            "Delegates from the Orbital Commons Alliance opened hearings on whether {3} should host a new public claim lottery. {0} argued that established operators like itself deserve first survey rights, while {1} lobbyists pushed for open access to independent miners.\n\n{2} said the vote could reshape how new planets enter the public Exonet registry. Observers expect a compromise that keeps theexonet starter rules intact while allowing limited outer-rim pilots."),
         new(
             "{0} opens new mine face after {1} survey",
             "Fresh zones and worker assignments are expected to ripple through company value rankings.",
@@ -241,18 +241,18 @@ public static partial class OffworldNewsTemplateGenerator
         new(
             "New planet survey filed for {3} outer rim",
             "{0} sponsors probe as {1} traffic lights up charter offices.",
-            "A joint filing from {0} and {1} survey contractors proposed a staged opening for new claim tiles beyond Belt Sector 7. RAVA agency staff said any production rule changes would ship through normal game updates, not overnight decree.\n\n{2} reported strong Exonet chatter about which ore mixes the region might favor. Politicians in the Orbital Commons demanded transparency on how starter mines and NPC refineries would interact with the new lanes."),
+            "A joint filing from {0} and {1} survey contractors proposed a staged opening for new claim tiles beyond Belt Sector 7. theexonet agency staff said any production rule changes would ship through normal game updates, not overnight decree.\n\n{2} reported strong Exonet chatter about which ore mixes the region might favor. Politicians in the Orbital Commons demanded transparency on how starter mines and NPC refineries would interact with the new lanes."),
         new(
             "{0} comm modules spike on {1} outage rumors",
             "Exonet relay traffic rerouted through backup nodes for six hours.",
-            "Comm-module supply bids jumped after a partial relay fault forced {0} traffic through backup nodes. {1} sellers on the Trade Market posted premiums while independent miners complained about sluggish profile uploads.\n\n{2} said RAVA production systems stayed online throughout the incident. {0} pledged to restock Comm Modules at Luna Port if auction prices remain elevated through the UTC day boundary."),
+            "Comm-module supply bids jumped after a partial relay fault forced {0} traffic through backup nodes. {1} sellers on the Trade Market posted premiums while independent miners complained about sluggish profile uploads.\n\n{2} said theexonet production systems stayed online throughout the incident. {0} pledged to restock Comm Modules at Luna Port if auction prices remain elevated through the UTC day boundary."),
         new(
             "Corporate registry flags unusual {0} filings",
             "{1} names and mine transfers draw regulator side-eye on Exonet.",
             "Corporate monitors flagged a burst of {0} activity around mine transfers and company-name listings. {1} investigators said some filings coincided with emergency buy back spikes, suggesting operators were recycling brands to raise quick Rax.\n\n{2} noted that relinquished names remain reserved for thirty days before re-entering public use. Market desks said {0} remains solvent for now, but interplanetary politics may tighten disclosure rules if the pattern continues."),
         new(
             "Watchlist probe maps {3} under observation-only charter",
-            "{0} keeps distance as RAVA non-interference rules bar surface contact.",
+            "{0} keeps distance as theexonet non-interference rules bar surface contact.",
             "Deep-survey telemetry from {0} placed {3} on the agency watchlist after spectroscopy hinted at habitable bands and unusual ore signatures. Under observation-only rules, no landing parties, trade windows, or claim filings may proceed until the Orbital Commons finishes a multi-cycle review.\n\n{2} compared the posture to classic first-contact doctrine: look, record, do not steer. {1} lobbyists already argue the world should stay quarantined forever, while {0} sponsors quietly fund passive sensor arrays in the {3} halo."),
         new(
             "Traveler advisory opens {3} to licensed outer-rim convoys",
@@ -261,7 +261,7 @@ public static partial class OffworldNewsTemplateGenerator
         new(
             "{3} votes to join the outer-rim charter fold",
             "{0} celebrates as new world enters the shared journey with claim windows ahead.",
-            "Delegates ratified {3} as a full charter participant, moving the world from traveler access to active membership in the belt relay community. {0} pledged survey teams and starter-compatible claim templates so independent miners can eventually open faces under RAVA production rules.\n\n{2} called it the kind of milestone that reshapes Exonet maps overnight. {1} analysts warned that ore mixes on the new world could shift NPC refinery bids once the first cargo manifests clear inspection at {0}."),
+            "Delegates ratified {3} as a full charter participant, moving the world from traveler access to active membership in the belt relay community. {0} pledged survey teams and starter-compatible claim templates so independent miners can eventually open faces under theexonet production rules.\n\n{2} called it the kind of milestone that reshapes Exonet maps overnight. {1} analysts warned that ore mixes on the new world could shift NPC refinery bids once the first cargo manifests clear inspection at {0}."),
         new(
             "Border flotillas clash near {3} as interplanetary war fears rise",
             "{0} convoys diverted while Orbital Commons envoys chase a ceasefire line.",

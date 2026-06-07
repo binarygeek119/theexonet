@@ -1,8 +1,8 @@
 {
-  "meta.pageTitle": "RAVA Admin",
+  "meta.pageTitle": "theexonet Admin",
   "locale.label": "Language",
   "locale.en": "English",
-  "auth.title": "RAVA Admin",
+  "auth.title": "theexonet Admin",
   "auth.subtitle": "Operations portal",
   "auth.checkingApi": "Checking API…",
   "auth.username": "Username",

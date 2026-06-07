@@ -1,4 +1,4 @@
-# RAVA UI translations
+# theexonet UI translations
 
 English JSON files in `en/` are the **source** strings. Weblate is **off** until go-live (`weblate.yml.off`, `WEBLATE_LIVE` in `js/i18n.js`); then Weblate can open PRs with `es/`, `fr/`, etc.
 

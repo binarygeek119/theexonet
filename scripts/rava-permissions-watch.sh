@@ -1,5 +1,5 @@
 #!/bin/bash
-# Watch RAVA services and data paths; fix hosting permissions when errors are detected.
+# Watch theexonet services and data paths; fix hosting permissions when errors are detected.
 # Intended to run as root under systemd (rava-permissions.service).
 set -euo pipefail
 
@@ -94,7 +94,7 @@ journal_loop() {
     return
   fi
 
-  # Follow new log lines from RAVA units; react to permission-related errors.
+  # Follow new log lines from theexonet units; react to permission-related errors.
   while true; do
     if ! journalctl -f -n 0 "${unit_args[@]}" 2>/dev/null \
       | grep -E --line-buffered -i "${JOURNAL_PATTERN}" \

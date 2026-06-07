@@ -11,7 +11,7 @@ const BOOKMARKS = [
   { slug: "company", title: "Company Exchange", subtitle: "Listed company names" },
   { slug: "friends", title: "Social Directory", subtitle: "Your friends online" },
   { slug: "profile", title: "Miner Profiles", subtitle: "Browse, search, and rankings" },
-  { slug: "docs", title: "RAVA Archives", subtitle: "Official game docs" },
+  { slug: "docs", title: "theexonet Archives", subtitle: "Official game docs" },
   { slug: "sites/offworld-news", title: "Offworld News", subtitle: "Daily frontier headlines" },
   { slug: "sites/void-corp", title: "VoidCorp", subtitle: "Mining equipment catalog" },
   { slug: "sites/lunar-weather", title: "Lunar Weather", subtitle: "Relay network space forecasts" },
@@ -288,7 +288,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
   async function renderHome() {
     content.innerHTML = `
       ${pageHeader("Exonet Portal", "home")}
-      <p class="exonet-muted">Interplanetary internet for public RAVA network services.</p>
+      <p class="exonet-muted">Interplanetary internet for public theexonet network services.</p>
       <div class="exonet-grid">
         ${BOOKMARKS.filter((item) => !item.placeholder)
           .map(
@@ -385,7 +385,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       .join("");
 
     content.innerHTML = `
-      ${pageHeader("RAVA Supply Store", "store")}
+      ${pageHeader("theexonet Supply Store", "store")}
       <div class="exonet-panel">
         <h3>Public supply catalog</h3>
         <p class="exonet-muted">Buy supplies in-game from the Store panel. Prices track the Earth market feed.</p>
@@ -1132,7 +1132,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     return `
       <div class="exonet-news-masthead">
         <div class="exonet-news-brand">OFFWORLD NEWS NETWORK</div>
-        <div class="exonet-news-tagline">Independent coverage of the RAVA frontier</div>
+        <div class="exonet-news-tagline">Independent coverage of the the frontier</div>
         ${editionLabel ? `<div class="exonet-news-edition">${escapeHtml(editionLabel)}${storyCount != null ? ` · ${storyCount} stories` : ""}${sourceLabel ? ` · ${escapeHtml(sourceLabel)}` : ""}</div>` : ""}
         ${toolbarButtons.length ? `<div class="exonet-news-toolbar">${toolbarButtons.join("")}</div>` : ""}
       </div>`;
@@ -1610,7 +1610,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       markdown = await response.text();
     } catch (error) {
       content.innerHTML = `
-        ${pageHeader("RAVA Archives", `docs/${normalized}`)}
+        ${pageHeader("theexonet Archives", `docs/${normalized}`)}
         <div class="exonet-panel"><p class="exonet-muted">${escapeHtml(error.message)}</p></div>`;
       return;
     }

@@ -1,4 +1,4 @@
-# Shared paths for RAVA hosting permission scripts (source only).
+# Shared paths for theexonet hosting permission scripts (source only).
 WWW_ROOT="${RAVA_WWW_ROOT:-/var/www}"
 PUBLISH_DIR="${RAVA_PUBLISH_DIR:-/var/www/publish}"
 DATA_DIR="${RAVA_DATA_DIR:-/var/www/data}"

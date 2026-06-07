@@ -1,5 +1,5 @@
 [Unit]
-Description=RAVA Admin Portal
+Description=theexonet Admin Portal
 After=network.target
 
 [Service]

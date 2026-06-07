@@ -8,7 +8,7 @@ DATA_DIR="${RAVA_DATA_DIR:-/var/www/data}"
 SERVICE="${RAVA_API_SERVICE:-rava-api}"
 SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
 
-echo "=== RAVA API diagnostics ==="
+echo "=== theexonet API diagnostics ==="
 echo "Publish dir: ${PUBLISH_DIR}"
 echo "Data dir:    ${DATA_DIR} (RAVA_DATA_DIR)"
 echo

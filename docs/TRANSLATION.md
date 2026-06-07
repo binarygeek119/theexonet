@@ -1,4 +1,4 @@
-# Translating RAVA with Weblate
+# Translating theexonet with Weblate
 
 Player-facing UI strings live in JSON locale files and are loaded by [`server/Rava.Api/html/js/i18n.js`](../server/Rava.Api/html/js/i18n.js).
 

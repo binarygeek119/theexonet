@@ -16,14 +16,14 @@ public sealed class MonitorRuntimeInfo
         FirstRunUtc = LoadOrCreateFirstRunUtc(path);
 
         logger.LogInformation(
-            "RAVA status monitor started at {StartedUtc:u}. First recorded run: {FirstRunUtc:u}",
+            "theexonet status monitor started at {StartedUtc:u}. First recorded run: {FirstRunUtc:u}",
             StartedUtc,
             FirstRunUtc);
 
         if (FirstRunUtc == StartedUtc || (StartedUtc - FirstRunUtc).TotalSeconds < 2)
         {
             logger.LogInformation(
-                "RAVA status monitor first run logged at {FirstRunUtc:u} UTC",
+                "theexonet status monitor first run logged at {FirstRunUtc:u} UTC",
                 FirstRunUtc);
         }
     }

@@ -9,7 +9,7 @@ SERVICE_USER="${RAVA_SERVICE_USER:-www-data}"
 
 units=(rava-admin:7000:Rava.Admin.dll:wwwroot/admin.html rava-moderator:7050:Rava.Moderator.dll:wwwroot/moderator.html rava-docs:9000:Rava.Docs.dll:content/index.md)
 
-echo "=== RAVA portal diagnostics ==="
+echo "=== theexonet portal diagnostics ==="
 echo "Publish dir: ${PUBLISH_DIR}"
 echo "Data dir:    ${DATA_DIR}"
 echo

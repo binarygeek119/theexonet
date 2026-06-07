@@ -1,8 +1,8 @@
 {
-  "meta.pageTitle": "RAVA — Server Status",
+  "meta.pageTitle": "theexonet — Server Status",
   "locale.label": "Language",
   "locale.en": "English",
-  "hero.eyebrow": "Reactive Asteroid Venturing Agency",
+  "hero.eyebrow": "Point-and-click asteroid mining",
   "hero.title": "Server Status",
   "hero.loading": "Loading…",
   "nav.dashboard": "Dashboard",

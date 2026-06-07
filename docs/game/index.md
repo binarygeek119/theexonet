@@ -1,8 +1,8 @@
-# RAVA Game Docs
+# theexonet Game Docs
 
-Welcome to the player guide for **RAVA — Reactive Asteroid Venturing Agency**.
+Welcome to the player guide for **theexonet**.
 
-RAVA is a point-and-click asteroid mining game. Register an account, assign workers to mine zones, buy supplies, sell ore, and advance the game day to keep your operation running.
+theexonet is a point-and-click asteroid mining game. Register an account, assign workers to mine zones, buy supplies, sell ore, and advance the game day to keep your operation running.
 
 ## Quick links
 

@@ -90,7 +90,7 @@ run_host_diagnostics() {
   local appsettings
   appsettings="$(resolve_appsettings_path)"
 
-  echo "=== RAVA testing friends diagnostics (host) ==="
+  echo "=== theexonet testing friends diagnostics (host) ==="
   echo "Publish dir: ${PUBLISH_DIR}"
   echo "Data dir:    ${DATA_DIR}"
   echo "API internal:${API_INTERNAL}"
@@ -406,7 +406,7 @@ profile = load("profile")
 friend_list = friends.get("friends") or []
 testing_dummies = [friend for friend in friend_list if friend.get("isTestingDummy")]
 
-print("=== RAVA testing friends diagnostics (API) ===")
+print("=== theexonet testing friends diagnostics (API) ===")
 print(f"API base:              {api_base}")
 print(f"admin/access HTTP:     {(tmpdir / 'access.status').read_text(encoding='utf-8').strip()}")
 print(f"player/friends HTTP:   {(tmpdir / 'friends.status').read_text(encoding='utf-8').strip()}")

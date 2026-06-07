@@ -1,5 +1,5 @@
 #!/bin/bash
-# Resolve the RAVA server/ directory (contains Rava.slnx and project folders).
+# Resolve the theexonet server/ directory (contains Rava.slnx and project folders).
 # Prints the absolute path on success; exits 1 with a message on stderr when not found.
 set -euo pipefail
 
@@ -55,7 +55,7 @@ for candidate in \
   fi
 done
 
-echo "Could not find the RAVA server directory (expected Rava.slnx or Rava.Admin/Rava.Admin.csproj)." >&2
+echo "Could not find the theexonet server directory (expected Rava.slnx or Rava.Admin/Rava.Admin.csproj)." >&2
 echo "Options:" >&2
 echo "  cd /opt/rava/rava && sudo deploy-rava-portals" >&2
 echo "  sudo deploy-rava-portals /opt/rava/rava/server" >&2

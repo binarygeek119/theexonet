@@ -37,7 +37,7 @@ foreach (var updatedSettingsPath in AppSettingsTemplateMerger.ApplyMissingKeys(c
 
 void FailStartup(string message, Exception? ex = null)
 {
-    Console.Error.WriteLine("RAVA API startup failed.");
+    Console.Error.WriteLine("theexonet API startup failed.");
     Console.Error.WriteLine(message);
     if (ex is not null)
     {
@@ -658,7 +658,7 @@ else
         <html lang="en">
         <head>
           <meta charset="utf-8">
-          <title>RAVA API</title>
+          <title>theexonet API</title>
           <link rel="icon" href="/favicon.svg" type="image/svg+xml">
           <link rel="alternate icon" href="/favicon.ico">
         </head>

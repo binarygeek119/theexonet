@@ -104,7 +104,7 @@ sudo chown -R www-data:www-data /var/www/publish
 
 ```ini
 [Unit]
-Description=RAVA API
+Description=theexonet API
 After=network.target
 
 [Service]
@@ -143,7 +143,7 @@ Add to `/var/www/publish/appsettings.json`:
 
 ```ini
 [Unit]
-Description=RAVA Status Dashboard
+Description=theexonet Status Dashboard
 After=network.target rava-api.service
 
 [Service]
@@ -181,7 +181,7 @@ Add to `/var/www/publish/appsettings.json` (if not already present from `AdminPo
 
 ```ini
 [Unit]
-Description=RAVA Admin Portal
+Description=theexonet Admin Portal
 After=network.target rava-api.service
 
 [Service]
@@ -218,7 +218,7 @@ Add to `/var/www/publish/appsettings.json`:
 
 ```ini
 [Unit]
-Description=RAVA Moderator Portal
+Description=theexonet Moderator Portal
 After=network.target rava-api.service
 
 [Service]
@@ -247,7 +247,7 @@ Add to `/var/www/publish/appsettings.json`:
   "PublicUrl": "https://ravadocs.binarygeek119.duckdns.org/",
   "GameUrl": "https://rava.binarygeek119.duckdns.org/",
   "ContentPath": "content",
-  "SiteTitle": "RAVA Game Docs"
+  "SiteTitle": "theexonet Game Docs"
 }
 ```
 
@@ -255,7 +255,7 @@ Add to `/var/www/publish/appsettings.json`:
 
 ```ini
 [Unit]
-Description=RAVA Game Docs
+Description=theexonet Game Docs
 After=network.target
 
 [Service]
@@ -392,7 +392,7 @@ If the API returns **502**, `/api/status` shows **database offline**, or **`rava
    `curl http://127.0.0.1:5000/api/status` — should return JSON with `"databaseStatus":"online"`
 8. **`.NET runtime missing`:** log shows `Framework: Microsoft.NETCore.App, version '10.0.0'` but only 8.x installed — install `aspnetcore-runtime-10.0` (see step 2 above).
 9. **`Address already in use` / socket bind error:** another process holds port 5000, 6000, 7000, 7050, or 9000 (`sudo ss -tlnp | grep -E '5000|6000|7000|7050|9000'`). Do **not** put `"Urls"` in the shared `/var/www/publish/appsettings.json` — set ports only in each systemd unit (`ASPNETCORE_URLS=http://0.0.0.0:5000` for API, `:6000` for status, `:7000` for admin, `:7050` for moderator, `:9000` for docs).
-10. **`Access to the path ... is denied` / upload or Offworld News write failures:** run `sudo fix-rava-permissions`, then enable the auto-watcher: `sudo install-rava-permissions-service` (or `sudo install-rava-systemd`, which installs `rava-permissions.service`). The watcher runs as **root**, polls `/var/www/data` every 30s, and fixes permissions when RAVA logs mention `Permission denied` or paths are not writable by `www-data`. Logs: `journalctl -u rava-permissions -f`.
+10. **`Access to the path ... is denied` / upload or Offworld News write failures:** run `sudo fix-rava-permissions`, then enable the auto-watcher: `sudo install-rava-permissions-service` (or `sudo install-rava-systemd`, which installs `rava-permissions.service`). The watcher runs as **root**, polls `/var/www/data` every 30s, and fixes permissions when theexonet logs mention `Permission denied` or paths are not writable by `www-data`. Logs: `journalctl -u rava-permissions -f`.
 11. **`Could not parse the JSON file` / `LineNumber: 308`:** `/var/www/publish/appsettings.json` is invalid (often duplicated content from repeated edits). Back it up, replace from `appsettings.production.example.json`, set your postgres password, then validate with `python3 -m json.tool /var/www/publish/appsettings.json`.
 12. **Admin / moderator / docs `core-dump` (ABRT):** run `sudo diagnose-rava-portals`. Common causes: missing `Rava.Admin.dll` / `Rava.Moderator.dll` / `Rava.Docs.dll` or `content/` (redeploy from `main`), port 7000/7050/9000 already in use, or a broken systemd unit missing `Environment=ASPNETCORE_URLS`. Reinstall units with `sudo install-rava-systemd`, then `sudo systemctl reset-failed rava-admin rava-moderator rava-docs`.
 13. **Stray `/var/www/html`, `/var/www/wwwroot`, or `/var/www/.aspnet`:** `DEPLOY_WWW_PATH` or `DEPLOY_API_PATH` was set to `/var/www` instead of `/var/www/publish`. Set both GitHub variables to `/var/www/publish`, remove the stray folders after confirming nothing important lives there, and re-run deploy:
@@ -447,7 +447,7 @@ Add the matching **public** key to `~/.ssh/authorized_keys` on the server.
 3. **html** — skipped when `DEPLOY_WWW_PATH` equals `DEPLOY_API_PATH` (or `${DEPLOY_API_PATH}/html`); game files ship inside `publish/html/`. A separate html rsync only runs when www and api paths differ (legacy `/var/www/rava` layout).
 4. **Restart** — runs `sudo systemctl restart` for API, status, admin, moderator, and docs services when configured.
 
-Deploy runs in the **RAVA CI** workflow (`.github/workflows/build-website.yml`) on pushes to `main` (not pull requests), after build and test pass.
+Deploy runs in the **theexonet CI** workflow (`.github/workflows/build-website.yml`) on pushes to `main` (not pull requests), after build and test pass.
 
 ## Manual deploy on the server
 

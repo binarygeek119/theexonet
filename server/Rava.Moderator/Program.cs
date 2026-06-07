@@ -45,7 +45,7 @@ try
     app.MapGet("/moderator", () => Results.Redirect("/moderator.html"));
 
     app.Logger.LogInformation(
-        "RAVA moderator portal listening on {Urls} (public URL: {PublicUrl})",
+        "theexonet moderator portal listening on {Urls} (public URL: {PublicUrl})",
         builder.Configuration["Urls"] ?? Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://0.0.0.0:7050",
         publicUrl);
 
@@ -53,7 +53,7 @@ try
 }
 catch (Exception ex)
 {
-    Console.Error.WriteLine("RAVA moderator portal startup failed.");
+    Console.Error.WriteLine("theexonet moderator portal startup failed.");
     Console.Error.WriteLine(ex);
     Environment.Exit(1);
 }

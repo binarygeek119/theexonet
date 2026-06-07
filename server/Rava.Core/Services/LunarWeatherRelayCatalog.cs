@@ -4,7 +4,7 @@ using Rava.Core.Dtos;
 
 namespace Rava.Core.Services;
 
-/// <summary>Pool of 100 weather relays across the RAVA universe.</summary>
+/// <summary>Pool of 100 weather relays across the theexonet universe.</summary>
 public static partial class LunarWeatherRelayCatalog
 {
     private static readonly object Sync = new();

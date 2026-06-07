@@ -1,5 +1,5 @@
 /**
- * RAVA web UI translations (JSON under /locales/).
+ * theexonet web UI translations (JSON under /locales/).
  * Exonet / Offworld News (exonet.js, AI articles) is intentionally excluded.
  * Set WEBLATE_LIVE when Weblate is connected and translated locale folders ship in deploy.
  */

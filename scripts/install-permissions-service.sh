@@ -1,5 +1,5 @@
 #!/bin/bash
-# Install and enable the RAVA permissions watcher (runs as root).
+# Install and enable the theexonet permissions watcher (runs as root).
 #   sudo install-rava-permissions-service
 #   sudo bash scripts/install-permissions-service.sh
 set -euo pipefail

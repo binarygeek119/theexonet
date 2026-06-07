@@ -1,7 +1,7 @@
 # /etc/default/rava-permissions — optional overrides for rava-permissions.service
 # Copy on install: cp rava-permissions.default /etc/default/rava-permissions
 
-# RAVA paths (must match API systemd units)
+# theexonet paths (must match API systemd units)
 # RAVA_PUBLISH_DIR=/var/www/publish
 # RAVA_DATA_DIR=/var/www/data
 # RAVA_SERVICE_USER=www-data

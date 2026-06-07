@@ -74,7 +74,7 @@ namespace Rava.UI
             _session = session;
             var panel = UIFactory.CreatePanel(transform, "LoginPanel", new Color(0.08f, 0.1f, 0.14f, 0.95f));
 
-            var title = UIFactory.CreateText(panel.transform, "Title", "RAVA", 28, TextAnchor.UpperCenter);
+            var title = UIFactory.CreateText(panel.transform, "Title", "theexonet", 28, TextAnchor.UpperCenter);
             var titleRect = title.rectTransform;
             titleRect.anchorMin = new Vector2(0.1f, 0.86f);
             titleRect.anchorMax = new Vector2(0.9f, 0.94f);
@@ -84,7 +84,7 @@ namespace Rava.UI
             var subtitle = UIFactory.CreateText(
                 panel.transform,
                 "Subtitle",
-                "Reactive Asteroid Venturing Agency",
+                "Point-and-click asteroid mining",
                 14,
                 TextAnchor.UpperCenter);
             subtitle.color = new Color(0.75f, 0.8f, 0.9f);

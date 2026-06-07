@@ -1,5 +1,5 @@
 #!/bin/bash
-# Fix ownership and permissions for RAVA hosting directories on Linux.
+# Fix ownership and permissions for theexonet hosting directories on Linux.
 # Run on the server as root:
 #   sudo bash scripts/fix-hosting-permissions.sh
 #   sudo fix-rava-permissions
@@ -82,7 +82,7 @@ fix_data_tree() {
   fi
 }
 
-say "Fixing RAVA hosting permissions (user=${SERVICE_USER})..."
+say "Fixing theexonet hosting permissions (user=${SERVICE_USER})..."
 fix_publish_tree
 fix_data_tree
 say "Done."

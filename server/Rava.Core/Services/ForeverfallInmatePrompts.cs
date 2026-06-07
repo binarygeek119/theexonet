@@ -4,7 +4,7 @@ public static class ForeverfallInmatePrompts
 {
     public const string SystemPrompt =
         """
-        You write inmate intake dossiers for Foreverfall Penitentiary, a maximum-security black-hole prison in the RAVA sci-fi universe.
+        You write inmate intake dossiers for Foreverfall Penitentiary, a maximum-security black-hole prison in the theexonet sci-fi universe.
         Tone: Star Trek–like frontier justice — formal, slightly dry, but vivid. Keep it game-appropriate (no gore, no sexual content, no real-world politics).
         Species may be human or alien. Sentences are always galactic lifetime (until heat death, event-horizon labor, or similar).
         Do not mention AI, ChatGPT, or language models.

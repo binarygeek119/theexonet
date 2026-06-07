@@ -58,7 +58,7 @@ public sealed class OpenAiLunarWeatherGenerator(
                 $"- {relay.Id} | {relay.Name} | region={relay.Region} | sector={relay.Sector} | body={relay.BodyType}"));
 
         var prompt = $$"""
-            You are the Lunar Weather Service (LWS) editor for the RAVA sci-fi universe (asteroid mining, belt freight, hard vacuum).
+            You are the Lunar Weather Service (LWS) editor for the theexonet sci-fi universe (asteroid mining, belt freight, hard vacuum).
             Generate space-environment forecasts for exactly {{batch.Count}} weather relays listed below.
             Rules:
             - NEVER use rain, snow, humidity, barometric pressure in hPa, wind mph, or Earth weather clichés.

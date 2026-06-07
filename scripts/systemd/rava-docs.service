@@ -1,5 +1,5 @@
 [Unit]
-Description=RAVA Game Docs
+Description=theexonet Game Docs
 After=network.target
 
 [Service]

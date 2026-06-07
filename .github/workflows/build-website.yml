@@ -1,4 +1,4 @@
-name: RAVA CI
+name: theexonet CI
 
 on:
   push:

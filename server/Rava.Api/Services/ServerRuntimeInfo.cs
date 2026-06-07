@@ -16,14 +16,14 @@ public sealed class ServerRuntimeInfo
         FirstRunUtc = LoadOrCreateFirstRunUtc(path);
 
         logger.LogInformation(
-            "RAVA API process started at {StartedUtc:u}. First recorded run: {FirstRunUtc:u}",
+            "theexonet API process started at {StartedUtc:u}. First recorded run: {FirstRunUtc:u}",
             StartedUtc,
             FirstRunUtc);
 
         if (FirstRunUtc == StartedUtc || (StartedUtc - FirstRunUtc).TotalSeconds < 2)
         {
             logger.LogInformation(
-                "RAVA API server first run logged at {FirstRunUtc:u} UTC",
+                "theexonet API server first run logged at {FirstRunUtc:u} UTC",
                 FirstRunUtc);
         }
     }

@@ -154,19 +154,19 @@ public class SmtpEmailService(IOptions<EmailOptions> options, ILogger<SmtpEmailS
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(settings.FromName, settings.FromAddress));
         message.To.Add(MailboxAddress.Parse(toEmail));
-        message.Subject = "Reset your RAVA password";
+        message.Subject = "Reset your theexonet password";
 
         var body = $"""
             Hi {username},
 
-            We received a request to reset your Reactive Asteroid Venturing Agency (RAVA) password.
+            We received a request to reset your theexonet password.
 
             Open this link to choose a new password (expires in 1 hour):
             {resetUrl}
 
             If you did not request this, you can ignore this email.
 
-            — RAVA Command
+            — theexonet Command
             """;
 
         message.Body = new TextPart("plain") { Text = body };
@@ -183,12 +183,12 @@ public class SmtpEmailService(IOptions<EmailOptions> options, ILogger<SmtpEmailS
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(settings.FromName, settings.FromAddress));
         message.To.Add(MailboxAddress.Parse(toEmail));
-        message.Subject = "Action required: update your RAVA profile";
+        message.Subject = "Action required: update your theexonet profile";
 
         var body = $"""
             Hi {username},
 
-            Your RAVA profile was flagged for review. Please remove or change the content called out below.
+            Your theexonet profile was flagged for review. Please remove or change the content called out below.
 
             Moderator comment:
             {comment}
@@ -198,7 +198,7 @@ public class SmtpEmailService(IOptions<EmailOptions> options, ILogger<SmtpEmailS
 
             After you save profile updates, the flag will be cleared automatically.
 
-            — RAVA Command
+            — theexonet Command
             """;
 
         message.Body = new TextPart("plain") { Text = body };
@@ -235,7 +235,7 @@ public class SmtpEmailService(IOptions<EmailOptions> options, ILogger<SmtpEmailS
             Review appeals in the admin portal:
             {adminPortalUrl}
 
-            — RAVA Command
+            — theexonet Command
             """;
 
         mimeMessage.Body = new TextPart("plain") { Text = body };
@@ -255,7 +255,7 @@ public class SmtpEmailService(IOptions<EmailOptions> options, ILogger<SmtpEmailS
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(settings.FromName, settings.FromAddress));
         message.To.Add(MailboxAddress.Parse(toEmail));
-        message.Subject = "Your RAVA account has been banned";
+        message.Subject = "Your theexonet account has been banned";
 
         var durationLine = isPermanent
             ? "Duration: Permanent (life ban)"
@@ -270,7 +270,7 @@ public class SmtpEmailService(IOptions<EmailOptions> options, ILogger<SmtpEmailS
         var body = $"""
             Hi {username},
 
-            Your Reactive Asteroid Venturing Agency (RAVA) account has been banned.
+            Your theexonet account has been banned.
 
             {durationLine}
             {reasonLine}
@@ -282,7 +282,7 @@ public class SmtpEmailService(IOptions<EmailOptions> options, ILogger<SmtpEmailS
 
             If you believe this ban was a mistake, you can submit a ban appeal from the login screen after signing in with your username and password.
 
-            — RAVA Command
+            — theexonet Command
             """;
 
         message.Body = new TextPart("plain") { Text = body };
@@ -300,7 +300,7 @@ public class SmtpEmailService(IOptions<EmailOptions> options, ILogger<SmtpEmailS
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(settings.FromName, settings.FromAddress));
         message.To.Add(MailboxAddress.Parse(toEmail));
-        message.Subject = "Account warning on RAVA";
+        message.Subject = "Account warning on theexonet";
 
         var reasonLine = string.IsNullOrWhiteSpace(reason)
             ? "Reason: No reason was provided."
@@ -309,7 +309,7 @@ public class SmtpEmailService(IOptions<EmailOptions> options, ILogger<SmtpEmailS
         var body = $"""
             Hi {username},
 
-            Your Reactive Asteroid Venturing Agency (RAVA) account received a moderation warning.
+            Your theexonet account received a moderation warning.
 
             {reasonLine}
             Warning expires: {expiresAtUtc:yyyy-MM-dd HH:mm} UTC
@@ -321,7 +321,7 @@ public class SmtpEmailService(IOptions<EmailOptions> options, ILogger<SmtpEmailS
 
             Further violations may result in a temporary or permanent account ban.
 
-            — RAVA Command
+            — theexonet Command
             """;
 
         message.Body = new TextPart("plain") { Text = body };

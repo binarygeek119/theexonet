@@ -1,5 +1,5 @@
 [Unit]
-Description=RAVA Status Dashboard
+Description=theexonet Status Dashboard
 After=network.target rava-api.service
 
 [Service]

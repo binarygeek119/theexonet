@@ -1,6 +1,6 @@
 # Game versioning
 
-RAVA uses **semantic versioning** in the form **V*MAJOR*.*MINOR*.*PATCH*** (for example **V1.0.0**).
+theexonet uses **semantic versioning** in the form **V*MAJOR*.*MINOR*.*PATCH*** (for example **V1.0.0**).
 
 | Part | When to increase | Examples |
 |------|------------------|----------|

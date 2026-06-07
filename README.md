@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="logo.svg" alt="RAVA logo" width="280">
+  <img src="logo.svg" alt="theexonet logo" width="280">
 </p>
 
-# RAVA — Reactive Asteroid Venturing Agency
+# theexonet
 
 [![License: MPL-2.0](https://img.shields.io/badge/License-MPL--2.0-blue.svg)](License)
 
@@ -16,7 +16,7 @@ A browser-based sci-fi asteroid mining game. Register an account, run mines on t
 
 ## About
 
-RAVA is a point-and-click mining sim set in a hard-science frontier. Players build credit runway, buy supplies, assign workers to zones on an asteroid grid, and end each day to extract ore and pay payroll. The economy includes public trade listings, company names, miner profiles, and a friends directory.
+theexonet is a point-and-click mining sim set in a hard-science frontier. Players build credit runway, buy supplies, assign workers to zones on an asteroid grid, and end each day to extract ore and pay payroll. The economy includes public trade listings, company names, miner profiles, and a friends directory.
 
 Staff-facing portals handle moderation, admin operations, and server health. Exonet sites add daily world-building content—some generated with OpenAI at UTC midnight.
 
@@ -41,7 +41,7 @@ Staff-facing portals handle moderation, admin operations, and server health. Exo
 - **Offworld News** — daily AI frontier headlines
 - **Lunar Weather** — space-weather relay bulletins
 - **Foreverfall Penitentiary** — galactic lifetime-sentence inmate registry
-- **RAVA Archives** — official player documentation
+- **theexonet Archives** — official player documentation
 
 ### Operations
 
@@ -143,7 +143,7 @@ Open the project in **Unity 6** and press Play. The client talks to the same API
 
 GitHub Actions on `main`:
 
-- **RAVA CI** — build, test, publish artifact, optional production deploy
+- **theexonet CI** — build, test, publish artifact, optional production deploy
 - **Security** — NuGet vulnerability audit, CodeQL for C#
 
 Dependabot opens weekly update PRs for NuGet and GitHub Actions.

@@ -1,5 +1,5 @@
 [Unit]
-Description=RAVA Moderator Portal
+Description=theexonet Moderator Portal
 After=network.target
 
 [Service]

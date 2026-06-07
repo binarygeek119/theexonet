@@ -47,5 +47,5 @@ public static class VoidCorpProductTemplates
         $"{displayName} is manufactured by VoidCorp for licensed asteroid mining contractors. "
         + $"{tagline}. In field use, this product {summary.ToLowerInvariant()}. "
         + "Specifications meet VoidCorp frontier reliability standards; availability through "
-        + "authorized RAVA supply channels may vary by relay lag and market conditions.";
+        + "authorized theexonet supply channels may vary by relay lag and market conditions.";
 }

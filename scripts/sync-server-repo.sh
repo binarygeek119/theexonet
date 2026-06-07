@@ -34,7 +34,7 @@ clone_repo() {
   parent="$(dirname "${REPO_PATH}")"
   mkdir -p "${parent}"
   if [ -d "${REPO_PATH}" ]; then
-    echo "ERROR: ${REPO_PATH} exists but is not a RAVA git checkout." >&2
+    echo "ERROR: ${REPO_PATH} exists but is not a theexonet git checkout." >&2
     exit 1
   fi
   git clone "${REPO_URL}" "${REPO_PATH}"

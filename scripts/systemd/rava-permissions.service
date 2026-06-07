@@ -1,5 +1,5 @@
 [Unit]
-Description=RAVA hosting permissions watcher
+Description=theexonet hosting permissions watcher
 Documentation=file:///usr/local/lib/rava/scripts/fix-hosting-permissions.sh
 After=network.target rava-api.service
 Wants=rava-api.service

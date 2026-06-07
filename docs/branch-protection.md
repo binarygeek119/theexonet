@@ -17,7 +17,7 @@ These match job names in [`.github/workflows/build-website.yml`](../.github/work
 
 | Check name | Workflow |
 |------------|----------|
-| **Build and test** | RAVA CI |
+| **Build and test** | theexonet CI |
 | **NuGet vulnerability audit** | Security |
 | **CodeQL** | Security |
 
@@ -25,7 +25,7 @@ Repository admins can bypass rules (configured in the ruleset) so direct pushes 
 
 ### Path filters
 
-RAVA CI and Security only run when certain paths change. If a PR touches only files outside those paths, checks may be **skipped**. In **Settings → Rules → Rulesets → Protect main**, enable **Do not require status checks for workflows that are skipped** if merges get stuck on skipped jobs.
+theexonet CI and Security only run when certain paths change. If a PR touches only files outside those paths, checks may be **skipped**. In **Settings → Rules → Rulesets → Protect main**, enable **Do not require status checks for workflows that are skipped** if merges get stuck on skipped jobs.
 
 ## Apply automatically (recommended)
 

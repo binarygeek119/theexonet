@@ -47,7 +47,7 @@ try
     app.MapGet("/admin", () => Results.Redirect("/admin.html"));
 
     app.Logger.LogInformation(
-        "RAVA admin portal listening on {Urls} (public URL: {PublicUrl})",
+        "theexonet admin portal listening on {Urls} (public URL: {PublicUrl})",
         builder.Configuration["Urls"] ?? Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://0.0.0.0:7000",
         publicUrl);
 
@@ -55,7 +55,7 @@ try
 }
 catch (Exception ex)
 {
-    Console.Error.WriteLine("RAVA admin portal startup failed.");
+    Console.Error.WriteLine("theexonet admin portal startup failed.");
     Console.Error.WriteLine(ex);
     Environment.Exit(1);
 }

@@ -173,8 +173,8 @@ public sealed class OpenAiOffworldNewsGenerator(
         var reporterAssignments = OffworldNewsReporterCatalog.BuildWritingAssignmentBlock(assignedReporters);
 
         var prompt = $$"""
-            You write satirical but believable sci-fi news for "Offworld News Network" (ONN), covering the RAVA game universe:
-            - RAVA = Reactive Asteroid Venturing Agency; players run asteroid mines
+            You write satirical but believable sci-fi news for "Offworld News Network" (ONN), covering the theexonet universe:
+            - theexonet: players run asteroid mines in a hard-science frontier
             - Currency is Rax (not dollars/credits in headlines)
             - Ores: Ferroxite, Voidium, Stellarite, Salvage Scrap
             - Supplies: Drill Bits, Fuel Cells, Life Support, Comm Modules (linked to live US stock symbols in-game)
@@ -195,7 +195,7 @@ public sealed class OpenAiOffworldNewsGenerator(
             Frontier / new-world coverage (Star Trek-style discovery arc — use different tiers across stories, do not repeat the same tier every time):
             1) Observation only — long-range probes, watchlist worlds, non-interference / look-but-do-not-land doctrine, passive sensor arrays, Orbital Commons review cycles
             2) Introduced to travelers — navigation beacons published, licensed convoy advisories, diplomatic briefings for captains, trade passage allowed but no claims yet
-            3) Joining the journey — charter fold votes, new worlds entering the belt relay community, upcoming claim windows under RAVA rules, survey teams embedding for production
+            3) Joining the journey — charter fold votes, new worlds entering the belt relay community, upcoming claim windows under theexonet rules, survey teams embedding for production
 
             Assign Frontier category to discovery/first-contact stories; Security category to wars, marshals, smugglers, and cartels; keep existing categories for markets, mining, etc.
 

@@ -10,5 +10,5 @@ public class DocsPortalOptions
 
     public string ContentPath { get; set; } = "content";
 
-    public string SiteTitle { get; set; } = "RAVA Game Docs";
+    public string SiteTitle { get; set; } = "theexonet Game Docs";
 }

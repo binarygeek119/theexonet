@@ -1,5 +1,5 @@
 #!/bin/bash
-# Install RAVA systemd units on production. Run on the server as root:
+# Install theexonet systemd units on production. Run on the server as root:
 #   sudo install-rava-systemd
 #   sudo bash scripts/install-systemd-units.sh
 set -euo pipefail

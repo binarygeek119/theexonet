@@ -123,7 +123,7 @@ function renderPage(data) {
   const rava = data.rava;
   if (!rava) {
     setPill(els.overall, "API unreachable", "offline");
-    els.apiError.textContent = data.ravaError || "Could not load AI content status from RAVA API";
+    els.apiError.textContent = data.ravaError || "Could not load AI content status from theexonet API";
     return;
   }
 

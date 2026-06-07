@@ -1,5 +1,5 @@
 #!/bin/bash
-# Audit RAVA hosting directory ownership and writability.
+# Audit theexonet hosting directory ownership and writability.
 # Exit 0 when healthy, 1 when issues are found.
 #   sudo audit-rava-permissions
 #   sudo audit-rava-permissions -q    # no output unless issues
@@ -107,7 +107,7 @@ require_root
 require_service_user
 
 if [ "$QUIET" -eq 0 ]; then
-  echo "Auditing RAVA hosting permissions (user=${SERVICE_USER})..."
+  echo "Auditing theexonet hosting permissions (user=${SERVICE_USER})..."
 fi
 
 audit_publish_tree

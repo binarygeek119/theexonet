@@ -1,4 +1,4 @@
-// RAVA web API client (fixed 2026-05-29)
+// theexonet web API client (fixed 2026-05-29)
 const TOKEN_KEY = "rava_token";
 const MINE_KEY = "rava_mineId";
 const USER_KEY = "rava_username";

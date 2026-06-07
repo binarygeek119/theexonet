@@ -19,6 +19,29 @@ echo "Publish dir: ${PUBLISH_DIR}"
 echo "Data dir:    ${DATA_DIR} (THEEXONET_DATA_DIR)"
 echo
 
+wait_for_http() {
+  local label="$1"
+  local url="$2"
+  local attempts="${3:-18}"
+  local delay="${4:-5}"
+  local i=1
+  while [ "$i" -le "$attempts" ]; do
+    if curl -sf --max-time 10 "${url}" >/dev/null; then
+      echo "OK  ${url}"
+      return 0
+    fi
+    if command -v ss >/dev/null 2>&1 && ss -tln 2>/dev/null | grep -q ':5000'; then
+      echo "WAIT  ${label} (${i}/${attempts}) — port 5000 is listening; endpoint not ready yet"
+    else
+      echo "WAIT  ${label} (${i}/${attempts}) — API still starting (port 5000 not listening)"
+    fi
+    sleep "${delay}"
+    i=$((i + 1))
+  done
+  echo "FAILED  ${url} (after ${attempts} attempts, ~$((attempts * delay))s)"
+  return 1
+}
+
 echo "--- .NET runtimes ---"
 if ! command -v dotnet >/dev/null 2>&1; then
   echo "ERROR: dotnet not found in PATH."
@@ -125,16 +148,6 @@ if [ "$(id -u)" -eq 0 ]; then
   mkdir -p "${DATA_DIR}/exonet/lunar-weather/editions"
   chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "${DATA_DIR}/exonet" 2>/dev/null || true
 fi
-if command -v curl >/dev/null 2>&1; then
-  if curl -sf --max-time 15 "http://127.0.0.1:5000/api/public/offworld-news" >/dev/null; then
-    echo "Offworld News endpoint: OK (localhost:5000)"
-  else
-    echo "Offworld News endpoint: FAILED — deploy latest Theexonet.Api.dll or check journalctl for errors"
-    missing=1
-  fi
-fi
-echo
-
 echo "--- Foreverfall Penitentiary ---"
 foreverfall_cache="${DATA_DIR}/exonet/foreverfall"
 for dir in "${foreverfall_cache}/images" "${foreverfall_cache}/rosters"; do
@@ -161,7 +174,14 @@ echo
 
 echo "--- Service status ---"
 if systemctl is-active --quiet "${SERVICE}" 2>/dev/null; then
-  echo "${SERVICE} is running (port 5000 may already be in use)."
+  echo "${SERVICE} is active."
+  if command -v ss >/dev/null 2>&1; then
+    if ss -tln 2>/dev/null | grep -q ':5000'; then
+      echo "Port 5000: listening."
+    else
+      echo "Port 5000: not listening yet (API may still be applying database migrations on startup)."
+    fi
+  fi
 else
   echo "${SERVICE} is not active."
 fi
@@ -169,10 +189,18 @@ echo
 
 echo "--- API /api/status ---"
 if command -v curl >/dev/null 2>&1; then
-  if curl -sf --max-time 15 "http://127.0.0.1:5000/api/status" >/dev/null; then
-    echo "OK  http://127.0.0.1:5000/api/status"
-  else
-    echo "FAILED  http://127.0.0.1:5000/api/status"
+  if ! wait_for_http "API status" "http://127.0.0.1:5000/api/status" 12 5; then
+    missing=1
+  fi
+else
+  echo "SKIP  curl not installed"
+fi
+echo
+
+echo "--- Offworld News HTTP ---"
+if command -v curl >/dev/null 2>&1; then
+  if ! wait_for_http "Offworld News" "http://127.0.0.1:5000/api/public/offworld-news" 18 5; then
+    echo "Hint: if /api/status works but Offworld News fails, check OffworldNews:Enabled and journalctl for scheduler errors."
     missing=1
   fi
 else

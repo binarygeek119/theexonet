@@ -341,6 +341,8 @@ builder.Services.AddSingleton<IAuthorizationHandler, ModeratorAuthorizationHandl
 builder.Services.AddSingleton<ServerRuntimeInfo>();
 builder.Services.AddSingleton<LiveUpdateBroadcaster>();
 builder.Services.AddSingleton<ILiveUpdateBroadcaster>(sp => sp.GetRequiredService<LiveUpdateBroadcaster>());
+builder.Services.AddSingleton<StartupReadiness>();
+builder.Services.AddHostedService<DatabaseStartupService>();
 builder.Services.AddSingleton<ClientBuildInfo>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<ClientBuildInfo>());
 
@@ -501,27 +503,8 @@ else
         sexualPath);
 }
 
+app.UseMiddleware<Theexonet.Api.Middleware.StartupReadinessMiddleware>();
 app.UseMiddleware<Theexonet.Api.Middleware.DatabaseExceptionMiddleware>();
-
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    try
-    {
-        db.Database.EnsureCreated();
-        await DatabaseSchemaUpdater.ApplyAsync(db);
-        await scope.ServiceProvider.GetRequiredService<PlayerDataMigrationRunner>()
-            .RunPendingAsync();
-    }
-    catch (Exception ex)
-    {
-        FailStartup(
-            "Could not connect to PostgreSQL or create the database schema. " +
-            "Verify ConnectionStrings:DefaultConnection in appsettings.json.",
-            ex);
-    }
-
-}
 
 if (app.Environment.IsDevelopment())
 {
@@ -695,6 +678,7 @@ else
 
 try
 {
+    app.Logger.LogInformation("Starting HTTP server.");
     app.Run();
 }
 catch (Exception ex)

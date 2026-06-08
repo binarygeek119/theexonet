@@ -588,7 +588,9 @@ public class PublicProfileService(
             IsStaffAdmin: staffFlags.IsStaffAdmin,
             IsStaffModerator: staffFlags.IsStaffModerator,
             CurrentJob: currentJob,
-            JobHistory: jobHistory);
+            JobHistory: jobHistory,
+            ProfileSpecies: player.ProfileSpecies,
+            ProfileSpeciesLabel: PlayerProfileSpecies.DisplayLabel(player.ProfileSpecies));
     }
 
     private static ProfilePronounSet MapPronouns(PlayerEntity player) =>

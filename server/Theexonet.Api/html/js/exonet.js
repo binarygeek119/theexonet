@@ -640,6 +640,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
         <p><strong>About</strong><br>${escapeHtml(profile.aboutMe || "No bio published.")}</p>
         <p><strong>Interests</strong><br>${escapeHtml(profile.interests || "Nothing listed.")}</p>
         <p><strong>Music</strong><br>${escapeHtml(profile.music || "Silence in the void.")}</p>
+        <p><strong>Species</strong><br>${escapeHtml(pickField(profile, "profileSpeciesLabel") || pickField(profile, "profileSpecies") || "Human")}</p>
         ${renderProfileJobsMarkup(profile)}
         ${publicInfo ? `<p class="exonet-muted">${escapeHtml(publicInfo)}</p>` : ""}
         <div>${renderSocialLinksHtml(profile)}</div>

@@ -161,6 +161,10 @@ public class PlayerController(
     public ActionResult<PlayerJobCatalogResponse> GetJobCatalog() =>
         Ok(PlayerGameService.GetJobCatalog());
 
+    [HttpGet("species/catalog")]
+    public ActionResult<PlayerSpeciesCatalogResponse> GetSpeciesCatalog() =>
+        Ok(PlayerGameService.GetSpeciesCatalog());
+
     [HttpPost("job-application")]
     public async Task<ActionResult<PlayerProfileResponse>> SubmitJobApplication(
         SubmitJobApplicationRequest request,

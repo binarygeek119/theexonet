@@ -711,6 +711,17 @@ public class PlayerGameService(
             player.ProfileAgePublic = request.ProfileAgePublic.Value;
         }
 
+        if (request.ProfileSpecies is not null)
+        {
+            var speciesError = PlayerProfileSpecies.Validate(request.ProfileSpecies);
+            if (speciesError is not null)
+            {
+                return (null, speciesError);
+            }
+
+            player.ProfileSpecies = PlayerProfileSpecies.Normalize(request.ProfileSpecies);
+        }
+
         await profileUpgrader.EnsurePlayerUpgradedAsync(player, ct);
         await ResolveActiveProfileFlagsAsync(playerId, ct);
         await db.SaveChangesAsync(ct);
@@ -738,7 +749,8 @@ public class PlayerGameService(
             request.Bluesky ?? string.Empty,
             request.Twitter ?? string.Empty,
             request.Youtube ?? string.Empty,
-            request.Facebook ?? string.Empty);
+            request.Facebook ?? string.Empty,
+            request.ProfileSpecies);
 
         if (error is not null)
         {
@@ -756,6 +768,7 @@ public class PlayerGameService(
             return (null, "Job application already submitted.");
         }
 
+        player.ProfileSpecies = PlayerProfileSpecies.Normalize(request.ProfileSpecies);
         player.ProfileMood = request.Mood!.Trim();
         player.ProfileAboutMe = request.AboutMe!.Trim();
         player.ProfileInterests = request.Interests!.Trim();
@@ -787,6 +800,9 @@ public class PlayerGameService(
         new(PlayerJobCatalog.All
             .Select(job => new PlayerJobCatalogEntryDto(job.Slug, job.Title, job.Description))
             .ToList());
+
+    public static PlayerSpeciesCatalogResponse GetSpeciesCatalog() =>
+        new(PlayerProfileSpecies.Catalog);
 
     public async Task<(PlayerProfileResponse? Profile, string? Error)> UploadProfileAvatarAsync(
         Guid playerId,
@@ -1259,7 +1275,9 @@ public class PlayerGameService(
             TestingModeEnabled: isOwner && player.AdminTestingModeEnabled,
             JobApplicationRequired: jobApplicationRequired,
             CurrentJob: currentJob,
-            JobHistory: jobHistory);
+            JobHistory: jobHistory,
+            ProfileSpecies: player.ProfileSpecies,
+            ProfileSpeciesLabel: PlayerProfileSpecies.DisplayLabel(player.ProfileSpecies));
     }
 
     private async Task<IReadOnlyList<PlayerJobHistoryEntryDto>> LoadJobHistoryAsync(

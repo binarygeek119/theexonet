@@ -360,6 +360,10 @@ export class TheexonetApi {
     return this.request("/api/player/jobs/catalog");
   }
 
+  getSpeciesCatalog() {
+    return this.request("/api/player/species/catalog");
+  }
+
   submitJobApplication(payload) {
     return this.request("/api/player/job-application", {
       method: "POST",

@@ -27,7 +27,8 @@ public static class ProfileValidator
         string bluesky,
         string twitter,
         string youtube,
-        string facebook)
+        string facebook,
+        string? profileSpecies = null)
     {
         if (string.IsNullOrWhiteSpace(mood))
         {
@@ -42,6 +43,12 @@ public static class ProfileValidator
         if (string.IsNullOrWhiteSpace(interests))
         {
             return "Off-duty interests are required.";
+        }
+
+        var speciesError = PlayerProfileSpecies.Validate(profileSpecies);
+        if (speciesError is not null)
+        {
+            return speciesError;
         }
 
         return ValidateUpdate(mood, aboutMe, music, interests, discord, bluesky, twitter, youtube, facebook);

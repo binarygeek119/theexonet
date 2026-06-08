@@ -311,6 +311,8 @@ export function buildDummyGameProfile(index, adminProfile) {
     jobApplicationRequired: false,
     currentJob: null,
     jobHistory: [],
+    profileSpecies: "human",
+    profileSpeciesLabel: "Human",
     reportedLocationsNote: "",
     isTestingDummy: true,
   }, index);

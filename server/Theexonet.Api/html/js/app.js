@@ -1,4 +1,4 @@
-import { TheexonetApi } from "./api.js?v=20260608-job-application";
+import { TheexonetApi } from "./api.js?v=20260608-job-form-species";
 import { GRID_SIZE, ORE_TYPES, SUPPLY_TYPES, API_BASE_URL, readMetaApiBase } from "./config.js";
 import {
   formatRaxHtml,
@@ -9,7 +9,7 @@ import {
 } from "./currency.js";
 import { initPlayerMessaging } from "./player-messages.js?v=20260529-message-remove";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
-import { initExonet } from "./exonet.js?v=20260608-job-application";
+import { initExonet } from "./exonet.js?v=20260608-job-form-species";
 import { initI18n, applyTranslations, wireLocaleSelectors, wireLocaleSelector, getLocale, setLocale, t } from "./i18n.js";
 import {
   augmentOwnerProfileForTesting,
@@ -221,7 +221,10 @@ const state = {
   tradeMarketValue: 0,
   auctionFeePercent: 5,
   jobCatalog: [],
+  speciesCatalog: [],
 };
+
+const EXOSUIT_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL", "6XL"];
 
 let utcClockTimer;
 let utcRefreshTimer;
@@ -394,6 +397,8 @@ const els = {
   profileBackgroundStatus: document.getElementById("profile-background-status"),
   profileLocaleInput: document.getElementById("profile-locale-input"),
   profileGenderInput: document.getElementById("profile-gender-input"),
+  profileSpeciesInput: document.getElementById("profile-species-input"),
+  profileSpeciesDisplay: document.getElementById("profile-species-display"),
   profilePreferredPronounsSection: document.getElementById("profile-preferred-pronouns-section"),
   profilePreferredPronounsInput: document.getElementById("profile-preferred-pronouns-input"),
   profileBirthdayPublicInput: document.getElementById("profile-birthday-public-input"),
@@ -443,6 +448,9 @@ const els = {
   jobApplicationModal: document.getElementById("job-application-modal"),
   jobApplicationForm: document.getElementById("job-application-form"),
   jobApplicationPosition: document.getElementById("job-application-position"),
+  jobApplicationClothingLine: document.getElementById("job-application-clothing-line"),
+  jobApplicationExosuit: document.getElementById("job-application-exosuit"),
+  jobApplicationSpecies: document.getElementById("job-application-species"),
   jobApplicationMood: document.getElementById("job-application-mood"),
   jobApplicationAbout: document.getElementById("job-application-about"),
   jobApplicationInterests: document.getElementById("job-application-interests"),
@@ -1393,6 +1401,7 @@ function profileEditFormPayload() {
     facebook: els.profileFacebookInput?.value.trim() ?? "",
     profileBirthdayPublic: Boolean(els.profileBirthdayPublicInput?.checked),
     profileAgePublic: Boolean(els.profileAgePublicInput?.checked),
+    profileSpecies: els.profileSpeciesInput?.value ?? "human",
   });
 }
 
@@ -1534,6 +1543,51 @@ async function ensureJobCatalogLoaded() {
   return state.jobCatalog;
 }
 
+async function ensureSpeciesCatalogLoaded() {
+  if (state.speciesCatalog?.length) {
+    return state.speciesCatalog;
+  }
+
+  const response = await api.getSpeciesCatalog();
+  state.speciesCatalog = response?.species ?? [];
+  return state.speciesCatalog;
+}
+
+function populateSpeciesSelect(selectEl, species, catalog) {
+  if (!selectEl) {
+    return;
+  }
+
+  const options = (catalog ?? [])
+    .map(
+      (entry) =>
+        `<option value="${escapeHtml(entry.slug)}">${escapeHtml(entry.label)}</option>`,
+    )
+    .join("");
+  selectEl.innerHTML = options;
+  const normalized = (species ?? "human").toLowerCase();
+  const match = (catalog ?? []).find((entry) => entry.slug === normalized);
+  selectEl.value = match?.slug ?? "human";
+}
+
+function exosuitSizeLabel(line, size) {
+  const prefix = line === "female" ? t("jobApplication.sizeWomen") : t("jobApplication.sizeMen");
+  return `${prefix} ${size}`;
+}
+
+function populateExosuitSizes(line = "female", selectedSize = "M") {
+  if (!els.jobApplicationExosuit) {
+    return;
+  }
+
+  const normalizedLine = line === "male" ? "male" : "female";
+  els.jobApplicationExosuit.innerHTML = EXOSUIT_SIZES.map((size) => {
+    const label = exosuitSizeLabel(normalizedLine, size);
+    const selected = size === selectedSize ? " selected" : "";
+    return `<option value="${escapeHtml(size)}"${selected}>${escapeHtml(label)}</option>`;
+  }).join("");
+}
+
 function populateJobApplicationPositions(jobs) {
   if (!els.jobApplicationPosition) {
     return;
@@ -1556,8 +1610,16 @@ async function renderJobApplicationModal() {
     return;
   }
 
-  const jobs = await ensureJobCatalogLoaded();
+  const [jobs, species] = await Promise.all([
+    ensureJobCatalogLoaded(),
+    ensureSpeciesCatalogLoaded(),
+  ]);
   populateJobApplicationPositions(jobs);
+  populateSpeciesSelect(els.jobApplicationSpecies, state.profile?.profileSpecies, species);
+  populateExosuitSizes(
+    els.jobApplicationClothingLine?.value ?? "female",
+    els.jobApplicationExosuit?.value ?? "M",
+  );
   if (els.jobApplicationStatus) {
     els.jobApplicationStatus.textContent = "";
     els.jobApplicationStatus.classList.remove("error", "success");
@@ -1642,6 +1704,7 @@ async function saveJobApplication(event) {
       twitter: els.jobApplicationTwitter?.value?.trim() ?? "",
       youtube: els.jobApplicationYoutube?.value?.trim() ?? "",
       facebook: els.jobApplicationFacebook?.value?.trim() ?? "",
+      profileSpecies: els.jobApplicationSpecies?.value ?? "human",
     });
     state.profile = profile;
     state.accountProfile = profile;
@@ -1753,6 +1816,9 @@ function renderProfileGenderPronouns(profile) {
     if (els.profilePronounsDisplay) {
       els.profilePronounsDisplay.textContent = "—";
     }
+    if (els.profileSpeciesDisplay) {
+      els.profileSpeciesDisplay.textContent = "—";
+    }
     setHidden(els.profilePronounsHint, true);
     return;
   }
@@ -1767,6 +1833,11 @@ function renderProfileGenderPronouns(profile) {
   setHidden(els.profileGenderDisplay, !showGender);
   if (showGender && els.profileGenderDisplay) {
     els.profileGenderDisplay.textContent = genderLabel(profile.profileGender);
+  }
+
+  if (els.profileSpeciesDisplay) {
+    els.profileSpeciesDisplay.textContent =
+      profile?.profileSpeciesLabel || profile?.profileSpecies || t("profile.edit.speciesHuman");
   }
 
   if (els.profilePronounsHint) {
@@ -1806,6 +1877,9 @@ function populateProfileEditForm(profile) {
   if (els.profileGenderInput) {
     els.profileGenderInput.value = profile.profileGender ?? "";
   }
+  void ensureSpeciesCatalogLoaded().then((catalog) => {
+    populateSpeciesSelect(els.profileSpeciesInput, profile.profileSpecies, catalog);
+  });
   if (els.profilePreferredPronounsInput) {
     els.profilePreferredPronounsInput.value = profile.profilePreferredPronouns ?? "";
   }
@@ -4272,6 +4346,9 @@ els.jobApplicationForm?.addEventListener("submit", (event) => {
       els.jobApplicationStatus.classList.add("error");
     }
   });
+});
+els.jobApplicationClothingLine?.addEventListener("change", () => {
+  populateExosuitSizes(els.jobApplicationClothingLine?.value ?? "female");
 });
 els.profileCompanySaveBtn?.addEventListener("click", () => {
   saveCompanyName().catch((error) => {

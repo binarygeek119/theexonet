@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theexonet-api-base" content="https://api.theexonet.com">
-  <meta name="theexonet-html-build" content="20260608-job-application">
+  <meta name="theexonet-html-build" content="20260608-job-form-species">
   <link rel="icon" href="/images/currency.png" type="image/png">
   <title>theexonet</title>
   <style>
@@ -38,7 +38,7 @@
     }
   </style>
   <link rel="stylesheet" href="/css/app.css?v=20260607-live-updates">
-  <link rel="stylesheet" href="/css/profile.css?v=20260608-job-application">
+  <link rel="stylesheet" href="/css/profile.css?v=20260608-job-form-species">
   <link rel="stylesheet" href="/css/exonet.css?v=20260607-staff-badge">
 </head>
 <body>
@@ -412,6 +412,8 @@
                 <dd id="profile-sidebar-member-since">---</dd>
                 <dt id="profile-gender-label" hidden data-i18n="profile.gender">Gender</dt>
                 <dd id="profile-gender-display" hidden>—</dd>
+                <dt data-i18n="profile.species">Species</dt>
+                <dd id="profile-species-display">Human</dd>
                 <dt data-i18n="profile.pronouns">Pronouns</dt>
                 <dd id="profile-pronouns-display">—</dd>
                 <dt data-i18n="profile.companyName">Company Name</dt>
@@ -578,6 +580,12 @@
               <option value="prefer-not-to-say" data-i18n="profile.edit.gender.preferNot">Prefer not to say</option>
             </select>
             <p id="profile-gender-hint" class="profile-number-hint" data-i18n="profile.edit.genderHint">Used to choose how we address you in game text (he/him, she/her, they/them).</p>
+
+            <label for="profile-species-input" data-i18n="profile.edit.species">Species</label>
+            <select id="profile-species-input" aria-describedby="profile-species-hint">
+              <option value="human" data-i18n="profile.edit.speciesHuman">Human</option>
+            </select>
+            <p id="profile-species-hint" class="profile-number-hint" data-i18n="profile.edit.speciesHint">Shown on your public profile. Choose human or a known alien type.</p>
 
             <div id="profile-preferred-pronouns-section" class="profile-preferred-pronouns-section" hidden>
               <label for="profile-preferred-pronouns-input" data-i18n="profile.edit.preferredPronouns">Preferred pronouns</label>
@@ -780,7 +788,10 @@
 
   <div id="job-application-modal" class="modal job-application-modal" hidden role="dialog" aria-modal="true" aria-labelledby="job-application-title">
     <div class="job-application-card">
-      <h2 id="job-application-title" data-i18n="jobApplication.title">Universal Employment Exchange</h2>
+      <div class="job-application-top">
+        <h2 id="job-application-title" data-i18n="jobApplication.title">Universal Employment Exchange</h2>
+      </div>
+      <div class="job-application-body">
       <p class="job-application-intro" data-i18n="jobApplication.intro">Complete your employment packet before reporting for duty. Standard forms apply across registered sectors.</p>
       <form id="job-application-form" class="job-application-form" novalidate>
         <fieldset class="job-application-section">
@@ -798,18 +809,23 @@
           <input id="job-application-vacuum-years" type="text" value="12" autocomplete="off">
           <label for="job-application-reference" data-i18n="jobApplication.reference">Reference beacon frequency</label>
           <input id="job-application-reference" type="text" value="118.42 MHz — Chief Harrow" autocomplete="off">
-          <label for="job-application-exosuit" data-i18n="jobApplication.exosuit">Exosuit size</label>
-          <select id="job-application-exosuit">
-            <option value="M" selected>M</option>
-            <option value="S">S</option>
-            <option value="L">L</option>
-            <option value="XL">XL</option>
+          <label for="job-application-clothing-line" data-i18n="jobApplication.clothingLine">Exosuit clothing line</label>
+          <select id="job-application-clothing-line">
+            <option value="female" data-i18n="jobApplication.clothingFemale">Women's sizing</option>
+            <option value="male" data-i18n="jobApplication.clothingMale">Men's sizing</option>
           </select>
+          <label for="job-application-exosuit" data-i18n="jobApplication.exosuit">Exosuit size</label>
+          <select id="job-application-exosuit"></select>
           <label for="job-application-leaving" data-i18n="jobApplication.leavingReason">Reason for leaving last assignment</label>
           <input id="job-application-leaving" type="text" value="Contract rotation ended" autocomplete="off">
         </fieldset>
         <fieldset class="job-application-section">
           <legend data-i18n="jobApplication.sectionProfile">Crew dossier (public profile)</legend>
+          <label for="job-application-species" data-i18n="profile.edit.species">Species</label>
+          <select id="job-application-species" required>
+            <option value="human" data-i18n="profile.edit.speciesHuman">Human</option>
+          </select>
+          <p class="job-application-field-hint" data-i18n="profile.edit.speciesHint">Shown on your public profile. Choose human or a known alien type.</p>
           <label for="job-application-mood" data-i18n="jobApplication.mood">Crew morale statement</label>
           <input id="job-application-mood" type="text" maxlength="120" required data-i18n-placeholder="jobApplication.moodPlaceholder" placeholder="Ready to punch rock and chase the next vein.">
           <label for="job-application-about" data-i18n="jobApplication.about">Applicant dossier</label>
@@ -821,22 +837,23 @@
         </fieldset>
         <fieldset class="job-application-section">
           <legend data-i18n="jobApplication.sectionComms">Comms handles (optional)</legend>
-          <label for="job-application-discord" data-i18n="profile.edit.discord">Discord</label>
-          <input id="job-application-discord" type="text" maxlength="120" autocomplete="off">
-          <label for="job-application-bluesky" data-i18n="profile.edit.bluesky">Bluesky</label>
-          <input id="job-application-bluesky" type="text" maxlength="120" autocomplete="off">
-          <label for="job-application-twitter" data-i18n="profile.edit.twitter">Twitter / X</label>
-          <input id="job-application-twitter" type="text" maxlength="120" autocomplete="off">
-          <label for="job-application-youtube" data-i18n="profile.edit.youtube">YouTube</label>
-          <input id="job-application-youtube" type="text" maxlength="120" autocomplete="off">
-          <label for="job-application-facebook" data-i18n="profile.edit.facebook">Facebook</label>
-          <input id="job-application-facebook" type="text" maxlength="120" autocomplete="off">
+          <label for="job-application-discord" data-i18n="social.discord">Discord</label>
+          <input id="job-application-discord" type="text" maxlength="120" data-i18n-placeholder="social.discordPlaceholder" placeholder="username or discord.gg/invite" autocomplete="off">
+          <label for="job-application-bluesky" data-i18n="social.bluesky">Bluesky</label>
+          <input id="job-application-bluesky" type="text" maxlength="120" data-i18n-placeholder="social.blueskyPlaceholder" placeholder="@handle.bsky.social" autocomplete="off">
+          <label for="job-application-twitter" data-i18n="social.twitter">Twitter / X</label>
+          <input id="job-application-twitter" type="text" maxlength="120" data-i18n-placeholder="social.twitterPlaceholder" placeholder="@handle" autocomplete="off">
+          <label for="job-application-youtube" data-i18n="social.youtube">YouTube</label>
+          <input id="job-application-youtube" type="text" maxlength="120" data-i18n-placeholder="social.youtubePlaceholder" placeholder="@channel or channel URL" autocomplete="off">
+          <label for="job-application-facebook" data-i18n="social.facebook">Facebook</label>
+          <input id="job-application-facebook" type="text" maxlength="120" data-i18n-placeholder="social.facebookPlaceholder" placeholder="username or profile URL" autocomplete="off">
         </fieldset>
         <div class="job-application-actions">
           <button id="job-application-submit-btn" type="submit" class="btn primary" data-i18n="jobApplication.submit">Submit application</button>
           <p id="job-application-status" class="profile-save-status"></p>
         </div>
       </form>
+      </div>
     </div>
   </div>
 
@@ -885,6 +902,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260608-job-application"></script>
+<script type="module" src="/js/app.js?v=20260608-job-form-species"></script>
 </body>
 </html>

@@ -353,7 +353,9 @@ public record PlayerProfileResponse(
     bool TestingModeEnabled = false,
     bool JobApplicationRequired = false,
     PlayerJobHistoryEntryDto? CurrentJob = null,
-    IReadOnlyList<PlayerJobHistoryEntryDto>? JobHistory = null);
+    IReadOnlyList<PlayerJobHistoryEntryDto>? JobHistory = null,
+    string ProfileSpecies = PlayerProfileSpecies.Human,
+    string ProfileSpeciesLabel = "Human");
 
 public record PlayerJobHistoryEntryDto(
     string JobSlug,
@@ -376,7 +378,10 @@ public record SubmitJobApplicationRequest(
     string Bluesky = "",
     string Twitter = "",
     string Youtube = "",
-    string Facebook = "");
+    string Facebook = "",
+    string ProfileSpecies = PlayerProfileSpecies.Human);
+
+public record PlayerSpeciesCatalogResponse(IReadOnlyList<PlayerSpeciesOptionDto> Species);
 
 public record ProfileCompletionFieldDto(string FieldId);
 
@@ -466,7 +471,9 @@ public record PublicProfileDetailDto(
     bool IsStaffAdmin = false,
     bool IsStaffModerator = false,
     PlayerJobHistoryEntryDto? CurrentJob = null,
-    IReadOnlyList<PlayerJobHistoryEntryDto>? JobHistory = null);
+    IReadOnlyList<PlayerJobHistoryEntryDto>? JobHistory = null,
+    string ProfileSpecies = PlayerProfileSpecies.Human,
+    string ProfileSpeciesLabel = "Human");
 
 public record PublicProfileSearchResponse(
     string Query,
@@ -503,7 +510,8 @@ public record UpdatePlayerProfileRequest(
     string? ProfilePreferredPronouns = null,
     string? ProfileLocale = null,
     bool? ProfileBirthdayPublic = null,
-    bool? ProfileAgePublic = null);
+    bool? ProfileAgePublic = null,
+    string? ProfileSpecies = null);
 
 public record FriendSummaryDto(
     Guid FriendshipId,

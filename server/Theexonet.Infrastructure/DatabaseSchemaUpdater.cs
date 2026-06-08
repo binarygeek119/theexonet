@@ -404,6 +404,7 @@ public static class DatabaseSchemaUpdater
             ALTER TABLE "PlayerToStaffMessages" ADD COLUMN IF NOT EXISTS "HiddenForPlayerAt" timestamp with time zone NULL;
             ALTER TABLE "PlayerToStaffMessages" ADD COLUMN IF NOT EXISTS "HiddenForStaffAt" timestamp with time zone NULL;
             ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "JobApplicationCompletedAt" timestamp with time zone NULL;
+            ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ProfileSpecies" text NOT NULL DEFAULT 'human';
             CREATE TABLE IF NOT EXISTS "PlayerJobHistory" (
                 "Id" uuid NOT NULL,
                 "PlayerId" uuid NOT NULL,

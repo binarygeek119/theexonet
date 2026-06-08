@@ -27,14 +27,16 @@ public class MineSimulationServiceTests
         var inventory = CreateStarterInventory(player.Id);
         var market = await _market.GetDailyPricesAsync(1, new DateOnly(2026, 5, 29));
 
-        var result = _simulation.AdvanceDay(player, mine, inventory, market);
+        var stockpile = new List<MineStockpileState>();
+        var result = _simulation.AdvanceDay(player, mine, inventory, stockpile, market);
 
         Assert.True(result.OreExtracted.Count > 0);
-        Assert.Contains(inventory, i => i.Category == ItemCategory.Ore && i.Quantity > 0);
+        Assert.Contains(stockpile, s => s.Quantity > 0);
+        Assert.DoesNotContain(inventory, i => i.Category == ItemCategory.Ore && i.Quantity > 0);
     }
 
     [Fact]
-    public async Task AdvanceDay_DeductsPayroll()
+    public async Task AdvanceDay_ReportsPayrollWithoutDebitingOperatingCredits()
     {
         var player = CreatePlayer();
         var mine = CreateMineWithAssignedWorker();
@@ -42,10 +44,12 @@ public class MineSimulationServiceTests
         var market = await _market.GetDailyPricesAsync(1, new DateOnly(2026, 5, 29));
         var startingCredits = player.Credits;
 
-        var result = _simulation.AdvanceDay(player, mine, inventory, market);
+        var stockpile = new List<MineStockpileState>();
+        var result = _simulation.AdvanceDay(player, mine, inventory, stockpile, market);
 
         Assert.Equal(result.PayrollPaid, mine.Workers.Sum(w => w.Salary));
-        Assert.True(player.Credits < startingCredits);
+        Assert.True(result.PayrollPaid > 0);
+        Assert.True(player.Credits <= startingCredits);
     }
 
     [Fact]
@@ -55,7 +59,17 @@ public class MineSimulationServiceTests
         player.Credits = 0;
         var inventory = CreateStarterInventory(player.Id);
 
-        Assert.True(_simulation.IsSoftlocked(player, inventory));
+        Assert.True(_simulation.IsSoftlocked(player, inventory, 0m));
+    }
+
+    [Fact]
+    public void IsSoftlocked_ReturnsFalse_WhenReserveHasFunds()
+    {
+        var player = CreatePlayer();
+        player.Credits = 0;
+        var inventory = CreateStarterInventory(player.Id);
+
+        Assert.False(_simulation.IsSoftlocked(player, inventory, 50m));
     }
 
     [Fact]
@@ -73,7 +87,7 @@ public class MineSimulationServiceTests
             Quantity = 5
         });
 
-        Assert.False(_simulation.IsSoftlocked(player, inventory));
+        Assert.False(_simulation.IsSoftlocked(player, inventory, 0m));
     }
 
     [Fact]
@@ -95,6 +109,89 @@ public class MineSimulationServiceTests
         Assert.Equal(GameBalance.StarterWorkerCount, mine.Workers.Count);
         Assert.Contains(mine.Zones, z => z.IsSalvageZone);
         Assert.Equal(4, inventory.Count);
+    }
+
+    [Fact]
+    public async Task AdvanceDay_FullStockpile_HaltsExtraction()
+    {
+        var player = CreatePlayer();
+        var mine = CreateMineWithAssignedWorker();
+        var inventory = CreateStarterInventory(player.Id);
+        var stockpile = new List<MineStockpileState>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                MineId = mine.Id,
+                OreType = nameof(OreType.Ferroxite),
+                Quantity = GameBalance.OreStockpileCapacity,
+                Condition = 100m,
+            },
+        };
+        var market = await _market.GetDailyPricesAsync(1, new DateOnly(2026, 5, 29));
+
+        var result = _simulation.AdvanceDay(player, mine, inventory, stockpile, market);
+
+        Assert.Empty(result.OreExtracted);
+        Assert.Contains(result.Messages, m => m.Contains("stockpile full", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task AdvanceDay_DegradesSupplyCondition()
+    {
+        var player = CreatePlayer();
+        var mine = CreateMineWithAssignedWorker();
+        var inventory = CreateStarterInventory(player.Id);
+        var drill = inventory.First(i => i.ItemType == nameof(SupplyType.DrillBits));
+        drill.Condition = 100m;
+        var market = await _market.GetDailyPricesAsync(1, new DateOnly(2026, 5, 29));
+
+        _simulation.AdvanceDay(player, mine, inventory, new List<MineStockpileState>(), market);
+
+        Assert.True(drill.Condition < 100m);
+    }
+
+    [Fact]
+    public void CalculateEstimatedDailyIncome_LowerWhenSupplyConditionZero()
+    {
+        var player = CreatePlayer();
+        var healthy = CreateStarterInventory(player.Id);
+        var degraded = CreateStarterInventory(player.Id);
+        foreach (var item in degraded.Where(i => i.Category == ItemCategory.Supply))
+        {
+            item.Condition = 0;
+        }
+
+        var mine = CreateMineWithAssignedWorker();
+        var healthyIncome = _simulation.CalculateEstimatedDailyIncome(mine, healthy);
+        var degradedIncome = _simulation.CalculateEstimatedDailyIncome(mine, degraded);
+
+        Assert.True(degradedIncome < healthyIncome);
+    }
+
+    [Fact]
+    public async Task BuildFinanceSummary_RunwayAccountsForCompanyObligations()
+    {
+        var player = CreatePlayer();
+        var mine = CreateMineWithAssignedWorker();
+        var inventory = CreateStarterInventory(player.Id);
+        var market = await _market.GetDailyPricesAsync(1, new DateOnly(2026, 5, 29));
+        const decimal reserve = 500m;
+        const decimal jobSalary = 40m;
+
+        var obligations = CompanyObligationsCalculator.ComputePreview(
+            mine.Workers.Count,
+            _simulation.CalculateEstimatedDailyIncome(mine, inventory),
+            player.CurrentGameDay,
+            miningRightsPaidThroughDay: player.CurrentGameDay + 30);
+
+        var withoutObligations = _simulation.BuildFinanceSummary(
+            player, mine, inventory, [], market, reserve, jobSalary, dailyCompanyObligations: 0m);
+        var withObligations = _simulation.BuildFinanceSummary(
+            player, mine, inventory, [], market, reserve, jobSalary, obligations.Total);
+
+        Assert.True(withObligations.DailyTotalReserveBurn > withoutObligations.DailyTotalReserveBurn);
+        Assert.True(withObligations.RunwayDays < withoutObligations.RunwayDays);
     }
 
     private static PlayerState CreatePlayer() => new()

@@ -1,4 +1,4 @@
-import { TheexonetApi } from "./api.js?v=20260608-job-optional-dossier";
+import { TheexonetApi } from "./api.js?v=20260609-store-trade";
 import { GRID_SIZE, ORE_TYPES, SUPPLY_TYPES, API_BASE_URL, readMetaApiBase } from "./config.js";
 import {
   formatRaxHtml,
@@ -24,6 +24,15 @@ import {
 } from "./admin-testing-mode.js?v=20260529-testing-dummy-assets";
 import { initModerationFlow } from "./moderation-flow.js?v=20260529-moderation-flow";
 import { initLiveUpdates } from "./live-updates.js?v=20260607-live-updates";
+import {
+  initJobWorkspaces,
+  resolveJobWorkspace,
+  UNAVAILABLE_PANEL_ID,
+} from "./jobs/job-workspaces.js?v=20260608-job-workspaces";
+import { wireCompanyFinance, renderCompanyFinancePanel } from "./company-finance.js?v=20260608-company-finance";
+import { wireStoreCatalog, loadStoreCatalog, renderStoreCatalog } from "./store-catalog.js?v=20260609-store-trade";
+import { wireTradeMarketplace, refreshTradeListings, renderTradeMarketplace, formatConditionBar } from "./trade-marketplace.js?v=20260609-store-trade";
+import { wireShippingPanel, loadShippingDashboard, renderShippingPanel } from "./shipping-panel.js?v=20260610-shipping";
 
 const api = new TheexonetApi(API_BASE_URL);
 const BOOT_HTML_BUILD = document.querySelector('meta[name="theexonet-html-build"]')?.content?.trim() ?? "";
@@ -212,6 +221,7 @@ const state = {
   testingModeEnabled: false,
   friends: null,
   selectedZoneId: null,
+  activeJobSlug: null,
   authMode: "login",
   banMessage: "",
   registerTosViewed: false,
@@ -222,6 +232,7 @@ const state = {
   auctionFeePercent: 5,
   jobCatalog: [],
   speciesCatalog: [],
+  cosmicReserve: null,
 };
 
 const EXOSUIT_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL", "6XL"];
@@ -284,6 +295,8 @@ const els = {
   playerName: document.getElementById("player-name"),
   credits: document.getElementById("credits"),
   day: document.getElementById("day"),
+  hudCurrentJob: document.getElementById("hud-current-job"),
+  hudCurrentJobTitle: document.getElementById("hud-current-job-title"),
   utcClock: document.getElementById("utc-clock"),
   statusBar: document.getElementById("status-bar"),
   mineGrid: document.getElementById("mine-grid"),
@@ -291,6 +304,15 @@ const els = {
   workerList: document.getElementById("worker-list"),
   profileBtn: document.getElementById("profile-btn"),
   financeBtn: document.getElementById("finance-btn"),
+  cosmicReserveBtn: document.getElementById("cosmic-reserve-btn"),
+  cosmicReserveModal: document.getElementById("cosmic-reserve-modal"),
+  reserveBalance: document.getElementById("reserve-balance"),
+  reserveSummary: document.getElementById("reserve-summary"),
+  reserveTransferAmount: document.getElementById("reserve-transfer-amount"),
+  reserveTransferToOperating: document.getElementById("reserve-transfer-to-operating"),
+  reserveTransferToReserve: document.getElementById("reserve-transfer-to-reserve"),
+  reserveTransferStatus: document.getElementById("reserve-transfer-status"),
+  reserveTransactions: document.getElementById("reserve-transactions"),
   friendsBtn: document.getElementById("friends-btn"),
   messagesBtn: document.getElementById("messages-btn"),
   messagesNavBadge: document.getElementById("messages-nav-badge"),
@@ -307,15 +329,38 @@ const els = {
   supplyModal: document.getElementById("supply-modal"),
   storeModal: document.getElementById("store-modal"),
   storeMarketInfo: document.getElementById("store-market-info"),
-  storeSupplyList: document.getElementById("store-supply-list"),
+  storeGrid: document.getElementById("store-grid"),
+  storeDetail: document.getElementById("store-detail"),
+  storeBackBtn: document.getElementById("store-back-btn"),
+  tradeListingList: document.getElementById("trade-listing-list"),
+  listingCreateForm: document.getElementById("listing-create-form"),
+  listingSellItem: document.getElementById("listing-sell-item"),
+  listingSellQty: document.getElementById("listing-sell-qty"),
+  listingSellPrice: document.getElementById("listing-sell-price"),
+  listingStatus: document.getElementById("listing-status"),
   storeCompanyNameList: document.getElementById("store-company-name-list"),
   storeCompanyNameStatus: document.getElementById("store-company-name-status"),
   shippingModal: document.getElementById("shipping-modal"),
   shippingSummary: document.getElementById("shipping-summary"),
-  shippingCargoList: document.getElementById("shipping-cargo-list"),
+  shippingStockpileList: document.getElementById("shipping-stockpile-list"),
+  shippingScheduleForm: document.getElementById("shipping-schedule-form"),
+  shippingOreType: document.getElementById("shipping-ore-type"),
+  shippingShipClass: document.getElementById("shipping-ship-class"),
+  shippingRouteTier: document.getElementById("shipping-route-tier"),
+  shippingArrivalDay: document.getElementById("shipping-arrival-day"),
+  shippingRoutePreview: document.getElementById("shipping-route-preview"),
+  shippingStatus: document.getElementById("shipping-status"),
+  shippingVoyageList: document.getElementById("shipping-voyage-list"),
   dayModal: document.getElementById("day-modal"),
   financeSummary: document.getElementById("finance-summary"),
   financeTransactions: document.getElementById("finance-transactions"),
+  financeCrewSummary: document.getElementById("finance-crew-summary"),
+  financeCrewList: document.getElementById("finance-crew-list"),
+  financeHireBtn: document.getElementById("finance-hire-btn"),
+  financeObligationsSummary: document.getElementById("finance-obligations-summary"),
+  financeMiningRightsStatus: document.getElementById("finance-mining-rights-status"),
+  financeRenewRightsBtn: document.getElementById("finance-renew-rights-btn"),
+  financeCompanyActivity: document.getElementById("finance-company-activity"),
   emergencyBtn: document.getElementById("emergency-btn"),
   marketInfo: document.getElementById("market-info"),
   supplyList: document.getElementById("supply-list"),
@@ -937,12 +982,17 @@ function isOnboardingBlocking() {
   return isProfileCompletionBlocking() || isJobApplicationBlocking();
 }
 
+function hideEconomyModals() {
+  els.financeModal.hidden = true;
+  els.cosmicReserveModal.hidden = true;
+}
+
 function closeModals() {
   if (isOnboardingBlocking()) {
     return;
   }
 
-  els.financeModal.hidden = true;
+  hideEconomyModals();
   els.supplyModal.hidden = true;
   els.dayModal.hidden = true;
   hideProfileScreens();
@@ -2418,7 +2468,7 @@ function renderProfileFriendPanel(profile) {
 }
 
 async function openMessagesModal(toPlayerId = null) {
-  els.financeModal.hidden = true;
+  hideEconomyModals();
   els.supplyModal.hidden = true;
   els.shippingModal.hidden = true;
   els.storeModal.hidden = true;
@@ -2680,7 +2730,7 @@ async function refreshStaffAdminFlag() {
 }
 
 async function openFriendsModal() {
-  els.financeModal.hidden = true;
+  hideEconomyModals();
   els.supplyModal.hidden = true;
   els.shippingModal.hidden = true;
   els.storeModal.hidden = true;
@@ -2912,7 +2962,7 @@ async function closeProfileEdit(refreshProfile = true) {
 }
 
 async function openProfile(username) {
-  els.financeModal.hidden = true;
+  hideEconomyModals();
   els.supplyModal.hidden = true;
   els.shippingModal.hidden = true;
   els.storeModal.hidden = true;
@@ -3015,8 +3065,33 @@ function supplyMeta(type) {
 }
 
 function inventoryQty(mine, itemType) {
-  const item = mine?.inventory?.find((i) => i.itemType === itemType);
-  return item ? Number(item.quantity) : 0;
+  return (mine?.inventory ?? [])
+    .filter((i) => i.itemType === itemType && Number(i.condition ?? 100) > 0)
+    .reduce((sum, i) => sum + Number(i.quantity ?? 0), 0);
+}
+
+function inventoryCondition(mine, itemType) {
+  const stacks = (mine?.inventory ?? []).filter(
+    (i) => i.itemType === itemType && Number(i.quantity ?? 0) > 0 && Number(i.condition ?? 100) > 0,
+  );
+  if (!stacks.length) {
+    return 100;
+  }
+
+  const total = stacks.reduce((sum, i) => sum + Number(i.quantity ?? 0), 0);
+  if (total <= 0) {
+    return 100;
+  }
+
+  return stacks.reduce(
+    (sum, i) => sum + Number(i.quantity ?? 0) * Number(i.condition ?? 100),
+    0,
+  ) / total;
+}
+
+function conditionPriceFactor(condition) {
+  const pct = Math.max(0, Math.min(100, Number(condition ?? 100)));
+  return 0.5 + 0.5 * (pct / 100);
 }
 
 function formatRunway(days) {
@@ -3026,6 +3101,7 @@ function formatRunway(days) {
 function isGameModalOpen() {
   const modals = [
     els.financeModal,
+    els.cosmicReserveModal,
     els.supplyModal,
     els.dayModal,
     els.friendsModal,
@@ -3078,6 +3154,7 @@ async function handleLiveRefreshScope(scope) {
   switch (scope) {
     case "mine":
     case "market":
+    case "reserve":
       await refreshAll();
       break;
     case "messages":
@@ -3098,6 +3175,19 @@ async function handleLiveRefreshScope(scope) {
       break;
     case "profile":
       await refreshProfileIfOpen();
+      try {
+        const rawProfile = await api.getProfile();
+        applyOwnerTestingFlags(rawProfile);
+        state.profile = augmentOwnerProfileForTesting(
+          rawProfile,
+          state.testingModeEnabled,
+          state.isStaffAdmin,
+        );
+        renderHudJobBadge();
+        renderGameWorkspace();
+      } catch {
+        // Profile refresh is best-effort for live job/workspace updates.
+      }
       break;
     case "exonet":
       if (!els.exonetModal.hidden) {
@@ -3168,15 +3258,20 @@ function stopLiveUpdates() {
 }
 
 async function refreshAll() {
+  // All players currently have a mine; future jobs may skip getMine() when workspace does not need it.
   const mine = await api.getMine();
-  const [finances, market] = await Promise.all([api.getFinances(), api.getMarket()]);
+  const [finances, market, cosmicReserve] = await Promise.all([
+    api.getFinances(),
+    api.getMarket(),
+    api.getCosmicReserve(),
+  ]);
   state.mine = mine;
   state.finances = finances;
   state.market = market;
+  state.cosmicReserve = cosmicReserve;
   state.nextDayAtUtc = mine?.nextDayAtUtc ?? null;
   renderHud();
-  renderMineGrid();
-  renderZonePanel();
+
   if (mine?.latestDayReport) {
     showDayReport(mine.latestDayReport);
   }
@@ -3187,11 +3282,14 @@ async function refreshAll() {
   if (!els.financeModal.hidden) {
     renderFinancePanel();
   }
+  if (!els.cosmicReserveModal.hidden) {
+    renderCosmicReservePanel();
+  }
   if (!els.supplyModal.hidden) {
     renderSupplyPanel();
   }
   if (!els.shippingModal.hidden) {
-    renderShippingPanel();
+    renderShippingPanelWrapper();
   }
   if (!els.storeModal.hidden) {
     renderStorePanel();
@@ -3214,6 +3312,57 @@ async function refreshAll() {
   } catch {
     // Profile fetch is optional during refresh; completion modal runs on next successful load.
   }
+
+  renderHudJobBadge();
+  renderGameWorkspace();
+}
+
+function resolveActiveJobSlug() {
+  return state.profile?.currentJob?.jobSlug
+    ?? state.mine?.currentJobSlug
+    ?? "asteroid_miner";
+}
+
+function resolveCurrentJobTitle() {
+  return state.profile?.currentJob?.jobTitle
+    ?? state.mine?.currentJobTitle
+    ?? "";
+}
+
+function renderHudJobBadge() {
+  const title = resolveCurrentJobTitle();
+  if (!title) {
+    els.hudCurrentJob.hidden = true;
+    return;
+  }
+
+  els.hudCurrentJobTitle.textContent = title;
+  els.hudCurrentJob.hidden = false;
+}
+
+function renderGameWorkspace() {
+  const slug = resolveActiveJobSlug();
+  const workspace = resolveJobWorkspace(slug);
+
+  for (const panel of document.querySelectorAll(".job-workspace")) {
+    panel.hidden = true;
+  }
+
+  if (workspace) {
+    const panel = document.getElementById(workspace.panelId);
+    if (panel) {
+      panel.hidden = false;
+    }
+    workspace.render(state);
+    state.activeJobSlug = slug;
+    return;
+  }
+
+  const unavailable = document.getElementById(UNAVAILABLE_PANEL_ID);
+  if (unavailable) {
+    unavailable.hidden = false;
+  }
+  state.activeJobSlug = slug;
 }
 
 function isAuthError(error) {
@@ -3315,148 +3464,62 @@ function renderHud() {
   }
 
   els.playerName.textContent = api.username ?? t("game.commander");
-  setRaxHtml(els.credits, mine.credits ?? 0);
+  const reserveBalance = mine.reserveBalance ?? state.cosmicReserve?.reserveBalance ?? 0;
+  setRaxHtml(els.credits, reserveBalance);
+  els.credits.title = t("reserve.hudTitle");
   els.day.textContent = `Day ${mine.currentGameDay}`;
   updateUtcClockDisplay();
 }
 
-function renderMineGrid() {
-  const mine = state.mine;
-  els.mineGrid.innerHTML = "";
-  if (!mine?.zones) {
-    return;
-  }
-
-  const sorted = [...mine.zones].sort((a, b) => a.y - b.y || a.x - b.x);
-  for (const zone of sorted) {
-    const meta = oreMeta(zone.oreType);
-    const cell = document.createElement("button");
-    cell.type = "button";
-    cell.className = "zone-cell";
-    cell.title = `(${zone.x}, ${zone.y}) ${meta.displayName}`;
-    cell.style.backgroundColor = zoneColor(zone, meta.color);
-    cell.dataset.zoneId = zone.id;
-    if (zone.id === state.selectedZoneId) {
-      cell.classList.add("selected");
-    }
-    cell.addEventListener("click", () => {
-      state.selectedZoneId = zone.id;
-      renderMineGrid();
-      renderZonePanel();
-    });
-    els.mineGrid.appendChild(cell);
-  }
-}
-
-function zoneColor(zone, baseColor) {
-  if (zone.isSalvageZone) {
-    return "#99a6b3";
-  }
-  if (Number(zone.depletedPct) >= 100) {
-    return shadeColor(baseColor, 0.35);
-  }
-  return baseColor;
-}
-
-function shadeColor(hex, factor) {
-  const rgb = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
-  if (!rgb) {
-    return hex;
-  }
-  const r = Math.round(parseInt(rgb[1], 16) * factor);
-  const g = Math.round(parseInt(rgb[2], 16) * factor);
-  const b = Math.round(parseInt(rgb[3], 16) * factor);
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function renderZonePanel() {
-  const mine = state.mine;
-  const zone = mine?.zones?.find((z) => z.id === state.selectedZoneId);
-  els.workerList.innerHTML = "";
-
-  if (!zone) {
-    els.zoneInfo.textContent = t("game.zoneSelectHint");
-    return;
-  }
-
-  const meta = oreMeta(zone.oreType);
-  els.zoneInfo.innerHTML = [
-    `<strong>Zone (${zone.x}, ${zone.y})</strong>`,
-    `Ore: ${meta.displayName}`,
-    `Richness: ${Number(zone.richness).toFixed(2)}`,
-    `Depleted: ${Number(zone.depletedPct).toFixed(0)}%`,
-    zone.isSalvageZone ? t("game.salvageZone") : "",
-  ]
-    .filter(Boolean)
-    .join("<br>");
-
-  for (const worker of mine.workers ?? []) {
-    const assignedHere = worker.assignedZoneId === zone.id;
-    const busyElsewhere = worker.assignedZoneId && worker.assignedZoneId !== zone.id;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "worker-btn";
-    if (assignedHere) {
-      button.classList.add("assigned");
-    }
-    if (busyElsewhere) {
-      button.classList.add("busy");
-    }
-    button.textContent = assignedHere
-      ? `${worker.name} (assigned)`
-      : busyElsewhere
-        ? `${worker.name} (busy)`
-        : worker.name;
-    button.addEventListener("click", () => toggleWorker(worker, zone.id));
-    els.workerList.appendChild(button);
-  }
-}
-
-async function toggleWorker(worker, zoneId) {
-  showStatus(t("game.updatingWorker"));
-  try {
-    let response;
-    if (worker.assignedZoneId === zoneId) {
-      response = await api.unassignWorker(worker.id);
-    } else {
-      response = await api.assignWorker(worker.id, zoneId);
-    }
-    await refreshAll();
-    showEventCompletions(response?.eventCompletions);
-    showStatus("");
-  } catch (error) {
-    showStatus(error.message, true);
-  }
-}
-
 function renderFinancePanel() {
-  const finances = state.finances;
-  if (!finances) {
+  renderCompanyFinancePanel();
+}
+
+function renderCosmicReservePanel() {
+  const reserve = state.cosmicReserve;
+  if (!reserve) {
     return;
   }
 
-  els.financeSummary.innerHTML = [
-    formatRaxLabelLine("Balance", finances.credits),
-    formatRaxLabelLine(t("finance.payroll"), finances.dailyPayroll),
-    formatRaxLabelLine(t("finance.supplyCost"), finances.dailySupplyCost),
-    formatRaxLabelLine(t("finance.estIncome"), finances.estimatedDailyIncome),
-    `Runway: ${formatRunway(finances.runwayDays)} days`,
-    finances.isSoftlocked ? "<strong class='danger'>SOFTLOCKED — Use emergency buyback!</strong>" : "",
+  els.reserveBalance.innerHTML = formatRaxHtml(reserve.reserveBalance);
+  els.reserveSummary.innerHTML = [
+    formatRaxLabelLine(t("reserve.operating"), reserve.operatingBalance),
+    reserve.currentJobTitle
+      ? `${t("reserve.jobSalary")}: ${formatRaxHtml(reserve.dailyJobSalary)} (${reserve.currentJobTitle})`
+      : formatRaxLabelLine(t("reserve.jobSalary"), reserve.dailyJobSalary),
+    formatRaxLabelLine(t("reserve.minePayroll"), reserve.dailyMinePayroll),
   ]
     .filter(Boolean)
     .join("<br>");
 
-  els.emergencyBtn.hidden = !finances.canEmergencyBuyback;
-
-  els.financeTransactions.innerHTML = "";
-  for (const tx of (finances.recentTransactions ?? []).slice(0, 8)) {
+  els.reserveTransactions.innerHTML = "";
+  for (const tx of (reserve.recentTransactions ?? []).slice(0, 12)) {
     const line = document.createElement("div");
     const sign = Number(tx.amount) >= 0 ? "+" : "";
     line.append(`Day ${tx.gameDay}: `);
     const amountWrap = document.createElement("span");
     amountWrap.innerHTML = `${sign}${formatRaxHtml(tx.amount)}`;
     line.append(amountWrap, ` — ${tx.description ?? ""}`);
-    els.financeTransactions.appendChild(line);
+    els.reserveTransactions.appendChild(line);
+  }
+}
+
+async function submitReserveTransfer(direction) {
+  const amount = Number(els.reserveTransferAmount?.value ?? 0);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    els.reserveTransferStatus.textContent = t("reserve.transfer.invalidAmount");
+    return;
+  }
+
+  els.reserveTransferStatus.textContent = t("reserve.transfer.working");
+  try {
+    state.cosmicReserve = await api.transferReserve(amount, direction);
+    await refreshAll();
+    renderCosmicReservePanel();
+    els.reserveTransferAmount.value = "";
+    els.reserveTransferStatus.textContent = t("reserve.transfer.success");
+  } catch (error) {
+    els.reserveTransferStatus.textContent = error.message;
   }
 }
 
@@ -3497,69 +3560,11 @@ function effectiveOreSalePrice(basePrice, market) {
 }
 
 function renderStorePanel() {
-  const market = state.market;
-  els.storeMarketInfo.textContent = market
-    ? `Game Day ${market.gameDay} · ${formatMarketSource(market.source)} · refreshes UTC midnight${formatActiveMarketBonuses(market)}`
-    : t("market.loading");
-
-  els.storeSupplyList.innerHTML = "";
-  for (const [type, meta] of Object.entries(tradeSupplyTypes)) {
-    const priceEntry = market?.prices?.find((p) => p.supplyType === type);
-    const price = priceEntry ? Number(priceEntry.price) : meta.basePrice;
-    const stock = inventoryQty(state.mine, type);
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "shop-btn";
-    button.style.borderColor = meta.color;
-    button.innerHTML = `<strong>Buy ${meta.displayName}</strong><span>${formatRaxHtml(price)} · Stock: ${stock.toFixed(0)}</span>`;
-    button.addEventListener("click", () => buySupply(type));
-    els.storeSupplyList.appendChild(button);
-  }
-
-  if (els.storeCompanyNameStatus) {
-    els.storeCompanyNameStatus.textContent = "";
-  }
-  if (els.storeCompanyNameList) {
-    loadStoreCompanyNames().catch((error) => {
-      if (els.storeCompanyNameStatus) {
-        els.storeCompanyNameStatus.textContent = error.message;
-      }
-    });
-  }
+  loadStoreCatalog().finally(() => renderStoreCatalog());
 }
 
-function renderShippingPanel() {
-  const mine = state.mine;
-  const oreItems = (mine?.inventory ?? []).filter((i) => i.category === "Ore");
-  const totalCargo = oreItems.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
-
-  els.shippingSummary.textContent = totalCargo > 0
-    ? `Cargo ready: ${totalCargo.toFixed(1)} units · Ships up to 10 units per run${formatActiveMarketBonuses(state.market)}`
-    : `No ore in cargo hold. Mine zones to fill the hold.${formatActiveMarketBonuses(state.market)}`;
-
-  els.shippingCargoList.innerHTML = "";
-  let hasCargo = false;
-
-  for (const [type, meta] of Object.entries(tradeOreTypes)) {
-    const stock = inventoryQty(mine, type);
-    if (stock <= 0) {
-      continue;
-    }
-
-    hasCargo = true;
-    const salePrice = effectiveOreSalePrice(meta.basePrice, state.market);
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "shop-btn";
-    button.style.borderColor = meta.color;
-    button.innerHTML = `<strong>Ship ${meta.displayName}</strong><span>${formatRaxHtml(salePrice)}/u · Qty: ${stock.toFixed(1)}</span>`;
-    button.addEventListener("click", () => shipCargo(type, stock));
-    els.shippingCargoList.appendChild(button);
-  }
-
-  if (!hasCargo) {
-    els.shippingCargoList.innerHTML = "<p class='market-info'>No ore ready to ship.</p>";
-  }
+function renderShippingPanelWrapper() {
+  loadShippingDashboard().finally(() => renderShippingPanel());
 }
 
 function renderSupplyPanel() {
@@ -3569,36 +3574,30 @@ function renderSupplyPanel() {
     ? `Game Day ${market.gameDay} · ${formatMarketSource(market.source)} · refreshes UTC midnight${formatActiveMarketBonuses(market)}`
     : t("market.loading");
 
-  els.supplyList.innerHTML = "";
-  for (const [type, meta] of Object.entries(tradeSupplyTypes)) {
-    const priceEntry = market?.prices?.find((p) => p.supplyType === type);
-    const price = priceEntry ? Number(priceEntry.price) : meta.basePrice;
-    const stock = inventoryQty(mine, type);
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "shop-btn";
-    button.style.borderColor = meta.color;
-    button.innerHTML = `<strong>${meta.displayName}</strong><span>${formatRaxHtml(price)} · Stock: ${stock.toFixed(0)}</span>`;
-    button.addEventListener("click", () => buySupply(type));
-    els.supplyList.appendChild(button);
-  }
-
   els.oreList.innerHTML = "";
   for (const [type, meta] of Object.entries(tradeOreTypes)) {
     const stock = inventoryQty(mine, type);
     if (stock <= 0) {
       continue;
     }
-    const salePrice = effectiveOreSalePrice(meta.basePrice, market);
+    const condition = inventoryCondition(mine, type);
+    const salePrice = effectiveOreSalePrice(meta.basePrice, market) * conditionPriceFactor(condition);
     const button = document.createElement("button");
     button.type = "button";
     button.className = "shop-btn";
     button.style.borderColor = meta.color;
-    button.innerHTML = `<strong>Sell ${meta.displayName}</strong><span>${formatRaxHtml(salePrice)}/u · Qty: ${stock.toFixed(1)}</span>`;
+    button.innerHTML = `<strong>Sell ${meta.displayName}</strong><span>${formatRaxHtml(salePrice)}/u · ${condition.toFixed(0)}% · Qty: ${stock.toFixed(1)}</span>${formatConditionBar(condition)}`;
     button.addEventListener("click", () => sellOre(type, stock));
     els.oreList.appendChild(button);
   }
 
+  refreshTradeListings()
+    .then(() => renderTradeMarketplace())
+    .catch((error) => {
+      if (els.listingStatus) {
+        els.listingStatus.textContent = error.message;
+      }
+    });
   refreshTradeAuctions().catch((error) => setAuctionStatus(error.message, true));
 }
 
@@ -3659,8 +3658,13 @@ function populateAuctionItemSelect() {
       continue;
     }
 
+    const condition = Number(item.condition ?? 100);
+    if (condition <= 0) {
+      continue;
+    }
+
     options.push(
-      `<option value="${category}|${itemType}">${meta.displayName} (${quantity.toFixed(1)} in stock)</option>`,
+      `<option value="${category}|${itemType}|${item.isNew ? "1" : "0"}">${meta.displayName} (${quantity.toFixed(1)} · ${condition.toFixed(0)}%)</option>`,
     );
   }
 
@@ -3692,8 +3696,9 @@ function renderAuctionList() {
     card.innerHTML = `
       <div class="auction-card-head">
         <strong>${auction.displayName} × ${Number(auction.quantity).toFixed(1)}</strong>
-        <span class="market-info">${auction.status}</span>
+        <span class="market-info">${auction.status} · ${Number(auction.condition ?? 100).toFixed(0)}%</span>
       </div>
+      ${formatConditionBar(auction.condition ?? 100)}
       <p class="auction-card-meta">
         Seller: ${auction.sellerUsername} · Start ${formatRaxHtml(auction.startPrice)} · Current ${currentBid}
         ${auction.highBidderUsername ? ` · High bidder: ${auction.highBidderUsername}` : ""}
@@ -3752,7 +3757,7 @@ async function createAuctionFromForm(event) {
     return;
   }
 
-  const [category, itemType] = selection.split("|");
+  const [category, itemType, isNewFlag] = selection.split("|");
   const quantity = Number(els.auctionQuantity.value);
   const startPrice = Number(els.auctionStartPrice.value);
   const durationMinutes = Number(els.auctionDuration.value);
@@ -3760,7 +3765,14 @@ async function createAuctionFromForm(event) {
   els.auctionCreateBtn.disabled = true;
   setAuctionStatus(t("auction.listing"));
   try {
-    const result = await api.createTradeAuction(category, itemType, quantity, startPrice, durationMinutes);
+    const result = await api.createTradeAuction(
+      category,
+      itemType,
+      quantity,
+      startPrice,
+      durationMinutes,
+      isNewFlag === "1",
+    );
     setAuctionStatus(result.message ?? "Auction listed.", false);
     els.auctionCreateForm.reset();
     await refreshAll();
@@ -4143,18 +4155,6 @@ async function buySupply(supplyType) {
   }
 }
 
-async function shipCargo(oreType, stock) {
-  showStatus("Shipping cargo...");
-  try {
-    const response = await api.sellOre(oreType, Math.min(stock, 10));
-    await refreshAll();
-    showEventCompletions(response?.eventCompletions);
-    showStatus("");
-  } catch (error) {
-    showStatus(error.message, true);
-  }
-}
-
 async function sellOre(oreType, stock) {
   showStatus("Selling ore...");
   try {
@@ -4201,10 +4201,12 @@ function logout() {
   api.clearAuth();
   state.mine = null;
   state.finances = null;
+  state.cosmicReserve = null;
   state.market = null;
   state.profile = null;
   state.friends = null;
   state.selectedZoneId = null;
+  state.activeJobSlug = null;
   state.nextDayAtUtc = null;
   stopUtcTimers();
   closeModals();
@@ -4503,6 +4505,7 @@ els.addFriendNumber.addEventListener("keydown", (event) => {
   }
 });
 els.financeBtn.addEventListener("click", () => {
+  els.cosmicReserveModal.hidden = true;
   els.supplyModal.hidden = true;
   els.shippingModal.hidden = true;
   els.storeModal.hidden = true;
@@ -4512,8 +4515,29 @@ els.financeBtn.addEventListener("click", () => {
   openModal(els.financeModal);
   renderFinancePanel();
 });
-els.tradeMarketBtn.addEventListener("click", () => {
+els.cosmicReserveBtn.addEventListener("click", () => {
   els.financeModal.hidden = true;
+  els.supplyModal.hidden = true;
+  els.shippingModal.hidden = true;
+  els.storeModal.hidden = true;
+  hideProfileScreens();
+  els.friendsModal.hidden = true;
+  els.messagesModal.hidden = true;
+  openModal(els.cosmicReserveModal);
+  renderCosmicReservePanel();
+});
+els.reserveTransferToOperating?.addEventListener("click", () => {
+  submitReserveTransfer("to_operating").catch((error) => {
+    els.reserveTransferStatus.textContent = error.message;
+  });
+});
+els.reserveTransferToReserve?.addEventListener("click", () => {
+  submitReserveTransfer("to_reserve").catch((error) => {
+    els.reserveTransferStatus.textContent = error.message;
+  });
+});
+els.tradeMarketBtn.addEventListener("click", () => {
+  hideEconomyModals();
   hideProfileScreens();
   els.friendsModal.hidden = true;
   els.messagesModal.hidden = true;
@@ -4526,7 +4550,7 @@ els.auctionCreateForm?.addEventListener("submit", (event) => {
   createAuctionFromForm(event).catch((error) => setAuctionStatus(error.message, true));
 });
 els.storeBtn.addEventListener("click", () => {
-  els.financeModal.hidden = true;
+  hideEconomyModals();
   hideProfileScreens();
   els.friendsModal.hidden = true;
   els.messagesModal.hidden = true;
@@ -4536,17 +4560,20 @@ els.storeBtn.addEventListener("click", () => {
   renderStorePanel();
 });
 els.shippingBtn.addEventListener("click", () => {
-  els.financeModal.hidden = true;
+  hideEconomyModals();
   hideProfileScreens();
   els.friendsModal.hidden = true;
   els.messagesModal.hidden = true;
   els.supplyModal.hidden = true;
   els.storeModal.hidden = true;
   openModal(els.shippingModal);
-  renderShippingPanel();
+  if (els.shippingArrivalDay && state.mine) {
+    els.shippingArrivalDay.value = String(state.mine.currentGameDay + 5);
+  }
+  renderShippingPanelWrapper();
 });
 els.exonetBtn.addEventListener("click", () => {
-  els.financeModal.hidden = true;
+  hideEconomyModals();
   els.supplyModal.hidden = true;
   els.dayModal.hidden = true;
   hideProfileScreens();
@@ -4596,6 +4623,17 @@ async function startApp() {
     if (state.mine && !els.storeModal.hidden) {
       renderStorePanel();
     }
+    if (state.mine) {
+      renderHud();
+      renderHudJobBadge();
+      renderGameWorkspace();
+    }
+    if (!els.financeModal.hidden) {
+      renderFinancePanel();
+    }
+    if (!els.cosmicReserveModal.hidden) {
+      renderCosmicReservePanel();
+    }
   });
 
   document.addEventListener("visibilitychange", () => {
@@ -4640,6 +4678,51 @@ async function startApp() {
     setAuthMode,
     showLoginStatus,
     state,
+  });
+  initJobWorkspaces({
+    els,
+    api,
+    oreMeta,
+    showStatus,
+    refreshAll,
+    showEventCompletions,
+  });
+  wireCompanyFinance({
+    els,
+    api,
+    state,
+    t,
+    formatRaxLabelLine,
+    formatRunway,
+    refreshAll,
+    showStatus,
+  });
+  wireStoreCatalog({
+    els,
+    api,
+    state,
+    t,
+    showStatus,
+    refreshAll,
+    formatMarketSource,
+    formatActiveMarketBonuses,
+    loadStoreCompanyNames,
+  });
+  wireTradeMarketplace({
+    els,
+    api,
+    state,
+    t,
+    tradeOreTypes,
+    tradeSupplyTypes,
+    refreshAll,
+  });
+  wireShippingPanel({
+    els,
+    api,
+    state,
+    t,
+    refreshAll,
   });
   showScreen("login");
   els.mineGrid.style.setProperty("--grid-size", GRID_SIZE);

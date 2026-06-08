@@ -68,7 +68,9 @@ public class StarterMineGenerator : IStarterMineGenerator
                 PlayerId = playerId,
                 Category = ItemCategory.Supply,
                 ItemType = supplyType.ToString(),
-                Quantity = GameBalance.StarterSupplyQuantity
+                Quantity = GameBalance.StarterSupplyQuantity,
+                Condition = GameBalance.MaxCondition,
+                IsNew = false,
             });
         }
 

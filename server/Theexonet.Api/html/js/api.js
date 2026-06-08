@@ -221,6 +221,32 @@ export class TheexonetApi {
     return this.assignWorker(workerId, null);
   }
 
+  hireWorker(mineId, name) {
+    return this.request(`/api/mines/${mineId}/workers/hire`, {
+      method: "POST",
+      body: name ? { name } : {},
+    });
+  }
+
+  fireWorker(mineId, workerId) {
+    return this.request(`/api/mines/${mineId}/workers/${workerId}/fire`, { method: "POST", body: {} });
+  }
+
+  layoffWorker(mineId, workerId) {
+    return this.request(`/api/mines/${mineId}/workers/${workerId}/layoff`, { method: "POST", body: {} });
+  }
+
+  raiseWorker(mineId, workerId, newSalary) {
+    return this.request(`/api/mines/${mineId}/workers/${workerId}/raise`, {
+      method: "POST",
+      body: { newSalary },
+    });
+  }
+
+  renewMiningRights(mineId) {
+    return this.request(`/api/mines/${mineId}/mining-rights/renew`, { method: "POST", body: {} });
+  }
+
   buySupply(supplyType, quantity = 5) {
     return this.request(`/api/mines/${this.mineId}/buy-supply`, {
       method: "POST",
@@ -337,8 +363,55 @@ export class TheexonetApi {
     return this.request("/api/trade/items", { auth: false });
   }
 
+  getStoreCatalog() {
+    return this.request("/api/store/catalog");
+  }
+
+  getStoreProduct(slug) {
+    return this.request(`/api/store/catalog/${encodeURIComponent(slug)}`, { auth: false });
+  }
+
+  getTradeListings() {
+    return this.request("/api/trade/listings", { auth: false });
+  }
+
+  createTradeListing(body) {
+    return this.request("/api/trade/listings", { method: "POST", body });
+  }
+
+  purchaseTradeListing(listingId) {
+    return this.request(`/api/trade/listings/${listingId}/purchase`, { method: "POST", body: {} });
+  }
+
+  cancelTradeListing(listingId) {
+    return this.request(`/api/trade/listings/${listingId}`, { method: "DELETE" });
+  }
+
+  getShippingDashboard() {
+    return this.request(`/api/mines/${this.mineId}/shipping`);
+  }
+
+  scheduleShipment(body) {
+    return this.request(`/api/mines/${this.mineId}/shipping/schedule`, { method: "POST", body });
+  }
+
+  cancelShipment(shipmentId) {
+    return this.request(`/api/mines/${this.mineId}/shipping/${shipmentId}`, { method: "DELETE" });
+  }
+
   getFinances() {
     return this.request("/api/player/finances");
+  }
+
+  getCosmicReserve() {
+    return this.request("/api/player/reserve");
+  }
+
+  transferReserve(amount, direction) {
+    return this.request("/api/player/reserve/transfer", {
+      method: "POST",
+      body: { amount, direction },
+    });
   }
 
   getProfile() {
@@ -410,10 +483,10 @@ export class TheexonetApi {
     return this.request("/api/trade/auctions");
   }
 
-  createTradeAuction(category, itemType, quantity, startPrice, durationMinutes) {
+  createTradeAuction(category, itemType, quantity, startPrice, durationMinutes, isNew = false) {
     return this.request("/api/trade/auctions", {
       method: "POST",
-      body: { category, itemType, quantity, startPrice, durationMinutes },
+      body: { category, itemType, quantity, startPrice, durationMinutes, isNew },
     });
   }
 

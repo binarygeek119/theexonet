@@ -10,6 +10,7 @@ public class PlayerEntity
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public decimal Credits { get; set; }
+    public decimal ReserveBalance { get; set; }
     public int CurrentGameDay { get; set; } = 1;
     public DateOnly LastProcessedUtcDate { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -45,6 +46,20 @@ public class PlayerEntity
     public ICollection<PlayerJobHistoryEntity> JobHistory { get; set; } = [];
     public ICollection<InventoryItemEntity> Inventory { get; set; } = [];
     public ICollection<TransactionEntity> Transactions { get; set; } = [];
+    public ICollection<ReserveTransactionEntity> ReserveTransactions { get; set; } = [];
+}
+
+public class ReserveTransactionEntity
+{
+    public Guid Id { get; set; }
+    public Guid PlayerId { get; set; }
+    public ReserveTransactionType Type { get; set; }
+    public decimal Amount { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public int GameDay { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public PlayerEntity Player { get; set; } = null!;
 }
 
 public class MineEntity
@@ -58,10 +73,13 @@ public class MineEntity
     public string CompanyLogoUrl { get; set; } = string.Empty;
     public int CompanyLogoRevision { get; set; }
     public bool CompanyLogoIsCustom { get; set; }
+    public int MiningRightsPaidThroughDay { get; set; } = 30;
 
     public PlayerEntity Player { get; set; } = null!;
     public ICollection<MineZoneEntity> Zones { get; set; } = [];
     public ICollection<WorkerEntity> Workers { get; set; } = [];
+    public ICollection<MineOreStockpileEntity> OreStockpile { get; set; } = [];
+    public ICollection<OreShipmentEntity> Shipments { get; set; } = [];
 }
 
 public class MineZoneEntity
@@ -97,6 +115,9 @@ public class InventoryItemEntity
     public ItemCategory Category { get; set; }
     public string ItemType { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
+    public decimal Condition { get; set; } = 100m;
+    public decimal BrokenQuantity { get; set; }
+    public bool IsNew { get; set; }
 
     public PlayerEntity Player { get; set; } = null!;
 }
@@ -155,13 +176,59 @@ public class MineGroupEntity
     public Guid OwnerId { get; set; }
 }
 
+public class MineOreStockpileEntity
+{
+    public Guid Id { get; set; }
+    public Guid MineId { get; set; }
+    public string OreType { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal Condition { get; set; } = 100m;
+
+    public MineEntity Mine { get; set; } = null!;
+}
+
+public class OreShipmentEntity
+{
+    public Guid Id { get; set; }
+    public Guid MineId { get; set; }
+    public Guid PlayerId { get; set; }
+    public ShipClass ShipClass { get; set; }
+    public ShippingRouteTier RouteTier { get; set; }
+    public string OreType { get; set; } = string.Empty;
+    public decimal Capacity { get; set; }
+    public int ScheduledArrivalDay { get; set; }
+    public int DepartureDay { get; set; }
+    public int DaysRemaining { get; set; }
+    public string Status { get; set; } = ShipmentStatusNames.Scheduled;
+    public decimal CargoQuantity { get; set; }
+    public decimal CargoCondition { get; set; } = 100m;
+    public decimal ShippingCostPaid { get; set; }
+    public decimal FillPercent { get; set; }
+    public decimal FastLegPercent { get; set; }
+    public string? LastEventDescription { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? CompletedAt { get; set; }
+
+    public MineEntity Mine { get; set; } = null!;
+    public PlayerEntity Player { get; set; } = null!;
+}
+
 public class MarketListingEntity
 {
     public Guid Id { get; set; }
-    public Guid SellerId { get; set; }
+    public Guid? SellerPlayerId { get; set; }
+    public string SellerType { get; set; } = MarketListingSellerTypes.Player;
+    public ItemCategory Category { get; set; }
     public string ItemType { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
+    public decimal Condition { get; set; } = 100m;
+    public string Status { get; set; } = MarketListingStatuses.Active;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? SoldAt { get; set; }
+    public Guid? BuyerPlayerId { get; set; }
+
+    public PlayerEntity? Seller { get; set; }
 }
 
 public class TradeAuctionEntity
@@ -171,6 +238,7 @@ public class TradeAuctionEntity
     public ItemCategory Category { get; set; }
     public string ItemType { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
+    public decimal Condition { get; set; } = 100m;
     public decimal StartPrice { get; set; }
     public decimal? CurrentBid { get; set; }
     public Guid? HighBidderPlayerId { get; set; }

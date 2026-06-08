@@ -10,6 +10,8 @@ public class PlayerJobCatalogTests
         var job = PlayerJobCatalog.TryGet(PlayerJobCatalog.AsteroidMiner);
         Assert.NotNull(job);
         Assert.Equal("Asteroid Miner", job!.Title);
+        Assert.Equal("asteroid-miner", job.WorkspaceModule);
+        Assert.Equal(GameBalance.AsteroidMinerDailySalary, job.DailySalary);
     }
 
     [Fact]

@@ -15,5 +15,9 @@ public enum TransactionType
     CompanyNameSale,
     CompanyNameReclaim,
     TradeAuctionPurchase,
-    TradeAuctionSale
+    TradeAuctionSale,
+    TransferFromReserve,
+    TransferToReserve,
+    ShippingCost,
+    ShipmentSale
 }

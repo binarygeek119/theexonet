@@ -173,6 +173,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<PlayerGameService>();
+builder.Services.AddScoped<CosmicReserveService>();
+builder.Services.AddScoped<CompanyCrewService>();
 builder.Services.AddScoped<CompanyLogoQueueService>();
 builder.Services.AddScoped<ICompanyLogoGenerator, CompanyLogoGenerator>();
 builder.Services.AddScoped<AdminService>();
@@ -199,6 +201,9 @@ builder.Services.AddScoped<SpecialEventService>();
 builder.Services.AddScoped<PlayerProfileUpgrader>();
 builder.Services.AddScoped<CompanyNameService>();
 builder.Services.AddScoped<TradeAuctionService>();
+builder.Services.AddScoped<TradeListingService>();
+builder.Services.AddScoped<StoreCatalogService>();
+builder.Services.AddScoped<OreShipmentService>();
 builder.Services.AddScoped<PublicProfileService>();
 builder.Services.AddScoped<PlayerActivityService>();
 builder.Services.AddScoped<ReporterFriendshipService>();

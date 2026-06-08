@@ -11,12 +11,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<WorkerEntity> Workers => Set<WorkerEntity>();
     public DbSet<InventoryItemEntity> Inventory => Set<InventoryItemEntity>();
     public DbSet<TransactionEntity> Transactions => Set<TransactionEntity>();
+    public DbSet<ReserveTransactionEntity> ReserveTransactions => Set<ReserveTransactionEntity>();
     public DbSet<MarketPriceHistoryEntity> MarketPriceHistory => Set<MarketPriceHistoryEntity>();
     public DbSet<GameWorldEntity> GameWorld => Set<GameWorldEntity>();
     public DbSet<FriendshipEntity> Friendships => Set<FriendshipEntity>();
     public DbSet<ReporterFriendshipEntity> ReporterFriendships => Set<ReporterFriendshipEntity>();
     public DbSet<MineGroupEntity> MineGroups => Set<MineGroupEntity>();
     public DbSet<MarketListingEntity> MarketListings => Set<MarketListingEntity>();
+    public DbSet<MineOreStockpileEntity> MineOreStockpile => Set<MineOreStockpileEntity>();
+    public DbSet<OreShipmentEntity> OreShipments => Set<OreShipmentEntity>();
     public DbSet<TradeAuctionEntity> TradeAuctions => Set<TradeAuctionEntity>();
     public DbSet<CompanyNameLimboEntity> CompanyNameLimbo => Set<CompanyNameLimboEntity>();
     public DbSet<CompanyNameListingEntity> CompanyNameListings => Set<CompanyNameListingEntity>();
@@ -95,15 +98,59 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .WithMany(m => m.Workers)
             .HasForeignKey(w => w.MineId);
 
-        modelBuilder.Entity<InventoryItemEntity>()
-            .HasOne(i => i.Player)
-            .WithMany(p => p.Inventory)
-            .HasForeignKey(i => i.PlayerId);
+        modelBuilder.Entity<InventoryItemEntity>(e =>
+        {
+            e.HasIndex(i => new { i.PlayerId, i.Category, i.ItemType, i.IsNew });
+            e.HasOne(i => i.Player)
+                .WithMany(p => p.Inventory)
+                .HasForeignKey(i => i.PlayerId);
+        });
+
+        modelBuilder.Entity<MarketListingEntity>(e =>
+        {
+            e.HasIndex(l => new { l.Status, l.Category, l.ItemType });
+            e.HasOne(l => l.Seller)
+                .WithMany()
+                .HasForeignKey(l => l.SellerPlayerId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<MineOreStockpileEntity>(e =>
+        {
+            e.HasIndex(s => new { s.MineId, s.OreType }).IsUnique();
+            e.HasOne(s => s.Mine)
+                .WithMany(m => m.OreStockpile)
+                .HasForeignKey(s => s.MineId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OreShipmentEntity>(e =>
+        {
+            e.HasIndex(s => new { s.MineId, s.Status });
+            e.HasOne(s => s.Mine)
+                .WithMany(m => m.Shipments)
+                .HasForeignKey(s => s.MineId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.Player)
+                .WithMany()
+                .HasForeignKey(s => s.PlayerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         modelBuilder.Entity<TransactionEntity>()
             .HasOne(t => t.Player)
             .WithMany(p => p.Transactions)
             .HasForeignKey(t => t.PlayerId);
+
+        modelBuilder.Entity<ReserveTransactionEntity>(e =>
+        {
+            e.HasIndex(t => t.PlayerId);
+            e.HasIndex(t => new { t.PlayerId, t.CreatedAt });
+            e.HasOne(t => t.Player)
+                .WithMany(p => p.ReserveTransactions)
+                .HasForeignKey(t => t.PlayerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         modelBuilder.Entity<MarketPriceHistoryEntity>()
             .HasIndex(m => new { m.GameDay, m.SupplyType })

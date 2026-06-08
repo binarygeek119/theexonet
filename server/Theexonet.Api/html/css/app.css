@@ -584,12 +584,126 @@ select optgroup {
 }
 
 .game-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
-  gap: 18px;
   padding: 18px;
   max-width: 1400px;
   margin: 0 auto;
+}
+
+.job-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  gap: 18px;
+}
+
+.job-workspace-placeholder {
+  background: rgba(20, 25, 34, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.job-workspace-placeholder h2 {
+  margin: 0 0 12px;
+}
+
+.job-workspace-placeholder p {
+  margin: 0;
+  color: var(--muted, #9aa3b2);
+}
+
+.hud-job-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(40, 55, 75, 0.65);
+  border: 1px solid rgba(120, 160, 220, 0.25);
+  font-size: 0.9rem;
+}
+
+.hud-job-label {
+  color: var(--muted, #9aa3b2);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hud-job-title {
+  font-weight: 600;
+  color: #c8daf5;
+}
+
+.reserve-balance-hero {
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 20px 12px 8px;
+  color: #e8f2ff;
+}
+
+.reserve-transfer-panel {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.reserve-transfer-panel h3 {
+  margin: 0 0 10px;
+}
+
+.reserve-transfer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.reserve-transfer-input {
+  flex: 1 1 120px;
+  min-width: 100px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(10, 14, 20, 0.85);
+  color: inherit;
+}
+
+.finance-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.finance-tabs .btn.tab.active {
+  border-color: rgba(120, 160, 220, 0.55);
+  background: rgba(40, 55, 75, 0.65);
+}
+
+.finance-crew-toolbar {
+  margin: 12px 0;
+}
+
+.finance-crew-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.finance-crew-row {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(20, 25, 34, 0.75);
+}
+
+.finance-crew-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .mine-panel,
@@ -1068,7 +1182,7 @@ body:not(.is-authenticated) .modal {
     grid-template-columns: 1fr;
   }
 
-  .game-layout,
+  .job-workspace-grid,
   .shop-columns {
     grid-template-columns: 1fr;
   }
@@ -1154,4 +1268,184 @@ body:not(.is-authenticated) .modal {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.store-masthead {
+  margin: 12px 0 16px;
+}
+
+.store-brand {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #9ec4ff;
+}
+
+.store-masthead-tagline {
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
+.store-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.store-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(18, 24, 34, 0.9);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.store-card:hover {
+  border-color: rgba(120, 160, 220, 0.55);
+}
+
+.store-card-image-wrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: rgba(8, 12, 18, 0.85);
+}
+
+.store-card-image,
+.store-detail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.store-badge-new {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(60, 140, 90, 0.9);
+  color: #e8fff0;
+}
+
+.store-card-body {
+  padding: 12px;
+}
+
+.store-card-tagline,
+.store-detail-tagline {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 6px 0;
+}
+
+.store-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) 1fr;
+  gap: 20px;
+}
+
+.store-detail-image-wrap {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.store-buy-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.trade-listing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin: 12px 0 20px;
+}
+
+.trade-listing-card {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(22, 18, 14, 0.75);
+}
+
+.trade-listing-thumb img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.trade-listing-meta {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.listing-create-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.condition-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin: 6px 0;
+}
+
+.condition-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c45c2a, #e8b84a, #6ecf8a);
+  border-radius: inherit;
+}
+
+.stockpile-gauge {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+.stockpile-gauge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3a6ea5, #e8b84a, #c45c2a);
+  border-radius: inherit;
+}
+
+.shipping-schedule-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  align-items: end;
+  margin: 12px 0;
+}
+
+.shipping-voyage-card,
+.shipping-stockpile-row {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(16, 22, 32, 0.75);
+  margin-bottom: 8px;
 }

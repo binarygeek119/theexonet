@@ -8,7 +8,7 @@ namespace Theexonet.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api")]
-public class GameController(PlayerGameService gameService) : ControllerBase
+public class GameController(PlayerGameService gameService, CosmicReserveService cosmicReserveService) : ControllerBase
 {
     [HttpPost("game/advance-day")]
     public async Task<ActionResult<DayAdvanceResponse>> AdvanceDay(CancellationToken ct)
@@ -34,5 +34,26 @@ public class GameController(PlayerGameService gameService) : ControllerBase
     {
         var result = await gameService.GetFinancesAsync(User.GetPlayerId(), ct);
         return result is null ? NotFound() : Ok(result);
+    }
+
+    [HttpGet("player/reserve")]
+    public async Task<ActionResult<CosmicReserveResponse>> GetCosmicReserve(CancellationToken ct)
+    {
+        var result = await cosmicReserveService.GetAsync(User.GetPlayerId(), ct);
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    [HttpPost("player/reserve/transfer")]
+    public async Task<ActionResult<CosmicReserveResponse>> TransferReserve(
+        ReserveTransferRequest request,
+        CancellationToken ct)
+    {
+        var (result, error) = await cosmicReserveService.TransferAsync(User.GetPlayerId(), request, ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(result);
     }
 }

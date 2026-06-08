@@ -93,18 +93,22 @@ public class TradeAuctionService(
             return (null, "Player not found.");
         }
 
-        var inventory = await db.Inventory.FirstOrDefaultAsync(i =>
-            i.PlayerId == sellerId &&
-            i.Category == category &&
-            i.ItemType == itemType, ct);
+        var preferNew = request.IsNew ?? false;
+        var inventory = await InventoryStackHelper.FindStackAsync(db, sellerId, category, itemType, preferNew, ct)
+            ?? await InventoryStackHelper.FindStackAsync(db, sellerId, category, itemType, !preferNew, ct);
 
-        if (inventory is null || inventory.Quantity < request.Quantity)
+        if (inventory is null || inventory.Condition <= 0 || inventory.Quantity < request.Quantity)
         {
             return (null, "Insufficient inventory for this auction.");
         }
 
-        inventory.Quantity -= request.Quantity;
-        if (inventory.Quantity <= 0)
+        var condition = inventory.Condition;
+        if (!InventoryStackHelper.TryRemoveQuantity(inventory, request.Quantity, out _))
+        {
+            return (null, "Insufficient usable inventory for this auction.");
+        }
+
+        if (inventory.Quantity <= 0 && inventory.BrokenQuantity <= 0)
         {
             db.Inventory.Remove(inventory);
         }
@@ -116,6 +120,7 @@ public class TradeAuctionService(
             Category = category,
             ItemType = itemType,
             Quantity = request.Quantity,
+            Condition = condition,
             StartPrice = Math.Round(request.StartPrice, 2),
             DurationMinutes = request.DurationMinutes,
             Status = TradeAuctionStatuses.Open,
@@ -236,7 +241,13 @@ public class TradeAuctionService(
             return (null, "Auctions with bids cannot be cancelled.");
         }
 
-        await ReturnInventoryAsync(auction.SellerPlayerId, auction.Category, auction.ItemType, auction.Quantity, ct);
+        await ReturnInventoryAsync(
+            auction.SellerPlayerId,
+            auction.Category,
+            auction.ItemType,
+            auction.Quantity,
+            auction.Condition,
+            ct);
         auction.Status = TradeAuctionStatuses.Cancelled;
         auction.CompletedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -295,7 +306,13 @@ public class TradeAuctionService(
         var world = await GetOrCreateGameWorldAsync(ct);
         world.TradeMarketValue += fee;
 
-        await AddInventoryAsync(buyer.Id, auction.Category, auction.ItemType, auction.Quantity, ct);
+        await AddInventoryAsync(
+            buyer.Id,
+            auction.Category,
+            auction.ItemType,
+            auction.Quantity,
+            auction.Condition,
+            ct);
 
         auction.Status = TradeAuctionStatuses.Sold;
         auction.CompletedAt = DateTime.UtcNow;
@@ -333,7 +350,13 @@ public class TradeAuctionService(
             }
         }
 
-        await ReturnInventoryAsync(auction.SellerPlayerId, auction.Category, auction.ItemType, auction.Quantity, ct);
+        await ReturnInventoryAsync(
+            auction.SellerPlayerId,
+            auction.Category,
+            auction.ItemType,
+            auction.Quantity,
+            auction.Condition,
+            ct);
         auction.Status = TradeAuctionStatuses.Expired;
         auction.CompletedAt = DateTime.UtcNow;
         auction.CurrentBid = null;
@@ -341,43 +364,28 @@ public class TradeAuctionService(
         auction.EndsAt = null;
     }
 
-    private async Task ReturnInventoryAsync(
+    private Task ReturnInventoryAsync(
         Guid playerId,
         ItemCategory category,
         string itemType,
         decimal quantity,
+        decimal condition,
         CancellationToken ct)
     {
-        await AddInventoryAsync(playerId, category, itemType, quantity, ct);
+        InventoryStackHelper.AddOrMerge(db, playerId, category, itemType, quantity, condition, isNew: false);
+        return Task.CompletedTask;
     }
 
-    private async Task AddInventoryAsync(
+    private Task AddInventoryAsync(
         Guid playerId,
         ItemCategory category,
         string itemType,
         decimal quantity,
+        decimal condition,
         CancellationToken ct)
     {
-        var item = await db.Inventory.FirstOrDefaultAsync(i =>
-            i.PlayerId == playerId &&
-            i.Category == category &&
-            i.ItemType == itemType, ct);
-
-        if (item is null)
-        {
-            db.Inventory.Add(new InventoryItemEntity
-            {
-                Id = Guid.NewGuid(),
-                PlayerId = playerId,
-                Category = category,
-                ItemType = itemType,
-                Quantity = quantity
-            });
-        }
-        else
-        {
-            item.Quantity += quantity;
-        }
+        InventoryStackHelper.AddOrMerge(db, playerId, category, itemType, quantity, condition, isNew: false);
+        return Task.CompletedTask;
     }
 
     private async Task<GameWorldEntity> GetOrCreateGameWorldAsync(CancellationToken ct)
@@ -414,6 +422,7 @@ public class TradeAuctionService(
             auction.ItemType,
             GetDisplayName(auction.Category, auction.ItemType),
             auction.Quantity,
+            auction.Condition,
             auction.StartPrice,
             auction.CurrentBid,
             auction.HighBidder?.Username,

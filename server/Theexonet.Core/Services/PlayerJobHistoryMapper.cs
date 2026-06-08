@@ -1,3 +1,4 @@
+using Theexonet.Core.Constants;
 using Theexonet.Core.Dtos;
 
 namespace Theexonet.Core.Services;
@@ -9,8 +10,11 @@ public static class PlayerJobHistoryMapper
         string jobTitle,
         bool isCurrent,
         DateTime startedAtUtc,
-        DateTime? endedAtUtc) =>
-        new(jobSlug, jobTitle, isCurrent, startedAtUtc, endedAtUtc);
+        DateTime? endedAtUtc)
+    {
+        var workspaceModule = PlayerJobCatalog.TryGet(jobSlug)?.WorkspaceModule ?? string.Empty;
+        return new(jobSlug, jobTitle, workspaceModule, isCurrent, startedAtUtc, endedAtUtc);
+    }
 
     public static IReadOnlyList<PlayerJobHistoryEntryDto> OrderForDisplay(
         IEnumerable<PlayerJobHistoryEntryDto> entries)

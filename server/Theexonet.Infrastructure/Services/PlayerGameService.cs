@@ -38,7 +38,8 @@ public class PlayerGameService(
     TheexonetHostingPaths hostingPaths,
     IOptionsMonitor<AdminOptions> adminOptions,
     IOptionsMonitor<ModeratorOptions> moderatorOptions,
-    ILiveUpdateBroadcaster liveUpdateBroadcaster)
+    ILiveUpdateBroadcaster liveUpdateBroadcaster,
+    OreShipmentService oreShipmentService)
 {
     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> DayProcessLocks = new();
     private IGameCreditsConfig Credits => gameCreditsConfig;
@@ -87,7 +88,8 @@ public class PlayerGameService(
             Username = request.Username.Trim(),
             Email = normalizedEmail,
             PasswordHash = passwordHasher.Hash(request.Password),
-            Credits = Credits.SignUp,
+            Credits = GameBalance.OperatingStarterFloat,
+            ReserveBalance = Credits.SignUp,
             CurrentGameDay = 1,
             LastProcessedUtcDate = UtcGameClock.Today,
             Birthday = birthday,
@@ -101,16 +103,17 @@ public class PlayerGameService(
         };
 
         var mine = EntityMapper.ToEntity(mineState, playerId);
+        mine.MiningRightsPaidThroughDay = player.CurrentGameDay + GameBalance.MiningRightsPeriodDays;
         await companyNameService.AssignUniqueNameToMineAsync(mine, ct);
         var inventoryEntities = starterInventory.Select(EntityMapper.ToEntity).ToList();
 
-        player.Transactions.Add(new TransactionEntity
+        player.ReserveTransactions.Add(new ReserveTransactionEntity
         {
             Id = Guid.NewGuid(),
             PlayerId = playerId,
-            Type = TransactionType.StarterGrant,
+            Type = ReserveTransactionType.StarterGrant,
             Amount = Credits.SignUp,
-            Description = "Starter credits grant",
+            Description = "Cosmic Reserve starter grant",
             GameDay = 1
         });
 
@@ -246,10 +249,27 @@ public class PlayerGameService(
             return null;
         }
 
+        var inventoryTracked = await db.Inventory
+            .Where(i => i.PlayerId == playerId).ToListAsync(ct);
+        await MigrateOreInventoryToStockpileAsync(playerId, mine.Id, inventoryTracked, ct);
+
         var inventory = await db.Inventory.AsNoTracking()
             .Where(i => i.PlayerId == playerId).ToListAsync(ct);
 
-        return MapMineDetail(player, mine, inventory, latestReport, birthdayMessage, eventCompletions);
+        var currentJob = await db.PlayerJobHistory.AsNoTracking()
+            .Where(j => j.PlayerId == playerId && j.IsCurrent)
+            .Select(j => new { j.JobSlug, j.JobTitle })
+            .FirstOrDefaultAsync(ct);
+
+        return MapMineDetail(
+            player,
+            mine,
+            inventory,
+            latestReport,
+            birthdayMessage,
+            eventCompletions,
+            currentJob?.JobSlug,
+            currentJob?.JobTitle);
     }
 
     public async Task<(bool Success, string Message, IReadOnlyList<EventCompletionDto> EventCompletions)> AssignWorkerAsync(
@@ -342,27 +362,14 @@ public class PlayerGameService(
             return (false, "Insufficient credits.", player.Credits, []);
         }
 
-        var item = await db.Inventory.FirstOrDefaultAsync(i =>
-            i.PlayerId == playerId &&
-            i.Category == ItemCategory.Supply &&
-            i.ItemType == supplyType.ToString(), ct);
-
-        if (item is null)
-        {
-            item = new InventoryItemEntity
-            {
-                Id = Guid.NewGuid(),
-                PlayerId = playerId,
-                Category = ItemCategory.Supply,
-                ItemType = supplyType.ToString(),
-                Quantity = request.Quantity
-            };
-            db.Inventory.Add(item);
-        }
-        else
-        {
-            item.Quantity += request.Quantity;
-        }
+        InventoryStackHelper.AddOrMerge(
+            db,
+            playerId,
+            ItemCategory.Supply,
+            supplyType.ToString(),
+            request.Quantity,
+            GameBalance.MaxCondition,
+            isNew: true);
 
         var eventBonuses = await specialEventService.GetActiveMarketBonusesAsync(ct);
         var tradeBonusCredits = eventBonuses.TradeBonusPercent > 0
@@ -432,25 +439,44 @@ public class PlayerGameService(
             return (false, "That ore cannot be sold in the trade market.", null, []);
         }
 
-        var item = await db.Inventory.FirstOrDefaultAsync(i =>
-            i.PlayerId == playerId &&
-            i.Category == ItemCategory.Ore &&
-            i.ItemType == oreType.ToString(), ct);
+        var oreStacks = await db.Inventory
+            .Where(i => i.PlayerId == playerId
+                && i.Category == ItemCategory.Ore
+                && i.ItemType == oreType.ToString()
+                && i.Condition > 0
+                && i.Quantity > 0)
+            .OrderBy(i => i.IsNew)
+            .ToListAsync(ct);
 
-        if (item is null || item.Quantity < request.Quantity)
+        var available = oreStacks.Sum(i => i.Quantity);
+        if (available < request.Quantity)
         {
             return (false, "Insufficient ore in inventory.", player.Credits, []);
         }
 
+        var remaining = request.Quantity;
+        var conditionWeightedValue = 0m;
+        foreach (var stack in oreStacks)
+        {
+            if (remaining <= 0)
+            {
+                break;
+            }
+
+            var sold = Math.Min(stack.Quantity, remaining);
+            conditionWeightedValue += sold * ItemConditionCalculator.ConditionPriceFactor(stack.Condition);
+            stack.Quantity -= sold;
+            remaining -= sold;
+        }
+
         var basePrice = marketItems.GetOreBasePrice(oreType);
         var rate = request.EmergencyBuyback ? GameBalance.EmergencyBuybackRate : 1m;
-        var totalValue = Math.Round(basePrice * request.Quantity * rate, 2);
+        var totalValue = Math.Round(basePrice * conditionWeightedValue * rate, 2);
         var eventBonuses = await specialEventService.GetActiveMarketBonusesAsync(ct);
         var saleBonusCredits = !request.EmergencyBuyback && eventBonuses.SaleBonusPercent > 0
             ? Math.Round(totalValue * eventBonuses.SaleBonusPercent / 100m, 2)
             : 0m;
 
-        item.Quantity -= request.Quantity;
         player.Credits += totalValue + saleBonusCredits;
 
         db.Transactions.Add(new TransactionEntity
@@ -544,22 +570,66 @@ public class PlayerGameService(
             .Where(t => t.PlayerId == playerId).ToListAsync(ct);
 
         var market = await GetOrCreateMarketSnapshotAsync(player.CurrentGameDay, UtcGameClock.Today, ct);
+        var currentJobSlug = await db.PlayerJobHistory.AsNoTracking()
+            .Where(j => j.PlayerId == playerId && j.IsCurrent)
+            .Select(j => j.JobSlug)
+            .FirstOrDefaultAsync(ct);
+        var dailyJobSalary = CosmicReserveService.ResolveDailyJobSalary(currentJobSlug);
+        var mineState = EntityMapper.ToState(mine);
+        var inventoryStates = inventory.Select(EntityMapper.ToState).ToList();
+        var estimatedIncome = simulation.CalculateEstimatedDailyIncome(mineState, inventoryStates);
+        var obligations = CompanyObligationsCalculator.ComputePreview(
+            mine.Workers.Count,
+            estimatedIncome,
+            player.CurrentGameDay,
+            mine.MiningRightsPaidThroughDay);
         var summary = simulation.BuildFinanceSummary(
             EntityMapper.ToState(player),
-            EntityMapper.ToState(mine),
-            inventory.Select(EntityMapper.ToState).ToList(),
+            mineState,
+            inventoryStates,
             transactions.Select(EntityMapper.ToState).ToList(),
-            market);
+            market,
+            player.ReserveBalance,
+            dailyJobSalary,
+            obligations.Total);
+
+        var reserveActivity = await db.ReserveTransactions.AsNoTracking()
+            .Where(t => t.PlayerId == playerId && CompanyFinanceCatalog.CompanyActivityTypes.Contains(t.Type))
+            .OrderByDescending(t => t.CreatedAt)
+            .Take(20)
+            .ToListAsync(ct);
 
         return new FinanceResponse(
             summary.Credits,
+            summary.ReserveBalance,
+            summary.DailyJobSalary,
             summary.DailyPayroll,
             summary.DailySupplyCost,
             summary.EstimatedDailyIncome,
+            summary.DailyCompanyObligations,
+            summary.DailyTotalReserveBurn,
             summary.RunwayDays,
             summary.IsSoftlocked,
             summary.CanEmergencyBuyback,
+            new CompanyObligationsDto(
+                obligations.CompanyTax,
+                obligations.HealthInsurance,
+                obligations.JobInsurance,
+                obligations.BeltFee,
+                obligations.MiningRights,
+                obligations.Total),
+            new MiningRightsDto(
+                mine.MiningRightsPaidThroughDay,
+                player.CurrentGameDay,
+                player.CurrentGameDay > mine.MiningRightsPaidThroughDay,
+                GameBalance.MiningRightsRenewalFee),
+            mine.Workers
+                .OrderBy(w => w.Name)
+                .Select(w => new CompanyWorkerDto(w.Id, w.Name, w.Skill, w.Salary, w.AssignedZoneId))
+                .ToList(),
             summary.RecentTransactions.Select(t => new TransactionDto(
+                t.Type.ToString(), t.Amount, t.Description, t.GameDay, t.CreatedAt)).ToList(),
+            reserveActivity.Select(t => new ReserveTransactionDto(
                 t.Type.ToString(), t.Amount, t.Description, t.GameDay, t.CreatedAt)).ToList());
     }
 
@@ -800,7 +870,7 @@ public class PlayerGameService(
 
     public static PlayerJobCatalogResponse GetJobCatalog() =>
         new(PlayerJobCatalog.All
-            .Select(job => new PlayerJobCatalogEntryDto(job.Slug, job.Title, job.Description))
+            .Select(job => new PlayerJobCatalogEntryDto(job.Slug, job.Title, job.WorkspaceModule, job.Description))
             .ToList());
 
     public static PlayerSpeciesCatalogResponse GetSpeciesCatalog() =>
@@ -1471,6 +1541,7 @@ public class PlayerGameService(
                 daysAdvanced,
                 ct);
             LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, player.Id, LiveUpdateScopes.Mine);
+            LiveUpdatePublisher.NotifyPlayerRefresh(liveUpdateBroadcaster, player.Id, LiveUpdateScopes.Reserve);
             return (latestReport, completions);
         }
         finally
@@ -1504,6 +1575,10 @@ public class PlayerGameService(
 
         var inventory = await db.Inventory.Where(i => i.PlayerId == playerId).ToListAsync(ct);
         var inventoryStates = inventory.Select(EntityMapper.ToState).ToList();
+        await MigrateOreInventoryToStockpileAsync(playerId, mine.Id, inventory, ct);
+
+        var stockpileEntities = await db.MineOreStockpile.Where(s => s.MineId == mine.Id).ToListAsync(ct);
+        var stockpileStates = stockpileEntities.Select(EntityMapper.ToState).ToList();
 
         var nextDay = player.CurrentGameDay + 1;
         var marketUtcDate = player.LastProcessedUtcDate.AddDays(1);
@@ -1511,7 +1586,7 @@ public class PlayerGameService(
 
         var playerState = EntityMapper.ToState(player);
         var mineState = EntityMapper.ToState(mine);
-        var result = simulation.AdvanceDay(playerState, mineState, inventoryStates, market);
+        var result = simulation.AdvanceDay(playerState, mineState, inventoryStates, stockpileStates, market);
 
         player.Credits = playerState.Credits;
         player.CurrentGameDay = playerState.CurrentGameDay;
@@ -1524,28 +1599,98 @@ public class PlayerGameService(
 
         foreach (var state in inventoryStates)
         {
-            var entity = inventory.FirstOrDefault(e =>
-                e.Category == state.Category && e.ItemType == state.ItemType);
-
+            var entity = inventory.FirstOrDefault(e => e.Id == state.Id);
             if (entity is null)
             {
                 db.Inventory.Add(EntityMapper.ToEntity(state));
+                continue;
             }
-            else
+
+            EntityMapper.ApplyInventory(entity, state);
+            if (entity.Quantity <= 0 && entity.BrokenQuantity <= 0)
             {
-                entity.Quantity = state.Quantity;
+                db.Inventory.Remove(entity);
             }
         }
 
-        db.Transactions.Add(new TransactionEntity
+        foreach (var state in stockpileStates)
         {
-            Id = Guid.NewGuid(),
-            PlayerId = playerId,
-            Type = TransactionType.Payroll,
-            Amount = -result.PayrollPaid,
-            Description = "Daily payroll",
-            GameDay = result.NewGameDay
-        });
+            var entity = stockpileEntities.FirstOrDefault(e => e.Id == state.Id);
+            if (entity is null)
+            {
+                db.MineOreStockpile.Add(EntityMapper.ToEntity(state));
+                continue;
+            }
+
+            EntityMapper.ApplyStockpile(entity, state);
+            if (entity.Quantity <= 0)
+            {
+                db.MineOreStockpile.Remove(entity);
+            }
+        }
+
+        var shipmentMessages = await oreShipmentService.ProcessDayAsync(playerId, mine.Id, result.NewGameDay, ct);
+        result.Messages.AddRange(shipmentMessages);
+
+        if (result.PayrollPaid > 0)
+        {
+            player.ReserveBalance -= result.PayrollPaid;
+            db.ReserveTransactions.Add(new ReserveTransactionEntity
+            {
+                Id = Guid.NewGuid(),
+                PlayerId = playerId,
+                Type = ReserveTransactionType.MinePayroll,
+                Amount = -result.PayrollPaid,
+                Description = "Daily mine payroll",
+                GameDay = result.NewGameDay
+            });
+        }
+
+        var currentJobSlug = await db.PlayerJobHistory.AsNoTracking()
+            .Where(j => j.PlayerId == playerId && j.IsCurrent)
+            .Select(j => j.JobSlug)
+            .FirstOrDefaultAsync(ct);
+        var jobSalary = CosmicReserveService.ResolveDailyJobSalary(currentJobSlug);
+        if (jobSalary > 0)
+        {
+            player.ReserveBalance += jobSalary;
+            result.JobSalaryPaid = jobSalary;
+            db.ReserveTransactions.Add(new ReserveTransactionEntity
+            {
+                Id = Guid.NewGuid(),
+                PlayerId = playerId,
+                Type = ReserveTransactionType.JobSalary,
+                Amount = jobSalary,
+                Description = "Daily job salary",
+                GameDay = result.NewGameDay
+            });
+        }
+
+        var estimatedIncome = simulation.CalculateEstimatedDailyIncome(mineState, inventoryStates);
+        var obligationPreview = CompanyObligationsCalculator.ComputePreview(
+            mine.Workers.Count,
+            estimatedIncome,
+            result.NewGameDay,
+            mine.MiningRightsPaidThroughDay);
+
+        var obligations = obligationPreview;
+        if (result.NewGameDay > mine.MiningRightsPaidThroughDay
+            && player.ReserveBalance >= obligationPreview.Total + GameBalance.MiningRightsRenewalFee)
+        {
+            obligations = CompanyObligationsCalculator.ComputeDaily(
+                mine.Workers.Count,
+                estimatedIncome,
+                result.NewGameDay,
+                mine.MiningRightsPaidThroughDay,
+                attemptAutoRenewal: true);
+        }
+        else if (result.NewGameDay > mine.MiningRightsPaidThroughDay)
+        {
+            obligations.Messages.Add("Could not auto-renew mining rights — insufficient Cosmic Reserve.");
+        }
+
+        ApplyCompanyObligations(player, mine, obligations, playerId, result.NewGameDay, result.Messages);
+        result.ReserveBalance = player.ReserveBalance;
 
         if (result.SuppliesConsumed > 0)
         {
@@ -1567,11 +1712,75 @@ public class PlayerGameService(
         return new DayAdvanceResponse(
             result.NewGameDay,
             result.Credits,
+            result.ReserveBalance,
             result.OreExtracted.Select(kv => new OreExtractedDto(kv.Key, kv.Value)).ToList(),
             result.PayrollPaid,
+            result.JobSalaryPaid,
             result.SuppliesConsumed,
             MapMarket(result.MarketSnapshot, await specialEventService.GetActiveMarketBonusesAsync(ct)),
             result.Messages);
+    }
+
+    public async Task<ShippingDashboardResponse> GetShippingDashboardForMineAsync(
+        Guid playerId, Guid mineId, CancellationToken ct)
+    {
+        var player = await db.Players.AsNoTracking().FirstOrDefaultAsync(p => p.Id == playerId, ct);
+        if (player is null)
+        {
+            return new ShippingDashboardResponse(0, 0, false, [], [], []);
+        }
+
+        return await oreShipmentService.GetDashboardAsync(playerId, mineId, player.CurrentGameDay, ct);
+    }
+
+    public Task<(bool Success, string Message, Guid? ShipmentId)> ScheduleShipmentAsync(
+        Guid playerId, Guid mineId, ScheduleShipmentRequest request, CancellationToken ct) =>
+        oreShipmentService.ScheduleShipmentAsync(playerId, mineId, request, ct);
+
+    public Task<(bool Success, string Message)> CancelShipmentAsync(
+        Guid playerId, Guid mineId, Guid shipmentId, CancellationToken ct) =>
+        oreShipmentService.CancelShipmentAsync(playerId, mineId, shipmentId, ct);
+
+    private async Task MigrateOreInventoryToStockpileAsync(
+        Guid playerId,
+        Guid mineId,
+        List<InventoryItemEntity> inventory,
+        CancellationToken ct)
+    {
+        var oreItems = inventory.Where(i => i.Category == ItemCategory.Ore && i.Quantity > 0).ToList();
+        if (oreItems.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var ore in oreItems)
+        {
+            var stock = await db.MineOreStockpile.FirstOrDefaultAsync(
+                s => s.MineId == mineId && s.OreType == ore.ItemType, ct);
+
+            if (stock is null)
+            {
+                db.MineOreStockpile.Add(new MineOreStockpileEntity
+                {
+                    Id = Guid.NewGuid(),
+                    MineId = mineId,
+                    OreType = ore.ItemType,
+                    Quantity = ore.Quantity,
+                    Condition = ore.Condition,
+                });
+            }
+            else
+            {
+                stock.Condition = ItemConditionCalculator.MergeCondition(
+                    stock.Quantity, stock.Condition, ore.Quantity, ore.Condition);
+                stock.Quantity += ore.Quantity;
+            }
+
+            db.Inventory.Remove(ore);
+            inventory.Remove(ore);
+        }
+
+        await db.SaveChangesAsync(ct);
     }
 
     private async Task<MineEntity?> LoadMineAsync(Guid mineId, CancellationToken ct, bool activeOnly = false)
@@ -1667,13 +1876,13 @@ public class PlayerGameService(
             return null;
         }
 
-        player.Credits += Credits.BirthdayBonus;
+        player.ReserveBalance += Credits.BirthdayBonus;
         player.LastBirthdayBonusYear = today.Year;
-        player.Transactions.Add(new TransactionEntity
+        player.ReserveTransactions.Add(new ReserveTransactionEntity
         {
             Id = Guid.NewGuid(),
             PlayerId = player.Id,
-            Type = TransactionType.BirthdayBonus,
+            Type = ReserveTransactionType.BirthdayBonus,
             Amount = Credits.BirthdayBonus,
             Description = "Happy birthday bonus",
             GameDay = player.CurrentGameDay
@@ -1683,13 +1892,70 @@ public class PlayerGameService(
         return $"Happy birthday, {player.Username}! You received {Credits.BirthdayBonus:0} bonus credits.";
     }
 
+    private void ApplyCompanyObligations(
+        PlayerEntity player,
+        MineEntity mine,
+        CompanyObligationsResult obligations,
+        Guid playerId,
+        int gameDay,
+        List<string> messages)
+    {
+        foreach (var message in obligations.Messages)
+        {
+            messages.Add(message);
+        }
+
+        if (obligations.NewPaidThroughDay.HasValue)
+        {
+            mine.MiningRightsPaidThroughDay = obligations.NewPaidThroughDay.Value;
+        }
+
+        AddReserveObligation(player, playerId, gameDay, obligations.CompanyTax,
+            ReserveTransactionType.CompanyTax, "Daily company tax");
+        AddReserveObligation(player, playerId, gameDay, obligations.HealthInsurance,
+            ReserveTransactionType.HealthInsurance, "Health insurance");
+        AddReserveObligation(player, playerId, gameDay, obligations.JobInsurance,
+            ReserveTransactionType.JobInsurance, "Job insurance");
+        AddReserveObligation(player, playerId, gameDay, obligations.BeltFee,
+            ReserveTransactionType.BeltFee, "Belt operating fee");
+        AddReserveObligation(player, playerId, gameDay, obligations.MiningRights,
+            ReserveTransactionType.MiningRights, "Mining rights");
+    }
+
+    private void AddReserveObligation(
+        PlayerEntity player,
+        Guid playerId,
+        int gameDay,
+        decimal amount,
+        ReserveTransactionType type,
+        string description)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        player.ReserveBalance -= amount;
+        db.ReserveTransactions.Add(new ReserveTransactionEntity
+        {
+            Id = Guid.NewGuid(),
+            PlayerId = playerId,
+            Type = type,
+            Amount = -amount,
+            Description = description,
+            GameDay = gameDay,
+        });
+    }
+
     private static MineDetailResponse MapMineDetail(
         PlayerEntity player,
         MineEntity mine,
         List<InventoryItemEntity> inventory,
         DayAdvanceResponse? latestDayReport = null,
         string? birthdayMessage = null,
-        IReadOnlyList<EventCompletionDto>? eventCompletions = null) =>
+        IReadOnlyList<EventCompletionDto>? eventCompletions = null,
+        string? currentJobSlug = null,
+        string? currentJobTitle = null) =>
         new(
             mine.Id,
             mine.Name,
@@ -1697,16 +1963,25 @@ public class PlayerGameService(
             mine.Status.ToString(),
             player.CurrentGameDay,
             player.Credits,
+            player.ReserveBalance,
             mine.Zones.Select(z => new MineZoneDto(
                 z.Id, z.X, z.Y, (OreTypeDto)z.OreType, z.Richness, z.DepletedPct, z.IsSalvageZone)).ToList(),
             mine.Workers.Select(w => new WorkerDto(w.Id, w.Name, w.Skill, w.Salary, w.AssignedZoneId)).ToList(),
-            inventory.Select(i => new InventoryItemDto(i.ItemType, i.Category.ToString(), i.Quantity)).ToList(),
+            inventory.Select(i => new InventoryItemDto(
+                i.ItemType,
+                i.Category.ToString(),
+                i.Quantity,
+                i.Condition,
+                i.BrokenQuantity,
+                i.IsNew)).ToList(),
             FeatureFlags.Phase1,
             UtcGameClock.Today.ToString("yyyy-MM-dd"),
             UtcGameClock.NextDayBoundaryUtc,
             latestDayReport,
             birthdayMessage,
-            eventCompletions is { Count: > 0 } ? eventCompletions : null);
+            eventCompletions is { Count: > 0 } ? eventCompletions : null,
+            currentJobSlug,
+            currentJobTitle);
 
     private static MarketTodayResponse MapMarket(
         DailyMarketSnapshot market,

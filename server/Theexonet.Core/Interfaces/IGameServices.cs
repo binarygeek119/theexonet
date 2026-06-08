@@ -16,7 +16,10 @@ public interface IMineSimulationService
         PlayerState player,
         MineState mine,
         IReadOnlyList<InventoryItemState> inventory,
+        IList<MineStockpileState> stockpile,
         DailyMarketSnapshot marketSnapshot);
+
+    decimal GetTotalStockpileQuantity(IEnumerable<MineStockpileState> stockpile);
 
     decimal CalculateDailyPayroll(MineState mine);
     decimal CalculateDailySupplyCost(IReadOnlyList<InventoryItemState> inventory, DailyMarketSnapshot market);
@@ -26,8 +29,11 @@ public interface IMineSimulationService
         MineState mine,
         IReadOnlyList<InventoryItemState> inventory,
         IReadOnlyList<TransactionState> transactions,
-        DailyMarketSnapshot market);
-    bool IsSoftlocked(PlayerState player, IReadOnlyList<InventoryItemState> inventory);
+        DailyMarketSnapshot market,
+        decimal reserveBalance,
+        decimal dailyJobSalary,
+        decimal dailyCompanyObligations);
+    bool IsSoftlocked(PlayerState player, IReadOnlyList<InventoryItemState> inventory, decimal reserveBalance);
 }
 
 public interface IStarterMineGenerator

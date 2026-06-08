@@ -11,7 +11,8 @@ namespace Theexonet.Api.Controllers;
 public class TradeController(
     ITradeItemsCatalog tradeItems,
     CompanyNameService companyNameService,
-    TradeAuctionService tradeAuctionService) : ControllerBase
+    TradeAuctionService tradeAuctionService,
+    TradeListingService tradeListingService) : ControllerBase
 {
     [AllowAnonymous]
     [HttpGet("items")]
@@ -35,6 +36,57 @@ public class TradeController(
     [HttpGet("market-info")]
     public async Task<ActionResult<TradeMarketInfoResponse>> GetMarketInfo(CancellationToken ct) =>
         Ok(await tradeAuctionService.GetMarketInfoAsync(ct));
+
+    [AllowAnonymous]
+    [HttpGet("listings")]
+    public async Task<ActionResult<TradeListingListResponse>> GetListings(CancellationToken ct)
+    {
+        Guid? viewerId = User.Identity?.IsAuthenticated == true ? User.GetPlayerId() : null;
+        return Ok(await tradeListingService.GetListingsAsync(viewerId, ct));
+    }
+
+    [Authorize]
+    [HttpPost("listings")]
+    public async Task<ActionResult<TradeListingActionResponse>> CreateListing(
+        CreateTradeListingRequest request,
+        CancellationToken ct)
+    {
+        var (result, error) = await tradeListingService.CreateListingAsync(User.GetPlayerId(), request, ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(result);
+    }
+
+    [Authorize]
+    [HttpPost("listings/{listingId:guid}/purchase")]
+    public async Task<ActionResult<TradeListingActionResponse>> PurchaseListing(
+        Guid listingId,
+        CancellationToken ct)
+    {
+        var (result, error) = await tradeListingService.PurchaseListingAsync(User.GetPlayerId(), listingId, ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(result);
+    }
+
+    [Authorize]
+    [HttpDelete("listings/{listingId:guid}")]
+    public async Task<ActionResult<TradeListingActionResponse>> CancelListing(Guid listingId, CancellationToken ct)
+    {
+        var (result, error) = await tradeListingService.CancelListingAsync(User.GetPlayerId(), listingId, ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return Ok(result);
+    }
 
     [AllowAnonymous]
     [HttpGet("auctions")]

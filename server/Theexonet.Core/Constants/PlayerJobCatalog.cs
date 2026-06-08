@@ -1,6 +1,6 @@
 namespace Theexonet.Core.Constants;
 
-public sealed record PlayerJobDefinition(string Slug, string Title, string Description);
+public sealed record PlayerJobDefinition(string Slug, string Title, string WorkspaceModule, decimal DailySalary, string Description);
 
 public static class PlayerJobCatalog
 {
@@ -8,7 +8,7 @@ public static class PlayerJobCatalog
 
     public static readonly IReadOnlyList<PlayerJobDefinition> All =
     [
-        new(AsteroidMiner, "Asteroid Miner", "Extract ore from claim asteroids across the belt."),
+        new(AsteroidMiner, "Asteroid Miner", "asteroid-miner", GameBalance.AsteroidMinerDailySalary, "Extract ore from claim asteroids across the belt."),
     ];
 
     public static PlayerJobDefinition? TryGet(string? slug)

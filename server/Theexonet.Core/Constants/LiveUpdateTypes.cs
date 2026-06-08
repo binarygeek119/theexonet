@@ -18,4 +18,5 @@ public static class LiveUpdateScopes
     public const string Profile = "profile";
     public const string Friends = "friends";
     public const string Exonet = "exonet";
+    public const string Reserve = "reserve";
 }

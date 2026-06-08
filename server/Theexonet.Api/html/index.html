@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theexonet-api-base" content="https://api.theexonet.com">
-  <meta name="theexonet-html-build" content="20260608-job-optional-dossier">
+  <meta name="theexonet-html-build" content="20260610-shipping">
   <link rel="icon" href="/images/currency.png" type="image/png">
   <title>theexonet</title>
   <style>
@@ -37,7 +37,7 @@
       min-width: 0 !important;
     }
   </style>
-  <link rel="stylesheet" href="/css/app.css?v=20260607-live-updates">
+  <link rel="stylesheet" href="/css/app.css?v=20260610-shipping">
   <link rel="stylesheet" href="/css/profile.css?v=20260608-job-form-species">
   <link rel="stylesheet" href="/css/exonet.css?v=20260607-staff-badge">
 </head>
@@ -178,6 +178,7 @@
     <aside class="game-nav">
       <button id="profile-btn" type="button" class="btn tab" data-i18n="nav.profile">Profile</button>
       <button id="finance-btn" type="button" class="btn tab" data-i18n="nav.finances">Finances</button>
+      <button id="cosmic-reserve-btn" type="button" class="btn tab" data-i18n="nav.cosmicReserve">Cosmic Reserve</button>
       <button id="friends-btn" type="button" class="btn tab" data-i18n="nav.friends">Friends</button>
       <button id="messages-btn" type="button" class="btn tab">
         <span data-i18n="nav.messages">Messages</span>
@@ -194,24 +195,37 @@
     <header class="hud">
       <div class="hud-left">
         <span id="player-name" class="player-name clickable" title="View your profile">Commander</span>
-        <span id="credits" class="rax-hud-balance" title="Rax">---</span>
+        <span id="credits" class="rax-hud-balance" data-i18n-title="reserve.hudTitle" title="Cosmic Reserve">---</span>
         <span id="day">Day ---</span>
+        <span id="hud-current-job" class="hud-job-badge" hidden>
+          <span class="hud-job-label" data-i18n="hud.currentJob">Assignment</span>
+          <span id="hud-current-job-title" class="hud-job-title"></span>
+        </span>
         <span id="utc-clock" class="utc-clock">UTC ---</span>
       </div>
     </header>
 
     <main class="game-layout">
-      <section class="mine-panel">
-        <h2 data-i18n="mine.gridTitle">Asteroid Mine Grid</h2>
-        <div id="mine-grid" class="mine-grid"></div>
-      </section>
+      <div id="game-workspace-host">
+        <section id="job-workspace-asteroid-miner" class="job-workspace job-workspace-grid" data-job-slug="asteroid_miner" hidden>
+          <section class="mine-panel">
+            <h2 data-i18n="mine.gridTitle">Asteroid Mine Grid</h2>
+            <div id="mine-grid" class="mine-grid"></div>
+          </section>
 
-      <aside class="side-panel">
-        <h2 data-i18n="mine.zoneDetails">Zone Details</h2>
-        <div id="zone-info" class="zone-info" data-i18n="mine.zoneHint">Select a zone on the grid.</div>
-        <h3 data-i18n="mine.assignWorker">Assign Worker</h3>
-        <div id="worker-list" class="worker-list"></div>
-      </aside>
+          <aside class="side-panel">
+            <h2 data-i18n="mine.zoneDetails">Zone Details</h2>
+            <div id="zone-info" class="zone-info" data-i18n="mine.zoneHint">Select a zone on the grid.</div>
+            <h3 data-i18n="mine.assignWorker">Assign Worker</h3>
+            <div id="worker-list" class="worker-list"></div>
+          </aside>
+        </section>
+
+        <section id="job-workspace-unavailable" class="job-workspace job-workspace-placeholder" hidden>
+          <h2 data-i18n="workspace.unavailableTitle">Workspace unavailable</h2>
+          <p data-i18n="workspace.unavailable">This assignment does not have a playable workspace yet. Check back after the next relay update.</p>
+        </section>
+      </div>
     </main>
 
     <footer id="status-bar" class="status-bar"></footer>
@@ -219,17 +233,64 @@
   </div>
 
   <div id="finance-modal" class="modal" hidden>
-    <div class="modal-card">
+    <div class="modal-card wide">
       <div class="modal-header">
         <h2 data-i18n="finance.title">Finances</h2>
         <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
-      <div id="finance-summary" class="summary"></div>
-      <h3 data-i18n="finance.recentTransactions">Recent Transactions</h3>
-      <div id="finance-transactions" class="transaction-list"></div>
-      <button id="emergency-btn" type="button" class="btn danger" hidden data-i18n="finance.emergencyBuyback">
-        Emergency Ore Buyback (50%)
-      </button>
+      <p id="finance-reserve-note" class="market-info" data-i18n="finance.companyReserveNote">Company payroll, taxes, insurance, and fees debit your Cosmic Reserve account.</p>
+      <nav class="finance-tabs" aria-label="Company finance sections">
+        <button type="button" class="btn tab active" data-finance-tab="overview" data-i18n="finance.tabs.overview">Overview</button>
+        <button type="button" class="btn tab" data-finance-tab="crew" data-i18n="finance.tabs.crew">Payroll &amp; Crew</button>
+        <button type="button" class="btn tab" data-finance-tab="obligations" data-i18n="finance.tabs.obligations">Obligations</button>
+        <button type="button" class="btn tab" data-finance-tab="activity" data-i18n="finance.tabs.activity">Activity</button>
+      </nav>
+      <section data-finance-panel="overview">
+        <div id="finance-summary" class="summary"></div>
+        <h3 data-i18n="finance.recentTransactions">Operating Transactions</h3>
+        <div id="finance-transactions" class="transaction-list"></div>
+        <button id="emergency-btn" type="button" class="btn danger" hidden data-i18n="finance.emergencyBuyback">
+          Emergency Ore Buyback (50%)
+        </button>
+      </section>
+      <section data-finance-panel="crew" hidden>
+        <div id="finance-crew-summary" class="summary"></div>
+        <div class="finance-crew-toolbar">
+          <button id="finance-hire-btn" type="button" class="btn primary" data-i18n="finance.crew.hire">Hire Miner</button>
+        </div>
+        <div id="finance-crew-list" class="finance-crew-list"></div>
+      </section>
+      <section data-finance-panel="obligations" hidden>
+        <div id="finance-obligations-summary" class="summary"></div>
+        <p id="finance-mining-rights-status" class="market-info"></p>
+        <button id="finance-renew-rights-btn" type="button" class="btn primary" hidden data-i18n="finance.obligations.renew">Renew Mining Rights</button>
+      </section>
+      <section data-finance-panel="activity" hidden>
+        <h3 data-i18n="finance.companyActivity">Company Reserve Activity</h3>
+        <div id="finance-company-activity" class="transaction-list"></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="cosmic-reserve-modal" class="modal" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 data-i18n="reserve.title">Cosmic Reserve</h2>
+        <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
+      </div>
+      <div id="reserve-balance" class="reserve-balance-hero"></div>
+      <div id="reserve-summary" class="summary"></div>
+      <section class="reserve-transfer-panel">
+        <h3 data-i18n="reserve.transfer.title">Transfer Rax</h3>
+        <div class="reserve-transfer-row">
+          <input id="reserve-transfer-amount" type="number" min="1" step="1" class="reserve-transfer-input" data-i18n-placeholder="reserve.transfer.amountPlaceholder" placeholder="Amount">
+          <button id="reserve-transfer-to-operating" type="button" class="btn primary" data-i18n="reserve.transfer.toOperating">Fund Operations</button>
+          <button id="reserve-transfer-to-reserve" type="button" class="btn ghost" data-i18n="reserve.transfer.toReserve">Deposit to Reserve</button>
+        </div>
+        <p id="reserve-transfer-status" class="market-info"></p>
+      </section>
+      <h3 data-i18n="reserve.activity">Reserve Activity</h3>
+      <div id="reserve-transactions" class="transaction-list"></div>
     </div>
   </div>
 
@@ -241,16 +302,28 @@
       </div>
       <p id="market-info" class="market-info" data-i18n="trade.loading">Market prices loading...</p>
       <p id="trade-market-value" class="market-info trade-market-value"></p>
-      <div class="shop-columns">
-        <section>
-          <h3 data-i18n="trade.buySupplies">Buy Supplies (Earth Market Linked)</h3>
-          <div id="supply-list" class="shop-list"></div>
-        </section>
-        <section>
-          <h3 data-i18n="trade.sellOre">Sell Ore (NPC Refinery)</h3>
-          <div id="ore-list" class="shop-list"></div>
-        </section>
-      </div>
+      <section class="trade-listings-panel">
+        <h3 data-i18n="trade.listings.title">Used Equipment Listings</h3>
+        <p class="market-info" data-i18n="trade.listings.hint">Buy pre-owned supplies and ore from other miners or belt surplus stock. Condition affects price and performance.</p>
+        <div id="trade-listing-list" class="trade-listing-grid"></div>
+      </section>
+      <section class="trade-sell-panel">
+        <h3 data-i18n="trade.listings.sellTitle">Sell Your Items</h3>
+        <form id="listing-create-form" class="listing-create-form">
+          <label for="listing-sell-item" data-i18n="trade.listings.item">Item</label>
+          <select id="listing-sell-item" required></select>
+          <label for="listing-sell-qty" data-i18n="trade.quantity">Quantity</label>
+          <input id="listing-sell-qty" type="number" min="0.1" step="0.1" required>
+          <label for="listing-sell-price" data-i18n="trade.listings.unitPrice">Unit price (Rax)</label>
+          <input id="listing-sell-price" type="number" min="1" step="1" required>
+          <button type="submit" class="btn accent" data-i18n="trade.listings.post">Post listing</button>
+        </form>
+        <p id="listing-status" class="market-info"></p>
+      </section>
+      <section>
+        <h3 data-i18n="trade.sellOre">Sell Ore (NPC Refinery)</h3>
+        <div id="ore-list" class="shop-list"></div>
+      </section>
       <section class="auction-panel">
         <h3 data-i18n="trade.auctions">Player Auctions</h3>
         <p class="market-info" data-i18n="trade.auctionsHint">List ore or supplies for auction. The timer starts when the first bid is placed. A market fee applies on completed sales.</p>
@@ -282,11 +355,14 @@
         <h2 data-i18n="store.title">Store</h2>
         <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
-      <p id="store-market-info" class="market-info" data-i18n="trade.loading">Market prices loading...</p>
-      <section>
-        <h3 data-i18n="store.buySupplies">Buy Supplies (US Market Linked)</h3>
-        <div id="store-supply-list" class="shop-list"></div>
-      </section>
+      <p id="store-market-info" class="market-info" data-i18n="store.loading">Loading VoidCorp catalog…</p>
+      <header class="store-masthead">
+        <div class="store-brand">VOIDCORP</div>
+        <p class="store-masthead-tagline" data-i18n="store.masthead">Factory-new mining supplies · Amazon-style catalog</p>
+        <button type="button" id="store-back-btn" class="btn ghost hidden" data-i18n="store.back">← Back to catalog</button>
+      </header>
+      <div id="store-grid" class="store-grid"></div>
+      <div id="store-detail" class="store-detail hidden"></div>
       <section>
         <h3 data-i18n="store.companyNames">Company Names (Player Trade)</h3>
         <p class="market-info" data-i18n="store.companyNamesHint">Buy unique company names listed by other miners. Relinquished names stay reserved for 30 days.</p>
@@ -299,13 +375,34 @@
   <div id="shipping-modal" class="modal" hidden>
     <div class="modal-card wide">
       <div class="modal-header">
-        <h2 data-i18n="shipping.title">Shipping</h2>
+        <h2 data-i18n="shipping.title">Orbital Shipping</h2>
         <button type="button" class="btn ghost" data-close-modal data-i18n="modal.close">Close</button>
       </div>
-      <p id="shipping-summary" class="market-info" data-i18n="shipping.summary">Load ore cargo and ship it to the NPC refinery.</p>
+      <p id="shipping-summary" class="market-info"></p>
       <section>
-        <h3 data-i18n="shipping.cargoHold">Cargo Hold</h3>
-        <div id="shipping-cargo-list" class="shop-list"></div>
+        <h3 data-i18n="shipping.stockpile">Ore Stockpile</h3>
+        <div id="shipping-stockpile-list" class="shipping-stockpile-list"></div>
+      </section>
+      <section class="shipping-schedule-panel">
+        <h3 data-i18n="shipping.scheduleTitle">Schedule Freighter</h3>
+        <p class="market-info" data-i18n="shipping.scheduleHint">Match arrival day to your extraction rate. Too early wastes freight on a half-empty hull; too late fills the pad and halts mining.</p>
+        <form id="shipping-schedule-form" class="shipping-schedule-form">
+          <label for="shipping-ore-type" data-i18n="shipping.oreType">Ore</label>
+          <select id="shipping-ore-type" required></select>
+          <label for="shipping-ship-class" data-i18n="shipping.shipClass">Ship</label>
+          <select id="shipping-ship-class" required></select>
+          <label for="shipping-route-tier" data-i18n="shipping.route">Route</label>
+          <select id="shipping-route-tier" required></select>
+          <label for="shipping-arrival-day" data-i18n="shipping.arrivalDay">Arrival day</label>
+          <input id="shipping-arrival-day" type="number" min="1" step="1" required>
+          <button type="submit" class="btn primary" data-i18n="shipping.scheduleBtn">Book shipment</button>
+        </form>
+        <p id="shipping-route-preview" class="market-info"></p>
+        <p id="shipping-status" class="market-info"></p>
+      </section>
+      <section>
+        <h3 data-i18n="shipping.voyages">Active Voyages</h3>
+        <div id="shipping-voyage-list" class="shipping-voyage-list"></div>
       </section>
     </div>
   </div>
@@ -902,6 +999,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260608-job-optional-dossier"></script>
+<script type="module" src="/js/app.js?v=20260610-shipping"></script>
 </body>
 </html>

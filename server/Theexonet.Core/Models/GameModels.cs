@@ -9,6 +9,7 @@ public class PlayerState
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public decimal Credits { get; set; }
+    public decimal ReserveBalance { get; set; }
     public int CurrentGameDay { get; set; }
     public DateTime CreatedAt { get; set; }
 }
@@ -21,6 +22,7 @@ public class MineState
     public int AsteroidSeed { get; set; }
     public MineStatus Status { get; set; }
     public DateTime PurchasedAt { get; set; }
+    public int MiningRightsPaidThroughDay { get; set; } = 30;
     public List<MineZoneState> Zones { get; set; } = [];
     public List<WorkerState> Workers { get; set; } = [];
 }
@@ -54,6 +56,9 @@ public class InventoryItemState
     public ItemCategory Category { get; set; }
     public string ItemType { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
+    public decimal Condition { get; set; } = 100m;
+    public decimal BrokenQuantity { get; set; }
+    public bool IsNew { get; set; }
 }
 
 public class TransactionState
@@ -109,10 +114,38 @@ public class FeatureFlags
     };
 }
 
+public class ReserveTransactionState
+{
+    public Guid Id { get; set; }
+    public Guid PlayerId { get; set; }
+    public ReserveTransactionType Type { get; set; }
+    public decimal Amount { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public int GameDay { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CompanyObligationsResult
+{
+    public decimal CompanyTax { get; set; }
+    public decimal HealthInsurance { get; set; }
+    public decimal JobInsurance { get; set; }
+    public decimal BeltFee { get; set; }
+    public decimal MiningRights { get; set; }
+    public decimal Total { get; set; }
+    public bool MiningRightsRenewed { get; set; }
+    public int? NewPaidThroughDay { get; set; }
+    public List<string> Messages { get; set; } = [];
+}
+
 public class FinanceSummary
 {
     public decimal Credits { get; set; }
+    public decimal ReserveBalance { get; set; }
+    public decimal DailyJobSalary { get; set; }
     public decimal DailyPayroll { get; set; }
+    public decimal DailyCompanyObligations { get; set; }
+    public decimal DailyTotalReserveBurn { get; set; }
     public decimal DailySupplyCost { get; set; }
     public decimal EstimatedDailyIncome { get; set; }
     public decimal RunwayDays { get; set; }
@@ -125,6 +158,8 @@ public class DayAdvanceResult
 {
     public int NewGameDay { get; set; }
     public decimal Credits { get; set; }
+    public decimal ReserveBalance { get; set; }
+    public decimal JobSalaryPaid { get; set; }
     public Dictionary<string, decimal> OreExtracted { get; set; } = new();
     public decimal PayrollPaid { get; set; }
     public decimal SuppliesConsumed { get; set; }

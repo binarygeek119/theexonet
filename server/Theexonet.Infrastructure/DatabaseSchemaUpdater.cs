@@ -419,6 +419,93 @@ public static class DatabaseSchemaUpdater
             );
             CREATE INDEX IF NOT EXISTS "IX_PlayerJobHistory_PlayerId" ON "PlayerJobHistory" ("PlayerId");
             CREATE INDEX IF NOT EXISTS "IX_PlayerJobHistory_PlayerId_IsCurrent" ON "PlayerJobHistory" ("PlayerId", "IsCurrent");
+            ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "ReserveBalance" numeric NOT NULL DEFAULT 0;
+            UPDATE "Players"
+            SET "ReserveBalance" = "Credits",
+                "Credits" = LEAST("Credits", 1500)
+            WHERE "ReserveBalance" = 0 AND "Credits" > 0;
+            CREATE TABLE IF NOT EXISTS "ReserveTransactions" (
+                "Id" uuid NOT NULL,
+                "PlayerId" uuid NOT NULL,
+                "Type" integer NOT NULL,
+                "Amount" numeric NOT NULL,
+                "Description" text NOT NULL DEFAULT '',
+                "GameDay" integer NOT NULL,
+                "CreatedAt" timestamp with time zone NOT NULL DEFAULT NOW(),
+                CONSTRAINT "PK_ReserveTransactions" PRIMARY KEY ("Id"),
+                CONSTRAINT "FK_ReserveTransactions_Players_PlayerId" FOREIGN KEY ("PlayerId")
+                    REFERENCES "Players" ("Id") ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS "IX_ReserveTransactions_PlayerId" ON "ReserveTransactions" ("PlayerId");
+            CREATE INDEX IF NOT EXISTS "IX_ReserveTransactions_PlayerId_CreatedAt" ON "ReserveTransactions" ("PlayerId", "CreatedAt");
+            ALTER TABLE "Mines" ADD COLUMN IF NOT EXISTS "MiningRightsPaidThroughDay" integer NOT NULL DEFAULT 30;
+            UPDATE "Mines" m
+            SET "MiningRightsPaidThroughDay" = p."CurrentGameDay" + 30
+            FROM "Players" p
+            WHERE m."PlayerId" = p."Id" AND m."MiningRightsPaidThroughDay" = 30;
+            ALTER TABLE "Inventory" ADD COLUMN IF NOT EXISTS "Condition" numeric NOT NULL DEFAULT 100;
+            ALTER TABLE "Inventory" ADD COLUMN IF NOT EXISTS "BrokenQuantity" numeric NOT NULL DEFAULT 0;
+            ALTER TABLE "Inventory" ADD COLUMN IF NOT EXISTS "IsNew" boolean NOT NULL DEFAULT false;
+            ALTER TABLE "TradeAuctions" ADD COLUMN IF NOT EXISTS "Condition" numeric NOT NULL DEFAULT 100;
+            CREATE TABLE IF NOT EXISTS "MarketListings" (
+                "Id" uuid NOT NULL,
+                "SellerPlayerId" uuid NULL,
+                "SellerType" text NOT NULL DEFAULT 'player',
+                "Category" integer NOT NULL,
+                "ItemType" text NOT NULL DEFAULT '',
+                "Quantity" numeric NOT NULL,
+                "UnitPrice" numeric NOT NULL,
+                "Condition" numeric NOT NULL DEFAULT 100,
+                "Status" text NOT NULL DEFAULT 'active',
+                "CreatedAt" timestamp with time zone NOT NULL DEFAULT NOW(),
+                "SoldAt" timestamp with time zone NULL,
+                "BuyerPlayerId" uuid NULL,
+                CONSTRAINT "PK_MarketListings" PRIMARY KEY ("Id"),
+                CONSTRAINT "FK_MarketListings_Players_SellerPlayerId" FOREIGN KEY ("SellerPlayerId")
+                    REFERENCES "Players" ("Id") ON DELETE SET NULL
+            );
+            CREATE INDEX IF NOT EXISTS "IX_MarketListings_Status_Category_ItemType"
+                ON "MarketListings" ("Status", "Category", "ItemType");
+            CREATE TABLE IF NOT EXISTS "MineOreStockpile" (
+                "Id" uuid NOT NULL,
+                "MineId" uuid NOT NULL,
+                "OreType" text NOT NULL DEFAULT '',
+                "Quantity" numeric NOT NULL DEFAULT 0,
+                "Condition" numeric NOT NULL DEFAULT 100,
+                CONSTRAINT "PK_MineOreStockpile" PRIMARY KEY ("Id"),
+                CONSTRAINT "FK_MineOreStockpile_Mines_MineId" FOREIGN KEY ("MineId")
+                    REFERENCES "Mines" ("Id") ON DELETE CASCADE
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_MineOreStockpile_MineId_OreType"
+                ON "MineOreStockpile" ("MineId", "OreType");
+            CREATE TABLE IF NOT EXISTS "OreShipments" (
+                "Id" uuid NOT NULL,
+                "MineId" uuid NOT NULL,
+                "PlayerId" uuid NOT NULL,
+                "ShipClass" integer NOT NULL,
+                "RouteTier" integer NOT NULL,
+                "OreType" text NOT NULL DEFAULT '',
+                "Capacity" numeric NOT NULL,
+                "ScheduledArrivalDay" integer NOT NULL,
+                "DepartureDay" integer NOT NULL,
+                "DaysRemaining" integer NOT NULL DEFAULT 0,
+                "Status" text NOT NULL DEFAULT 'scheduled',
+                "CargoQuantity" numeric NOT NULL DEFAULT 0,
+                "CargoCondition" numeric NOT NULL DEFAULT 100,
+                "ShippingCostPaid" numeric NOT NULL DEFAULT 0,
+                "FillPercent" numeric NOT NULL DEFAULT 0,
+                "FastLegPercent" numeric NOT NULL DEFAULT 0,
+                "LastEventDescription" text NULL,
+                "CreatedAt" timestamp with time zone NOT NULL DEFAULT NOW(),
+                "CompletedAt" timestamp with time zone NULL,
+                CONSTRAINT "PK_OreShipments" PRIMARY KEY ("Id"),
+                CONSTRAINT "FK_OreShipments_Mines_MineId" FOREIGN KEY ("MineId")
+                    REFERENCES "Mines" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_OreShipments_Players_PlayerId" FOREIGN KEY ("PlayerId")
+                    REFERENCES "Players" ("Id") ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS "IX_OreShipments_MineId_Status"
+                ON "OreShipments" ("MineId", "Status");
             """,
             cancellationToken);
     }

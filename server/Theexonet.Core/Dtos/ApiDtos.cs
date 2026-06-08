@@ -152,7 +152,52 @@ public record CreateTradeAuctionRequest(
     string ItemType,
     decimal Quantity,
     decimal StartPrice,
-    int DurationMinutes);
+    int DurationMinutes,
+    bool? IsNew = null);
+
+public record CreateTradeListingRequest(
+    string Category,
+    string ItemType,
+    decimal Quantity,
+    decimal UnitPrice,
+    bool? IsNew = null);
+
+public record TradeListingDto(
+    Guid Id,
+    string SellerType,
+    string? SellerUsername,
+    string Category,
+    string ItemType,
+    string DisplayName,
+    decimal Quantity,
+    decimal UnitPrice,
+    decimal Condition,
+    string? ImageUrl,
+    string? Color,
+    bool IsMine);
+
+public record TradeListingListResponse(IReadOnlyList<TradeListingDto> Listings);
+
+public record TradeListingActionResponse(bool Success, string Message, decimal? NewCredits = null);
+
+public record StoreProductDto(
+    string Slug,
+    string ItemType,
+    string Category,
+    string DisplayName,
+    string Tagline,
+    string Summary,
+    string Description,
+    decimal BasePrice,
+    decimal LivePrice,
+    string Color,
+    string? UiSymbol,
+    string? ImageUrl);
+
+public record StoreCatalogResponse(
+    int GameDay,
+    string MarketSource,
+    IReadOnlyList<StoreProductDto> Products);
 
 public record PlaceTradeAuctionBidRequest(decimal BidAmount);
 
@@ -163,6 +208,7 @@ public record TradeAuctionDto(
     string ItemType,
     string DisplayName,
     decimal Quantity,
+    decimal Condition,
     decimal StartPrice,
     decimal? CurrentBid,
     string? HighBidderUsername,
@@ -213,6 +259,49 @@ public record AssignWorkerRequest(Guid WorkerId, string? ZoneId);
 public record BuySupplyRequest(SupplyTypeDto SupplyType, decimal Quantity);
 public record SellOreRequest(OreTypeDto OreType, decimal Quantity, bool EmergencyBuyback = false);
 
+public record ScheduleShipmentRequest(
+    string ShipClass,
+    string RouteTier,
+    string OreType,
+    int ScheduledArrivalDay);
+
+public record StockpileItemDto(string OreType, decimal Quantity, decimal Condition);
+
+public record ShipmentDto(
+    Guid Id,
+    string ShipClass,
+    string RouteTier,
+    string OreType,
+    decimal Capacity,
+    int ScheduledArrivalDay,
+    int DepartureDay,
+    int DaysRemaining,
+    string Status,
+    decimal CargoQuantity,
+    decimal CargoCondition,
+    decimal FillPercent,
+    decimal ShippingCostPaid,
+    decimal FastLegPercent,
+    string? LastEventDescription);
+
+public record ShippingRouteOptionDto(
+    string ShipClass,
+    string RouteTier,
+    int TransitDays,
+    decimal Capacity,
+    decimal FastLegPercent,
+    decimal SlowLegPercent,
+    decimal EstimatedCost,
+    string RouteDescription);
+
+public record ShippingDashboardResponse(
+    decimal StockpileCapacity,
+    decimal StockpileTotal,
+    bool IsStockpileFull,
+    IReadOnlyList<StockpileItemDto> Stockpile,
+    IReadOnlyList<ShipmentDto> Shipments,
+    IReadOnlyList<ShippingRouteOptionDto> Routes);
+
 public enum SupplyTypeDto
 {
     DrillBits,
@@ -231,8 +320,26 @@ public enum OreTypeDto
 
 public record MineZoneDto(Guid Id, int X, int Y, OreTypeDto OreType, decimal Richness, decimal DepletedPct, bool IsSalvageZone);
 public record WorkerDto(Guid Id, string Name, int Skill, decimal Salary, Guid? AssignedZoneId);
-public record InventoryItemDto(string ItemType, string Category, decimal Quantity);
+public record InventoryItemDto(
+    string ItemType,
+    string Category,
+    decimal Quantity,
+    decimal Condition = 100m,
+    decimal BrokenQuantity = 0m,
+    bool IsNew = false);
 public record TransactionDto(string Type, decimal Amount, string Description, int GameDay, DateTime CreatedAt);
+
+public record ReserveTransactionDto(string Type, decimal Amount, string Description, int GameDay, DateTime CreatedAt);
+
+public record CosmicReserveResponse(
+    decimal ReserveBalance,
+    decimal OperatingBalance,
+    decimal DailyJobSalary,
+    decimal DailyMinePayroll,
+    string? CurrentJobTitle,
+    IReadOnlyList<ReserveTransactionDto> RecentTransactions);
+
+public record ReserveTransferRequest(decimal Amount, string Direction);
 
 public record MineDetailResponse(
     Guid Id,
@@ -241,6 +348,7 @@ public record MineDetailResponse(
     string Status,
     int CurrentGameDay,
     decimal Credits,
+    decimal ReserveBalance,
     IReadOnlyList<MineZoneDto> Zones,
     IReadOnlyList<WorkerDto> Workers,
     IReadOnlyList<InventoryItemDto> Inventory,
@@ -249,7 +357,9 @@ public record MineDetailResponse(
     DateTime NextDayAtUtc,
     DayAdvanceResponse? LatestDayReport = null,
     string? BirthdayMessage = null,
-    IReadOnlyList<EventCompletionDto>? EventCompletions = null);
+    IReadOnlyList<EventCompletionDto>? EventCompletions = null,
+    string? CurrentJobSlug = null,
+    string? CurrentJobTitle = null);
 
 public record MarketPriceDto(SupplyTypeDto SupplyType, decimal Price, decimal ChangePct);
 
@@ -264,23 +374,58 @@ public record MarketTodayResponse(
     string Source,
     ActiveMarketBonusesDto? EventBonuses = null);
 
+public record CompanyObligationsDto(
+    decimal CompanyTax,
+    decimal HealthInsurance,
+    decimal JobInsurance,
+    decimal BeltFee,
+    decimal MiningRights,
+    decimal Total);
+
+public record MiningRightsDto(
+    int PaidThroughDay,
+    int CurrentGameDay,
+    bool IsExpired,
+    decimal RenewalFee);
+
+public record CompanyWorkerDto(
+    Guid Id,
+    string Name,
+    int Skill,
+    decimal Salary,
+    Guid? AssignedZoneId);
+
+public record HireWorkerRequest(string? Name = null);
+
+public record RaiseWorkerRequest(decimal NewSalary);
+
 public record FinanceResponse(
     decimal Credits,
+    decimal ReserveBalance,
+    decimal DailyJobSalary,
     decimal DailyPayroll,
     decimal DailySupplyCost,
     decimal EstimatedDailyIncome,
+    decimal DailyCompanyObligations,
+    decimal DailyTotalReserveBurn,
     decimal RunwayDays,
     bool IsSoftlocked,
     bool CanEmergencyBuyback,
-    IReadOnlyList<TransactionDto> RecentTransactions);
+    CompanyObligationsDto DailyObligations,
+    MiningRightsDto MiningRights,
+    IReadOnlyList<CompanyWorkerDto> Workers,
+    IReadOnlyList<TransactionDto> RecentTransactions,
+    IReadOnlyList<ReserveTransactionDto> CompanyReserveActivity);
 
 public record OreExtractedDto(string OreType, decimal Quantity);
 
 public record DayAdvanceResponse(
     int NewGameDay,
     decimal Credits,
+    decimal ReserveBalance,
     IReadOnlyList<OreExtractedDto> OreExtracted,
     decimal PayrollPaid,
+    decimal JobSalaryPaid,
     decimal SuppliesConsumed,
     MarketTodayResponse Market,
     IReadOnlyList<string> Messages,
@@ -360,11 +505,12 @@ public record PlayerProfileResponse(
 public record PlayerJobHistoryEntryDto(
     string JobSlug,
     string JobTitle,
+    string WorkspaceModule,
     bool IsCurrent,
     DateTime StartedAtUtc,
     DateTime? EndedAtUtc);
 
-public record PlayerJobCatalogEntryDto(string Slug, string Title, string Description);
+public record PlayerJobCatalogEntryDto(string Slug, string Title, string WorkspaceModule, string Description);
 
 public record PlayerJobCatalogResponse(IReadOnlyList<PlayerJobCatalogEntryDto> Jobs);
 

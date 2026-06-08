@@ -60,8 +60,8 @@ public class TradeListingServiceTests
         Assert.Null(createErr);
         Assert.True(createResult!.Success);
 
-        var listings = await service.GetListingsAsync(null, CancellationToken.None);
-        var listing = listings.Listings.First(l => l.SellerType == MarketListingSellerTypes.Player);
+        var listing = await db.MarketListings.SingleAsync(l =>
+            l.SellerPlayerId == sellerId && l.Status == MarketListingStatuses.Active);
         var (buyResult, buyErr) = await service.PurchaseListingAsync(buyerId, listing.Id, CancellationToken.None);
 
         Assert.Null(buyErr);

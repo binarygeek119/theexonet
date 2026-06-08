@@ -78,8 +78,8 @@ Remove unused secrets: `DEPLOY_SSH_KEY`, `DEPLOY_FTP_PASSWORD` (optional).
 
 1. Build and test
 2. Zip `publish/` + `data/`
-3. **SSH upload** to `/var/www/staging/theexonet-website-deploy-<sha>.zip` as `githubdeploy`
-4. **SSH** `promote-theexonet-staging` (restart all services)
+3. **SSH upload** to `githubdeploy` home, then `sudo stage-theexonet-upload` into `/var/www/staging/.incoming/theexonet-website-deploy-<sha>.tar.gz` (avoids the staging watcher consuming the archive mid-CI)
+4. Unpack in staging, then **SSH** `promote-theexonet-staging` (restart all services)
 5. Wait for `http://theexonet.com/` and API HTTP
 
 ## 4. Manual promote (if watcher is down)
@@ -93,6 +93,16 @@ sudo promote-theexonet-staging
 Push to `main` under `server/` or `scripts/`, or run the workflow manually (uncheck skip deploy).
 
 ## 6. Troubleshooting
+
+### `ERROR: missing archive: /var/www/staging/...tar.gz`
+
+CI now stages bundles under `/var/www/staging/.incoming/`. On the VM after `git pull`:
+
+```bash
+sudo bash scripts/install-bin-scripts.sh scripts
+```
+
+Ensure `githubdeploy` can run `sudo -n stage-theexonet-upload` (from `setup-github-ssh-restart.sh`).
 
 ### `530 Login incorrect` (FTPS)
 

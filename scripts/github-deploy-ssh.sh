@@ -24,9 +24,11 @@ USER="${DEPLOY_SSH_USER:-githubdeploy}"
 PORT="${DEPLOY_SSH_PORT:-22}"
 PASSWORD="${DEPLOY_SSH_PASSWORD:-}"
 STAGING_DIR="${DEPLOY_STAGING_DIR:-/var/www/staging}"
+INCOMING_DIR="${STAGING_DIR%/}/.incoming"
 REMOTE_NAME="$(basename "${LOCAL_FILE}")"
-REMOTE_PATH="${STAGING_DIR%/}/${REMOTE_NAME}"
+REMOTE_PATH="${INCOMING_DIR}/${REMOTE_NAME}"
 REMOTE_PROMOTE="${STAGING_DIR%/}/run-promote-staging.sh"
+UPLOAD_TMP_NAME="upload-${REMOTE_NAME}"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 PROMOTE_SCRIPT="${SCRIPT_DIR}/theexonet/promote-staging.sh"
 HTML_BUILD_MARKER="${HTML_BUILD_MARKER:-20260607-live-updates}"
@@ -64,14 +66,21 @@ scp_opts=(-P "${PORT}" "${ssh_common_opts[@]}")
 
 export SSHPASS="${PASSWORD}"
 
-echo "Uploading ${LOCAL_FILE} → ${USER}@${HOST}:${REMOTE_PATH}"
-if ! SSHPASS="${PASSWORD}" sshpass -e scp "${scp_opts[@]}" "${LOCAL_FILE}" "${USER}@${HOST}:${REMOTE_PATH}"; then
-  echo "Direct scp to ${REMOTE_PATH} failed — trying home dir + sudo mv…" >&2
-  tmp_path="upload-${REMOTE_NAME}"
-  SSHPASS="${PASSWORD}" sshpass -e scp "${scp_opts[@]}" "${LOCAL_FILE}" "${USER}@${HOST}:${tmp_path}"
-  SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
-    "sudo -n stage-theexonet-upload '${tmp_path}'"
+echo "Uploading ${LOCAL_FILE} → ${USER}@${HOST}:~/${UPLOAD_TMP_NAME}"
+SSHPASS="${PASSWORD}" sshpass -e scp "${scp_opts[@]}" "${LOCAL_FILE}" "${USER}@${HOST}:${UPLOAD_TMP_NAME}"
+
+echo "Staging into ${REMOTE_PATH}…"
+if ! SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
+  "set -euo pipefail; home=\"\$(cd ~ && pwd)\"; sudo -n stage-theexonet-upload \"\${home}/${UPLOAD_TMP_NAME}\" '${REMOTE_NAME}'"; then
+  echo "ERROR: stage-theexonet-upload failed (check sudoers and install-bin-scripts on the VM)." >&2
+  exit 1
 fi
+
+if ! SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" "test -f '${REMOTE_PATH}'"; then
+  echo "ERROR: staged archive missing at ${REMOTE_PATH}" >&2
+  exit 1
+fi
+echo "Staged ${REMOTE_PATH}"
 
 echo "Uploading promote script from CI checkout…"
 SSHPASS="${PASSWORD}" sshpass -e scp "${scp_opts[@]}" "${PROMOTE_SCRIPT}" "${USER}@${HOST}:${REMOTE_PROMOTE}"
@@ -96,6 +105,10 @@ if ! unpack_output="$(SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${U
   "STAGING='${STAGING_DIR}' ARCHIVE='${REMOTE_PATH}' bash -s" <<'REMOTE_UNPACK'
 set -euo pipefail
 if [ ! -f "${ARCHIVE}" ]; then
+  if [ -f "${STAGING}/publish/Theexonet.Api.dll" ] && [ -f "${STAGING}/publish/html/index.html" ]; then
+    echo "Archive already processed; using existing ${STAGING}/publish."
+    exit 0
+  fi
   echo "ERROR: missing archive: ${ARCHIVE}" >&2
   exit 1
 fi
@@ -123,7 +136,12 @@ for stale in \
   "${STAGING}"/theexonet-website-deploy-*.zip \
   "${STAGING}"/theexonet-website-deploy-*.tgz \
   "${STAGING}"/theexonet-website-*.tar.gz \
-  "${STAGING}"/theexonet-website-*.zip; do
+  "${STAGING}"/theexonet-website-*.zip \
+  "${STAGING}"/.incoming/theexonet-website-deploy-*.tar.gz \
+  "${STAGING}"/.incoming/theexonet-website-deploy-*.zip \
+  "${STAGING}"/.incoming/theexonet-website-deploy-*.tgz \
+  "${STAGING}"/.incoming/theexonet-website-*.tar.gz \
+  "${STAGING}"/.incoming/theexonet-website-*.zip; do
   rm -f "${stale}"
 done
 echo "Unpacking ${ARCHIVE}…"

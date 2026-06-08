@@ -30,7 +30,7 @@ import {
   UNAVAILABLE_PANEL_ID,
 } from "./jobs/job-workspaces.js?v=20260608-job-workspaces";
 import { wireCompanyFinance, renderCompanyFinancePanel } from "./company-finance.js?v=20260608-company-finance";
-import { wireStoreCatalog, loadStoreCatalog, renderStoreCatalog } from "./store-catalog.js?v=20260609-store-trade";
+import { wireStoreCatalog, loadStoreCatalog, renderStoreCatalog } from "./store-catalog.js?v=20260610-voidcorp-images";
 import { wireTradeMarketplace, refreshTradeListings, renderTradeMarketplace, formatConditionBar } from "./trade-marketplace.js?v=20260609-store-trade";
 import { wireShippingPanel, loadShippingDashboard, renderShippingPanel } from "./shipping-panel.js?v=20260610-shipping";
 

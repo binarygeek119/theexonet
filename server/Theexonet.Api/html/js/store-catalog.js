@@ -1,4 +1,5 @@
 import { formatRaxHtml } from "./currency.js";
+import { API_BASE_URL, readMetaApiBase } from "./config.js";
 
 const MISSING_PRODUCT = "/exonet/voidcorp/placeholders/missing-product.svg";
 
@@ -62,11 +63,12 @@ export function renderStoreCatalog() {
   for (const product of storeCatalog) {
     const card = document.createElement("article");
     card.className = "store-card";
-    const image = product.imageUrl || MISSING_PRODUCT;
+    const image = resolveVoidCorpProductImageUrl(product.imageUrl);
+    const imageFallback = escapeAttr(resolveVoidCorpProductImageUrl(null));
     card.innerHTML = `
       <div class="store-card-image-wrap">
         <img class="store-card-image" src="${escapeAttr(image)}" alt="" loading="lazy"
-          onerror="this.onerror=null;this.src='${MISSING_PRODUCT}'">
+          onerror="this.onerror=null;this.src='${imageFallback}'">
         <span class="store-badge-new">${t("store.badgeNew")}</span>
       </div>
       <div class="store-card-body">
@@ -107,14 +109,15 @@ function renderStoreDetail(slug) {
   els.storeDetail?.classList.remove("hidden");
   els.storeBackBtn?.classList.remove("hidden");
 
-  const image = product.imageUrl || MISSING_PRODUCT;
+  const image = resolveVoidCorpProductImageUrl(product.imageUrl);
+  const imageFallback = escapeAttr(resolveVoidCorpProductImageUrl(null));
   const stock = sumNewSupplyStock(storeCtx.state.mine, product.itemType);
 
   els.storeDetail.innerHTML = `
     <div class="store-detail-layout">
       <div class="store-detail-image-wrap">
         <img class="store-detail-image" src="${escapeAttr(image)}" alt=""
-          onerror="this.onerror=null;this.src='${MISSING_PRODUCT}'">
+          onerror="this.onerror=null;this.src='${imageFallback}'">
         <span class="store-badge-new">${t("store.badgeNew")}</span>
       </div>
       <div class="store-detail-copy">
@@ -168,4 +171,19 @@ function escapeHtml(value) {
 
 function escapeAttr(value) {
   return escapeHtml(value).replaceAll("'", "&#39;");
+}
+
+/** Same URL rules as Exonet VoidCorp listings (API-hosted /exonet/voidcorp/ assets). */
+function resolveVoidCorpProductImageUrl(imageUrl) {
+  const path = imageUrl || MISSING_PRODUCT;
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  const apiBase = (API_BASE_URL || readMetaApiBase()).replace(/\/$/, "");
+  if (apiBase && path.startsWith("/")) {
+    return `${apiBase}${path}`;
+  }
+
+  return path;
 }

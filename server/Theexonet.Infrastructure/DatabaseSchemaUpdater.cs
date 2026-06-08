@@ -464,9 +464,17 @@ public static class DatabaseSchemaUpdater
                 CONSTRAINT "FK_MarketListings_Players_SellerPlayerId" FOREIGN KEY ("SellerPlayerId")
                     REFERENCES "Players" ("Id") ON DELETE SET NULL
             );
+            ALTER TABLE "MarketListings" ADD COLUMN IF NOT EXISTS "SellerPlayerId" uuid NULL;
             ALTER TABLE "MarketListings" ADD COLUMN IF NOT EXISTS "SellerType" text NOT NULL DEFAULT 'player';
+            ALTER TABLE "MarketListings" ADD COLUMN IF NOT EXISTS "Category" integer NOT NULL DEFAULT 0;
+            ALTER TABLE "MarketListings" ADD COLUMN IF NOT EXISTS "ItemType" text NOT NULL DEFAULT '';
+            ALTER TABLE "MarketListings" ADD COLUMN IF NOT EXISTS "Quantity" numeric NOT NULL DEFAULT 0;
+            ALTER TABLE "MarketListings" ADD COLUMN IF NOT EXISTS "UnitPrice" numeric NOT NULL DEFAULT 0;
             ALTER TABLE "MarketListings" ADD COLUMN IF NOT EXISTS "Condition" numeric NOT NULL DEFAULT 100;
             ALTER TABLE "MarketListings" ADD COLUMN IF NOT EXISTS "Status" text NOT NULL DEFAULT 'active';
+            ALTER TABLE "MarketListings" ADD COLUMN IF NOT EXISTS "CreatedAt" timestamp with time zone NOT NULL DEFAULT NOW();
+            ALTER TABLE "MarketListings" ADD COLUMN IF NOT EXISTS "SoldAt" timestamp with time zone NULL;
+            ALTER TABLE "MarketListings" ADD COLUMN IF NOT EXISTS "BuyerPlayerId" uuid NULL;
             CREATE INDEX IF NOT EXISTS "IX_MarketListings_Status_Category_ItemType"
                 ON "MarketListings" ("Status", "Category", "ItemType");
             CREATE TABLE IF NOT EXISTS "MineOreStockpile" (
@@ -479,6 +487,9 @@ public static class DatabaseSchemaUpdater
                 CONSTRAINT "FK_MineOreStockpile_Mines_MineId" FOREIGN KEY ("MineId")
                     REFERENCES "Mines" ("Id") ON DELETE CASCADE
             );
+            ALTER TABLE "MineOreStockpile" ADD COLUMN IF NOT EXISTS "OreType" text NOT NULL DEFAULT '';
+            ALTER TABLE "MineOreStockpile" ADD COLUMN IF NOT EXISTS "Quantity" numeric NOT NULL DEFAULT 0;
+            ALTER TABLE "MineOreStockpile" ADD COLUMN IF NOT EXISTS "Condition" numeric NOT NULL DEFAULT 100;
             CREATE UNIQUE INDEX IF NOT EXISTS "IX_MineOreStockpile_MineId_OreType"
                 ON "MineOreStockpile" ("MineId", "OreType");
             CREATE TABLE IF NOT EXISTS "OreShipments" (
@@ -507,7 +518,24 @@ public static class DatabaseSchemaUpdater
                 CONSTRAINT "FK_OreShipments_Players_PlayerId" FOREIGN KEY ("PlayerId")
                     REFERENCES "Players" ("Id") ON DELETE CASCADE
             );
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "MineId" uuid NULL;
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "PlayerId" uuid NULL;
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "ShipClass" integer NOT NULL DEFAULT 0;
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "RouteTier" integer NOT NULL DEFAULT 0;
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "OreType" text NOT NULL DEFAULT '';
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "Capacity" numeric NOT NULL DEFAULT 0;
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "ScheduledArrivalDay" integer NOT NULL DEFAULT 0;
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "DepartureDay" integer NOT NULL DEFAULT 0;
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "DaysRemaining" integer NOT NULL DEFAULT 0;
             ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "Status" text NOT NULL DEFAULT 'scheduled';
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "CargoQuantity" numeric NOT NULL DEFAULT 0;
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "CargoCondition" numeric NOT NULL DEFAULT 100;
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "ShippingCostPaid" numeric NOT NULL DEFAULT 0;
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "FillPercent" numeric NOT NULL DEFAULT 0;
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "FastLegPercent" numeric NOT NULL DEFAULT 0;
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "LastEventDescription" text NULL;
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "CreatedAt" timestamp with time zone NOT NULL DEFAULT NOW();
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "CompletedAt" timestamp with time zone NULL;
             CREATE INDEX IF NOT EXISTS "IX_OreShipments_MineId_Status"
                 ON "OreShipments" ("MineId", "Status");
             """,

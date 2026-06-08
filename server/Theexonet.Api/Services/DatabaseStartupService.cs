@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Theexonet.Infrastructure;
 using Theexonet.Infrastructure.Data;
 using Theexonet.Infrastructure.Migrations;
@@ -21,8 +22,18 @@ public sealed class DatabaseStartupService(
 
         try
         {
-            db.Database.EnsureCreated();
-            await DatabaseSchemaUpdater.ApplyAsync(db, cancellationToken);
+            var hasBaseSchema = await HasPlayersTableAsync(db, cancellationToken);
+            if (hasBaseSchema)
+            {
+                await DatabaseSchemaUpdater.ApplyAsync(db, cancellationToken);
+                db.Database.EnsureCreated();
+            }
+            else
+            {
+                db.Database.EnsureCreated();
+                await DatabaseSchemaUpdater.ApplyAsync(db, cancellationToken);
+            }
+
             await scope.ServiceProvider.GetRequiredService<PlayerDataMigrationRunner>()
                 .RunPendingAsync(cancellationToken);
             readiness.MarkDatabaseReady();
@@ -38,4 +49,22 @@ public sealed class DatabaseStartupService(
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    private static async Task<bool> HasPlayersTableAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (!await db.Database.CanConnectAsync(cancellationToken))
+        {
+            return false;
+        }
+
+        return await db.Database.SqlQueryRaw<bool>(
+                """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM information_schema.tables
+                    WHERE table_schema = 'public'
+                      AND table_name = 'Players') AS "Value"
+                """)
+            .SingleAsync(cancellationToken);
+    }
 }

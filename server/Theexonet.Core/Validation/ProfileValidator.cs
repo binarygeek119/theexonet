@@ -18,6 +18,35 @@ public static class ProfileValidator
     public const int MaxInterestsLength = 500;
     public const int MaxSocialLength = 120;
 
+    public static string? ValidateJobApplication(
+        string mood,
+        string aboutMe,
+        string interests,
+        string music,
+        string discord,
+        string bluesky,
+        string twitter,
+        string youtube,
+        string facebook)
+    {
+        if (string.IsNullOrWhiteSpace(mood))
+        {
+            return "Crew morale statement is required.";
+        }
+
+        if (string.IsNullOrWhiteSpace(aboutMe))
+        {
+            return "Applicant dossier is required.";
+        }
+
+        if (string.IsNullOrWhiteSpace(interests))
+        {
+            return "Off-duty interests are required.";
+        }
+
+        return ValidateUpdate(mood, aboutMe, music, interests, discord, bluesky, twitter, youtube, facebook);
+    }
+
     public static string? ValidateUpdate(
         string mood,
         string aboutMe,

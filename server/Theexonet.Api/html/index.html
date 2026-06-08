@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theexonet-api-base" content="https://api.theexonet.com">
-  <meta name="theexonet-html-build" content="20260607-live-updates">
+  <meta name="theexonet-html-build" content="20260608-job-application">
   <link rel="icon" href="/images/currency.png" type="image/png">
   <title>theexonet</title>
   <style>
@@ -38,8 +38,8 @@
     }
   </style>
   <link rel="stylesheet" href="/css/app.css?v=20260607-live-updates">
-  <link rel="stylesheet" href="/css/profile.css?v=20260607-checkbox-grid">
-  <link rel="stylesheet" href="/css/exonet.css?v=20260605-voidcorp">
+  <link rel="stylesheet" href="/css/profile.css?v=20260608-job-application">
+  <link rel="stylesheet" href="/css/exonet.css?v=20260607-staff-badge">
 </head>
 <body>
   <div id="login-screen" class="screen">
@@ -351,6 +351,7 @@
             <img id="profile-avatar-img" class="profile-avatar-img" alt="" hidden>
             <span id="profile-avatar-initials" class="profile-avatar-initials">??</span>
           </div>
+          <span id="profile-staff-badge" class="profile-staff-badge" hidden></span>
         </div>
         <div class="profile-headline">
           <h3 id="profile-username">Commander</h3>
@@ -381,6 +382,14 @@
           <section class="profile-box">
             <h4 data-i18n="profile.nowPlaying">Now Playing</h4>
             <div id="profile-music-view" class="profile-box-content empty" data-i18n="profile.musicEmpty">Silence in the void.</div>
+          </section>
+          <section class="profile-box">
+            <h4 data-i18n="profile.currentJob">Current job</h4>
+            <div id="profile-current-job-view" class="profile-box-content empty" data-i18n="profile.currentJobEmpty">No posting on file.</div>
+          </section>
+          <section class="profile-box">
+            <h4 data-i18n="profile.previousJobs">Previous jobs</h4>
+            <div id="profile-job-history-view" class="profile-box-content empty" data-i18n="profile.previousJobsEmpty">No previous postings.</div>
           </section>
           <section class="profile-box">
             <h4 data-i18n="profile.socialLinks">Social Links</h4>
@@ -769,6 +778,68 @@
     </div>
   </div>
 
+  <div id="job-application-modal" class="modal job-application-modal" hidden role="dialog" aria-modal="true" aria-labelledby="job-application-title">
+    <div class="job-application-card">
+      <h2 id="job-application-title" data-i18n="jobApplication.title">Universal Employment Exchange</h2>
+      <p class="job-application-intro" data-i18n="jobApplication.intro">Complete your employment packet before reporting for duty. Standard forms apply across registered sectors.</p>
+      <form id="job-application-form" class="job-application-form" novalidate>
+        <fieldset class="job-application-section">
+          <legend data-i18n="jobApplication.sectionPosition">Position</legend>
+          <label for="job-application-position" data-i18n="jobApplication.position">Position applied for</label>
+          <select id="job-application-position" required></select>
+        </fieldset>
+        <fieldset class="job-application-section">
+          <legend data-i18n="jobApplication.sectionHr">HR screening (standard)</legend>
+          <label for="job-application-permit" data-i18n="jobApplication.workPermit">Galactic work permit #</label>
+          <input id="job-application-permit" type="text" value="GPX-8842-VOID" autocomplete="off">
+          <label for="job-application-prior-employer" data-i18n="jobApplication.priorEmployer">Prior employer (sector)</label>
+          <input id="job-application-prior-employer" type="text" value="Nebula Freight Cooperative, Belt 7" autocomplete="off">
+          <label for="job-application-vacuum-years" data-i18n="jobApplication.vacuumYears">Vacuum-certified years</label>
+          <input id="job-application-vacuum-years" type="text" value="12" autocomplete="off">
+          <label for="job-application-reference" data-i18n="jobApplication.reference">Reference beacon frequency</label>
+          <input id="job-application-reference" type="text" value="118.42 MHz — Chief Harrow" autocomplete="off">
+          <label for="job-application-exosuit" data-i18n="jobApplication.exosuit">Exosuit size</label>
+          <select id="job-application-exosuit">
+            <option value="M" selected>M</option>
+            <option value="S">S</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+          </select>
+          <label for="job-application-leaving" data-i18n="jobApplication.leavingReason">Reason for leaving last assignment</label>
+          <input id="job-application-leaving" type="text" value="Contract rotation ended" autocomplete="off">
+        </fieldset>
+        <fieldset class="job-application-section">
+          <legend data-i18n="jobApplication.sectionProfile">Crew dossier (public profile)</legend>
+          <label for="job-application-mood" data-i18n="jobApplication.mood">Crew morale statement</label>
+          <input id="job-application-mood" type="text" maxlength="120" required data-i18n-placeholder="jobApplication.moodPlaceholder" placeholder="Ready to punch rock and chase the next vein.">
+          <label for="job-application-about" data-i18n="jobApplication.about">Applicant dossier</label>
+          <textarea id="job-application-about" maxlength="2000" rows="4" required data-i18n-placeholder="jobApplication.aboutPlaceholder" placeholder="Tell hiring officers who you are and why you belong on a claim crew."></textarea>
+          <label for="job-application-interests" data-i18n="jobApplication.interests">Off-duty interests</label>
+          <textarea id="job-application-interests" maxlength="500" rows="3" required data-i18n-placeholder="jobApplication.interestsPlaceholder" placeholder="Asteroids, salvage jazz, belt cartography..."></textarea>
+          <label for="job-application-music" data-i18n="jobApplication.music">Commuter playlist (optional)</label>
+          <input id="job-application-music" type="text" maxlength="120" data-i18n-placeholder="jobApplication.musicPlaceholder" placeholder="Deep void ambient, ore-clang remixes...">
+        </fieldset>
+        <fieldset class="job-application-section">
+          <legend data-i18n="jobApplication.sectionComms">Comms handles (optional)</legend>
+          <label for="job-application-discord" data-i18n="profile.edit.discord">Discord</label>
+          <input id="job-application-discord" type="text" maxlength="120" autocomplete="off">
+          <label for="job-application-bluesky" data-i18n="profile.edit.bluesky">Bluesky</label>
+          <input id="job-application-bluesky" type="text" maxlength="120" autocomplete="off">
+          <label for="job-application-twitter" data-i18n="profile.edit.twitter">Twitter / X</label>
+          <input id="job-application-twitter" type="text" maxlength="120" autocomplete="off">
+          <label for="job-application-youtube" data-i18n="profile.edit.youtube">YouTube</label>
+          <input id="job-application-youtube" type="text" maxlength="120" autocomplete="off">
+          <label for="job-application-facebook" data-i18n="profile.edit.facebook">Facebook</label>
+          <input id="job-application-facebook" type="text" maxlength="120" autocomplete="off">
+        </fieldset>
+        <div class="job-application-actions">
+          <button id="job-application-submit-btn" type="submit" class="btn primary" data-i18n="jobApplication.submit">Submit application</button>
+          <p id="job-application-status" class="profile-save-status"></p>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="moderation-modal" class="modal moderation-modal" hidden role="dialog" aria-modal="true" aria-labelledby="moderation-modal-title">
     <div class="modal-card moderation-modal-card">
       <h2 id="moderation-modal-title"></h2>
@@ -814,6 +885,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260607-live-updates"></script>
+<script type="module" src="/js/app.js?v=20260608-job-application"></script>
 </body>
 </html>

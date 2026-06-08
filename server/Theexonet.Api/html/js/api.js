@@ -356,6 +356,17 @@ export class TheexonetApi {
     });
   }
 
+  getJobCatalog() {
+    return this.request("/api/player/jobs/catalog");
+  }
+
+  submitJobApplication(payload) {
+    return this.request("/api/player/job-application", {
+      method: "POST",
+      body: payload,
+    });
+  }
+
   updateCompanyName(companyName) {
     return this.request("/api/player/company-name", {
       method: "PUT",

@@ -1,4 +1,4 @@
-import { TheexonetApi } from "./api.js?v=20260607-api-syntax";
+import { TheexonetApi } from "./api.js?v=20260608-job-application";
 import { GRID_SIZE, ORE_TYPES, SUPPLY_TYPES, API_BASE_URL, readMetaApiBase } from "./config.js";
 import {
   formatRaxHtml,
@@ -9,7 +9,7 @@ import {
 } from "./currency.js";
 import { initPlayerMessaging } from "./player-messages.js?v=20260529-message-remove";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
-import { initExonet } from "./exonet.js?v=20260607-ffp-officer";
+import { initExonet } from "./exonet.js?v=20260608-job-application";
 import { initI18n, applyTranslations, wireLocaleSelectors, wireLocaleSelector, getLocale, setLocale, t } from "./i18n.js";
 import {
   augmentOwnerProfileForTesting,
@@ -220,6 +220,7 @@ const state = {
   tradeAuctions: [],
   tradeMarketValue: 0,
   auctionFeePercent: 5,
+  jobCatalog: [],
 };
 
 let utcClockTimer;
@@ -344,6 +345,7 @@ const els = {
   profileAvatarColumn: document.getElementById("profile-avatar-column"),
   profileAvatarImg: document.getElementById("profile-avatar-img"),
   profileAvatarInitials: document.getElementById("profile-avatar-initials"),
+  profileStaffBadge: document.getElementById("profile-staff-badge"),
   profileUsername: document.getElementById("profile-username"),
   profileMoodDisplay: document.getElementById("profile-mood-display"),
   profileNumber: document.getElementById("profile-number"),
@@ -352,6 +354,8 @@ const els = {
   profileAboutView: document.getElementById("profile-about-view"),
   profileInterestsView: document.getElementById("profile-interests-view"),
   profileMusicView: document.getElementById("profile-music-view"),
+  profileCurrentJobView: document.getElementById("profile-current-job-view"),
+  profileJobHistoryView: document.getElementById("profile-job-history-view"),
   profileSocialView: document.getElementById("profile-social-view"),
   profileFriendsList: document.getElementById("profile-friends-list"),
   profileMineName: document.getElementById("profile-mine-name"),
@@ -436,6 +440,20 @@ const els = {
   profileCompletionPronounsInput: document.getElementById("profile-completion-pronouns-input"),
   profileCompletionSaveBtn: document.getElementById("profile-completion-save-btn"),
   profileCompletionStatus: document.getElementById("profile-completion-status"),
+  jobApplicationModal: document.getElementById("job-application-modal"),
+  jobApplicationForm: document.getElementById("job-application-form"),
+  jobApplicationPosition: document.getElementById("job-application-position"),
+  jobApplicationMood: document.getElementById("job-application-mood"),
+  jobApplicationAbout: document.getElementById("job-application-about"),
+  jobApplicationInterests: document.getElementById("job-application-interests"),
+  jobApplicationMusic: document.getElementById("job-application-music"),
+  jobApplicationDiscord: document.getElementById("job-application-discord"),
+  jobApplicationBluesky: document.getElementById("job-application-bluesky"),
+  jobApplicationTwitter: document.getElementById("job-application-twitter"),
+  jobApplicationYoutube: document.getElementById("job-application-youtube"),
+  jobApplicationFacebook: document.getElementById("job-application-facebook"),
+  jobApplicationSubmitBtn: document.getElementById("job-application-submit-btn"),
+  jobApplicationStatus: document.getElementById("job-application-status"),
   profileFriendPanel: document.getElementById("profile-friend-panel"),
   profileFriendStatus: document.getElementById("profile-friend-status"),
   profileAddFriendBtn: document.getElementById("profile-add-friend-btn"),
@@ -903,8 +921,16 @@ function isProfileCompletionBlocking() {
   return Boolean(els.profileCompletionModal && !els.profileCompletionModal.hidden);
 }
 
+function isJobApplicationBlocking() {
+  return Boolean(els.jobApplicationModal && !els.jobApplicationModal.hidden);
+}
+
+function isOnboardingBlocking() {
+  return isProfileCompletionBlocking() || isJobApplicationBlocking();
+}
+
 function closeModals() {
-  if (isProfileCompletionBlocking()) {
+  if (isOnboardingBlocking()) {
     return;
   }
 
@@ -921,7 +947,7 @@ function closeModals() {
 }
 
 function openModal(modal) {
-  if (!modal || isProfileCompletionBlocking()) {
+  if (!modal || isOnboardingBlocking()) {
     return;
   }
 
@@ -1068,6 +1094,34 @@ function renderAvatarOnElements(profile, imgEl, initialsEl, avatarEl) {
   avatarEl.classList.add("has-photo");
 }
 
+function resolveStaffRoleLabel(profile) {
+  if (profile?.isStaffAdmin) {
+    return { label: "Admin", className: "profile-staff-badge-admin" };
+  }
+  if (profile?.isStaffModerator) {
+    return { label: "Moderator", className: "profile-staff-badge-moderator" };
+  }
+  return null;
+}
+
+function renderProfileStaffBadge(profile) {
+  if (!els.profileStaffBadge) {
+    return;
+  }
+
+  const role = resolveStaffRoleLabel(profile);
+  if (!role) {
+    els.profileStaffBadge.hidden = true;
+    els.profileStaffBadge.textContent = "";
+    els.profileStaffBadge.className = "profile-staff-badge";
+    return;
+  }
+
+  els.profileStaffBadge.hidden = false;
+  els.profileStaffBadge.textContent = role.label;
+  els.profileStaffBadge.className = `profile-staff-badge ${role.className}`;
+}
+
 function renderProfileAvatar(profile) {
   renderAvatarOnElements(
     profile,
@@ -1075,6 +1129,7 @@ function renderProfileAvatar(profile) {
     els.profileAvatarInitials,
     els.profileAvatar,
   );
+  renderProfileStaffBadge(profile);
 }
 
 function renderProfileEditAvatar(profile) {
@@ -1403,17 +1458,205 @@ function renderProfileCompletionModal(profile) {
 async function maybeShowProfileCompletion(profile) {
   if (!profile?.isOwner || profile.isReporter) {
     setHidden(els.profileCompletionModal, true);
+    setHidden(els.jobApplicationModal, true);
     return;
   }
 
   if (profile.profileCompletionRequired) {
     state.profile = profile;
+    setHidden(els.jobApplicationModal, true);
     renderProfileCompletionModal(profile);
     return;
   }
 
   setHidden(els.profileCompletionModal, true);
   await applyProfileLocaleFromServer(profile);
+  await maybeShowJobApplication(profile);
+}
+
+function formatJobHistoryEntry(entry) {
+  if (!entry?.jobTitle) {
+    return "";
+  }
+
+  const started = entry.startedAtUtc ? formatProfileDate(entry.startedAtUtc) : "";
+  const ended = entry.endedAtUtc ? formatProfileDate(entry.endedAtUtc) : "";
+  if (started && ended) {
+    return `${entry.jobTitle} (${started} – ${ended})`;
+  }
+
+  if (started) {
+    return `${entry.jobTitle} (since ${started})`;
+  }
+
+  return entry.jobTitle;
+}
+
+function renderProfileJobs(profile) {
+  if (profile?.isReporter) {
+    setProfileText(els.profileCurrentJobView, "", t("profile.currentJobEmpty"));
+    setProfileText(els.profileJobHistoryView, "", t("profile.previousJobsEmpty"));
+    return;
+  }
+
+  const currentJob = profile?.currentJob;
+  setProfileText(
+    els.profileCurrentJobView,
+    currentJob?.jobTitle ?? "",
+    t("profile.currentJobEmpty"),
+  );
+
+  const previousJobs = (profile?.jobHistory ?? []).filter((entry) => !entry.isCurrent);
+  if (!els.profileJobHistoryView) {
+    return;
+  }
+
+  if (!previousJobs.length) {
+    els.profileJobHistoryView.textContent = t("profile.previousJobsEmpty");
+    els.profileJobHistoryView.classList.add("empty");
+    return;
+  }
+
+  const items = previousJobs
+    .map((entry) => `<li>${escapeHtml(formatJobHistoryEntry(entry))}</li>`)
+    .join("");
+  els.profileJobHistoryView.innerHTML = `<ul class="profile-job-history-list">${items}</ul>`;
+  els.profileJobHistoryView.classList.remove("empty");
+}
+
+async function ensureJobCatalogLoaded() {
+  if (state.jobCatalog?.length) {
+    return state.jobCatalog;
+  }
+
+  const response = await api.getJobCatalog();
+  state.jobCatalog = response?.jobs ?? [];
+  return state.jobCatalog;
+}
+
+function populateJobApplicationPositions(jobs) {
+  if (!els.jobApplicationPosition) {
+    return;
+  }
+
+  const options = (jobs ?? [])
+    .map(
+      (job) =>
+        `<option value="${escapeHtml(job.slug)}">${escapeHtml(job.title)}</option>`,
+    )
+    .join("");
+  els.jobApplicationPosition.innerHTML = options;
+  if (jobs?.length === 1) {
+    els.jobApplicationPosition.value = jobs[0].slug;
+  }
+}
+
+async function renderJobApplicationModal() {
+  if (!els.jobApplicationModal) {
+    return;
+  }
+
+  const jobs = await ensureJobCatalogLoaded();
+  populateJobApplicationPositions(jobs);
+  if (els.jobApplicationStatus) {
+    els.jobApplicationStatus.textContent = "";
+    els.jobApplicationStatus.classList.remove("error", "success");
+  }
+  applyTranslations(els.jobApplicationModal);
+  els.jobApplicationModal.hidden = false;
+  document.body.appendChild(els.jobApplicationModal);
+  els.jobApplicationMood?.focus();
+}
+
+async function maybeShowJobApplication(profile) {
+  if (!profile?.isOwner || profile.isReporter) {
+    setHidden(els.jobApplicationModal, true);
+    return;
+  }
+
+  if (profile.profileCompletionRequired) {
+    setHidden(els.jobApplicationModal, true);
+    return;
+  }
+
+  if (profile.jobApplicationRequired) {
+    state.profile = profile;
+    await renderJobApplicationModal();
+    return;
+  }
+
+  setHidden(els.jobApplicationModal, true);
+}
+
+async function saveJobApplication(event) {
+  event?.preventDefault();
+
+  const jobSlug = els.jobApplicationPosition?.value ?? "";
+  const mood = els.jobApplicationMood?.value?.trim() ?? "";
+  const aboutMe = els.jobApplicationAbout?.value?.trim() ?? "";
+  const interests = els.jobApplicationInterests?.value?.trim() ?? "";
+
+  if (!jobSlug) {
+    els.jobApplicationStatus.textContent = t("jobApplication.positionRequired");
+    els.jobApplicationStatus.classList.add("error");
+    els.jobApplicationPosition?.focus();
+    return;
+  }
+
+  if (!mood) {
+    els.jobApplicationStatus.textContent = t("jobApplication.moodRequired");
+    els.jobApplicationStatus.classList.add("error");
+    els.jobApplicationMood?.focus();
+    return;
+  }
+
+  if (!aboutMe) {
+    els.jobApplicationStatus.textContent = t("jobApplication.aboutRequired");
+    els.jobApplicationStatus.classList.add("error");
+    els.jobApplicationAbout?.focus();
+    return;
+  }
+
+  if (!interests) {
+    els.jobApplicationStatus.textContent = t("jobApplication.interestsRequired");
+    els.jobApplicationStatus.classList.add("error");
+    els.jobApplicationInterests?.focus();
+    return;
+  }
+
+  els.jobApplicationStatus.textContent = t("jobApplication.saving");
+  els.jobApplicationStatus.classList.remove("error", "success");
+  if (els.jobApplicationSubmitBtn) {
+    els.jobApplicationSubmitBtn.disabled = true;
+  }
+
+  try {
+    const profile = await api.submitJobApplication({
+      jobSlug,
+      mood,
+      aboutMe,
+      interests,
+      music: els.jobApplicationMusic?.value?.trim() ?? "",
+      discord: els.jobApplicationDiscord?.value?.trim() ?? "",
+      bluesky: els.jobApplicationBluesky?.value?.trim() ?? "",
+      twitter: els.jobApplicationTwitter?.value?.trim() ?? "",
+      youtube: els.jobApplicationYoutube?.value?.trim() ?? "",
+      facebook: els.jobApplicationFacebook?.value?.trim() ?? "",
+    });
+    state.profile = profile;
+    state.accountProfile = profile;
+    renderProfile(profile);
+    await maybeShowJobApplication(profile);
+    els.jobApplicationStatus.textContent = t("jobApplication.saved");
+    els.jobApplicationStatus.classList.add("success");
+  } catch (error) {
+    els.jobApplicationStatus.textContent = error.message;
+    els.jobApplicationStatus.classList.add("error");
+  } finally {
+    if (els.jobApplicationSubmitBtn) {
+      els.jobApplicationSubmitBtn.disabled = false;
+    }
+  }
 }
 
 async function saveProfileCompletion() {
@@ -1915,6 +2158,7 @@ function renderProfile(profile) {
   setProfileText(els.profileAboutView, profile.aboutMe, t("profile.aboutEmpty"));
   setProfileText(els.profileInterestsView, profile.interests, t("profile.interestsEmpty"));
   setProfileText(els.profileMusicView, profile.music, t("profile.musicEmpty"));
+  renderProfileJobs(profile);
   if (profile.isReporter) {
     const onnPath = profile.onnProfilePath || `sites/offworld-news/reporters/${profile.reporterSlug}`;
     els.profileSocialView.innerHTML = `<p class="profile-reporter-links"><button type="button" class="btn ghost profile-reporter-link" data-open-onn-bureau>${t("profile.openOnn")}</button></p>`;
@@ -4018,6 +4262,14 @@ els.profileCompletionSaveBtn?.addEventListener("click", () => {
     if (els.profileCompletionStatus) {
       els.profileCompletionStatus.textContent = error.message;
       els.profileCompletionStatus.classList.add("error");
+    }
+  });
+});
+els.jobApplicationForm?.addEventListener("submit", (event) => {
+  saveJobApplication(event).catch((error) => {
+    if (els.jobApplicationStatus) {
+      els.jobApplicationStatus.textContent = error.message;
+      els.jobApplicationStatus.classList.add("error");
     }
   });
 });

@@ -38,8 +38,10 @@ public class PlayerEntity
     public int ProfileBackgroundRevision { get; set; }
     public DateTime? LastSeenAtUtc { get; set; }
     public bool AdminTestingModeEnabled { get; set; }
+    public DateTime? JobApplicationCompletedAt { get; set; }
 
     public ICollection<MineEntity> Mines { get; set; } = [];
+    public ICollection<PlayerJobHistoryEntity> JobHistory { get; set; } = [];
     public ICollection<InventoryItemEntity> Inventory { get; set; } = [];
     public ICollection<TransactionEntity> Transactions { get; set; } = [];
 }
@@ -446,4 +448,17 @@ public class AiImageQueueEntity
     public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
+}
+
+public class PlayerJobHistoryEntity
+{
+    public Guid Id { get; set; }
+    public Guid PlayerId { get; set; }
+    public string JobSlug { get; set; } = string.Empty;
+    public string JobTitle { get; set; } = string.Empty;
+    public bool IsCurrent { get; set; }
+    public DateTime StartedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? EndedAtUtc { get; set; }
+
+    public PlayerEntity Player { get; set; } = null!;
 }

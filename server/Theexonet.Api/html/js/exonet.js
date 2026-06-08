@@ -591,7 +591,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
     }
 
     const profile = await api.getPublicProfileByUsername(username);
-    const avatarHtml = renderProfileAvatarMarkup(profile, profile.username);
+    const avatarHtml = renderProfileAvatarMarkup(profile, pickField(profile, "username"));
 
     if (pickField(profile, "isReporter")) {
       const profileSlug = pickField(profile, "reporterSlug") || username;
@@ -626,7 +626,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
 
     const publicInfo = formatProfilePublicInfo(profile);
     content.innerHTML = `
-      ${pageHeader(`${profile.username}`, `profile/${profile.username}`)}
+      ${pageHeader(`${pickField(profile, "username")}`, `profile/${pickField(profile, "username")}`)}
       <div class="exonet-panel exonet-profile-card">
         <div class="exonet-profile-head">
           ${avatarHtml}
@@ -640,6 +640,7 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
         <p><strong>About</strong><br>${escapeHtml(profile.aboutMe || "No bio published.")}</p>
         <p><strong>Interests</strong><br>${escapeHtml(profile.interests || "Nothing listed.")}</p>
         <p><strong>Music</strong><br>${escapeHtml(profile.music || "Silence in the void.")}</p>
+        ${renderProfileJobsMarkup(profile)}
         ${publicInfo ? `<p class="exonet-muted">${escapeHtml(publicInfo)}</p>` : ""}
         <div>${renderSocialLinksHtml(profile)}</div>
         <p class="exonet-muted">Day ${profile.currentGameDay ?? "—"} · Workers ${profile.workerCount ?? 0} · Zones ${profile.zoneCount ?? 0} · Company value ${formatRaxPlain(profile.companyValue ?? 0)}</p>
@@ -679,15 +680,72 @@ export function initExonet({ api, getState, formatRaxHtml, formatRaxPlain, forma
       </table>`;
   }
 
+  function renderExonetStaffBadgeMarkup(profileOrEntry) {
+    if (pickField(profileOrEntry, "isStaffAdmin")) {
+      return '<span class="exonet-profile-staff-badge exonet-profile-staff-badge-admin">Admin</span>';
+    }
+    if (pickField(profileOrEntry, "isStaffModerator")) {
+      return '<span class="exonet-profile-staff-badge exonet-profile-staff-badge-moderator">Moderator</span>';
+    }
+    return "";
+  }
+
+  function formatExonetJobEntry(entry) {
+    if (!entry) {
+      return "";
+    }
+
+    const title = pickField(entry, "jobTitle") || pickField(entry, "JobTitle") || "";
+    if (!title) {
+      return "";
+    }
+
+    const started = pickField(entry, "startedAtUtc") || pickField(entry, "StartedAtUtc");
+    const ended = pickField(entry, "endedAtUtc") || pickField(entry, "EndedAtUtc");
+    const startedLabel = started ? new Date(started).toLocaleDateString() : "";
+    const endedLabel = ended ? new Date(ended).toLocaleDateString() : "";
+    if (startedLabel && endedLabel) {
+      return `${title} (${startedLabel} – ${endedLabel})`;
+    }
+
+    if (startedLabel) {
+      return `${title} (since ${startedLabel})`;
+    }
+
+    return title;
+  }
+
+  function renderProfileJobsMarkup(profile) {
+    const currentJob = pickField(profile, "currentJob") || pickField(profile, "CurrentJob");
+    const jobHistory = pickField(profile, "jobHistory") || pickField(profile, "JobHistory") || [];
+    const currentTitle = currentJob ? formatExonetJobEntry(currentJob) : "";
+    const previousJobs = jobHistory.filter((entry) => !pickField(entry, "isCurrent") && !pickField(entry, "IsCurrent"));
+    const previousHtml = previousJobs.length
+      ? `<ul>${previousJobs.map((entry) => `<li>${escapeHtml(formatExonetJobEntry(entry))}</li>`).join("")}</ul>`
+      : "No previous postings.";
+
+    return `
+        <p><strong>Current job</strong><br>${escapeHtml(currentTitle || "No posting on file.")}</p>
+        <p><strong>Previous jobs</strong><br>${previousJobs.length ? previousHtml : escapeHtml("No previous postings.")}</p>`;
+  }
+
   function renderProfileAvatarMarkup(profileOrEntry, label) {
     const url = resolveExonetAssetUrl(pickField(profileOrEntry, "profileImageUrl"));
     const name = label ?? pickField(profileOrEntry, "username") ?? "?";
+    let avatarHtml;
     if (!url) {
-      return `<div class="exonet-profile-initials exonet-profile-initials-compact">${escapeHtml(profileInitials(name))}</div>`;
+      avatarHtml = `<div class="exonet-profile-initials exonet-profile-initials-compact">${escapeHtml(profileInitials(name))}</div>`;
+    } else {
+      const initials = escapeHtml(profileInitials(name));
+      avatarHtml = `<img class="exonet-profile-avatar exonet-profile-avatar-compact" src="${escapeHtml(url)}" alt="" loading="lazy" onerror="this.remove(); this.parentElement?.querySelector('.exonet-profile-initials-fallback')?.classList.remove('is-hidden');"><div class="exonet-profile-initials exonet-profile-initials-compact exonet-profile-initials-fallback is-hidden">${initials}</div>`;
     }
 
-    const initials = escapeHtml(profileInitials(name));
-    return `<img class="exonet-profile-avatar exonet-profile-avatar-compact" src="${escapeHtml(url)}" alt="" loading="lazy" onerror="this.remove(); this.parentElement?.querySelector('.exonet-profile-initials-fallback')?.classList.remove('is-hidden');"><div class="exonet-profile-initials exonet-profile-initials-compact exonet-profile-initials-fallback is-hidden">${initials}</div>`;
+    const staffBadge = renderExonetStaffBadgeMarkup(profileOrEntry);
+    if (!staffBadge) {
+      return avatarHtml;
+    }
+
+    return `<div class="exonet-profile-avatar-stack">${avatarHtml}${staffBadge}</div>`;
   }
 
   function renderProfileResultsList(results) {

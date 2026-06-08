@@ -157,6 +157,24 @@ public class PlayerController(
         return profile is null ? NotFound() : Ok(profile);
     }
 
+    [HttpGet("jobs/catalog")]
+    public ActionResult<PlayerJobCatalogResponse> GetJobCatalog() =>
+        Ok(PlayerGameService.GetJobCatalog());
+
+    [HttpPost("job-application")]
+    public async Task<ActionResult<PlayerProfileResponse>> SubmitJobApplication(
+        SubmitJobApplicationRequest request,
+        CancellationToken ct)
+    {
+        var (profile, error) = await gameService.SubmitJobApplicationAsync(User.GetPlayerId(), request, ct);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        return profile is null ? NotFound() : Ok(profile);
+    }
+
     [HttpPut("company-name")]
     public async Task<ActionResult<CompanyNameActionResponse>> UpdateCompanyName(
         UpdateCompanyNameRequest request,

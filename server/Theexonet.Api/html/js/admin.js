@@ -1,4 +1,4 @@
-import { TheexonetApi } from "./api.js?v=20260607-api-syntax";
+import { TheexonetApi } from "./api.js?v=20260608-ffp-portraits-api";
 import { API_BASE_URL, readMetaApiBase } from "./config.js";
 import { initApiStatusMonitor } from "./api-status.js";
 import { initStaffMessaging } from "./staff-messages.js";

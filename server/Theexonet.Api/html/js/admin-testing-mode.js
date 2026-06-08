@@ -308,6 +308,9 @@ export function buildDummyGameProfile(index, adminProfile) {
     requiresPreferredPronouns: false,
     profileCompletionRequired: false,
     missingProfileFields: [],
+    jobApplicationRequired: false,
+    currentJob: null,
+    jobHistory: [],
     reportedLocationsNote: "",
     isTestingDummy: true,
   }, index);

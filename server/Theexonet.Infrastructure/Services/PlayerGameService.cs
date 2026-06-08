@@ -37,11 +37,13 @@ public class PlayerGameService(
     ReporterFriendshipService reporterFriendshipService,
     TheexonetHostingPaths hostingPaths,
     IOptionsMonitor<AdminOptions> adminOptions,
+    IOptionsMonitor<ModeratorOptions> moderatorOptions,
     ILiveUpdateBroadcaster liveUpdateBroadcaster)
 {
     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> DayProcessLocks = new();
     private IGameCreditsConfig Credits => gameCreditsConfig;
     private AdminOptions AdminOptions => adminOptions.CurrentValue;
+    private ModeratorOptions ModeratorOptions => moderatorOptions.CurrentValue;
 
     public const string PasswordResetSentMessage =
         "If an account exists for that email, a password reset link has been sent.";
@@ -716,6 +718,76 @@ public class PlayerGameService(
         return (await MapProfileAsync(player, playerId, ct), null);
     }
 
+    public async Task<(PlayerProfileResponse? Profile, string? Error)> SubmitJobApplicationAsync(
+        Guid playerId,
+        SubmitJobApplicationRequest request,
+        CancellationToken ct)
+    {
+        var job = PlayerJobCatalog.TryGet(request.JobSlug);
+        if (job is null)
+        {
+            return (null, "Choose a position from the employment catalog.");
+        }
+
+        var error = ProfileValidator.ValidateJobApplication(
+            request.Mood ?? string.Empty,
+            request.AboutMe ?? string.Empty,
+            request.Interests ?? string.Empty,
+            request.Music ?? string.Empty,
+            request.Discord ?? string.Empty,
+            request.Bluesky ?? string.Empty,
+            request.Twitter ?? string.Empty,
+            request.Youtube ?? string.Empty,
+            request.Facebook ?? string.Empty);
+
+        if (error is not null)
+        {
+            return (null, error);
+        }
+
+        var player = await db.Players.FirstOrDefaultAsync(p => p.Id == playerId, ct);
+        if (player is null)
+        {
+            return (null, null);
+        }
+
+        if (player.JobApplicationCompletedAt is not null)
+        {
+            return (null, "Job application already submitted.");
+        }
+
+        player.ProfileMood = request.Mood!.Trim();
+        player.ProfileAboutMe = request.AboutMe!.Trim();
+        player.ProfileInterests = request.Interests!.Trim();
+        player.ProfileMusic = request.Music?.Trim() ?? string.Empty;
+        player.ProfileDiscord = request.Discord?.Trim() ?? string.Empty;
+        player.ProfileBluesky = request.Bluesky?.Trim() ?? string.Empty;
+        player.ProfileTwitter = request.Twitter?.Trim() ?? string.Empty;
+        player.ProfileYoutube = request.Youtube?.Trim() ?? string.Empty;
+        player.ProfileFacebook = request.Facebook?.Trim() ?? string.Empty;
+        player.JobApplicationCompletedAt = DateTime.UtcNow;
+
+        db.PlayerJobHistory.Add(new PlayerJobHistoryEntity
+        {
+            Id = Guid.NewGuid(),
+            PlayerId = player.Id,
+            JobSlug = job.Slug,
+            JobTitle = job.Title,
+            IsCurrent = true,
+            StartedAtUtc = DateTime.UtcNow,
+        });
+
+        await profileUpgrader.EnsurePlayerUpgradedAsync(player, ct);
+        await db.SaveChangesAsync(ct);
+
+        return (await MapProfileAsync(player, playerId, ct), null);
+    }
+
+    public static PlayerJobCatalogResponse GetJobCatalog() =>
+        new(PlayerJobCatalog.All
+            .Select(job => new PlayerJobCatalogEntryDto(job.Slug, job.Title, job.Description))
+            .ToList());
+
     public async Task<(PlayerProfileResponse? Profile, string? Error)> UploadProfileAvatarAsync(
         Guid playerId,
         Stream content,
@@ -1124,6 +1196,9 @@ public class PlayerGameService(
             player.Birthday,
             player.ProfileAgePublic,
             today);
+        var jobHistory = await LoadJobHistoryAsync(player.Id, ct);
+        var currentJob = jobHistory.FirstOrDefault(entry => entry.IsCurrent);
+        var jobApplicationRequired = isOwner && JobApplicationEvaluator.IsRequired(player.JobApplicationCompletedAt);
 
         return new PlayerProfileResponse(
             player.Id,
@@ -1178,8 +1253,30 @@ public class PlayerGameService(
             ProfileAgePublic: isOwner && player.ProfileAgePublic,
             PublicBirthday: publicBirthday,
             PublicAge: publicAge,
-            IsStaffAdmin: isOwner && AdminOptions.IsAdminUsername(player.Username),
-            TestingModeEnabled: isOwner && player.AdminTestingModeEnabled);
+            IsStaffAdmin: AdminOptions.IsAdminUsername(player.Username),
+            IsStaffModerator: !AdminOptions.IsAdminUsername(player.Username)
+                && ModeratorOptions.IsModeratorUsername(player.Username),
+            TestingModeEnabled: isOwner && player.AdminTestingModeEnabled,
+            JobApplicationRequired: jobApplicationRequired,
+            CurrentJob: currentJob,
+            JobHistory: jobHistory);
+    }
+
+    private async Task<IReadOnlyList<PlayerJobHistoryEntryDto>> LoadJobHistoryAsync(
+        Guid playerId,
+        CancellationToken ct)
+    {
+        var rows = await db.PlayerJobHistory.AsNoTracking()
+            .Where(j => j.PlayerId == playerId)
+            .ToListAsync(ct);
+
+        return PlayerJobHistoryMapper.OrderForDisplay(rows.Select(row =>
+            PlayerJobHistoryMapper.ToDto(
+                row.JobSlug,
+                row.JobTitle,
+                row.IsCurrent,
+                row.StartedAtUtc,
+                row.EndedAtUtc)));
     }
 
     private static ProfilePronounSet MapPronouns(PlayerEntity player) =>

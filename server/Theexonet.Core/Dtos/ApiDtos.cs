@@ -349,7 +349,34 @@ public record PlayerProfileResponse(
     string? PublicBirthday = null,
     int? PublicAge = null,
     bool IsStaffAdmin = false,
-    bool TestingModeEnabled = false);
+    bool IsStaffModerator = false,
+    bool TestingModeEnabled = false,
+    bool JobApplicationRequired = false,
+    PlayerJobHistoryEntryDto? CurrentJob = null,
+    IReadOnlyList<PlayerJobHistoryEntryDto>? JobHistory = null);
+
+public record PlayerJobHistoryEntryDto(
+    string JobSlug,
+    string JobTitle,
+    bool IsCurrent,
+    DateTime StartedAtUtc,
+    DateTime? EndedAtUtc);
+
+public record PlayerJobCatalogEntryDto(string Slug, string Title, string Description);
+
+public record PlayerJobCatalogResponse(IReadOnlyList<PlayerJobCatalogEntryDto> Jobs);
+
+public record SubmitJobApplicationRequest(
+    string JobSlug,
+    string Mood,
+    string AboutMe,
+    string Interests,
+    string Music = "",
+    string Discord = "",
+    string Bluesky = "",
+    string Twitter = "",
+    string Youtube = "",
+    string Facebook = "");
 
 public record ProfileCompletionFieldDto(string FieldId);
 
@@ -394,7 +421,9 @@ public record PublicProfileSummaryDto(
     bool IsOnline = false,
     bool BirthdayToday = false,
     string? PublicBirthday = null,
-    int? PublicAge = null);
+    int? PublicAge = null,
+    bool IsStaffAdmin = false,
+    bool IsStaffModerator = false);
 
 public record PublicProfileBrowseResponse(
     string Sort,
@@ -433,7 +462,11 @@ public record PublicProfileDetailDto(
     string PronounLabel = "they/them",
     string ReportedLocationsNote = "",
     string? PublicBirthday = null,
-    int? PublicAge = null);
+    int? PublicAge = null,
+    bool IsStaffAdmin = false,
+    bool IsStaffModerator = false,
+    PlayerJobHistoryEntryDto? CurrentJob = null,
+    IReadOnlyList<PlayerJobHistoryEntryDto>? JobHistory = null);
 
 public record PublicProfileSearchResponse(
     string Query,

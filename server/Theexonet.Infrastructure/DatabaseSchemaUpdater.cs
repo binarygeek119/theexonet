@@ -403,6 +403,21 @@ public static class DatabaseSchemaUpdater
             ALTER TABLE "PeerMessages" ADD COLUMN IF NOT EXISTS "HiddenForRecipientAt" timestamp with time zone NULL;
             ALTER TABLE "PlayerToStaffMessages" ADD COLUMN IF NOT EXISTS "HiddenForPlayerAt" timestamp with time zone NULL;
             ALTER TABLE "PlayerToStaffMessages" ADD COLUMN IF NOT EXISTS "HiddenForStaffAt" timestamp with time zone NULL;
+            ALTER TABLE "Players" ADD COLUMN IF NOT EXISTS "JobApplicationCompletedAt" timestamp with time zone NULL;
+            CREATE TABLE IF NOT EXISTS "PlayerJobHistory" (
+                "Id" uuid NOT NULL,
+                "PlayerId" uuid NOT NULL,
+                "JobSlug" text NOT NULL,
+                "JobTitle" text NOT NULL,
+                "IsCurrent" boolean NOT NULL DEFAULT false,
+                "StartedAtUtc" timestamp with time zone NOT NULL DEFAULT NOW(),
+                "EndedAtUtc" timestamp with time zone NULL,
+                CONSTRAINT "PK_PlayerJobHistory" PRIMARY KEY ("Id"),
+                CONSTRAINT "FK_PlayerJobHistory_Players_PlayerId" FOREIGN KEY ("PlayerId")
+                    REFERENCES "Players" ("Id") ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS "IX_PlayerJobHistory_PlayerId" ON "PlayerJobHistory" ("PlayerId");
+            CREATE INDEX IF NOT EXISTS "IX_PlayerJobHistory_PlayerId_IsCurrent" ON "PlayerJobHistory" ("PlayerId", "IsCurrent");
             """,
             cancellationToken);
     }

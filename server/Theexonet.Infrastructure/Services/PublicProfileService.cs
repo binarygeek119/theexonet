@@ -15,6 +15,7 @@ public class PublicProfileService(
     AppDbContext db,
     IMarketItemsCatalog marketItems,
     PlayerBanService playerBanService,
+    StaffModerationPolicy staffModerationPolicy,
     TheexonetHostingPaths hostingPaths)
 {
     public const string SortCompanyValue = "companyValue";
@@ -174,7 +175,13 @@ public class PublicProfileService(
             return null;
         }
 
-        return MapDetail(player, GetActiveMine(player), ComputeCompanyValue(player));
+        var jobHistory = await LoadJobHistoryAsync(player.Id, ct);
+        return MapDetail(
+            player,
+            GetActiveMine(player),
+            ComputeCompanyValue(player),
+            MapStaffFlags(player.Username),
+            jobHistory);
     }
 
     public async Task<OffworldNewsCompanyContext> GetNewsCompanyContextAsync(CancellationToken ct)
@@ -477,15 +484,24 @@ public class PublicProfileService(
             .OrderBy(m => m.PurchasedAt)
             .FirstOrDefault();
 
-    private static PublicProfileSummaryDto MapSummary(
+    private (bool IsStaffAdmin, bool IsStaffModerator) MapStaffFlags(string username)
+    {
+        var isAdmin = staffModerationPolicy.IsProtectedAdmin(username);
+        var isModerator = !isAdmin && staffModerationPolicy.IsModeratorAccount(username);
+        return (isAdmin, isModerator);
+    }
+
+    private PublicProfileSummaryDto MapSummary(
         PlayerEntity player,
         MineEntity? mine,
         decimal companyValue,
         int rank = 0,
         DateTime? memberSince = null,
         bool isOnline = false,
-        bool birthdayToday = false) =>
-        new(
+        bool birthdayToday = false)
+    {
+        var (isStaffAdmin, isStaffModerator) = MapStaffFlags(player.Username);
+        return new(
             player.Username,
             player.ProfileNumber,
             mine?.Name ?? "No active mine",
@@ -505,13 +521,37 @@ public class PublicProfileService(
             BirthdayToday: birthdayToday,
             PublicBirthday: BirthdayHelper.TryFormatPublicBirthday(
                 player.Birthday,
-                player.ProfileBirthdayPublic));
+                player.ProfileBirthdayPublic),
+            IsStaffAdmin: isStaffAdmin,
+            IsStaffModerator: isStaffModerator);
+    }
+
+    private async Task<IReadOnlyList<PlayerJobHistoryEntryDto>> LoadJobHistoryAsync(
+        Guid playerId,
+        CancellationToken ct)
+    {
+        var rows = await db.PlayerJobHistory.AsNoTracking()
+            .Where(j => j.PlayerId == playerId)
+            .ToListAsync(ct);
+
+        return PlayerJobHistoryMapper.OrderForDisplay(rows.Select(row =>
+            PlayerJobHistoryMapper.ToDto(
+                row.JobSlug,
+                row.JobTitle,
+                row.IsCurrent,
+                row.StartedAtUtc,
+                row.EndedAtUtc)));
+    }
 
     private static PublicProfileDetailDto MapDetail(
         PlayerEntity player,
         MineEntity? mine,
-        decimal companyValue) =>
-        new(
+        decimal companyValue,
+        (bool IsStaffAdmin, bool IsStaffModerator) staffFlags,
+        IReadOnlyList<PlayerJobHistoryEntryDto> jobHistory)
+    {
+        var currentJob = jobHistory.FirstOrDefault(entry => entry.IsCurrent);
+        return new(
             player.Username,
             player.ProfileNumber,
             mine?.Name ?? "No active mine",
@@ -544,7 +584,12 @@ public class PublicProfileService(
             PublicAge: BirthdayHelper.TryComputePublicAge(
                 player.Birthday,
                 player.ProfileAgePublic,
-                UtcGameClock.Today));
+                UtcGameClock.Today),
+            IsStaffAdmin: staffFlags.IsStaffAdmin,
+            IsStaffModerator: staffFlags.IsStaffModerator,
+            CurrentJob: currentJob,
+            JobHistory: jobHistory);
+    }
 
     private static ProfilePronounSet MapPronouns(PlayerEntity player) =>
         ProfilePronouns.Resolve(player.ProfileGender, player.ProfilePreferredPronouns);

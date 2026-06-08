@@ -39,6 +39,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<DataMigrationEntity> DataMigrations => Set<DataMigrationEntity>();
     public DbSet<CompanyLogoQueueEntity> CompanyLogoQueue => Set<CompanyLogoQueueEntity>();
     public DbSet<AiImageQueueEntity> AiImageQueue => Set<AiImageQueueEntity>();
+    public DbSet<PlayerJobHistoryEntity> PlayerJobHistory => Set<PlayerJobHistoryEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -72,6 +73,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasIndex(q => new { q.Status, q.RequestedAt });
             e.HasIndex(q => q.Kind);
+        });
+
+        modelBuilder.Entity<PlayerJobHistoryEntity>(e =>
+        {
+            e.HasIndex(j => j.PlayerId);
+            e.HasIndex(j => new { j.PlayerId, j.IsCurrent });
+            e.HasOne(j => j.Player)
+                .WithMany(p => p.JobHistory)
+                .HasForeignKey(j => j.PlayerId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<MineZoneEntity>()

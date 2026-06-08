@@ -221,8 +221,8 @@ if ! grep -q "${MARKER}" "${STAGING_INDEX}"; then
   exit 1
 fi
 
-if [ -f "${LIVE_HTML}" ] && grep -q "${MARKER}" "${LIVE_HTML}"; then
-  echo "Game html already has build marker ${HTML_BUILD_MARKER}."
+if [ -f "${LIVE_HTML}" ] && cmp -s "${STAGING_INDEX}" "${LIVE_HTML}"; then
+  echo "Game html already matches staging (${HTML_BUILD_MARKER})."
   exit 0
 fi
 
@@ -309,10 +309,27 @@ then
 fi
 
 cache_bust="${GITHUB_SHA:-ci}"
-verify_url="https://${game_host}/index.html?ci=${cache_bust}"
-if curl -sf --max-time 30 -H 'Cache-Control: no-cache' "${verify_url}" | grep -q "content=\"${HTML_BUILD_MARKER}\""; then
-  echo "SSH deploy complete (${HTML_BUILD_MARKER} live on ${verify_url})."
-else
-  echo "WARN: public ${verify_url} did not return ${HTML_BUILD_MARKER} (CDN/DNS cache may lag)."
+public_marker_ok=0
+for attempt in 1 2 3 4 5 6; do
+  for verify_url in \
+    "https://${game_host}/index.html?ci=${cache_bust}" \
+    "http://${game_host}/index.html?ci=${cache_bust}" \
+    "https://${game_host}/?ci=${cache_bust}"; do
+    if curl -sf --max-time 30 \
+      -H 'Cache-Control: no-cache' \
+      -H 'Pragma: no-cache' \
+      "${verify_url}" | grep -q "content=\"${HTML_BUILD_MARKER}\""; then
+      echo "SSH deploy complete (${HTML_BUILD_MARKER} live on ${verify_url})."
+      public_marker_ok=1
+      break 2
+    fi
+  done
+  if [ "${attempt}" -lt 6 ]; then
+    echo "Public html verify: waiting for ${HTML_BUILD_MARKER} (attempt ${attempt}/6)…"
+    sleep 10
+  fi
+done
+if [ "${public_marker_ok}" -ne 1 ]; then
+  echo "WARN: public site did not return ${HTML_BUILD_MARKER} after retries (CDN/DNS cache may lag)."
   echo "SSH deploy complete on server disk and local Apache (${HTML_BUILD_MARKER})."
 fi

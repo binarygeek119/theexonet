@@ -249,7 +249,15 @@ jobs:
           fi
           test -f publish/Theexonet.Api.dll
           grep -q 'theexonet-html-build' publish/html/index.html
-          grep -q 'content="20260607-live-updates"' publish/html/index.html
+          marker="$(grep -o 'name="theexonet-html-build" content="[^"]*"' publish/html/index.html \
+            | sed 's/.*content="\([^"]*\)".*/\1/')"
+          if [ -z "${marker}" ]; then
+            echo "ERROR: could not read theexonet-html-build from publish/html/index.html." >&2
+            exit 1
+          fi
+          echo "HTML_BUILD_MARKER=${marker}" >> "$GITHUB_ENV"
+          echo "Deploy html build marker: ${marker}"
+          grep -qF "content=\"${marker}\"" publish/html/index.html
 
       - name: Validate SSH deploy credentials
         env:
@@ -307,15 +315,19 @@ jobs:
         env:
           DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
           DEPLOY_SSH_HOST: ${{ env.DEPLOY_SSH_HOST }}
+          HTML_BUILD_MARKER: ${{ env.HTML_BUILD_MARKER }}
         run: |
           set -euo pipefail
           chmod +x scripts/github-deploy-ssh.sh
           bash scripts/github-deploy-ssh.sh "theexonet-website-deploy-${GITHUB_SHA}.tar.gz"
 
       - name: Wait for production HTTP
+        env:
+          HTML_BUILD_MARKER: ${{ env.HTML_BUILD_MARKER }}
         run: |
           set -euo pipefail
           host="${DEPLOY_FTP_HOST}"
+          marker="${HTML_BUILD_MARKER:?HTML_BUILD_MARKER missing — rerun Prepare deploy bundle}"
           wait_http() {
             local label="$1"
             local url="$2"
@@ -333,13 +345,36 @@ jobs:
             echo "Ensure theexonet-staging-watcher.service is running on the server." >&2
             return 1
           }
+          verify_game_html() {
+            local url="$1"
+            local html
+            html="$(curl -sf --max-time 20 \
+              -H 'Cache-Control: no-cache' \
+              -H 'Pragma: no-cache' \
+              "${url}" 2>/dev/null || true)"
+            if [ -z "${html}" ]; then
+              return 1
+            fi
+            grep -qF "content=\"${marker}\"" <<< "${html}"
+          }
           wait_http "Game" "http://${host}/"
           wait_http "API status" "http://api.${host}/api/status" || \
             wait_http "API root" "http://api.${host}/"
-          game_html="$(curl -sf --max-time 20 "http://${host}/index.html" || true)"
-          if [ -z "${game_html}" ] || ! printf '%s' "${game_html}" | grep -q 'content="20260607-live-updates"'; then
-            echo "ERROR: production still serves stale html (missing build marker 20260607-live-updates)." >&2
-            echo "On the VM: cd /opt/theexonet/theexonet && git pull && sudo deploy-theexonet-html server/Theexonet.Api/html" >&2
+          marker_ok=0
+          for attempt in $(seq 1 24); do
+            if verify_game_html "http://${host}/index.html?ci=${GITHUB_SHA}" \
+              || verify_game_html "https://${host}/index.html?ci=${GITHUB_SHA}" \
+              || verify_game_html "http://${host}/?ci=${GITHUB_SHA}"; then
+              marker_ok=1
+              break
+            fi
+            echo "Game html build marker: waiting (attempt ${attempt}/24)..."
+            sleep 10
+          done
+          if [ "${marker_ok}" -ne 1 ]; then
+            echo "ERROR: production still serves stale html (missing build marker ${marker})." >&2
+            echo "On the VM: sudo grep theexonet-html-build /var/www/publish/html/index.html" >&2
+            echo "If disk is correct: sudo deploy-theexonet-html /var/www/staging/publish/html" >&2
             exit 1
           fi
-          echo "Game html build marker: OK"
+          echo "Game html build marker: OK (${marker})"

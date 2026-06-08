@@ -74,6 +74,7 @@ const els = {
   foreverfallStatus: document.getElementById("admin-foreverfall-status"),
   foreverfallPortraitJob: document.getElementById("admin-foreverfall-portrait-job"),
   foreverfallRegenBtn: document.getElementById("admin-foreverfall-regen-btn"),
+  foreverfallRegenPortraitsBtn: document.getElementById("admin-foreverfall-regen-portraits-btn"),
   ffpSettingsForm: document.getElementById("admin-foreverfall-settings-form"),
   ffpEnabled: document.getElementById("admin-ffp-enabled"),
   ffpMaxImages: document.getElementById("admin-ffp-max-images"),
@@ -1488,6 +1489,15 @@ async function saveForeverfallSettings(event) {
   }
 }
 
+function setForeverfallButtonsDisabled(disabled) {
+  if (els.foreverfallRegenBtn) {
+    els.foreverfallRegenBtn.disabled = disabled;
+  }
+  if (els.foreverfallRegenPortraitsBtn) {
+    els.foreverfallRegenPortraitsBtn.disabled = disabled;
+  }
+}
+
 async function regenerateForeverfallIntake() {
   if (
     !window.confirm(
@@ -1498,7 +1508,7 @@ async function regenerateForeverfallIntake() {
   }
 
   setStatus(els.foreverfallStatus, "Regenerating intake…");
-  els.foreverfallRegenBtn.disabled = true;
+  setForeverfallButtonsDisabled(true);
   try {
     const result = await api.adminRegenerateForeverfallIntake();
     await loadForeverfallSummary();
@@ -1509,8 +1519,8 @@ async function regenerateForeverfallIntake() {
       const job = await waitForAiImageQueue("foreverfall_portrait", (message) =>
         setStatus(els.foreverfallStatus, `${intakeMessage} ${message}`),
       );
-      const result = formatAiImageQueueStatus(job);
-      setStatus(els.foreverfallStatus, `${intakeMessage} ${result.text}`.trim(), result.isError);
+      const queueResult = formatAiImageQueueStatus(job);
+      setStatus(els.foreverfallStatus, `${intakeMessage} ${queueResult.text}`.trim(), queueResult.isError);
       await loadForeverfallSummary();
     } else {
       setStatus(els.foreverfallStatus, intakeMessage);
@@ -1518,7 +1528,41 @@ async function regenerateForeverfallIntake() {
   } catch (error) {
     setStatus(els.foreverfallStatus, error.message, true);
   } finally {
-    els.foreverfallRegenBtn.disabled = false;
+    setForeverfallButtonsDisabled(false);
+  }
+}
+
+async function regenerateForeverfallPortraits() {
+  if (
+    !window.confirm(
+      "Regenerate only today's Foreverfall mugshot images? Inmate dossiers, archive rosters, and portrait pool assignments are left unchanged.",
+    )
+  ) {
+    return;
+  }
+
+  setStatus(els.foreverfallStatus, "Regenerating today's portraits…");
+  setForeverfallButtonsDisabled(true);
+  try {
+    const result = await api.adminRegenerateForeverfallPortraits();
+    await loadForeverfallSummary();
+    const queued = pickJson(result, "portraitsQueued") ?? 0;
+    const baseMessage = `${result.message} ${result.intakeCount} inmates (${result.maleCount}M / ${result.femaleCount}F).`;
+    if (queued > 0) {
+      setStatus(els.foreverfallStatus, `${baseMessage} ${queued} portrait(s) queued.`);
+      const job = await waitForAiImageQueue("foreverfall_portrait", (message) =>
+        setStatus(els.foreverfallStatus, `${baseMessage} ${message}`),
+      );
+      const queueResult = formatAiImageQueueStatus(job);
+      setStatus(els.foreverfallStatus, `${baseMessage} ${queueResult.text}`.trim(), queueResult.isError);
+      await loadForeverfallPortraitJob();
+    } else {
+      setStatus(els.foreverfallStatus, baseMessage);
+    }
+  } catch (error) {
+    setStatus(els.foreverfallStatus, error.message, true);
+  } finally {
+    setForeverfallButtonsDisabled(false);
   }
 }
 
@@ -3211,6 +3255,10 @@ els.ffpSettingsForm?.addEventListener("submit", (event) => {
 
 els.foreverfallRegenBtn?.addEventListener("click", () => {
   regenerateForeverfallIntake().catch((error) => setStatus(els.foreverfallStatus, error.message, true));
+});
+
+els.foreverfallRegenPortraitsBtn?.addEventListener("click", () => {
+  regenerateForeverfallPortraits().catch((error) => setStatus(els.foreverfallStatus, error.message, true));
 });
 
 els.voidcorpGenerateBtn?.addEventListener("click", () => {

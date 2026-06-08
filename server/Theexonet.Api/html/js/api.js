@@ -839,6 +839,13 @@ export class TheexonetApi {
     });
   }
 
+  adminRegenerateForeverfallPortraits() {
+    return this.request("/api/admin/foreverfall/regenerate-portraits", {
+      method: "POST",
+      body: {},
+    });
+  }
+
   adminGetForeverfallPortraitJob() {
     return this.request("/api/admin/foreverfall/portrait-job");
   }

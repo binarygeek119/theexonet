@@ -369,6 +369,74 @@ public sealed class ForeverfallPenitentiaryService(
         }
     }
 
+    public async Task<(bool Ok, string? Error, int PortraitsQueued)> RegenerateTodayPortraitsAsync(
+        CancellationToken ct = default)
+    {
+        if (!GenerationOptions.Enabled)
+        {
+            return (false, "Foreverfall Penitentiary is disabled in configuration.", 0);
+        }
+
+        if (!openAi.IsApiKeyConfigured)
+        {
+            return (false, "OpenAi.ApiKey is not configured; AI portraits are unavailable.", 0);
+        }
+
+        var date = UtcGameClock.Today;
+        var roster = TryLoadRoster(date);
+        if (roster is null || roster.IntakeCount == 0)
+        {
+            return (false, "No roster found for today. Regenerate intake first.", 0);
+        }
+
+        roster = NormalizeRoster(roster);
+        var portraits = CollectPortraitJobsFromRoster(roster.MaleWing.Concat(roster.FemaleWing));
+        if (portraits.Count == 0)
+        {
+            return (false, "No portrait images to regenerate for today's roster.", 0);
+        }
+
+        var gate = GenerationLocks.GetOrAdd(date, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try
+        {
+            foreach (var portrait in portraits)
+            {
+                var imagePath = ForeverfallStoragePaths.ImageFilePath(_cacheRoot, portrait.ImageId);
+                if (File.Exists(imagePath))
+                {
+                    File.Delete(imagePath);
+                }
+            }
+
+            var source = $"foreverfall:portraits:{date:yyyy-MM-dd}";
+            var enqueue = await aiImageQueuePublisher.EnqueueForeverfallPortraitsAsync(
+                portraits,
+                source,
+                ct);
+            if (enqueue.EnqueuedCount == 0 && enqueue.Message is not null)
+            {
+                return (false, enqueue.Message, 0);
+            }
+
+            logger.LogInformation(
+                "Admin queued Foreverfall portrait regeneration for {Date}: {Count} portrait job(s)",
+                date,
+                enqueue.EnqueuedCount);
+
+            return (true, null, enqueue.EnqueuedCount);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Admin Foreverfall portrait regeneration failed for {Date}", date);
+            return (false, "Portrait regeneration failed. Check API logs for details.", 0);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
     public async Task<(bool Ok, string? Error)> ProcessIntakeJobAsync(
         DateOnly date,
         bool forceRegenerate,
@@ -569,6 +637,29 @@ public sealed class ForeverfallPenitentiaryService(
             ForeverfallIntakeOfficerGenerator.Resolve(date),
             maleWing,
             femaleWing);
+    }
+
+    private static List<ForeverfallPortraitJobItem> CollectPortraitJobsFromRoster(
+        IEnumerable<ForeverfallInmateDto> inmates)
+    {
+        var portraits = new List<ForeverfallPortraitJobItem>();
+        var seenImageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var inmate in inmates)
+        {
+            if (string.IsNullOrWhiteSpace(inmate.ImageId) || !seenImageIds.Add(inmate.ImageId))
+            {
+                continue;
+            }
+
+            portraits.Add(new ForeverfallPortraitJobItem(
+                inmate.ImageId,
+                inmate.DisplayName,
+                inmate.Species,
+                inmate.Gender));
+        }
+
+        return portraits;
     }
 
     private List<ForeverfallPortraitJobItem> CollectPendingPortraits(

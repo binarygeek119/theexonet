@@ -240,12 +240,13 @@
           <div class="admin-panel-head">
             <div>
               <h2>Foreverfall Penitentiary</h2>
-              <p class="admin-page-desc">Configure galactic lifetime-sentence inmate intake. New rosters publish at UTC midnight with inmate dossiers first; AI portraits generate in a background queue. Portrait images accumulate until the pool cap, then reuse.</p>
+              <p class="admin-page-desc">Configure galactic lifetime-sentence inmate intake. New rosters publish at UTC midnight with inmate dossiers first; AI portraits generate in a background queue. Portrait regeneration re-rolls only today's mugshots and leaves inmate dossiers and archive rosters unchanged.</p>
             </div>
           </div>
           <p id="admin-foreverfall-summary" class="admin-page-desc">Loading status…</p>
           <div class="button-row">
             <button id="admin-foreverfall-regen-btn" type="button" class="btn primary">Regenerate today's intake</button>
+            <button id="admin-foreverfall-regen-portraits-btn" type="button" class="btn ghost">Regenerate today's portraits only</button>
           </div>
           <p id="admin-foreverfall-status" class="status-text"></p>
           <p id="admin-foreverfall-portrait-job" class="admin-page-desc"></p>
@@ -761,6 +762,6 @@
     </div>
   </div>
 
-  <script type="module" src="/js/admin.js?v=20260529-locale-fix"></script>
+  <script type="module" src="/js/admin.js?v=20260607-ffp-portraits"></script>
 </body>
 </html>

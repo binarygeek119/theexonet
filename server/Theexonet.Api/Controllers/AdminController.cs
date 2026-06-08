@@ -265,6 +265,28 @@ public class AdminController(
             portraitsQueued));
     }
 
+    [HttpPost("foreverfall/regenerate-portraits")]
+    public async Task<ActionResult<AdminForeverfallRegenerateResponse>> RegenerateForeverfallPortraits(
+        CancellationToken ct)
+    {
+        var (ok, error, portraitsQueued) = await foreverfallPenitentiaryService.RegenerateTodayPortraitsAsync(ct);
+        if (!ok || error is not null)
+        {
+            return BadRequest(new { message = error ?? "Portrait regeneration failed." });
+        }
+
+        var today = UtcGameClock.Today;
+        var roster = await foreverfallPenitentiaryService.GetRosterAsync(today, ct);
+        return Ok(new AdminForeverfallRegenerateResponse(
+            "Today's Foreverfall Penitentiary AI portraits queued for regeneration. Inmate dossiers and archive rosters were not changed.",
+            roster.IntakeDate,
+            roster.Source,
+            roster.IntakeCount,
+            roster.MaleCount,
+            roster.FemaleCount,
+            portraitsQueued));
+    }
+
     [HttpGet("foreverfall/portrait-job")]
     public async Task<ActionResult<AdminAiImageQueueStatusDto>> GetForeverfallPortraitJob(
         CancellationToken ct) =>

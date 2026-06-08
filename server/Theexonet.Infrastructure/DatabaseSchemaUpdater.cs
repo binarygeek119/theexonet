@@ -464,6 +464,9 @@ public static class DatabaseSchemaUpdater
                 CONSTRAINT "FK_MarketListings_Players_SellerPlayerId" FOREIGN KEY ("SellerPlayerId")
                     REFERENCES "Players" ("Id") ON DELETE SET NULL
             );
+            ALTER TABLE "MarketListings" ADD COLUMN IF NOT EXISTS "SellerType" text NOT NULL DEFAULT 'player';
+            ALTER TABLE "MarketListings" ADD COLUMN IF NOT EXISTS "Condition" numeric NOT NULL DEFAULT 100;
+            ALTER TABLE "MarketListings" ADD COLUMN IF NOT EXISTS "Status" text NOT NULL DEFAULT 'active';
             CREATE INDEX IF NOT EXISTS "IX_MarketListings_Status_Category_ItemType"
                 ON "MarketListings" ("Status", "Category", "ItemType");
             CREATE TABLE IF NOT EXISTS "MineOreStockpile" (
@@ -504,6 +507,7 @@ public static class DatabaseSchemaUpdater
                 CONSTRAINT "FK_OreShipments_Players_PlayerId" FOREIGN KEY ("PlayerId")
                     REFERENCES "Players" ("Id") ON DELETE CASCADE
             );
+            ALTER TABLE "OreShipments" ADD COLUMN IF NOT EXISTS "Status" text NOT NULL DEFAULT 'scheduled';
             CREATE INDEX IF NOT EXISTS "IX_OreShipments_MineId_Status"
                 ON "OreShipments" ("MineId", "Status");
             """,

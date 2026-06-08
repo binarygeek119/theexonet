@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theexonet-api-base" content="https://api.theexonet.com">
-  <meta name="theexonet-html-build" content="20260608-job-form-species">
+  <meta name="theexonet-html-build" content="20260608-job-optional-dossier">
   <link rel="icon" href="/images/currency.png" type="image/png">
   <title>theexonet</title>
   <style>
@@ -826,12 +826,12 @@
             <option value="human" data-i18n="profile.edit.speciesHuman">Human</option>
           </select>
           <p class="job-application-field-hint" data-i18n="profile.edit.speciesHint">Shown on your public profile. Choose human or a known alien type.</p>
-          <label for="job-application-mood" data-i18n="jobApplication.mood">Crew morale statement</label>
-          <input id="job-application-mood" type="text" maxlength="120" required data-i18n-placeholder="jobApplication.moodPlaceholder" placeholder="Ready to punch rock and chase the next vein.">
-          <label for="job-application-about" data-i18n="jobApplication.about">Applicant dossier</label>
-          <textarea id="job-application-about" maxlength="2000" rows="4" required data-i18n-placeholder="jobApplication.aboutPlaceholder" placeholder="Tell hiring officers who you are and why you belong on a claim crew."></textarea>
-          <label for="job-application-interests" data-i18n="jobApplication.interests">Off-duty interests</label>
-          <textarea id="job-application-interests" maxlength="500" rows="3" required data-i18n-placeholder="jobApplication.interestsPlaceholder" placeholder="Asteroids, salvage jazz, belt cartography..."></textarea>
+          <label for="job-application-mood" data-i18n="jobApplication.mood">Crew morale statement (optional)</label>
+          <input id="job-application-mood" type="text" maxlength="120" data-i18n-placeholder="jobApplication.moodPlaceholder" placeholder="Ready to punch rock and chase the next vein.">
+          <label for="job-application-about" data-i18n="jobApplication.about">Applicant dossier (optional)</label>
+          <textarea id="job-application-about" maxlength="2000" rows="4" data-i18n-placeholder="jobApplication.aboutPlaceholder" placeholder="Tell hiring officers who you are and why you belong on a claim crew."></textarea>
+          <label for="job-application-interests" data-i18n="jobApplication.interests">Off-duty interests (optional)</label>
+          <textarea id="job-application-interests" maxlength="500" rows="3" data-i18n-placeholder="jobApplication.interestsPlaceholder" placeholder="Asteroids, salvage jazz, belt cartography..."></textarea>
           <label for="job-application-music" data-i18n="jobApplication.music">Commuter playlist (optional)</label>
           <input id="job-application-music" type="text" maxlength="120" data-i18n-placeholder="jobApplication.musicPlaceholder" placeholder="Deep void ambient, ore-clang remixes...">
         </fieldset>
@@ -902,6 +902,6 @@
     </div>
   </div>
 
-<script type="module" src="/js/app.js?v=20260608-job-form-species"></script>
+<script type="module" src="/js/app.js?v=20260608-job-optional-dossier"></script>
 </body>
 </html>

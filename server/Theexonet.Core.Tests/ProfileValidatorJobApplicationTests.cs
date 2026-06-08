@@ -5,15 +5,13 @@ namespace Theexonet.Core.Tests;
 public class ProfileValidatorJobApplicationTests
 {
     [Fact]
-    public void ValidateJobApplication_RequiresMoodAboutInterests()
+    public void ValidateJobApplication_AcceptsEmptyProfileFields()
     {
-        Assert.NotNull(ProfileValidator.ValidateJobApplication("", "bio", "rocks", "", "", "", "", "", ""));
-        Assert.NotNull(ProfileValidator.ValidateJobApplication("Ready", "", "rocks", "", "", "", "", "", ""));
-        Assert.NotNull(ProfileValidator.ValidateJobApplication("Ready", "bio", "", "", "", "", "", "", ""));
+        Assert.Null(ProfileValidator.ValidateJobApplication("", "", "", "", "", "", "", "", ""));
     }
 
     [Fact]
-    public void ValidateJobApplication_AcceptsRequiredFields()
+    public void ValidateJobApplication_AcceptsFilledProfileFields()
     {
         Assert.Null(ProfileValidator.ValidateJobApplication(
             "Ready to mine.",
@@ -25,5 +23,21 @@ public class ProfileValidatorJobApplicationTests
             "",
             "",
             ""));
+    }
+
+    [Fact]
+    public void ValidateJobApplication_RejectsInvalidSpecies()
+    {
+        Assert.NotNull(ProfileValidator.ValidateJobApplication(
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "xenomorph"));
     }
 }

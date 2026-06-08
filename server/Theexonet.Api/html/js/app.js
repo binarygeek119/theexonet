@@ -1,4 +1,4 @@
-import { TheexonetApi } from "./api.js?v=20260608-job-form-species";
+import { TheexonetApi } from "./api.js?v=20260608-job-optional-dossier";
 import { GRID_SIZE, ORE_TYPES, SUPPLY_TYPES, API_BASE_URL, readMetaApiBase } from "./config.js";
 import {
   formatRaxHtml,
@@ -9,7 +9,7 @@ import {
 } from "./currency.js";
 import { initPlayerMessaging } from "./player-messages.js?v=20260529-message-remove";
 import { renderSocialLinksHtml, hasSocialLinks } from "./profile-social.js";
-import { initExonet } from "./exonet.js?v=20260608-job-form-species";
+import { initExonet } from "./exonet.js?v=20260608-job-optional-dossier";
 import { initI18n, applyTranslations, wireLocaleSelectors, wireLocaleSelector, getLocale, setLocale, t } from "./i18n.js";
 import {
   augmentOwnerProfileForTesting,
@@ -1662,27 +1662,6 @@ async function saveJobApplication(event) {
     els.jobApplicationStatus.textContent = t("jobApplication.positionRequired");
     els.jobApplicationStatus.classList.add("error");
     els.jobApplicationPosition?.focus();
-    return;
-  }
-
-  if (!mood) {
-    els.jobApplicationStatus.textContent = t("jobApplication.moodRequired");
-    els.jobApplicationStatus.classList.add("error");
-    els.jobApplicationMood?.focus();
-    return;
-  }
-
-  if (!aboutMe) {
-    els.jobApplicationStatus.textContent = t("jobApplication.aboutRequired");
-    els.jobApplicationStatus.classList.add("error");
-    els.jobApplicationAbout?.focus();
-    return;
-  }
-
-  if (!interests) {
-    els.jobApplicationStatus.textContent = t("jobApplication.interestsRequired");
-    els.jobApplicationStatus.classList.add("error");
-    els.jobApplicationInterests?.focus();
     return;
   }
 

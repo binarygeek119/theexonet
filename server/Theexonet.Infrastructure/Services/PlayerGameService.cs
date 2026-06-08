@@ -769,9 +769,11 @@ public class PlayerGameService(
         }
 
         player.ProfileSpecies = PlayerProfileSpecies.Normalize(request.ProfileSpecies);
-        player.ProfileMood = request.Mood!.Trim();
-        player.ProfileAboutMe = request.AboutMe!.Trim();
-        player.ProfileInterests = request.Interests!.Trim();
+        player.ProfileMood = string.IsNullOrWhiteSpace(request.Mood)
+            ? PlayerProfileDefaults.Mood
+            : request.Mood.Trim();
+        player.ProfileAboutMe = request.AboutMe?.Trim() ?? string.Empty;
+        player.ProfileInterests = request.Interests?.Trim() ?? string.Empty;
         player.ProfileMusic = request.Music?.Trim() ?? string.Empty;
         player.ProfileDiscord = request.Discord?.Trim() ?? string.Empty;
         player.ProfileBluesky = request.Bluesky?.Trim() ?? string.Empty;

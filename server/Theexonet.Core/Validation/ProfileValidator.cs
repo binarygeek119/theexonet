@@ -30,21 +30,6 @@ public static class ProfileValidator
         string facebook,
         string? profileSpecies = null)
     {
-        if (string.IsNullOrWhiteSpace(mood))
-        {
-            return "Crew morale statement is required.";
-        }
-
-        if (string.IsNullOrWhiteSpace(aboutMe))
-        {
-            return "Applicant dossier is required.";
-        }
-
-        if (string.IsNullOrWhiteSpace(interests))
-        {
-            return "Off-duty interests are required.";
-        }
-
         var speciesError = PlayerProfileSpecies.Validate(profileSpecies);
         if (speciesError is not null)
         {

@@ -94,15 +94,24 @@ Push to `main` under `server/` or `scripts/`, or run the workflow manually (unch
 
 ## 6. Troubleshooting
 
-### `ERROR: missing archive: /var/www/staging/...tar.gz`
+### `ERROR: missing archive` or `sudo: a password is required` during staging
 
-CI now stages bundles under `/var/www/staging/.incoming/`. On the VM after `git pull`:
+CI stages bundles under `/var/www/staging/.incoming/` using **group write** (`githubdeploy` in `theexonet`, mode `2775`). On the VM:
 
 ```bash
-sudo bash scripts/install-bin-scripts.sh scripts
+cd /opt/theexonet/theexonet && git pull
+sudo mkdir -p /var/www/staging/.incoming
+sudo chown root:theexonet /var/www/staging /var/www/staging/.incoming
+sudo chmod 2775 /var/www/staging /var/www/staging/.incoming
+sudo usermod -aG theexonet githubdeploy
 ```
 
-Ensure `githubdeploy` can run `sudo -n stage-theexonet-upload` (from `setup-github-ssh-restart.sh`).
+Or re-run the full deploy user setup:
+
+```bash
+sudo DEPLOY_SSH_PASSWORD='…' bash scripts/theexonet/setup-github-ssh-restart.sh
+sudo bash scripts/install-bin-scripts.sh scripts
+```
 
 ### `530 Login incorrect` (FTPS)
 

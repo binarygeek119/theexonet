@@ -78,6 +78,17 @@ fix_publish_tree() {
   fi
 }
 
+fix_staging_tree() {
+  local staging="${THEEXONET_STAGING_DIR:-/var/www/staging}"
+  say "--- Staging (${staging}) ---"
+  ensure_dir "${staging}" 2775 "root:${SERVICE_GROUP}"
+  ensure_dir "${staging}/.incoming" 2775 "root:${SERVICE_GROUP}"
+  if id githubdeploy >/dev/null 2>&1; then
+    usermod -aG "${SERVICE_GROUP}" githubdeploy 2>/dev/null || true
+    say "OK  githubdeploy in group ${SERVICE_GROUP} (CI can mv uploads into staging/.incoming)"
+  fi
+}
+
 fix_data_tree() {
   say "--- Data (${DATA_DIR}) ---"
   for path in "${DATA_WRITABLE_DIRS[@]}"; do
@@ -94,5 +105,6 @@ fix_data_tree() {
 
 say "Fixing theexonet hosting permissions (user=${SERVICE_USER})..."
 fix_publish_tree
+fix_staging_tree
 fix_data_tree
 say "Done."

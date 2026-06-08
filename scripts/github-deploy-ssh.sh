@@ -71,8 +71,34 @@ SSHPASS="${PASSWORD}" sshpass -e scp "${scp_opts[@]}" "${LOCAL_FILE}" "${USER}@$
 
 echo "Staging into ${REMOTE_PATH}…"
 if ! SSHPASS="${PASSWORD}" sshpass -e ssh "${ssh_opts[@]}" "${USER}@${HOST}" \
-  "set -euo pipefail; home=\"\$(cd ~ && pwd)\"; sudo -n stage-theexonet-upload \"\${home}/${UPLOAD_TMP_NAME}\" '${REMOTE_NAME}'"; then
-  echo "ERROR: stage-theexonet-upload failed (check sudoers and install-bin-scripts on the VM)." >&2
+  "STAGING='${STAGING_DIR}' INCOMING='${INCOMING_DIR}' ARCHIVE='${REMOTE_PATH}' UPLOAD_TMP='${UPLOAD_TMP_NAME}' REMOTE_NAME='${REMOTE_NAME}' bash -s" <<'REMOTE_STAGE'
+set -euo pipefail
+home="$(cd ~ && pwd)"
+src="${home}/${UPLOAD_TMP}"
+mkdir -p "${INCOMING}"
+
+if [ ! -f "${src}" ]; then
+  echo "ERROR: upload missing at ${src}" >&2
+  exit 1
+fi
+
+if mv -f "${src}" "${ARCHIVE}" 2>/dev/null; then
+  echo "Staged ${ARCHIVE} (group write)"
+  exit 0
+fi
+
+echo "Group write to ${INCOMING} failed — trying sudo stage-theexonet-upload…" >&2
+if sudo -n stage-theexonet-upload "${src}" "${REMOTE_NAME}"; then
+  exit 0
+fi
+
+echo "ERROR: could not stage ${ARCHIVE}." >&2
+echo "Ensure ${STAGING} is group-writable (2775, theexonet) and githubdeploy is in that group," >&2
+echo "or run: sudo DEPLOY_SSH_PASSWORD='…' bash scripts/theexonet/setup-github-ssh-restart.sh" >&2
+exit 1
+REMOTE_STAGE
+then
+  echo "ERROR: failed to stage deploy archive on the VM." >&2
   exit 1
 fi
 

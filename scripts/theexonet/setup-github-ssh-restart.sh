@@ -86,11 +86,12 @@ chmod 440 "${sudoers}"
 visudo -cf "${sudoers}" >/dev/null
 echo "Wrote ${sudoers}"
 
-mkdir -p "${STAGING_DIR}"
-chown root:"${GAME_GROUP}" "${STAGING_DIR}"
-chmod 2775 "${STAGING_DIR}"
+mkdir -p "${STAGING_DIR}" "${STAGING_DIR}/.incoming"
+chown root:"${GAME_GROUP}" "${STAGING_DIR}" "${STAGING_DIR}/.incoming"
+chmod 2775 "${STAGING_DIR}" "${STAGING_DIR}/.incoming"
 usermod -aG "${GAME_GROUP}" "${DEPLOY_USER}" 2>/dev/null || true
 echo "Staging upload dir: ${STAGING_DIR} (group ${GAME_GROUP}, mode 2775)"
+echo "CI incoming dir: ${STAGING_DIR}/.incoming"
 
 echo ""
 echo "=== GitHub deploy user ready ==="
